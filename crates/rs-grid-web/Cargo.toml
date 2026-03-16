@@ -11,3 +11,4 @@ rs-grid-render-canvas = { path = "../rs-grid-render-canvas" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
