@@ -1,0 +1,7 @@
+[package]
+name = "rs-grid-core"
+version = "0.1.0"
+edition = "2021"
+description = "Headless grid engine core: model, viewport, selection, hit-testing"
+
+[dependencies]

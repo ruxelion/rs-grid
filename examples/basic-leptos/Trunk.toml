@@ -1,0 +1,7 @@
+[watch]
+# Watch all workspace crates in addition to this example's own src/
+paths = ["src", "../../crates"]
+
+[build]
+# Optional: faster incremental builds in dev
+release = false
