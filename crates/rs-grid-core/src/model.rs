@@ -55,7 +55,7 @@ impl GridModel {
     }
 
     /// Y position of the top edge of a data row (in content space, before scroll offset).
-    pub fn row_top(&self, row_index: usize) -> f64 {
+    pub fn row_top(&self, row_index: u64) -> f64 {
         self.header_height + row_index as f64 * self.row_height
     }
 

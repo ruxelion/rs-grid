@@ -25,7 +25,7 @@ pub fn hit_test(
 
     // Row index.
     let row_y = abs_y - model.header_height;
-    let row = (row_y / model.row_height) as usize;
+    let row = (row_y / model.row_height) as u64;
     if row >= model.data.row_count() {
         return None;
     }

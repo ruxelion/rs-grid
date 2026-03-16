@@ -13,15 +13,18 @@ fn build_model() -> GridModel {
         ColumnDef::new("status", "Status", 100.0),
     ];
 
-    let source = FnDataSource::new(429_496_729_5, |row, col_key| match col_key {
-        "id" => Some(row.to_string()),
-        "name" => Some(format!("User {row}")),
-        "email" => Some(format!("user{row}@example.com")),
-        "role" => Some(if row % 3 == 0 { "Admin" } else { "Member" }.to_owned()),
-        "dept" => Some(format!("Dept {}", row % 20)),
-        "status" => Some(if row % 5 == 0 { "Inactive" } else { "Active" }.to_owned()),
-        _ => None,
-    });
+    let source = FnDataSource::new(
+        9_007_199_254_740_99_u64,
+        |row: u64, col_key| match col_key {
+            "id" => Some(row.to_string()),
+            "name" => Some(format!("User {row}")),
+            "email" => Some(format!("user{row}@example.com")),
+            "role" => Some(if row % 3 == 0 { "Admin" } else { "Member" }.to_owned()),
+            "dept" => Some(format!("Dept {}", row % 20)),
+            "status" => Some(if row % 5 == 0 { "Inactive" } else { "Active" }.to_owned()),
+            _ => None,
+        },
+    );
 
     GridModel::with_data_source(columns, Box::new(source), 28.0, 36.0)
 }
@@ -33,7 +36,7 @@ fn App() -> impl IntoView {
     view! {
         <div style="display:flex;flex-direction:column;height:100vh">
             <header style="height:48px;display:flex;align-items:center;padding:0 16px;background:#1e1e2e;color:#cdd6f4;font:600 15px system-ui">
-                "rs-grid · Leptos CSR · 429 496 729 5 rows (virtual)"
+                "rs-grid · Leptos CSR · 10 000 000 000 rows (virtual)"
             </header>
             <div style="flex:1;padding:16px;min-height:0">
                 <GridCanvas model=model width="100%".into() height="calc(100vh - 80px)".into() />
