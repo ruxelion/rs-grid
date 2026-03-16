@@ -1,0 +1,13 @@
+[package]
+name = "rs-grid-web"
+version = "0.1.0"
+edition = "2021"
+description = "Browser event handling, canvas sizing, and rAF loop for rs-grid"
+
+[dependencies]
+rs-grid-core = { path = "../rs-grid-core" }
+rs-grid-scene = { path = "../rs-grid-scene" }
+rs-grid-render-canvas = { path = "../rs-grid-render-canvas" }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }
+js-sys = { workspace = true }

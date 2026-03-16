@@ -1,0 +1,11 @@
+[package]
+name = "rs-grid-render-canvas"
+version = "0.1.0"
+edition = "2021"
+description = "Canvas2D renderer: converts SceneFrame into CanvasRenderingContext2d calls"
+
+[dependencies]
+rs-grid-scene = { path = "../rs-grid-scene" }
+wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }
+js-sys = { workspace = true }
