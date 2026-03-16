@@ -1,10 +1,7 @@
 //! Minimal WASM example — no framework, just a `<canvas>` + rs-grid-web.
 
 use rs_grid_core::{
-    column::ColumnDef,
-    model::GridModel,
-    row::RowRecord,
-    state::GridState,
+    column::ColumnDef, datasource::FnDataSource, model::GridModel, state::GridState,
 };
 use rs_grid_web::GridCanvas;
 use wasm_bindgen::prelude::*;
@@ -32,26 +29,23 @@ pub fn main() {
 
 fn build_model() -> GridModel {
     let columns = vec![
-        ColumnDef::new("id",     "ID",         60.0),
-        ColumnDef::new("name",   "Name",       200.0),
-        ColumnDef::new("email",  "Email",      260.0),
-        ColumnDef::new("role",   "Role",       140.0),
-        ColumnDef::new("dept",   "Department", 160.0),
-        ColumnDef::new("status", "Status",     100.0),
+        ColumnDef::new("id", "ID", 100.0),
+        ColumnDef::new("name", "Name", 200.0),
+        ColumnDef::new("email", "Email", 260.0),
+        ColumnDef::new("role", "Role", 140.0),
+        ColumnDef::new("dept", "Department", 160.0),
+        ColumnDef::new("status", "Status", 100.0),
     ];
 
-    let rows: Vec<RowRecord> = (0..100_000)
-        .map(|i| {
-            let mut row = RowRecord::new(i as u64);
-            row.set("id",     i.to_string());
-            row.set("name",   format!("User {i}"));
-            row.set("email",  format!("user{i}@example.com"));
-            row.set("role",   if i % 3 == 0 { "Admin" } else { "Member" });
-            row.set("dept",   format!("Dept {}", i % 20));
-            row.set("status", if i % 5 == 0 { "Inactive" } else { "Active" });
-            row
-        })
-        .collect();
+    let source = FnDataSource::new(100_000_000, |row, col_key| match col_key {
+        "id" => Some(row.to_string()),
+        "name" => Some(format!("User {row}")),
+        "email" => Some(format!("user{row}@example.com")),
+        "role" => Some(if row % 3 == 0 { "Admin" } else { "Member" }.to_owned()),
+        "dept" => Some(format!("Dept {}", row % 20)),
+        "status" => Some(if row % 5 == 0 { "Inactive" } else { "Active" }.to_owned()),
+        _ => None,
+    });
 
-    GridModel::new(columns, rows, 28.0, 36.0)
+    GridModel::with_data_source(columns, Box::new(source), 28.0, 36.0)
 }

@@ -3,6 +3,8 @@
 //! Provides a `<GridCanvas>` component that mounts a `GridCanvas` into the DOM
 //! and keeps it in sync with Leptos reactive signals.
 
+use std::cell::RefCell;
+
 use leptos::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
 use wasm_bindgen::JsCast;
@@ -22,8 +24,18 @@ pub fn GridCanvas(
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
+    // Wrap in RefCell<Option> so the model can be moved into the Effect
+    // on first run without requiring GridModel: Clone.  This avoids
+    // a panic when the data source is an FnDataSource (which is not cloneable).
+    let model_slot = RefCell::new(Some(model));
+
     Effect::new(move |_| {
         let Some(canvas_el) = canvas_ref.get() else {
+            return;
+        };
+
+        // Take the model out on the first run; subsequent runs are no-ops.
+        let Some(model) = model_slot.borrow_mut().take() else {
             return;
         };
 
@@ -57,7 +69,7 @@ pub fn GridCanvas(
         };
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
-        let state = GridState::new(model.clone(), w, h);
+        let state = GridState::new(model, w, h);
         let gc = rs_grid_web::GridCanvas::mount(canvas, state);
         gc.render();
     });

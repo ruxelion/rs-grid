@@ -1,5 +1,6 @@
 pub mod column;
 pub mod commands;
+pub mod datasource;
 pub mod hit_test;
 pub mod model;
 pub mod row;

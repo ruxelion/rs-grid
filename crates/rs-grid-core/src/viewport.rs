@@ -51,7 +51,7 @@ impl ViewportState {
 
         let visible_height = (self.height - header_height).max(0.0);
         let last_raw = ((content_y + visible_height) / row_height).ceil() as usize;
-        let last = (last_raw + self.overscan).min(row_count);
+        let last = last_raw.saturating_add(self.overscan).min(row_count);
 
         (first, last)
     }

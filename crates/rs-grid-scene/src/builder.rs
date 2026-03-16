@@ -71,7 +71,7 @@ impl SceneBuilder {
         let (col_start, col_end) =
             vp.visible_columns(&model.column_offsets, &col_widths);
         let (row_start, row_end) =
-            vp.visible_rows(model.rows.len(), model.row_height, model.header_height);
+            vp.visible_rows(model.data.row_count(), model.row_height, model.header_height);
 
         let sx = vp.scroll_x;
         let sy = vp.scroll_y;
@@ -127,7 +127,6 @@ impl SceneBuilder {
 
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
-            let row = &model.rows[ri];
             let ry = model.row_top(ri) - sy;
 
             // Skip rows that are fully outside the clip zone (overscan may
@@ -156,12 +155,12 @@ impl SceneBuilder {
                 }
 
                 // Cell text
-                if let Some(text) = row.get(&col.key) {
+                if let Some(text) = model.data.get_cell(ri, &col.key) {
                     if !text.is_empty() {
                         frame.push(ScenePrimitive::Text(TextPrimitive {
                             x: cx + self.cell_padding,
                             y: mid_y,
-                            text: text.to_string(),
+                            text,
                             color: CELL_TEXT,
                             font_size: self.font_size,
                             clip: Some([cx, ry, col.width, model.row_height]),
