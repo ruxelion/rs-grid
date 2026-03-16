@@ -155,7 +155,7 @@ impl SceneBuilder {
                 }
 
                 // Cell text
-                if let Some(text) = model.data.get_cell(ri, &col.key) {
+                if let Some(text) = model.get_cell(ri, &col.key) {
                     if !text.is_empty() {
                         frame.push(ScenePrimitive::Text(TextPrimitive {
                             x: cx + self.cell_padding,

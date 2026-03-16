@@ -1,14 +1,15 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rs_grid_core::{
-    commands::GridCommand,
+    commands::{CommandOutput, GridCommand},
     scrollbar::ScrollbarGeom,
+    selection::CopyError,
     state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::builder::SceneBuilder;
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{HtmlCanvasElement, MouseEvent, WheelEvent};
+use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, WheelEvent};
 
 // ── public handle ─────────────────────────────────────────────────────────────
 
@@ -84,10 +85,16 @@ impl GridCanvas {
         self.0.renderer.render(&frame);
     }
 
+    /// Apply a command, redraw, and return the output.
+    fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+        let out = self.0.state.borrow_mut().apply(cmd);
+        self.render();
+        out
+    }
+
     /// Apply a command then redraw.
     pub fn dispatch(&self, cmd: GridCommand) {
-        self.0.state.borrow_mut().apply(cmd);
-        self.render();
+        self.dispatch_with_output(cmd);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
@@ -111,6 +118,28 @@ impl GridCanvas {
         )
     }
 
+    fn handle_copy(&self) {
+        match self.dispatch_with_output(GridCommand::CopySelection) {
+            CommandOutput::CopyText(text) => self.write_clipboard(text),
+            CommandOutput::CopyError(CopyError::TooManyRows { actual, max }) => {
+                let msg = format!("Copy annulé : {actual} lignes sélectionnées (max {max})");
+                web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(&msg));
+            }
+            _ => {}
+        }
+    }
+
+    fn write_clipboard(&self, text: String) {
+        let window = web_sys::window().expect("no window");
+        let clipboard = window.navigator().clipboard();
+        let promise = clipboard.write_text(&text);
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Err(e) = wasm_bindgen_futures::JsFuture::from(promise).await {
+                web_sys::console::warn_1(&e);
+            }
+        });
+    }
+
     // ── event wiring ─────────────────────────────────────────────────────────
 
     fn attach_listeners(&self) {
@@ -118,6 +147,8 @@ impl GridCanvas {
         self.attach_mousedown();
         self.attach_mousemove(); // on document — works even if cursor leaves canvas
         self.attach_mouseup();   // on document
+        self.attach_keydown();   // on document
+        self.attach_paste();     // on document
     }
 
     fn attach_wheel(&self) {
@@ -166,7 +197,11 @@ impl GridCanvas {
             // ── cell selection ────────────────────────────────────────────────
             let coord = gc.0.state.borrow().hit_test(x, y);
             if let Some(coord) = coord {
-                gc.dispatch(GridCommand::SelectCell(coord));
+                if evt.shift_key() {
+                    gc.dispatch(GridCommand::ExtendSelection(coord));
+                } else {
+                    gc.dispatch(GridCommand::SelectCell(coord));
+                }
             }
         });
         self.0
@@ -219,6 +254,57 @@ impl GridCanvas {
         });
         document()
             .add_event_listener_with_callback("mouseup", cb.as_ref().unchecked_ref())
+            .unwrap();
+        cb.forget();
+    }
+
+    fn attach_keydown(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
+            let key = evt.key();
+            let shift = evt.shift_key();
+            let ctrl  = evt.ctrl_key() || evt.meta_key();
+            match key.as_str() {
+                "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" => {
+                    if !gc.0.state.borrow().selection.has_selection() { return; }
+                    evt.prevent_default();
+                    let (dr, dc) = match key.as_str() {
+                        "ArrowUp"    => (-1_i64,  0_i64),
+                        "ArrowDown"  => ( 1,  0),
+                        "ArrowLeft"  => ( 0, -1),
+                        "ArrowRight" => ( 0,  1),
+                        _ => unreachable!(),
+                    };
+                    gc.dispatch(GridCommand::MoveSelection { delta_row: dr, delta_col: dc, extend: shift });
+                }
+                "c" if ctrl => {
+                    if !gc.0.state.borrow().selection.has_selection() { return; }
+                    evt.prevent_default();
+                    gc.handle_copy();
+                }
+                "Escape" => { gc.dispatch(GridCommand::ClearSelection); }
+                _ => {}
+            }
+        });
+        document()
+            .add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref())
+            .unwrap();
+        cb.forget();
+    }
+
+    fn attach_paste(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: web_sys::ClipboardEvent| {
+            if !gc.0.state.borrow().selection.has_selection() { return; }
+            if let Some(dt) = evt.clipboard_data() {
+                if let Ok(text) = dt.get_data("text/plain") {
+                    evt.prevent_default();
+                    gc.dispatch(GridCommand::PasteAt { text });
+                }
+            }
+        });
+        document()
+            .add_event_listener_with_callback("paste", cb.as_ref().unchecked_ref())
             .unwrap();
         cb.forget();
     }

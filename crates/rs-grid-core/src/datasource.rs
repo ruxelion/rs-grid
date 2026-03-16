@@ -4,6 +4,8 @@ pub trait DataSource: std::fmt::Debug {
     fn row_count(&self) -> u64;
     fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
     fn clone_box(&self) -> Box<dyn DataSource>;
+    /// Write a cell value. Default is a no-op for read-only sources.
+    fn set_cell(&mut self, _row: u64, _col_key: &str, _value: String) {}
 }
 
 impl Clone for Box<dyn DataSource> {
@@ -35,6 +37,13 @@ impl DataSource for VecDataSource {
     }
     fn clone_box(&self) -> Box<dyn DataSource> {
         Box::new(self.clone())
+    }
+    fn set_cell(&mut self, row: u64, col_key: &str, value: String) {
+        if let Ok(idx) = usize::try_from(row) {
+            if let Some(record) = self.rows.get_mut(idx) {
+                record.set(col_key, value);
+            }
+        }
     }
 }
 

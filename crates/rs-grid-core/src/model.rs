@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     column::{ColumnDef, ColumnOffsets},
     datasource::{DataSource, VecDataSource},
@@ -15,6 +17,9 @@ pub struct GridModel {
     pub header_height: f64,
     /// Precomputed column offsets (recomputed when columns change).
     pub column_offsets: ColumnOffsets,
+    /// Edited cell values that override the underlying datasource (works for
+    /// any source, including read-only `FnDataSource`).
+    pub patches: HashMap<(u64, String), String>,
 }
 
 impl GridModel {
@@ -41,7 +46,20 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
-        Self { columns, data, row_height, header_height, column_offsets }
+        Self { columns, data, row_height, header_height, column_offsets, patches: HashMap::new() }
+    }
+
+    /// Read a cell value, checking local patches before the datasource.
+    pub fn get_cell(&self, row: u64, col_key: &str) -> Option<String> {
+        if let Some(v) = self.patches.get(&(row, col_key.to_owned())) {
+            return Some(v.clone());
+        }
+        self.data.get_cell(row, col_key)
+    }
+
+    /// Write a cell value into the patch layer (works for any datasource).
+    pub fn set_cell(&mut self, row: u64, col_key: impl Into<String>, value: String) {
+        self.patches.insert((row, col_key.into()), value);
     }
 
     /// Total scrollable height (header + all rows).
