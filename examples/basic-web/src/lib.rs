@@ -37,7 +37,7 @@ fn build_model() -> GridModel {
         ColumnDef::new("status", "Status", 100.0),
     ];
 
-    let source = FnDataSource::new(100_000_000, |row, col_key| match col_key {
+    let source = FnDataSource::new(10_000_000_000_u64, |row: u64, col_key| match col_key {
         "id" => Some(row.to_string()),
         "name" => Some(format!("User {row}")),
         "email" => Some(format!("user{row}@example.com")),

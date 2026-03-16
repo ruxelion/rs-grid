@@ -1,7 +1,7 @@
 /// A (row, col) address of a cell.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CellCoord {
-    pub row: usize,
+    pub row: u64,
     pub col: usize,
 }
 
@@ -14,19 +14,19 @@ pub struct SelectionState {
 
 impl SelectionState {
     /// Start a new single-cell selection.
-    pub fn select_cell(&mut self, row: usize, col: usize) {
+    pub fn select_cell(&mut self, row: u64, col: usize) {
         let coord = CellCoord { row, col };
         self.anchor = Some(coord.clone());
         self.focus = Some(coord);
     }
 
     /// Extend the selection to cover a new focus cell (shift-click / shift-arrow).
-    pub fn extend_to(&mut self, row: usize, col: usize) {
+    pub fn extend_to(&mut self, row: u64, col: usize) {
         self.focus = Some(CellCoord { row, col });
     }
 
     /// Returns `true` if the given cell falls inside the selected rectangle.
-    pub fn is_selected(&self, row: usize, col: usize) -> bool {
+    pub fn is_selected(&self, row: u64, col: usize) -> bool {
         match (&self.anchor, &self.focus) {
             (Some(a), Some(f)) => {
                 let r_min = a.row.min(f.row);

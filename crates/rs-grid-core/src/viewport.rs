@@ -37,21 +37,21 @@ impl ViewportState {
     /// Inclusive start / exclusive end of the visible row range (with overscan).
     pub fn visible_rows(
         &self,
-        row_count: usize,
+        row_count: u64,
         row_height: f64,
         header_height: f64,
-    ) -> (usize, usize) {
+    ) -> (u64, u64) {
         if row_count == 0 || row_height <= 0.0 {
             return (0, 0);
         }
         // how far into the data area the viewport is scrolled
         let content_y = (self.scroll_y - header_height).max(0.0);
-        let first = (content_y / row_height) as usize;
-        let first = first.saturating_sub(self.overscan);
+        let first = (content_y / row_height) as u64;
+        let first = first.saturating_sub(self.overscan as u64);
 
         let visible_height = (self.height - header_height).max(0.0);
-        let last_raw = ((content_y + visible_height) / row_height).ceil() as usize;
-        let last = last_raw.saturating_add(self.overscan).min(row_count);
+        let last_raw = ((content_y + visible_height) / row_height).ceil() as u64;
+        let last = last_raw.saturating_add(self.overscan as u64).min(row_count);
 
         (first, last)
     }
