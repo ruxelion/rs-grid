@@ -1,13 +1,14 @@
 use crate::{
     column::{ColumnDef, ColumnOffsets},
+    datasource::{DataSource, VecDataSource},
     row::RowRecord,
 };
 
-/// The data model: columns, rows, and sizing constants.
+/// The data model: columns, a virtual data source, and sizing constants.
 #[derive(Debug, Clone)]
 pub struct GridModel {
     pub columns: Vec<ColumnDef>,
-    pub rows: Vec<RowRecord>,
+    pub data: Box<dyn DataSource>,
     /// Height of every data row in logical pixels.
     pub row_height: f64,
     /// Height of the sticky header row in logical pixels.
@@ -17,25 +18,35 @@ pub struct GridModel {
 }
 
 impl GridModel {
+    /// Create a model backed by an in-memory Vec (backwards-compatible API).
     pub fn new(
         columns: Vec<ColumnDef>,
         rows: Vec<RowRecord>,
         row_height: f64,
         header_height: f64,
     ) -> Self {
-        let column_offsets = ColumnOffsets::compute(&columns);
-        Self {
+        Self::with_data_source(
             columns,
-            rows,
+            Box::new(VecDataSource::new(rows)),
             row_height,
             header_height,
-            column_offsets,
-        }
+        )
+    }
+
+    /// Create a model backed by any `DataSource` (virtual / lazy sources).
+    pub fn with_data_source(
+        columns: Vec<ColumnDef>,
+        data: Box<dyn DataSource>,
+        row_height: f64,
+        header_height: f64,
+    ) -> Self {
+        let column_offsets = ColumnOffsets::compute(&columns);
+        Self { columns, data, row_height, header_height, column_offsets }
     }
 
     /// Total scrollable height (header + all rows).
     pub fn total_height(&self) -> f64 {
-        self.header_height + self.rows.len() as f64 * self.row_height
+        self.header_height + self.data.row_count() as f64 * self.row_height
     }
 
     /// Total scrollable width.

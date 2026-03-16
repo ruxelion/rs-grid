@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use rs_grid_core::{column::ColumnDef, model::GridModel, row::RowRecord};
+use rs_grid_core::{column::ColumnDef, datasource::FnDataSource, model::GridModel};
 use rs_grid_leptos::GridCanvas;
 use wasm_bindgen::prelude::*;
 
@@ -13,20 +13,17 @@ fn build_model() -> GridModel {
         ColumnDef::new("status", "Status", 100.0),
     ];
 
-    let rows: Vec<RowRecord> = (0..500_001)
-        .map(|i| {
-            let mut row = RowRecord::new(i as u64);
-            row.set("id", i.to_string());
-            row.set("name", format!("User {}", i));
-            row.set("email", format!("user{}@example.com", i));
-            row.set("role", if i % 3 == 0 { "Admin" } else { "Member" });
-            row.set("dept", format!("Dept {}", i % 20));
-            row.set("status", if i % 5 == 0 { "Inactive" } else { "Active" });
-            row
-        })
-        .collect();
+    let source = FnDataSource::new(429_496_729_5, |row, col_key| match col_key {
+        "id" => Some(row.to_string()),
+        "name" => Some(format!("User {row}")),
+        "email" => Some(format!("user{row}@example.com")),
+        "role" => Some(if row % 3 == 0 { "Admin" } else { "Member" }.to_owned()),
+        "dept" => Some(format!("Dept {}", row % 20)),
+        "status" => Some(if row % 5 == 0 { "Inactive" } else { "Active" }.to_owned()),
+        _ => None,
+    });
 
-    GridModel::new(columns, rows, 28.0, 36.0)
+    GridModel::with_data_source(columns, Box::new(source), 28.0, 36.0)
 }
 
 #[component]
@@ -36,7 +33,7 @@ fn App() -> impl IntoView {
     view! {
         <div style="display:flex;flex-direction:column;height:100vh">
             <header style="height:48px;display:flex;align-items:center;padding:0 16px;background:#1e1e2e;color:#cdd6f4;font:600 15px system-ui">
-                "rs-grid · Leptos CSR · 500 000 rows"
+                "rs-grid · Leptos CSR · 429 496 729 5 rows (virtual)"
             </header>
             <div style="flex:1;padding:16px;min-height:0">
                 <GridCanvas model=model width="100%".into() height="calc(100vh - 80px)".into() />
