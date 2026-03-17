@@ -1,7 +1,15 @@
 [watch]
-# Watch all workspace crates in addition to this example's own src/
-paths = ["src", "../../crates"]
+ignore = ["dist"]
+paths = [
+  "src",
+  "../../crates/rs-grid-core/src",
+  "../../crates/rs-grid-leptos/src",
+  "../../crates/rs-grid-render-canvas/src",
+  "../../crates/rs-grid-scene/src",
+  "../../crates/rs-grid-web/src",
+]
 
 [build]
-# Optional: faster incremental builds in dev
+dist = "dist"
 release = false
+target = "index.html"
