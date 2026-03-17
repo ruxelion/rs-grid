@@ -5,8 +5,9 @@ edition = "2021"
 description = "Leptos component wrapper for rs-grid"
 
 [dependencies]
-rs-grid-core = { path = "../rs-grid-core" }
-rs-grid-web = { path = "../rs-grid-web" }
+rs-grid-core  = { path = "../rs-grid-core" }
+rs-grid-scene = { path = "../rs-grid-scene" }
+rs-grid-web   = { path = "../rs-grid-web" }
 leptos = { version = "0.7", features = ["csr"] }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
