@@ -89,6 +89,20 @@ impl SceneBuilder {
 
             let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
 
+            // Alternating row background (odd rows, behind selection)
+            if ri % 2 == 1 {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: 0.0,
+                    y: ry,
+                    width: vp.width,
+                    height: model.row_height,
+                    fill: t.row_alt_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
                 let cx = model.column_offsets.offsets[ci] - sx + rnw;
@@ -116,6 +130,7 @@ impl SceneBuilder {
                             text,
                             color: t.cell_text,
                             font_size: t.font_size,
+                            bold: false,
                             clip: Some([cx, ry, col.width, model.row_height]),
                             align: TextAlign::Left,
                         }));
@@ -221,6 +236,7 @@ impl SceneBuilder {
                 text: col.label.clone(),
                 color: t.header_text,
                 font_size: t.header_font_size,
+                bold: t.header_font_bold,
                 clip: Some([cx, 0.0, col.width, model.header_height]),
                 align: TextAlign::Left,
             }));
@@ -290,6 +306,7 @@ impl SceneBuilder {
                     text: (ri + 1).to_string(),
                     color: t.header_text,
                     font_size: t.font_size,
+                    bold: false,
                     clip: Some([0.0, ry, rnw, model.row_height]),
                     align: TextAlign::Right,
                 }));

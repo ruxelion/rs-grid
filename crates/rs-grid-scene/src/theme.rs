@@ -19,9 +19,14 @@ pub struct Theme {
     pub scrollbar_track:  Color,
     pub scrollbar_thumb:  Color,
 
+    /// Subtle background for odd data rows (0 = same as `bg`).
+    pub row_alt_bg:       Color,
+
     // ── typography ───────────────────────────────────────────────────────────
     pub font_size:        f64,
     pub header_font_size: f64,
+    /// Render column header labels with font-weight 600.
+    pub header_font_bold: bool,
 
     // ── spacing ──────────────────────────────────────────────────────────────
     pub cell_padding:     f64,
@@ -34,23 +39,25 @@ pub struct Theme {
 }
 
 impl Theme {
-    /// Light theme — reproduces the original hardcoded colours exactly.
+    /// Light theme — AG Grid-inspired palette.
     pub fn light() -> Self {
         Self {
             bg:               Color::rgb(255, 255, 255),
-            header_bg:        Color::rgb(242, 242, 247),
-            header_text:      Color::rgb(90,  90,  100),
-            cell_text:        Color::rgb(20,  20,  20),
-            grid_line:        Color::rgb(210, 210, 215),
-            header_border:    Color::rgb(180, 180, 190),
-            selection_fill:   Color::rgba(59,  130, 246, 50),
-            selection_border: Color::rgba(59,  130, 246, 200),
-            scrollbar_track:  Color::rgba(0,   0,   0,   18),
-            scrollbar_thumb:  Color::rgba(90,  90,  100, 170),
-            font_size:        13.0,
+            header_bg:        Color::rgb(248, 249, 250),
+            header_text:      Color::rgb(24,  29,  31),
+            cell_text:        Color::rgb(24,  29,  31),
+            grid_line:        Color::rgb(224, 224, 224),
+            header_border:    Color::rgb(186, 191, 199),
+            selection_fill:   Color::rgba(31,  119, 220, 46),
+            selection_border: Color::rgba(31,  119, 220, 210),
+            scrollbar_track:  Color::rgb(241, 241, 241),
+            scrollbar_thumb:  Color::rgba(100, 100, 110, 160),
+            row_alt_bg:       Color::rgb(252, 252, 253),
+            font_size:        14.0,
             header_font_size: 12.0,
-            cell_padding:     8.0,
-            scrollbar_width:  8.0,
+            header_font_bold: true,
+            cell_padding:     10.0,
+            scrollbar_width:  14.0,
             scrollbar_radius: 4.0,
         }
     }
@@ -68,10 +75,12 @@ impl Theme {
             selection_border: Color::rgba(99,  160, 255, 210),
             scrollbar_track:  Color::rgba(255, 255, 255, 15),
             scrollbar_thumb:  Color::rgba(180, 180, 200, 140),
-            font_size:        13.0,
+            row_alt_bg:       Color::rgb(22,  22,  30),
+            font_size:        14.0,
             header_font_size: 12.0,
-            cell_padding:     8.0,
-            scrollbar_width:  8.0,
+            header_font_bold: true,
+            cell_padding:     10.0,
+            scrollbar_width:  14.0,
             scrollbar_radius: 4.0,
         }
     }

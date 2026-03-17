@@ -11,23 +11,25 @@ use rs_grid_scene::{
 ///
 /// ## Supported variables
 ///
-/// | Variable                       | Maps to                   |
-/// |-------------------------------|---------------------------|
-/// | `--rs-grid-bg`                | `Theme::bg`               |
-/// | `--rs-grid-header-bg`         | `Theme::header_bg`        |
-/// | `--rs-grid-header-text`       | `Theme::header_text`      |
-/// | `--rs-grid-cell-text`         | `Theme::cell_text`        |
-/// | `--rs-grid-grid-line`         | `Theme::grid_line`        |
-/// | `--rs-grid-header-border`     | `Theme::header_border`    |
-/// | `--rs-grid-selection-fill`    | `Theme::selection_fill`   |
-/// | `--rs-grid-selection-border`  | `Theme::selection_border` |
-/// | `--rs-grid-scrollbar-track`   | `Theme::scrollbar_track`  |
-/// | `--rs-grid-scrollbar-thumb`   | `Theme::scrollbar_thumb`  |
-/// | `--rs-grid-scrollbar-width`   | `Theme::scrollbar_width`  |
-/// | `--rs-grid-scrollbar-radius`  | `Theme::scrollbar_radius` |
-/// | `--rs-grid-font-size`         | `Theme::font_size`        |
-/// | `--rs-grid-header-font-size`  | `Theme::header_font_size` |
-/// | `--rs-grid-cell-padding`      | `Theme::cell_padding`     |
+/// | Variable                        | Maps to                    |
+/// |--------------------------------|----------------------------|
+/// | `--rs-grid-bg`                 | `Theme::bg`                |
+/// | `--rs-grid-header-bg`          | `Theme::header_bg`         |
+/// | `--rs-grid-header-text`        | `Theme::header_text`       |
+/// | `--rs-grid-cell-text`          | `Theme::cell_text`         |
+/// | `--rs-grid-grid-line`          | `Theme::grid_line`         |
+/// | `--rs-grid-header-border`      | `Theme::header_border`     |
+/// | `--rs-grid-selection-fill`     | `Theme::selection_fill`    |
+/// | `--rs-grid-selection-border`   | `Theme::selection_border`  |
+/// | `--rs-grid-scrollbar-track`    | `Theme::scrollbar_track`   |
+/// | `--rs-grid-scrollbar-thumb`    | `Theme::scrollbar_thumb`   |
+/// | `--rs-grid-scrollbar-width`    | `Theme::scrollbar_width`   |
+/// | `--rs-grid-scrollbar-radius`   | `Theme::scrollbar_radius`  |
+/// | `--rs-grid-row-alt-bg`         | `Theme::row_alt_bg`        |
+/// | `--rs-grid-font-size`          | `Theme::font_size`         |
+/// | `--rs-grid-header-font-size`   | `Theme::header_font_size`  |
+/// | `--rs-grid-header-font-bold`   | `Theme::header_font_bold`  |
+/// | `--rs-grid-cell-padding`       | `Theme::cell_padding`      |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -45,6 +47,14 @@ pub fn theme_from_css_vars() -> Theme {
         parse_px(&raw).unwrap_or(fb)
     };
 
+    let bool_var = |name: &str, fb: bool| -> bool {
+        match get_var(&style, name).trim() {
+            "0" | "false" => false,
+            "1" | "true"  => true,
+            _              => fb,
+        }
+    };
+
     Theme {
         bg:               color("--rs-grid-bg",               fallback.bg),
         header_bg:        color("--rs-grid-header-bg",        fallback.header_bg),
@@ -56,10 +66,14 @@ pub fn theme_from_css_vars() -> Theme {
         selection_border: color("--rs-grid-selection-border", fallback.selection_border),
         scrollbar_track:  color("--rs-grid-scrollbar-track",  fallback.scrollbar_track),
         scrollbar_thumb:  color("--rs-grid-scrollbar-thumb",  fallback.scrollbar_thumb),
+        row_alt_bg:       color("--rs-grid-row-alt-bg",       fallback.row_alt_bg),
         scrollbar_width:  px("--rs-grid-scrollbar-width",     fallback.scrollbar_width),
         scrollbar_radius: px("--rs-grid-scrollbar-radius",    fallback.scrollbar_radius),
         font_size:        px("--rs-grid-font-size",           fallback.font_size),
         header_font_size: px("--rs-grid-header-font-size",    fallback.header_font_size),
+        header_font_bold: bool_var(
+            "--rs-grid-header-font-bold", fallback.header_font_bold,
+        ),
         cell_padding:     px("--rs-grid-cell-padding",        fallback.cell_padding),
     }
 }
