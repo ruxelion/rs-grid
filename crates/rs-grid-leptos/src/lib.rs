@@ -30,7 +30,7 @@ pub fn GridCanvas(
     // on first run without requiring GridModel: Clone.  This avoids
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
-    let resolved_theme = theme.unwrap_or_else(Theme::light);
+    let resolved_theme = theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
 
     Effect::new(move |_| {
         let Some(canvas_el) = canvas_ref.get() else {
