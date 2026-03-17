@@ -28,6 +28,8 @@ struct Inner {
     canvas: HtmlCanvasElement,
     /// Active drag interaction, if any.
     drag: RefCell<Option<ActiveDrag>>,
+    /// Handle returned by `setInterval` for arrow-button auto-scroll (cleared on mouseup).
+    scroll_interval: RefCell<Option<i32>>,
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
 }
@@ -79,6 +81,7 @@ impl GridCanvas {
             renderer: CanvasRenderer::new(ctx),
             canvas,
             drag: RefCell::new(None),
+            scroll_interval: RefCell::new(None),
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
         });
@@ -283,6 +286,94 @@ impl GridCanvas {
         body.append_child(&menu).unwrap();
     }
 
+    // ── arrow-button auto-scroll ─────────────────────────────────────────────
+
+    /// Start a repeating scroll interval (60 ms) in direction `dy`.
+    /// An initial delay of ~350 ms is emulated via a leading `setTimeout`.
+    fn start_scroll_repeat(&self, dy: f64) {
+        self.stop_scroll_repeat();
+        let gc_interval = self.clone();
+        let interval_cb = Closure::<dyn FnMut()>::new(move || {
+            gc_interval.dispatch(GridCommand::ScrollBy { dx: 0.0, dy });
+        });
+        let win = web_sys::window().expect("no window");
+        // Start repeating at 60 ms; we already dispatched the first scroll on mousedown.
+        let id = win
+            .set_interval_with_callback_and_timeout_and_arguments_0(
+                interval_cb.as_ref().unchecked_ref(),
+                60,
+            )
+            .expect("setInterval");
+        interval_cb.forget();
+        *self.0.scroll_interval.borrow_mut() = Some(id);
+    }
+
+    fn stop_scroll_repeat(&self) {
+        if let Some(id) = self.0.scroll_interval.borrow_mut().take() {
+            web_sys::window()
+                .expect("no window")
+                .clear_interval_with_handle(id);
+        }
+    }
+
+    /// Animate scroll toward `click_y` at ~60 fps.
+    ///
+    /// Each tick scrolls 25 % of the remaining distance (easing), stopping
+    /// once the thumb centre has reached or passed the original click position.
+    fn start_track_scroll_repeat(&self, click_y: f64, going_down: bool) {
+        self.stop_scroll_repeat();
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut()>::new(move || {
+            let Some(sb) = gc.scrollbar() else {
+                gc.stop_scroll_repeat();
+                return;
+            };
+
+            // Check stop condition first (thumb has passed click).
+            let thumb_center = sb.thumb_y + sb.thumb_h * 0.5;
+            let still_going = if going_down {
+                thumb_center < click_y
+            } else {
+                thumb_center > click_y
+            };
+            if !still_going {
+                gc.stop_scroll_repeat();
+                return;
+            }
+
+            // Compute target scroll from click position.
+            let (total_h, viewport_h, header_h) = {
+                let s = gc.0.state.borrow();
+                (
+                    s.model.total_height(),
+                    s.viewport.height,
+                    s.model.header_height,
+                )
+            };
+            let target = sb.track_click_scroll(click_y, total_h, viewport_h, header_h);
+            let current = gc.0.state.borrow().viewport.scroll_y;
+            let remaining = target - current;
+
+            if remaining.abs() < 1.0 {
+                gc.stop_scroll_repeat();
+                return;
+            }
+
+            // 25 % of remaining per frame — fast start, smooth deceleration.
+            let step = (remaining * 0.25).max(1.0_f64.copysign(remaining));
+            gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: step });
+        });
+        let win = web_sys::window().expect("no window");
+        let id = win
+            .set_interval_with_callback_and_timeout_and_arguments_0(
+                cb.as_ref().unchecked_ref(),
+                16, // ~60 fps
+            )
+            .expect("setInterval");
+        cb.forget();
+        *self.0.scroll_interval.borrow_mut() = Some(id);
+    }
+
     // ── event wiring ─────────────────────────────────────────────────────────
 
     fn attach_resize_observer(&self) {
@@ -360,11 +451,13 @@ impl GridCanvas {
                 if sb.hit_up_arrow(x, y) {
                     let row_h = gc.0.state.borrow().model.row_height;
                     gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: -row_h });
+                    gc.start_scroll_repeat(-row_h);
                     return;
                 }
                 if sb.hit_down_arrow(x, y) {
                     let row_h = gc.0.state.borrow().model.row_height;
                     gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: row_h });
+                    gc.start_scroll_repeat(row_h);
                     return;
                 }
                 if sb.hit_thumb(x, y) {
@@ -376,13 +469,8 @@ impl GridCanvas {
                     return;
                 }
                 if sb.hit_track(x, y) {
-                    // Click on track: jump scroll so thumb centres under cursor
-                    let (total_h, vp_h, hdr_h) = {
-                        let s = gc.0.state.borrow();
-                        (s.model.total_height(), s.viewport.height, s.model.header_height)
-                    };
-                    let new_y = sb.track_click_scroll(y, total_h, vp_h, hdr_h);
-                    gc.dispatch(GridCommand::ScrollTo { x: 0.0, y: new_y });
+                    let going_down = y > sb.thumb_y + sb.thumb_h * 0.5;
+                    gc.start_track_scroll_repeat(y, going_down);
                     return;
                 }
             }
@@ -477,6 +565,7 @@ impl GridCanvas {
     fn attach_mouseup(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            gc.stop_scroll_repeat();
             *gc.0.drag.borrow_mut() = None;
         });
         document()
