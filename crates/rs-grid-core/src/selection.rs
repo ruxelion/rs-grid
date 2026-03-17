@@ -62,8 +62,7 @@ impl SelectionState {
     /// Sérialise la sélection en TSV (format RFC 4180 — compatible Excel/Sheets).
     pub fn to_tsv(
         &self,
-        columns: &[crate::column::ColumnDef],
-        data: &dyn crate::datasource::DataSource,
+        model: &crate::model::GridModel,
     ) -> Result<String, CopyError> {
         let (tl, br) = self.range().ok_or(CopyError::NoSelection)?;
         let row_count = br.row - tl.row + 1;
@@ -74,7 +73,7 @@ impl SelectionState {
         for r in tl.row..=br.row {
             for ci in tl.col..=br.col {
                 if ci > tl.col { out.push('\t'); }
-                let cell = data.get_cell(r, &columns[ci].key).unwrap_or_default();
+                let cell = model.get_cell(r, &model.columns[ci].key).unwrap_or_default();
                 // RFC 4180 : guillemets si la cellule contient tab, newline ou guillemet
                 if cell.contains(['\t', '\n', '\r', '"']) {
                     out.push('"');

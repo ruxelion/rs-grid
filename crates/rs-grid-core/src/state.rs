@@ -60,7 +60,7 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::CopySelection => {
-                match self.selection.to_tsv(&self.model.columns, self.model.data.as_ref()) {
+                match self.selection.to_tsv(&self.model) {
                     Ok(text) => CommandOutput::CopyText(text),
                     Err(e)   => CommandOutput::CopyError(e),
                 }
