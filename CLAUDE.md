@@ -73,6 +73,36 @@ Les mutations passent exclusivement par `GridState::apply(GridCommand)`.
 Le thème est lu depuis les variables CSS (`rs-grid-web::theme_from_css_vars`).
 Le fichier de référence est `examples/basic-leptos/rs-grid-theme.css`.
 
+## Tests end-to-end (Playwright)
+
+Les tests visuels et fonctionnels sont dans `e2e/`.
+
+```sh
+# 1. Installer Playwright (une seule fois)
+cd e2e && npm install && npx playwright install chromium
+
+# 2. Builder l'app (requis avant chaque run)
+cd examples/basic-leptos && trunk build
+
+# 3. Lancer les tests
+cd e2e && npm test
+
+# 4. Générer / regénérer les screenshots de référence
+cd e2e && npm run update-snapshots
+```
+
+**Structure des tests** (`e2e/tests/grid.spec.ts`) :
+- `smoke` — page se charge, canvas visible, valeurs par défaut
+- `contrôles` — dropdowns lignes/colonnes
+- `interaction canvas` — clics, scroll, shift-clic (coordonnées viewport)
+- `visual regression` — comparaison screenshot pixel-à-pixel (tolérance 2 %)
+
+**Attention canvas** : la grille est rendue sur `<canvas>`, pas dans le DOM.
+Les tests d'interaction utilisent des coordonnées pixel fixes. Si le layout change,
+mettre à jour les coordonnées dans `grid.spec.ts`.
+
+**Commande Claude** : `/e2e` lance `trunk build` puis `npm test` automatiquement.
+
 ## Règles de travail pour Claude
 
 - Après toute modification de code dans `rs-grid-core`, toujours lancer `/test`
