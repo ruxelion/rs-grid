@@ -10,42 +10,44 @@
 
 /* ── light theme (default) ─────────────────────────────────────────────────── */
 :root {
-  --rs-grid-bg:                 #ffffff;
-  --rs-grid-header-bg:          #f8f9fa;
-  --rs-grid-header-text:        #181d1f;
-  --rs-grid-cell-text:          #181d1f;
-  --rs-grid-grid-line:          #e0e0e0;
-  --rs-grid-header-border:      #babfc7;
-  --rs-grid-selection-fill:     rgba(31, 119, 220, 0.18);
-  --rs-grid-selection-border:   rgba(31, 119, 220, 0.82);
-  --rs-grid-scrollbar-track:    #f1f1f1;
-  --rs-grid-scrollbar-thumb:    rgba(100, 100, 110, 0.63);
-  --rs-grid-scrollbar-width:    14px;
-  --rs-grid-scrollbar-radius:   4px;
-  --rs-grid-row-alt-bg:         #fcfcfd;
-  --rs-grid-font-size:          14px;
-  --rs-grid-header-font-size:   13px;
-  --rs-grid-header-font-bold:   1;
-  --rs-grid-cell-padding:       10px;
+  --rs-grid-bg: #ffffff;
+  --rs-grid-header-bg: #f8f9fa;
+  --rs-grid-header-text: #181d1f;
+  --rs-grid-cell-text: #181d1f;
+  --rs-grid-grid-line: #e0e0e0;
+  --rs-grid-header-border: #e0e0e0;
+  --rs-grid-selection-fill: rgba(31, 119, 220, 0.18);
+  --rs-grid-selection-border: rgba(31, 119, 220, 0.82);
+  --rs-grid-scrollbar-track: #f1f1f1;
+  --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.63);
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 4px;
+  --rs-grid-row-alt-bg: #fcfcfd;
+  --rs-grid-row-hover-bg: rgba(31, 119, 220, 0.08);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
 }
 
 /* ── dark theme — active when <html class="dark"> ───────────────────────────── */
 :root.dark {
-  --rs-grid-bg:                 #1a1b26;
-  --rs-grid-header-bg:          #24283b;
-  --rs-grid-header-text:        #a9b1d6;
-  --rs-grid-cell-text:          #c0caf5;
-  --rs-grid-grid-line:          #2a2f45;
-  --rs-grid-header-border:      #3d4466;
-  --rs-grid-selection-fill:     rgba(122, 162, 255, 0.20);
-  --rs-grid-selection-border:   rgba(122, 162, 255, 0.80);
-  --rs-grid-scrollbar-track:    #1f2335;
-  --rs-grid-scrollbar-thumb:    rgba(169, 177, 214, 0.40);
-  --rs-grid-row-alt-bg:         #1e2030;
-  --rs-grid-font-size:          14px;
-  --rs-grid-header-font-size:   13px;
-  --rs-grid-header-font-bold:   1;
-  --rs-grid-cell-padding:       10px;
+  --rs-grid-bg: #1a1b26;
+  --rs-grid-header-bg: #24283b;
+  --rs-grid-header-text: #a9b1d6;
+  --rs-grid-cell-text: #c0caf5;
+  --rs-grid-grid-line: #2a2f45;
+  --rs-grid-header-border: #2a2f45;
+  --rs-grid-selection-fill: rgba(122, 162, 255, 0.2);
+  --rs-grid-selection-border: rgba(122, 162, 255, 0.8);
+  --rs-grid-scrollbar-track: #1f2335;
+  --rs-grid-scrollbar-thumb: rgba(169, 177, 214, 0.4);
+  --rs-grid-row-alt-bg: #1e2030;
+  --rs-grid-row-hover-bg: rgba(122, 162, 255, 0.1);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
 }
 
 *,
@@ -81,14 +83,18 @@ body {
 }
 
 .app-title {
-  font: 700 22px/1.2 system-ui, sans-serif;
+  font:
+    700 22px/1.2 system-ui,
+    sans-serif;
   color: #111827;
   margin-bottom: 8px;
   transition: color 0.2s;
 }
 
 .app-subtitle {
-  font: 400 14px/1.5 system-ui, sans-serif;
+  font:
+    400 14px/1.5 system-ui,
+    sans-serif;
   color: #6b7280;
   margin-bottom: 18px;
   transition: color 0.2s;
@@ -113,7 +119,9 @@ body {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 7px 12px;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .app-control-label {
@@ -139,7 +147,10 @@ body {
   background-repeat: no-repeat;
   background-position: right 9px center;
   min-width: 120px;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
 }
 
 .app-control-select:hover {
@@ -163,7 +174,9 @@ body {
   padding: 7px 12px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .theme-toggle:hover {
@@ -234,7 +247,9 @@ body {
     0 1px 3px rgba(0, 0, 0, 0.06),
     0 4px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 /* ── dark mode overrides ─────────────────────────────────────────────────────── */

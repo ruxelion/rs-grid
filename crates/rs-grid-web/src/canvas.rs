@@ -50,6 +50,11 @@ enum ActiveDrag {
     Row,
     Col,
     Pan { origin_x: f64, origin_y: f64 },
+    ColumnResize {
+        col_idx: usize,
+        start_client_x: f64,
+        start_width: f64,
+    },
 }
 
 struct ThumbDrag {
@@ -181,6 +186,42 @@ impl GridCanvas {
             evt.client_x() as f64 - rect.left(),
             evt.client_y() as f64 - rect.top(),
         )
+    }
+
+    /// Returns `Some(col_idx)` when `(vx, vy)` is within `HIT_ZONE` px of a
+    /// column separator in the header, enabling the resize cursor / drag.
+    fn hit_col_resize_separator(&self, vx: f64, vy: f64) -> Option<usize> {
+        const HIT_ZONE: f64 = 4.0;
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        if vy >= model.header_height { return None; }
+        if vx < model.row_number_width { return None; }
+        let scroll_x = state.viewport.scroll_x;
+        let rnw = model.row_number_width;
+        for (i, col) in model.columns.iter().enumerate() {
+            let sep_vx =
+                model.column_offsets.offsets[i] + col.width - scroll_x + rnw;
+            if (vx - sep_vx).abs() <= HIT_ZONE {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    fn set_cursor(&self, cursor: &str) {
+        let _ = self.0.canvas.style().set_property("cursor", cursor);
+    }
+
+    /// Returns the data row index under viewport point `(vx, vy)`, or `None`
+    /// if the point is in the header, gutter, or below the last row.
+    fn row_at(&self, vx: f64, vy: f64) -> Option<u64> {
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        if vy < model.header_height { return None; }
+        if vx < 0.0 || vx > state.viewport.width { return None; }
+        let abs_y = vy - model.header_height + state.viewport.scroll_y;
+        let row = (abs_y / model.row_height) as u64;
+        if row < model.data.row_count() { Some(row) } else { None }
     }
 
     fn handle_copy(&self) {
@@ -693,6 +734,7 @@ impl GridCanvas {
     fn attach_listeners(&self) {
         self.attach_wheel();
         self.attach_mousedown();
+        self.attach_mouseleave();
         self.attach_contextmenu();
         self.attach_mousemove(); // on document — works even if cursor leaves canvas
         self.attach_mouseup(); // on document
@@ -713,6 +755,23 @@ impl GridCanvas {
             .canvas
             .add_event_listener_with_callback(
                 "wheel",
+                cb.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+        cb.forget();
+    }
+
+    fn attach_mouseleave(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            if gc.0.state.borrow().hovered_row.is_some() {
+                gc.dispatch(GridCommand::SetHoveredRow(None));
+            }
+        });
+        self.0
+            .canvas
+            .add_event_listener_with_callback(
+                "mouseleave",
                 cb.as_ref().unchecked_ref(),
             )
             .unwrap();
@@ -856,6 +915,19 @@ impl GridCanvas {
                 return;
             }
 
+            // ── column resize separator (takes priority over col select) ─────
+            if let Some(col_idx) = gc.hit_col_resize_separator(x, y) {
+                let start_width =
+                    gc.0.state.borrow().model.columns[col_idx].width;
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColumnResize {
+                    col_idx,
+                    start_client_x: evt.client_x() as f64,
+                    start_width,
+                });
+                gc.set_cursor("col-resize");
+                return;
+            }
+
             // ── column header selection ───────────────────────────────────────
             let col = gc.0.state.borrow().hit_test_col_header(x, y);
             if let Some(col) = col {
@@ -983,7 +1055,35 @@ impl GridCanvas {
                         evt.client_y() as f64,
                     );
                 }
-                None => {}
+                Some(ActiveDrag::ColumnResize {
+                    col_idx,
+                    start_client_x,
+                    start_width,
+                }) => {
+                    let (ci, scx, sw) =
+                        (col_idx, start_client_x, start_width);
+                    drop(drag);
+                    let dx = evt.client_x() as f64 - scx;
+                    gc.dispatch(GridCommand::ResizeColumn {
+                        col_idx: ci,
+                        new_width: sw + dx,
+                    });
+                }
+                None => {
+                    drop(drag);
+                    let (x, y) = gc.canvas_xy(&evt);
+                    // Cursor: col-resize near header separators, else default
+                    if gc.hit_col_resize_separator(x, y).is_some() {
+                        gc.set_cursor("col-resize");
+                    } else {
+                        gc.set_cursor("default");
+                    }
+                    // Hover row highlight
+                    let new_row = gc.row_at(x, y);
+                    if gc.0.state.borrow().hovered_row != new_row {
+                        gc.dispatch(GridCommand::SetHoveredRow(new_row));
+                    }
+                }
             }
         });
         let f: js_sys::Function =
@@ -1006,6 +1106,13 @@ impl GridCanvas {
                 return;
             }
             gc.stop_scroll_repeat();
+            // Restore cursor after a column-resize drag.
+            if matches!(
+                *gc.0.drag.borrow(),
+                Some(ActiveDrag::ColumnResize { .. })
+            ) {
+                gc.set_cursor("default");
+            }
             *gc.0.drag.borrow_mut() = None;
         });
         let f: js_sys::Function =

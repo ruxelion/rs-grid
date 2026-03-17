@@ -103,6 +103,20 @@ impl SceneBuilder {
                 }));
             }
 
+            // Hover highlight (above alt-bg, below selection)
+            if state.hovered_row == Some(ri) {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: 0.0,
+                    y: ry,
+                    width: vp.width,
+                    height: model.row_height,
+                    fill: t.row_hover_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
                 let cx = model.column_offsets.offsets[ci] - sx + rnw;

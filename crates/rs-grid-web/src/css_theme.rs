@@ -67,6 +67,7 @@ pub fn theme_from_css_vars() -> Theme {
         scrollbar_track:  color("--rs-grid-scrollbar-track",  fallback.scrollbar_track),
         scrollbar_thumb:  color("--rs-grid-scrollbar-thumb",  fallback.scrollbar_thumb),
         row_alt_bg:       color("--rs-grid-row-alt-bg",       fallback.row_alt_bg),
+        row_hover_bg:     color("--rs-grid-row-hover-bg",     fallback.row_hover_bg),
         scrollbar_width:  px("--rs-grid-scrollbar-width",     fallback.scrollbar_width),
         scrollbar_radius: px("--rs-grid-scrollbar-radius",    fallback.scrollbar_radius),
         font_size:        px("--rs-grid-font-size",           fallback.font_size),

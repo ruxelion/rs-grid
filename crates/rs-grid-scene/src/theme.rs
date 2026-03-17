@@ -21,6 +21,8 @@ pub struct Theme {
 
     /// Subtle background for odd data rows (0 = same as `bg`).
     pub row_alt_bg:       Color,
+    /// Background overlay for the row under the cursor (transparent = disabled).
+    pub row_hover_bg:     Color,
 
     // ── typography ───────────────────────────────────────────────────────────
     pub font_size:        f64,
@@ -53,6 +55,7 @@ impl Theme {
             scrollbar_track:  Color::rgb(241, 241, 241),
             scrollbar_thumb:  Color::rgba(100, 100, 110, 160),
             row_alt_bg:       Color::rgb(252, 252, 253),
+            row_hover_bg:     Color::rgba(0, 0, 0, 10),
             font_size:        14.0,
             header_font_size: 12.0,
             header_font_bold: true,
@@ -76,6 +79,7 @@ impl Theme {
             scrollbar_track:  Color::rgb(31,  35,  53),
             scrollbar_thumb:  Color::rgba(169, 177, 214, 102),
             row_alt_bg:       Color::rgb(30,  32,  48),
+            row_hover_bg:     Color::rgba(255, 255, 255, 10),
             font_size:        14.0,
             header_font_size: 13.0,
             header_font_bold: true,
