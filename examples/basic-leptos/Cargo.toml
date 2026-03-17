@@ -7,7 +7,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-rs-grid-core = { path = "../../crates/rs-grid-core" }
+rs-grid-core   = { path = "../../crates/rs-grid-core" }
+rs-grid-scene  = { path = "../../crates/rs-grid-scene" }
 rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
 leptos = { version = "0.7", features = ["csr"] }
 wasm-bindgen = { workspace = true }

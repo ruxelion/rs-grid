@@ -7,6 +7,7 @@ use std::cell::RefCell;
 
 use leptos::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
+use rs_grid_scene::Theme;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 
@@ -21,6 +22,7 @@ pub fn GridCanvas(
     model: GridModel,
     #[prop(default = "100%".into())] width: String,
     #[prop(default = "600px".into())] height: String,
+    #[prop(optional)] theme: Option<Theme>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -28,6 +30,7 @@ pub fn GridCanvas(
     // on first run without requiring GridModel: Clone.  This avoids
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
+    let resolved_theme = theme.unwrap_or_else(Theme::light);
 
     Effect::new(move |_| {
         let Some(canvas_el) = canvas_ref.get() else {
@@ -70,7 +73,7 @@ pub fn GridCanvas(
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
-        rs_grid_web::GridCanvas::mount(canvas, state);
+        rs_grid_web::GridCanvas::mount(canvas, state, resolved_theme.clone());
     });
 
     view! {

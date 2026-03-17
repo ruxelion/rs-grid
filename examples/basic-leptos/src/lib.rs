@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use rs_grid_core::{column::ColumnDef, datasource::FnDataSource, model::GridModel};
 use rs_grid_leptos::GridCanvas;
+use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
 
 fn build_model() -> GridModel {
@@ -39,7 +40,7 @@ fn App() -> impl IntoView {
                 "rs-grid · Leptos CSR · 10 000 000 000 rows (virtual)"
             </header>
             <div style="flex:1;padding:16px;min-height:0">
-                <GridCanvas model=model width="100%".into() height="calc(100vh - 80px)".into() />
+                <GridCanvas model=model theme=Theme::dark() width="100%".into() height="calc(100vh - 80px)".into() />
             </div>
         </div>
     }

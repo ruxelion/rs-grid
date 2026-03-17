@@ -2,19 +2,9 @@ use rs_grid_core::{scrollbar::ScrollbarGeom, state::GridState};
 
 use crate::{
     frame::SceneFrame,
-    primitives::{Color, LinePrimitive, RectPrimitive, ScenePrimitive, TextPrimitive},
+    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextPrimitive},
+    theme::Theme,
 };
-
-// ── palette ──────────────────────────────────────────────────────────────────
-
-const BG: Color = Color::rgb(255, 255, 255);
-const HEADER_BG: Color = Color::rgb(242, 242, 247);
-const HEADER_TEXT: Color = Color::rgb(90, 90, 100);
-const CELL_TEXT: Color = Color::rgb(20, 20, 20);
-const GRID_LINE: Color = Color::rgb(210, 210, 215);
-const HEADER_BORDER: Color = Color::rgb(180, 180, 190);
-const SELECTION_FILL: Color = Color::rgba(59, 130, 246, 50);
-const SELECTION_BORDER: Color = Color::rgba(59, 130, 246, 200);
 
 // ── builder ───────────────────────────────────────────────────────────────────
 
@@ -23,36 +13,35 @@ const SELECTION_BORDER: Color = Color::rgba(59, 130, 246, 200);
 /// Instantiate once and reuse; all state is read from `GridState` on each
 /// `build()` call.
 pub struct SceneBuilder {
-    pub dpr: f64,
-    pub cell_padding: f64,
-    pub font_size: f64,
-    pub header_font_size: f64,
+    /// Device pixel ratio — hardware property, not a theme property.
+    pub dpr:   f64,
+    pub theme: Theme,
 }
 
 impl Default for SceneBuilder {
     fn default() -> Self {
         Self {
-            dpr: 1.0,
-            cell_padding: 8.0,
-            font_size: 13.0,
-            header_font_size: 12.0,
+            dpr:   1.0,
+            theme: Theme::default(),
         }
     }
 }
 
 impl SceneBuilder {
     pub fn new(dpr: f64) -> Self {
-        Self {
-            dpr,
-            ..Default::default()
-        }
+        Self { dpr, theme: Theme::default() }
+    }
+
+    pub fn with_theme(dpr: f64, theme: Theme) -> Self {
+        Self { dpr, theme }
     }
 
     /// Build a complete `SceneFrame` from the current `GridState`.
     pub fn build(&self, state: &GridState) -> SceneFrame {
-        let vp = &state.viewport;
+        let vp  = &state.viewport;
         let model = &state.model;
         let sel = &state.selection;
+        let t   = &self.theme;
 
         let mut frame = SceneFrame::new(vp.width, vp.height, self.dpr);
 
@@ -62,7 +51,7 @@ impl SceneBuilder {
             y: 0.0,
             width: vp.width,
             height: vp.height,
-            fill: BG,
+            fill: t.bg,
             stroke: None,
             stroke_width: 0.0,
         }));
@@ -82,7 +71,7 @@ impl SceneBuilder {
             y: 0.0,
             width: vp.width,
             height: model.header_height,
-            fill: HEADER_BG,
+            fill: t.header_bg,
             stroke: None,
             stroke_width: 0.0,
         }));
@@ -91,15 +80,15 @@ impl SceneBuilder {
         for ci in col_start..col_end {
             let col = &model.columns[ci];
             let cx = model.column_offsets.offsets[ci] - sx;
-            let mid_y = model.header_height * 0.5 + self.header_font_size * 0.35;
+            let mid_y = model.header_height * 0.5 + t.header_font_size * 0.35;
 
             // Header label
             frame.push(ScenePrimitive::Text(TextPrimitive {
-                x: cx + self.cell_padding,
+                x: cx + t.cell_padding,
                 y: mid_y,
                 text: col.label.clone(),
-                color: HEADER_TEXT,
-                font_size: self.header_font_size,
+                color: t.header_text,
+                font_size: t.header_font_size,
                 clip: Some([cx, 0.0, col.width, model.header_height]),
             }));
 
@@ -110,7 +99,7 @@ impl SceneBuilder {
                 y1: 0.0,
                 x2: sep_x,
                 y2: model.header_height,
-                color: HEADER_BORDER,
+                color: t.header_border,
                 width: 1.0,
             }));
         }
@@ -121,7 +110,7 @@ impl SceneBuilder {
             y1: model.header_height - 0.5,
             x2: vp.width,
             y2: model.header_height - 0.5,
-            color: HEADER_BORDER,
+            color: t.header_border,
             width: 1.0,
         }));
 
@@ -135,7 +124,7 @@ impl SceneBuilder {
                 continue;
             }
 
-            let mid_y = ry + model.row_height * 0.5 + self.font_size * 0.35;
+            let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
 
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
@@ -148,7 +137,7 @@ impl SceneBuilder {
                         y: ry,
                         width: col.width,
                         height: model.row_height,
-                        fill: SELECTION_FILL,
+                        fill: t.selection_fill,
                         stroke: None,
                         stroke_width: 0.0,
                     }));
@@ -158,11 +147,11 @@ impl SceneBuilder {
                 if let Some(text) = model.get_cell(ri, &col.key) {
                     if !text.is_empty() {
                         frame.push(ScenePrimitive::Text(TextPrimitive {
-                            x: cx + self.cell_padding,
+                            x: cx + t.cell_padding,
                             y: mid_y,
                             text,
-                            color: CELL_TEXT,
-                            font_size: self.font_size,
+                            color: t.cell_text,
+                            font_size: t.font_size,
                             clip: Some([cx, ry, col.width, model.row_height]),
                         }));
                     }
@@ -176,7 +165,7 @@ impl SceneBuilder {
                 y1: ry + model.row_height - 0.5,
                 x2: vp.width,
                 y2: ry + model.row_height - 0.5,
-                color: GRID_LINE,
+                color: t.grid_line,
                 width: 1.0,
             }));
         }
@@ -191,22 +180,22 @@ impl SceneBuilder {
             // top
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1, y1: y1 + 0.5, x2, y2: y1 + 0.5,
-                color: SELECTION_BORDER, width: 1.0,
+                color: t.selection_border, width: 1.0,
             }));
             // bottom
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1, y1: y2 - 0.5, x2, y2: y2 - 0.5,
-                color: SELECTION_BORDER, width: 1.0,
+                color: t.selection_border, width: 1.0,
             }));
             // left
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: x1 + 0.5, y1, x2: x1 + 0.5, y2,
-                color: SELECTION_BORDER, width: 1.0,
+                color: t.selection_border, width: 1.0,
             }));
             // right
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: x2 - 0.5, y1, x2: x2 - 0.5, y2,
-                color: SELECTION_BORDER, width: 1.0,
+                color: t.selection_border, width: 1.0,
             }));
         }
 
@@ -224,7 +213,7 @@ impl SceneBuilder {
                 y: sb.track_y,
                 width: sb.track_w,
                 height: sb.track_h,
-                fill: Color::rgba(0, 0, 0, 18),
+                fill: t.scrollbar_track,
                 stroke: None,
                 stroke_width: 0.0,
             }));
@@ -236,7 +225,7 @@ impl SceneBuilder {
                 y: sb.thumb_y + INSET,
                 width: (sb.track_w - INSET * 2.0).max(2.0),
                 height: (sb.thumb_h - INSET * 2.0).max(4.0),
-                fill: Color::rgba(90, 90, 100, 170),
+                fill: t.scrollbar_thumb,
                 stroke: None,
                 stroke_width: 0.0,
             }));

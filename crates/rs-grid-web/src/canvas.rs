@@ -7,7 +7,7 @@ use rs_grid_core::{
     state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
-use rs_grid_scene::builder::SceneBuilder;
+use rs_grid_scene::{builder::SceneBuilder, Theme};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, ResizeObserver, WheelEvent};
 
@@ -51,7 +51,7 @@ impl GridCanvas {
     ///
     /// - Sets the canvas physical size = CSS size × device-pixel-ratio.
     /// - Registers `wheel`, `mousedown`, `mousemove` (document), `mouseup` (document).
-    pub fn mount(canvas: HtmlCanvasElement, mut state: GridState) -> Self {
+    pub fn mount(canvas: HtmlCanvasElement, mut state: GridState, theme: Theme) -> Self {
         let win = web_sys::window().expect("no window");
         let dpr = win.device_pixel_ratio();
 
@@ -74,7 +74,7 @@ impl GridCanvas {
 
         let inner = Rc::new(Inner {
             state: RefCell::new(state),
-            builder: RefCell::new(SceneBuilder::new(dpr)),
+            builder: RefCell::new(SceneBuilder::with_theme(dpr, theme)),
             renderer: CanvasRenderer::new(ctx),
             canvas,
             drag: RefCell::new(None),
