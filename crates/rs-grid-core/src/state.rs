@@ -3,6 +3,7 @@ use crate::{
     hit_test,
     model::GridModel,
     selection::{CellCoord, SelectionState},
+    sort::{SortDir, SortState},
     viewport::ViewportState,
 };
 
@@ -14,6 +15,8 @@ pub struct GridState {
     pub selection: SelectionState,
     /// Row index currently under the mouse cursor, for hover highlighting.
     pub hovered_row: Option<u64>,
+    /// Active sort column and direction (`None` = natural order).
+    pub sort: Option<SortState>,
 }
 
 impl GridState {
@@ -23,6 +26,7 @@ impl GridState {
             viewport: ViewportState::new(viewport_width, viewport_height),
             selection: SelectionState::default(),
             hovered_row: None,
+            sort: None,
         }
     }
 
@@ -133,6 +137,32 @@ impl GridState {
                     self.model.columns[col_idx].width = new_width.max(MIN_COL_WIDTH);
                     self.model.rebuild_offsets();
                 }
+                CommandOutput::None
+            }
+            GridCommand::ToggleSort { col_key } => {
+                let new_sort = match &self.sort {
+                    None => Some(SortState {
+                        col_key: col_key.clone(),
+                        dir: SortDir::Asc,
+                    }),
+                    Some(s) if s.col_key == col_key && s.dir == SortDir::Asc => {
+                        Some(SortState {
+                            col_key: col_key.clone(),
+                            dir: SortDir::Desc,
+                        })
+                    }
+                    Some(s) if s.col_key == col_key => None,
+                    _ => Some(SortState {
+                        col_key: col_key.clone(),
+                        dir: SortDir::Asc,
+                    }),
+                };
+                match &new_sort {
+                    Some(s) => self.model.apply_sort(&s.col_key, &s.dir),
+                    None => self.model.sort_order.clear(),
+                }
+                self.sort = new_sort;
+                self.viewport.scroll_y = 0.0;
                 CommandOutput::None
             }
             GridCommand::MoveSelection { delta_row, delta_col, extend } => {

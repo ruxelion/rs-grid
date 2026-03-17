@@ -1,4 +1,8 @@
-use rs_grid_core::{scrollbar::{HScrollbarGeom, ScrollbarGeom}, state::GridState};
+use rs_grid_core::{
+    scrollbar::{HScrollbarGeom, ScrollbarGeom},
+    sort::SortDir,
+    state::GridState,
+};
 
 use crate::{
     frame::SceneFrame,
@@ -254,6 +258,34 @@ impl SceneBuilder {
                 clip: Some([cx, 0.0, col.width, model.header_height]),
                 align: TextAlign::Left,
             }));
+
+            // Sort indicator ▲ / ▼
+            if let Some(s) = &state.sort {
+                if s.col_key == col.key {
+                    const AW: f64 = 4.0; // half-base of triangle
+                    const AH: f64 = 3.5; // height of triangle
+                    let ax = cx + col.width - t.cell_padding - AW;
+                    let ay = mid_y - t.header_font_size * 0.35;
+                    let points = if s.dir == SortDir::Asc {
+                        vec![
+                            [ax, ay - AH],
+                            [ax + AW, ay + AH * 0.6],
+                            [ax - AW, ay + AH * 0.6],
+                        ]
+                    } else {
+                        vec![
+                            [ax, ay + AH],
+                            [ax + AW, ay - AH * 0.6],
+                            [ax - AW, ay - AH * 0.6],
+                        ]
+                    };
+                    frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                        points,
+                        fill: t.header_text,
+                        corner_radius: 0.5,
+                    }));
+                }
+            }
 
             let sep_x = cx + col.width - 0.5;
             frame.push(ScenePrimitive::Line(LinePrimitive {
