@@ -3,11 +3,14 @@
 //! Provides a `<GridCanvas>` component that mounts a `GridCanvas` into the DOM
 //! and keeps it in sync with Leptos reactive signals.
 
-use std::cell::RefCell;
+pub use rs_grid_web::theme_from_css_vars;
+
+use std::{cell::RefCell, rc::Rc};
 
 use leptos::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
+use send_wrapper::SendWrapper;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 
@@ -17,12 +20,14 @@ use web_sys::HtmlCanvasElement;
 /// - `model`: The `GridModel` to display.
 /// - `width`: CSS width string (e.g. `"100%"` or `"800px"`).
 /// - `height`: CSS height string (e.g. `"600px"`).
+/// - `theme`: Optional reactive `Signal<Theme>`. When supplied, theme changes
+///   are applied in-place via `set_theme()` without remounting the grid.
 #[component]
 pub fn GridCanvas(
     model: GridModel,
     #[prop(default = "100%".into())] width: String,
     #[prop(default = "600px".into())] height: String,
-    #[prop(optional)] theme: Option<Theme>,
+    #[prop(optional)] theme: Option<Signal<Theme>>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -30,6 +35,15 @@ pub fn GridCanvas(
     // on first run without requiring GridModel: Clone.  This avoids
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
+
+    // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
+    // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
+    // it is safe because WASM is single-threaded and the value never actually
+    // crosses thread boundaries.
+    let gc_holder: Rc<RefCell<Option<rs_grid_web::GridCanvas>>> =
+        Rc::new(RefCell::new(None));
+    let gc_for_theme = gc_holder.clone();
+    let gc_for_cleanup = SendWrapper::new(gc_holder.clone());
 
     Effect::new(move |_| {
         let Some(canvas_el) = canvas_ref.get() else {
@@ -41,12 +55,11 @@ pub fn GridCanvas(
             return;
         };
 
-        // Read the theme here, inside the Effect, so that any DOM class
-        // toggle (e.g. adding "dark" to <html>) applied synchronously
-        // before triggering the reactive update is already visible to
-        // theme_from_css_vars().
-        let mount_theme =
-            theme.clone().unwrap_or_else(rs_grid_web::theme_from_css_vars);
+        // Read the initial theme: prefer the signal's current value, fall back
+        // to CSS vars (so mount works without a theme prop too).
+        let mount_theme = theme
+            .map(|s| s.get_untracked())
+            .unwrap_or_else(rs_grid_web::theme_from_css_vars);
 
         // getBoundingClientRect() is reliable even before first paint;
         // fall back to window dimensions if the element has no size yet.
@@ -79,7 +92,27 @@ pub fn GridCanvas(
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
-        rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
+        let gc = rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
+        *gc_holder.borrow_mut() = Some(gc);
+    });
+
+    // Reactive theme effect: when the theme signal changes, update in-place
+    // without remounting (no new listeners, no flicker).
+    if let Some(theme_sig) = theme {
+        Effect::new(move |_| {
+            let t = theme_sig.get();
+            if let Some(gc) = gc_for_theme.borrow().as_ref() {
+                gc.set_theme(t);
+            }
+        });
+    }
+
+    // Detach document listeners when this component is unmounted.
+    on_cleanup(move || {
+        if let Some(gc) = gc_for_cleanup.borrow().as_ref() {
+            gc.detach();
+        }
+        drop(gc_for_cleanup);
     });
 
     view! {

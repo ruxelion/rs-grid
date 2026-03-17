@@ -39,6 +39,8 @@ struct Inner {
     pan_mouse: RefCell<(f64, f64)>,
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
+    /// Stored references to document-level listeners so they can be removed on detach.
+    doc_listeners: RefCell<Vec<(String, js_sys::Function)>>,
 }
 
 enum ActiveDrag {
@@ -77,8 +79,16 @@ impl GridCanvas {
 
         let css_w = canvas.client_width() as f64;
         let css_h = canvas.client_height() as f64;
-        canvas.set_width((css_w * dpr) as u32);
-        canvas.set_height((css_h * dpr) as u32);
+        let phys_w = (css_w * dpr) as u32;
+        let phys_h = (css_h * dpr) as u32;
+        canvas.set_width(phys_w);
+        canvas.set_height(phys_h);
+
+        // Pin CSS background to the theme bg so the canvas never flashes
+        // transparent while the context is being reset.
+        let _ = canvas
+            .style()
+            .set_property("background-color", &theme.bg.to_css());
 
         state.apply(GridCommand::Resize {
             width: css_w,
@@ -103,6 +113,7 @@ impl GridCanvas {
             pan_mouse: RefCell::new((0.0, 0.0)),
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
+            doc_listeners: RefCell::new(Vec::new()),
         });
 
         let gc = GridCanvas(inner);
@@ -649,8 +660,18 @@ impl GridCanvas {
                     return;
                 }
 
-                canvas.set_width((css_w * dpr) as u32);
-                canvas.set_height((css_h * dpr) as u32);
+                let new_w = (css_w * dpr) as u32;
+                let new_h = (css_h * dpr) as u32;
+
+                // Only reset the canvas when physical dimensions actually
+                // change.  set_width/set_height wipe all pixels to
+                // transparent, which can produce a visible flash if the
+                // browser paints between the clear and the subsequent
+                // render() call.
+                if canvas.width() != new_w || canvas.height() != new_h {
+                    canvas.set_width(new_w);
+                    canvas.set_height(new_h);
+                }
 
                 gc.0.builder.borrow_mut().dpr = dpr;
 
@@ -965,12 +986,12 @@ impl GridCanvas {
                 None => {}
             }
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
-            .add_event_listener_with_callback(
-                "mousemove",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("mousemove", &f)
             .unwrap();
+        self.0.doc_listeners.borrow_mut().push(("mousemove".to_string(), f));
         cb.forget();
     }
 
@@ -987,12 +1008,12 @@ impl GridCanvas {
             gc.stop_scroll_repeat();
             *gc.0.drag.borrow_mut() = None;
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
-            .add_event_listener_with_callback(
-                "mouseup",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("mouseup", &f)
             .unwrap();
+        self.0.doc_listeners.borrow_mut().push(("mouseup".to_string(), f));
         cb.forget();
     }
 
@@ -1035,12 +1056,12 @@ impl GridCanvas {
                 _ => {}
             }
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
-            .add_event_listener_with_callback(
-                "keydown",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("keydown", &f)
             .unwrap();
+        self.0.doc_listeners.borrow_mut().push(("keydown".to_string(), f));
         cb.forget();
     }
 
@@ -1059,13 +1080,36 @@ impl GridCanvas {
                 }
             },
         );
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
-            .add_event_listener_with_callback(
-                "paste",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("paste", &f)
             .unwrap();
+        self.0.doc_listeners.borrow_mut().push(("paste".to_string(), f));
         cb.forget();
+    }
+
+    /// Remove all document-level event listeners and disconnect the ResizeObserver.
+    ///
+    /// Call this when the grid is unmounted to prevent listener accumulation.
+    pub fn detach(&self) {
+        let doc = document();
+        for (event, f) in self.0.doc_listeners.borrow().iter() {
+            let _ = doc.remove_event_listener_with_callback(event, f);
+        }
+        self.0.doc_listeners.borrow_mut().clear();
+        if let Some(ro) = self.0._resize_observer.borrow_mut().take() {
+            ro.disconnect();
+        }
+    }
+
+    /// Update the theme in-place without remounting the grid.
+    pub fn set_theme(&self, theme: Theme) {
+        let _ = self.0.canvas
+            .style()
+            .set_property("background-color", &theme.bg.to_css());
+        self.0.builder.borrow_mut().theme = theme;
+        self.render();
     }
 }
 

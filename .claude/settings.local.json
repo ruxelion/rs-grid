@@ -18,7 +18,9 @@
       "Bash(npm test:*)",
       "Bash(npm run:*)",
       "Bash(npx playwright:*)",
-      "Bash(npx serve:*)"
+      "Bash(npx serve:*)",
+      "Bash(grep -A1 'name = \"\"\"\"send_wrapper\"\"\"\"')",
+      "Bash(grep -A2 'name = \"\"\"\"send_wrapper\"\"\"\"' D:/Dev/rs-grid/Cargo.lock)"
     ]
   },
   "hooks": {
