@@ -2,7 +2,8 @@ use leptos::prelude::*;
 use rs_grid_core::{
     column::ColumnDef, datasource::FnDataSource, model::GridModel,
 };
-use rs_grid_leptos::GridCanvas;
+use rs_grid_leptos::{theme_from_css_vars, GridCanvas};
+use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
 
 fn build_model(row_count: u64, col_count: usize) -> GridModel {
@@ -74,10 +75,20 @@ fn App() -> impl IntoView {
     let col_count = RwSignal::new(10usize);
     let dark_mode = RwSignal::new(false);
 
+    // Recompute the theme whenever dark_mode changes (after DOM class is set).
+    // theme_from_css_vars() reads the computed CSS vars, so it sees the correct
+    // light/dark values as long as the <html class="dark"> toggle happens
+    // synchronously before dark_mode.set() — which the on:change handler below
+    // guarantees.
+    let theme_memo = Memo::<Theme>::new(move |_| {
+        let _ = dark_mode.get(); // track dependency
+        theme_from_css_vars()
+    });
+
     // Sync <html class="dark"> with the signal on every change.
     // This Effect handles the initial state; the on:change handler below
     // also sets the class *synchronously* before dark_mode.set() so that
-    // theme_from_css_vars() in the GridCanvas Effect reads the right vars.
+    // theme_from_css_vars() in the Memo above reads the right vars.
     Effect::new(move |_| {
         let dark = dark_mode.get();
         if let Some(root) = web_sys::window()
@@ -177,9 +188,9 @@ fn App() -> impl IntoView {
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
-                        // Re-mount the grid when dark_mode changes so it
-                        // re-reads CSS vars via theme_from_css_vars().
-                        let _ = dark_mode.get();
+                        // Only remount when the dataset size changes, not on
+                        // dark_mode — theme updates are applied in-place via
+                        // set_theme() through the theme signal below.
                         let model =
                             build_model(row_count.get(), col_count.get());
                         view! {
@@ -187,6 +198,7 @@ fn App() -> impl IntoView {
                                 model=model
                                 width="100%".into()
                                 height="100%".into()
+                                theme=Signal::derive(move || theme_memo.get())
                             />
                         }
                     }}

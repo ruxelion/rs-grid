@@ -1188,6 +1188,7 @@ dependencies = [
  "rs-grid-core",
  "rs-grid-scene",
  "rs-grid-web",
+ "send_wrapper",
  "wasm-bindgen",
  "web-sys",
 ]
