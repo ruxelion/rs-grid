@@ -12,10 +12,7 @@ rs-grid-scene  = { path = "../../crates/rs-grid-scene" }
 rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
 leptos = { version = "0.7", features = ["csr"] }
 wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+send_wrapper = "0.6"
 console_error_panic_hook = { workspace = true }
-web-sys = { version = "0.3", features = [
-  "Document",
-  "DomTokenList",
-  "Element",
-  "Window",
-] }
+web-sys = { workspace = true }

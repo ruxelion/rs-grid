@@ -45,5 +45,11 @@ features = [
   "CssStyleDeclaration",
   "HtmlElement",
   "Node",
+  "HtmlAnchorElement",
+  "HtmlInputElement",
+  "FileList",
+  "File",
+  "FileReader",
+  "Storage",
 ]
 version = "0.3"

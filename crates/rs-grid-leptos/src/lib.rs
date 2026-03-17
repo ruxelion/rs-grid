@@ -4,6 +4,9 @@
 //! and keeps it in sync with Leptos reactive signals.
 
 pub use rs_grid_web::theme_from_css_vars;
+/// Re-exported so callers can name the type in `on_mount` closures without
+/// depending on `rs-grid-web` directly.
+pub use rs_grid_web::GridCanvas as WebGridCanvas;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -28,6 +31,10 @@ pub fn GridCanvas(
     #[prop(default = "100%".into())] width: String,
     #[prop(default = "600px".into())] height: String,
     #[prop(optional)] theme: Option<Signal<Theme>>,
+    /// Called once after the grid is mounted with a cloned handle to the
+    /// underlying `GridCanvas`. Use it to call `set_on_change`,
+    /// `import_patches`, or `export_patches`.
+    #[prop(optional)] on_mount: Option<Box<dyn FnOnce(rs_grid_web::GridCanvas)>>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -35,6 +42,7 @@ pub fn GridCanvas(
     // on first run without requiring GridModel: Clone.  This avoids
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
+    let on_mount_slot = RefCell::new(on_mount);
 
     // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
     // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
@@ -93,7 +101,10 @@ pub fn GridCanvas(
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
         let gc = rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
-        *gc_holder.borrow_mut() = Some(gc);
+        *gc_holder.borrow_mut() = Some(gc.clone());
+        if let Some(cb) = on_mount_slot.borrow_mut().take() {
+            cb(gc);
+        }
     });
 
     // Reactive theme effect: when the theme signal changes, update in-place
