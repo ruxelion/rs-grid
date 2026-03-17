@@ -52,3 +52,63 @@ impl ColumnOffsets {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cols() -> Vec<ColumnDef> {
+        vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 50.0),
+        ]
+    }
+
+    #[test]
+    fn compute_offsets() {
+        let cols = cols();
+        let o = ColumnOffsets::compute(&cols);
+        assert_eq!(o.offsets, vec![0.0, 100.0, 250.0]);
+        assert_eq!(o.total_width, 300.0);
+    }
+
+    #[test]
+    fn compute_empty() {
+        let o = ColumnOffsets::compute(&[]);
+        assert!(o.offsets.is_empty());
+        assert_eq!(o.total_width, 0.0);
+    }
+
+    #[test]
+    fn hit_column_first() {
+        let cols = cols();
+        let o = ColumnOffsets::compute(&cols);
+        assert_eq!(o.hit_column(0.0, &cols), Some(0));
+        assert_eq!(o.hit_column(99.9, &cols), Some(0));
+    }
+
+    #[test]
+    fn hit_column_second() {
+        let cols = cols();
+        let o = ColumnOffsets::compute(&cols);
+        assert_eq!(o.hit_column(100.0, &cols), Some(1));
+        assert_eq!(o.hit_column(249.9, &cols), Some(1));
+    }
+
+    #[test]
+    fn hit_column_last() {
+        let cols = cols();
+        let o = ColumnOffsets::compute(&cols);
+        assert_eq!(o.hit_column(250.0, &cols), Some(2));
+        assert_eq!(o.hit_column(299.9, &cols), Some(2));
+    }
+
+    #[test]
+    fn hit_column_out_of_range() {
+        let cols = cols();
+        let o = ColumnOffsets::compute(&cols);
+        assert_eq!(o.hit_column(300.0, &cols), None);
+        assert_eq!(o.hit_column(-1.0, &cols), None);
+    }
+}

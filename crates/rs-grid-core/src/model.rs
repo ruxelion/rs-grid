@@ -84,3 +84,80 @@ impl GridModel {
         self.column_offsets = ColumnOffsets::compute(&self.columns);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{column::ColumnDef, row::RowRecord};
+
+    fn make_model() -> GridModel {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows = vec![
+            { let mut r = RowRecord::new(0); r.set("a", "hello"); r.set("b", "world"); r },
+            { let mut r = RowRecord::new(1); r.set("a", "foo"); r.set("b", "bar"); r },
+        ];
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn get_cell_from_datasource() {
+        let m = make_model();
+        assert_eq!(m.get_cell(0, "a"), Some("hello".into()));
+        assert_eq!(m.get_cell(1, "b"), Some("bar".into()));
+    }
+
+    #[test]
+    fn get_cell_missing_key() {
+        let m = make_model();
+        assert_eq!(m.get_cell(0, "z"), None);
+    }
+
+    #[test]
+    fn get_cell_out_of_range() {
+        let m = make_model();
+        assert_eq!(m.get_cell(99, "a"), None);
+    }
+
+    #[test]
+    fn set_cell_patch_overrides_datasource() {
+        let mut m = make_model();
+        m.set_cell(0, "a", "patched".into());
+        assert_eq!(m.get_cell(0, "a"), Some("patched".into()));
+        // other row unchanged
+        assert_eq!(m.get_cell(1, "a"), Some("foo".into()));
+    }
+
+    #[test]
+    fn total_height() {
+        let m = make_model();
+        // header=40 + 2 rows × 30 = 100
+        assert_eq!(m.total_height(), 100.0);
+    }
+
+    #[test]
+    fn total_width() {
+        let m = make_model();
+        // 100 + 150 = 250
+        assert_eq!(m.total_width(), 250.0);
+    }
+
+    #[test]
+    fn row_top() {
+        let m = make_model();
+        assert_eq!(m.row_top(0), 40.0); // header_height
+        assert_eq!(m.row_top(1), 70.0); // 40 + 30
+        assert_eq!(m.row_top(3), 130.0); // 40 + 3*30
+    }
+
+    #[test]
+    fn rebuild_offsets_after_column_change() {
+        let mut m = make_model();
+        m.columns[0].width = 200.0;
+        m.rebuild_offsets();
+        assert_eq!(m.column_offsets.offsets[1], 200.0);
+        assert_eq!(m.total_width(), 350.0);
+    }
+}

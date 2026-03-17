@@ -91,3 +91,137 @@ pub fn hit_test_row_header(
 
     Some(row)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        column::ColumnDef,
+        model::GridModel,
+        row::RowRecord,
+    };
+
+    /// 2 columns (100 + 150 px), 5 rows, row_height=30, header=40,
+    /// row_number_width=50 (default).
+    fn make_model() -> GridModel {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows = (0..5).map(|i| RowRecord::new(i)).collect();
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    // ── hit_test (data cells) ─────────────────────────────────────────────────
+
+    #[test]
+    fn hit_first_cell() {
+        let m = make_model();
+        // vx=60 (past gutter=50) → abs_x=10 → col 0
+        // vy=50 (past header=40) → abs_y=50 → row_y=10 → row 0
+        let c = hit_test(60.0, 50.0, &m, 0.0, 0.0).unwrap();
+        assert_eq!(c.row, 0);
+        assert_eq!(c.col, 0);
+    }
+
+    #[test]
+    fn hit_second_column() {
+        let m = make_model();
+        // abs_x = (160 - 50) + 0 = 110 → col 1 (offset 100)
+        let c = hit_test(160.0, 50.0, &m, 0.0, 0.0).unwrap();
+        assert_eq!(c.col, 1);
+    }
+
+    #[test]
+    fn hit_second_row() {
+        let m = make_model();
+        // vy=85, abs_y=85, row_y=85-40=45, row=45/30=1
+        let c = hit_test(60.0, 85.0, &m, 0.0, 0.0).unwrap();
+        assert_eq!(c.row, 1);
+    }
+
+    #[test]
+    fn hit_in_gutter_returns_none() {
+        let m = make_model();
+        assert!(hit_test(30.0, 50.0, &m, 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn hit_in_header_returns_none() {
+        let m = make_model();
+        // vy=20 → abs_y=20 < header_height=40
+        assert!(hit_test(60.0, 20.0, &m, 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn hit_below_last_row_returns_none() {
+        let m = make_model();
+        // 5 rows × 30 = 150 px of data; vy = 40 + 150 + 10 = 200
+        assert!(hit_test(60.0, 200.0, &m, 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn hit_right_of_last_column_returns_none() {
+        let m = make_model();
+        // total col width = 250; abs_x = (350 - 50) + 0 = 300 → past last col
+        assert!(hit_test(350.0, 50.0, &m, 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn hit_with_scroll() {
+        let m = make_model();
+        // scroll_y=30 → row 0 is scrolled off; vy=50 now hits row 1
+        let c = hit_test(60.0, 50.0, &m, 0.0, 30.0).unwrap();
+        assert_eq!(c.row, 1);
+    }
+
+    // ── hit_test_col_header ───────────────────────────────────────────────────
+
+    #[test]
+    fn col_header_hit() {
+        let m = make_model();
+        // vy=20 < header=40, vx=60 → col 0
+        assert_eq!(hit_test_col_header(60.0, 20.0, &m, 0.0), Some(0));
+    }
+
+    #[test]
+    fn col_header_below_header_returns_none() {
+        let m = make_model();
+        assert_eq!(hit_test_col_header(60.0, 50.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn col_header_in_gutter_returns_none() {
+        let m = make_model();
+        assert_eq!(hit_test_col_header(30.0, 20.0, &m, 0.0), None);
+    }
+
+    // ── hit_test_row_header ───────────────────────────────────────────────────
+
+    #[test]
+    fn row_header_hit_first() {
+        let m = make_model();
+        // vx=20 < rnw=50, vy=50 → abs_y=50 → row_y=10 → row 0
+        assert_eq!(hit_test_row_header(20.0, 50.0, &m, 0.0), Some(0));
+    }
+
+    #[test]
+    fn row_header_outside_gutter_returns_none() {
+        let m = make_model();
+        assert_eq!(hit_test_row_header(60.0, 50.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn row_header_in_header_zone_returns_none() {
+        let m = make_model();
+        // vy=20 → abs_y=20 < header=40
+        assert_eq!(hit_test_row_header(20.0, 20.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn row_header_below_last_row_returns_none() {
+        let m = make_model();
+        // 5 rows; vy=200
+        assert_eq!(hit_test_row_header(20.0, 200.0, &m, 0.0), None);
+    }
+}

@@ -163,3 +163,167 @@ pub enum CopyError {
     NoSelection,
     TooManyRows { actual: u64, max: u64 },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        column::ColumnDef,
+        model::GridModel,
+        row::RowRecord,
+    };
+
+    fn sel(r: u64, c: usize) -> SelectionState {
+        let mut s = SelectionState::default();
+        s.select_cell(r, c);
+        s
+    }
+
+    // ── SelectionState ────────────────────────────────────────────────────────
+
+    #[test]
+    fn select_cell_sets_anchor_and_focus() {
+        let s = sel(3, 2);
+        assert_eq!(s.anchor, Some(CellCoord { row: 3, col: 2 }));
+        assert_eq!(s.focus, Some(CellCoord { row: 3, col: 2 }));
+    }
+
+    #[test]
+    fn extend_to_moves_focus_only() {
+        let mut s = sel(0, 0);
+        s.extend_to(4, 2);
+        assert_eq!(s.anchor, Some(CellCoord { row: 0, col: 0 }));
+        assert_eq!(s.focus, Some(CellCoord { row: 4, col: 2 }));
+    }
+
+    #[test]
+    fn is_selected_single_cell() {
+        let s = sel(2, 1);
+        assert!(s.is_selected(2, 1));
+        assert!(!s.is_selected(2, 2));
+        assert!(!s.is_selected(3, 1));
+    }
+
+    #[test]
+    fn is_selected_rectangle() {
+        let mut s = sel(1, 1);
+        s.extend_to(3, 3);
+        // corners
+        assert!(s.is_selected(1, 1));
+        assert!(s.is_selected(3, 3));
+        assert!(s.is_selected(2, 2));
+        // outside
+        assert!(!s.is_selected(0, 1));
+        assert!(!s.is_selected(1, 0));
+        assert!(!s.is_selected(4, 3));
+    }
+
+    #[test]
+    fn is_selected_inverted_anchor_focus() {
+        // anchor > focus — rectangle is still normalised
+        let mut s = sel(4, 3);
+        s.extend_to(1, 1);
+        assert!(s.is_selected(1, 1));
+        assert!(s.is_selected(4, 3));
+        assert!(s.is_selected(2, 2));
+    }
+
+    #[test]
+    fn clear_resets_state() {
+        let mut s = sel(0, 0);
+        s.clear();
+        assert!(!s.has_selection());
+        assert!(!s.is_selected(0, 0));
+    }
+
+    #[test]
+    fn range_normalises_coords() {
+        let mut s = sel(5, 3);
+        s.extend_to(2, 1);
+        let (tl, br) = s.range().unwrap();
+        assert_eq!(tl, CellCoord { row: 2, col: 1 });
+        assert_eq!(br, CellCoord { row: 5, col: 3 });
+    }
+
+    #[test]
+    fn range_none_when_empty() {
+        assert!(SelectionState::default().range().is_none());
+    }
+
+    // ── parse_tsv ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_simple() {
+        let r = parse_tsv("a\tb\nc\td\n");
+        assert_eq!(r, vec![vec!["a", "b"], vec!["c", "d"]]);
+    }
+
+    #[test]
+    fn parse_no_trailing_newline() {
+        let r = parse_tsv("a\tb");
+        assert_eq!(r, vec![vec!["a", "b"]]);
+    }
+
+    #[test]
+    fn parse_quoted_field_with_tab() {
+        let r = parse_tsv("\"a\tb\"\tc");
+        assert_eq!(r, vec![vec!["a\tb", "c"]]);
+    }
+
+    #[test]
+    fn parse_escaped_quote() {
+        let r = parse_tsv("\"say \"\"hello\"\"\"");
+        assert_eq!(r, vec![vec!["say \"hello\""]]);
+    }
+
+    #[test]
+    fn parse_crlf_line_endings() {
+        let r = parse_tsv("a\tb\r\nc\td\r\n");
+        assert_eq!(r, vec![vec!["a", "b"], vec!["c", "d"]]);
+    }
+
+    #[test]
+    fn parse_empty_input() {
+        assert!(parse_tsv("").is_empty());
+    }
+
+    // ── to_tsv ────────────────────────────────────────────────────────────────
+
+    fn make_model() -> GridModel {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        let rows = vec![
+            { let mut r = RowRecord::new(0); r.set("a", "hello"); r.set("b", "world"); r },
+            { let mut r = RowRecord::new(1); r.set("a", "foo"); r.set("b", "bar"); r },
+        ];
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn to_tsv_single_cell() {
+        let mut s = SelectionState::default();
+        s.select_cell(0, 0);
+        let model = make_model();
+        assert_eq!(s.to_tsv(&model).unwrap(), "hello\n");
+    }
+
+    #[test]
+    fn to_tsv_full_range() {
+        let mut s = SelectionState::default();
+        s.select_cell(0, 0);
+        s.extend_to(1, 1);
+        let model = make_model();
+        assert_eq!(s.to_tsv(&model).unwrap(), "hello\tworld\nfoo\tbar\n");
+    }
+
+    #[test]
+    fn to_tsv_no_selection_error() {
+        let model = make_model();
+        assert_eq!(
+            SelectionState::default().to_tsv(&model),
+            Err(CopyError::NoSelection)
+        );
+    }
+}
