@@ -69,10 +69,20 @@ pub struct LinePrimitive {
     pub width: f64,
 }
 
+/// A filled convex polygon with optional rounded corners.
+#[derive(Debug, Clone)]
+pub struct PolygonPrimitive {
+    pub points: Vec<[f64; 2]>,
+    pub fill: Color,
+    /// Corner radius in logical pixels (0 = sharp corners).
+    pub corner_radius: f64,
+}
+
 /// Sum type over all renderable primitives.
 #[derive(Debug, Clone)]
 pub enum ScenePrimitive {
     Rect(RectPrimitive),
     Text(TextPrimitive),
     Line(LinePrimitive),
+    Polygon(PolygonPrimitive),
 }

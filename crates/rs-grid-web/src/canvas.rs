@@ -357,6 +357,16 @@ impl GridCanvas {
 
             // ── scrollbar interaction ─────────────────────────────────────────
             if let Some(sb) = gc.scrollbar() {
+                if sb.hit_up_arrow(x, y) {
+                    let row_h = gc.0.state.borrow().model.row_height;
+                    gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: -row_h });
+                    return;
+                }
+                if sb.hit_down_arrow(x, y) {
+                    let row_h = gc.0.state.borrow().model.row_height;
+                    gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: row_h });
+                    return;
+                }
                 if sb.hit_thumb(x, y) {
                     // Start thumb drag
                     *gc.0.drag.borrow_mut() = Some(ActiveDrag::Thumb(ThumbDrag {
