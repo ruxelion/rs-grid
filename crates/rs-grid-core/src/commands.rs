@@ -29,6 +29,10 @@ pub enum GridCommand {
     SelectCol(usize),
     /// Extend the current column selection to cover a new column (drag in header).
     ExtendColSelection(usize),
+    /// Set the width of a column (column resize drag).
+    ResizeColumn { col_idx: usize, new_width: f64 },
+    /// Update the hovered row (mousemove / mouseleave).
+    SetHoveredRow(Option<u64>),
 }
 
 #[derive(Debug, Clone)]

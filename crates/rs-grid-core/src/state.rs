@@ -12,6 +12,8 @@ pub struct GridState {
     pub model: GridModel,
     pub viewport: ViewportState,
     pub selection: SelectionState,
+    /// Row index currently under the mouse cursor, for hover highlighting.
+    pub hovered_row: Option<u64>,
 }
 
 impl GridState {
@@ -20,6 +22,7 @@ impl GridState {
             model,
             viewport: ViewportState::new(viewport_width, viewport_height),
             selection: SelectionState::default(),
+            hovered_row: None,
         }
     }
 
@@ -118,6 +121,18 @@ impl GridState {
                 // Clamp anchor row to 0 so the range always spans all rows.
                 if let Some(ref mut a) = self.selection.anchor { a.row = 0; }
                 self.selection.focus = Some(CellCoord { row: last_row, col });
+                CommandOutput::None
+            }
+            GridCommand::SetHoveredRow(row) => {
+                self.hovered_row = row;
+                CommandOutput::None
+            }
+            GridCommand::ResizeColumn { col_idx, new_width } => {
+                const MIN_COL_WIDTH: f64 = 20.0;
+                if col_idx < self.model.columns.len() {
+                    self.model.columns[col_idx].width = new_width.max(MIN_COL_WIDTH);
+                    self.model.rebuild_offsets();
+                }
                 CommandOutput::None
             }
             GridCommand::MoveSelection { delta_row, delta_col, extend } => {
