@@ -29,27 +29,24 @@
   --rs-grid-cell-padding:       10px;
 }
 
-/* ── dark theme example ─────────────────────────────────────────────────────
-   Uncomment to activate, or scope to a class/media query.
-
-:root {
-  --rs-grid-bg:                 #12121a;
-  --rs-grid-header-bg:          #1c1c26;
-  --rs-grid-header-text:        #a0a0b4;
-  --rs-grid-cell-text:          #dcdce6;
-  --rs-grid-grid-line:          #2d2d3a;
-  --rs-grid-header-border:      #373746;
-  --rs-grid-selection-fill:     rgba(99, 160, 255, 0.22);
-  --rs-grid-selection-border:   rgba(99, 160, 255, 0.82);
-  --rs-grid-scrollbar-track:    rgba(255, 255, 255, 0.06);
-  --rs-grid-scrollbar-thumb:    rgba(180, 180, 200, 0.55);
-  --rs-grid-row-alt-bg:         #16161e;
+/* ── dark theme — active when <html class="dark"> ───────────────────────────── */
+:root.dark {
+  --rs-grid-bg:                 #1a1b26;
+  --rs-grid-header-bg:          #24283b;
+  --rs-grid-header-text:        #a9b1d6;
+  --rs-grid-cell-text:          #c0caf5;
+  --rs-grid-grid-line:          #2a2f45;
+  --rs-grid-header-border:      #3d4466;
+  --rs-grid-selection-fill:     rgba(122, 162, 255, 0.20);
+  --rs-grid-selection-border:   rgba(122, 162, 255, 0.80);
+  --rs-grid-scrollbar-track:    #1f2335;
+  --rs-grid-scrollbar-thumb:    rgba(169, 177, 214, 0.40);
+  --rs-grid-row-alt-bg:         #1e2030;
   --rs-grid-font-size:          14px;
   --rs-grid-header-font-size:   13px;
   --rs-grid-header-font-bold:   1;
   --rs-grid-cell-padding:       10px;
 }
-*/
 
 *,
 *::before,
@@ -64,6 +61,7 @@ body {
   height: 100%;
   background: #f3f4f6;
   font-family: system-ui, sans-serif;
+  transition: background 0.2s;
 }
 
 /* ── app layout ─────────────────────────────────────────────────────────────── */
@@ -83,15 +81,17 @@ body {
 }
 
 .app-title {
-  font: 700 22px;
+  font: 700 22px/1.2 system-ui, sans-serif;
   color: #111827;
   margin-bottom: 8px;
+  transition: color 0.2s;
 }
 
 .app-subtitle {
-  font: 400 14px;
+  font: 400 14px/1.5 system-ui, sans-serif;
   color: #6b7280;
   margin-bottom: 18px;
+  transition: color 0.2s;
 }
 
 .app-highlight {
@@ -113,12 +113,14 @@ body {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 7px 12px;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .app-control-label {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  transition: color 0.2s;
 }
 
 .app-control-select {
@@ -137,6 +139,7 @@ body {
   background-repeat: no-repeat;
   background-position: right 9px center;
   min-width: 120px;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .app-control-select:hover {
@@ -146,6 +149,73 @@ body {
 .app-control-select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ── theme toggle switch ─────────────────────────────────────────────────────── */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.theme-toggle:hover {
+  border-color: #9ca3af;
+}
+
+/* Visually hidden but focusable */
+.theme-toggle-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.theme-toggle-input:checked ~ .theme-toggle-track {
+  background: #2563eb;
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s;
+}
+
+.theme-toggle-input:checked ~ .theme-toggle-track .theme-toggle-thumb {
+  transform: translateX(14px);
+}
+
+.theme-toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  transition: color 0.2s;
 }
 
 /* ── body ───────────────────────────────────────────────────────────────────── */
@@ -164,4 +234,69 @@ body {
     0 1px 3px rgba(0, 0, 0, 0.06),
     0 4px 12px rgba(0, 0, 0, 0.04);
   overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* ── dark mode overrides ─────────────────────────────────────────────────────── */
+
+:root.dark body {
+  background: #0d1117;
+}
+
+:root.dark .app-title {
+  color: #c0caf5;
+}
+
+:root.dark .app-subtitle {
+  color: #565f89;
+}
+
+:root.dark .app-highlight {
+  color: #7aa2f7;
+}
+
+:root.dark .app-control {
+  background: #1e2030;
+  border-color: #3d4466;
+}
+
+:root.dark .app-control-label {
+  color: #a9b1d6;
+}
+
+:root.dark .app-control-select {
+  background-color: #1a1b26;
+  border-color: #3d4466;
+  color: #c0caf5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a9b1d6'/%3E%3C/svg%3E");
+}
+
+:root.dark .app-control-select:hover {
+  border-color: #565f89;
+}
+
+:root.dark .app-control-select:focus {
+  border-color: #7aa2f7;
+  box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.18);
+}
+
+:root.dark .app-grid-wrapper {
+  background: #1a1b26;
+  border-color: #3d4466;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+:root.dark .theme-toggle {
+  background: #1e2030;
+  border-color: #3d4466;
+}
+
+:root.dark .theme-toggle:hover {
+  border-color: #565f89;
+}
+
+:root.dark .theme-toggle-label {
+  color: #a9b1d6;
 }
