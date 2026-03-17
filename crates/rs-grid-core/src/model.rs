@@ -4,6 +4,7 @@ use crate::{
     column::{ColumnDef, ColumnOffsets},
     datasource::{DataSource, VecDataSource},
     row::RowRecord,
+    sort::SortDir,
 };
 
 /// The data model: columns, a virtual data source, and sizing constants.
@@ -22,6 +23,9 @@ pub struct GridModel {
     pub patches: HashMap<(u64, String), String>,
     /// Width of the sticky row-number gutter on the left in logical pixels (0 = hidden).
     pub row_number_width: f64,
+    /// Logical→physical row index mapping built by `apply_sort`.
+    /// Empty = natural (unsorted) order.
+    pub sort_order: Vec<u64>,
 }
 
 impl GridModel {
@@ -48,20 +52,69 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
-        Self { columns, data, row_height, header_height, column_offsets, patches: HashMap::new(), row_number_width: 50.0 }
+        Self {
+            columns,
+            data,
+            row_height,
+            header_height,
+            column_offsets,
+            patches: HashMap::new(),
+            row_number_width: 50.0,
+            sort_order: Vec::new(),
+        }
+    }
+
+    /// Translate a logical (display) row index to its physical (datasource) index.
+    fn logical_to_physical(&self, logical: u64) -> u64 {
+        if self.sort_order.is_empty() {
+            logical
+        } else {
+            self.sort_order
+                .get(logical as usize)
+                .copied()
+                .unwrap_or(logical)
+        }
     }
 
     /// Read a cell value, checking local patches before the datasource.
-    pub fn get_cell(&self, row: u64, col_key: &str) -> Option<String> {
-        if let Some(v) = self.patches.get(&(row, col_key.to_owned())) {
+    /// Applies the sort mapping so callers always use logical row indices.
+    pub fn get_cell(&self, logical_row: u64, col_key: &str) -> Option<String> {
+        let physical = self.logical_to_physical(logical_row);
+        if let Some(v) = self.patches.get(&(physical, col_key.to_owned())) {
             return Some(v.clone());
         }
-        self.data.get_cell(row, col_key)
+        self.data.get_cell(physical, col_key)
     }
 
     /// Write a cell value into the patch layer (works for any datasource).
-    pub fn set_cell(&mut self, row: u64, col_key: impl Into<String>, value: String) {
-        self.patches.insert((row, col_key.into()), value);
+    /// Applies the sort mapping so callers always use logical row indices.
+    pub fn set_cell(&mut self, logical_row: u64, col_key: impl Into<String>, value: String) {
+        let physical = self.logical_to_physical(logical_row);
+        self.patches.insert((physical, col_key.into()), value);
+    }
+
+    /// Build `sort_order` by sorting row indices by cell values for `col_key`.
+    /// Tries numeric comparison first, falls back to lexicographic.
+    /// No-op for datasources with more than 1 000 000 rows.
+    pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) {
+        const MAX_SORT_ROWS: u64 = 1_000_000;
+        let n = self.data.row_count();
+        if n > MAX_SORT_ROWS {
+            return;
+        }
+        let mut indices: Vec<u64> = (0..n).collect();
+        indices.sort_by(|&a, &b| {
+            let va = self.data.get_cell(a, col_key).unwrap_or_default();
+            let vb = self.data.get_cell(b, col_key).unwrap_or_default();
+            let cmp = match (va.parse::<f64>(), vb.parse::<f64>()) {
+                (Ok(fa), Ok(fb)) => fa
+                    .partial_cmp(&fb)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+                _ => va.cmp(&vb),
+            };
+            if *dir == SortDir::Desc { cmp.reverse() } else { cmp }
+        });
+        self.sort_order = indices;
     }
 
     /// Total scrollable height (header + all rows).

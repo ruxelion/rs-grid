@@ -6,5 +6,6 @@ pub mod model;
 pub mod row;
 pub mod scrollbar;
 pub mod selection;
+pub mod sort;
 pub mod state;
 pub mod viewport;

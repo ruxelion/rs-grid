@@ -928,13 +928,21 @@ impl GridCanvas {
                 return;
             }
 
-            // ── column header selection ───────────────────────────────────────
+            // ── column header: sort on click, extend-select on shift+click ───
             let col = gc.0.state.borrow().hit_test_col_header(x, y);
             if let Some(col) = col {
                 if evt.shift_key() {
                     gc.dispatch(GridCommand::ExtendColSelection(col));
                 } else {
-                    gc.dispatch(GridCommand::SelectCol(col));
+                    let key = gc
+                        .0
+                        .state
+                        .borrow()
+                        .model
+                        .columns[col]
+                        .key
+                        .clone();
+                    gc.dispatch(GridCommand::ToggleSort { col_key: key });
                 }
                 *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
                 return;

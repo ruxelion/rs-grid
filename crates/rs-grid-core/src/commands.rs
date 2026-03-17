@@ -33,6 +33,8 @@ pub enum GridCommand {
     ResizeColumn { col_idx: usize, new_width: f64 },
     /// Update the hovered row (mousemove / mouseleave).
     SetHoveredRow(Option<u64>),
+    /// Cycle sort state for a column: None → Asc → Desc → None.
+    ToggleSort { col_key: String },
 }
 
 #[derive(Debug, Clone)]
