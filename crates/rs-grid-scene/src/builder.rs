@@ -2,7 +2,10 @@ use rs_grid_core::{scrollbar::ScrollbarGeom, state::GridState};
 
 use crate::{
     frame::SceneFrame,
-    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
+    primitives::{
+        LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextAlign, TextPrimitive,
+    },
     theme::Theme,
 };
 
@@ -14,14 +17,14 @@ use crate::{
 /// `build()` call.
 pub struct SceneBuilder {
     /// Device pixel ratio — hardware property, not a theme property.
-    pub dpr:   f64,
+    pub dpr: f64,
     pub theme: Theme,
 }
 
 impl Default for SceneBuilder {
     fn default() -> Self {
         Self {
-            dpr:   1.0,
+            dpr: 1.0,
             theme: Theme::default(),
         }
     }
@@ -29,7 +32,10 @@ impl Default for SceneBuilder {
 
 impl SceneBuilder {
     pub fn new(dpr: f64) -> Self {
-        Self { dpr, theme: Theme::default() }
+        Self {
+            dpr,
+            theme: Theme::default(),
+        }
     }
 
     pub fn with_theme(dpr: f64, theme: Theme) -> Self {
@@ -38,10 +44,10 @@ impl SceneBuilder {
 
     /// Build a complete `SceneFrame` from the current `GridState`.
     pub fn build(&self, state: &GridState) -> SceneFrame {
-        let vp  = &state.viewport;
+        let vp = &state.viewport;
         let model = &state.model;
         let sel = &state.selection;
-        let t   = &self.theme;
+        let t = &self.theme;
 
         let mut frame = SceneFrame::new(vp.width, vp.height, self.dpr);
 
@@ -57,14 +63,18 @@ impl SceneBuilder {
             corner_radius: 0.0,
         }));
 
-        let col_widths: Vec<f64> = model.columns.iter().map(|c| c.width).collect();
+        let col_widths: Vec<f64> =
+            model.columns.iter().map(|c| c.width).collect();
         let (col_start, col_end) =
             vp.visible_columns(&model.column_offsets, &col_widths);
-        let (row_start, row_end) =
-            vp.visible_rows(model.data.row_count(), model.row_height, model.header_height);
+        let (row_start, row_end) = vp.visible_rows(
+            model.data.row_count(),
+            model.row_height,
+            model.header_height,
+        );
 
-        let sx  = vp.scroll_x;
-        let sy  = vp.scroll_y;
+        let sx = vp.scroll_x;
+        let sy = vp.scroll_y;
         let rnw = model.row_number_width; // row-number gutter width
 
         // ── header background ────────────────────────────────────────────────
@@ -162,7 +172,6 @@ impl SceneBuilder {
                         }));
                     }
                 }
-
             }
 
             // Horizontal grid line
@@ -180,28 +189,46 @@ impl SceneBuilder {
         if let Some((tl, br)) = sel.range() {
             let x1 = model.column_offsets.offsets[tl.col] - sx + rnw;
             let y1 = model.row_top(tl.row) - sy;
-            let x2 = model.column_offsets.offsets[br.col] - sx + rnw + model.columns[br.col].width;
+            let x2 = model.column_offsets.offsets[br.col] - sx
+                + rnw
+                + model.columns[br.col].width;
             let y2 = model.row_top(br.row) - sy + model.row_height;
 
             // top
             frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1, y1: y1 + 0.5, x2, y2: y1 + 0.5,
-                color: t.selection_border, width: 1.0,
+                x1,
+                y1: y1 + 0.5,
+                x2,
+                y2: y1 + 0.5,
+                color: t.selection_border,
+                width: 1.0,
             }));
             // bottom
             frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1, y1: y2 - 0.5, x2, y2: y2 - 0.5,
-                color: t.selection_border, width: 1.0,
+                x1,
+                y1: y2 - 0.5,
+                x2,
+                y2: y2 - 0.5,
+                color: t.selection_border,
+                width: 1.0,
             }));
             // left
             frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x1 + 0.5, y1, x2: x1 + 0.5, y2,
-                color: t.selection_border, width: 1.0,
+                x1: x1 + 0.5,
+                y1,
+                x2: x1 + 0.5,
+                y2,
+                color: t.selection_border,
+                width: 1.0,
             }));
             // right
             frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x2 - 0.5, y1, x2: x2 - 0.5, y2,
-                color: t.selection_border, width: 1.0,
+                x1: x2 - 0.5,
+                y1,
+                x2: x2 - 0.5,
+                y2,
+                color: t.selection_border,
+                width: 1.0,
             }));
         }
 
@@ -221,11 +248,13 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = model.row_top(ri) - sy;
-                if ry + model.row_height < model.header_height || ry > vp.height {
+                if ry + model.row_height < model.header_height || ry > vp.height
+                {
                     continue;
                 }
 
-                let is_selected = sel.range()
+                let is_selected = sel
+                    .range()
                     .map_or(false, |(tl, br)| ri >= tl.row && ri <= br.row);
 
                 if is_selected {
@@ -283,7 +312,49 @@ impl SceneBuilder {
             model.total_height(),
             t.scrollbar_width,
         ) {
-            // Track
+            // ── arrow buttons background ──────────────────────────────────────
+            for btn_y in [sb.up_btn_y, sb.down_btn_y] {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: sb.track_x,
+                    y: btn_y,
+                    width: sb.track_w,
+                    height: sb.arrow_h,
+                    fill: t.scrollbar_track,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
+            // ── arrow icons ───────────────────────────────────────────────────
+            let cx = sb.track_x + sb.track_w * 0.5;
+            let arrow_size = (sb.track_w * 0.45).max(3.0);
+
+            // Up arrow ▲
+            let mid_up = sb.up_btn_y + sb.arrow_h * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [cx, mid_up - arrow_size * 0.45],
+                    [cx + arrow_size, mid_up + arrow_size * 1.0],
+                    [cx - arrow_size, mid_up + arrow_size * 1.0],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Down arrow ▼
+            let mid_dn = sb.down_btn_y + sb.arrow_h * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [cx, mid_dn + arrow_size * 0.45],
+                    [cx + arrow_size, mid_dn - arrow_size * 1.0],
+                    [cx - arrow_size, mid_dn - arrow_size * 1.0],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // ── track ─────────────────────────────────────────────────────────
             frame.push(ScenePrimitive::Rect(RectPrimitive {
                 x: sb.track_x,
                 y: sb.track_y,
@@ -295,7 +366,7 @@ impl SceneBuilder {
                 corner_radius: 0.0,
             }));
 
-            // Thumb (inset 2px on each side)
+            // ── thumb (inset 2px on each side) ────────────────────────────────
             const INSET: f64 = 2.0;
             frame.push(ScenePrimitive::Rect(RectPrimitive {
                 x: sb.track_x + INSET,

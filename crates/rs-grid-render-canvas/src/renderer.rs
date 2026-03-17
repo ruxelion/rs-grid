@@ -1,6 +1,6 @@
 use rs_grid_scene::{
     frame::SceneFrame,
-    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
+    primitives::{LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
 };
 use web_sys::CanvasRenderingContext2d;
 
@@ -29,9 +29,10 @@ impl CanvasRenderer {
 
         for prim in &frame.primitives {
             match prim {
-                ScenePrimitive::Rect(r) => self.draw_rect(r),
-                ScenePrimitive::Text(t) => self.draw_text(t),
-                ScenePrimitive::Line(l) => self.draw_line(l),
+                ScenePrimitive::Rect(r)    => self.draw_rect(r),
+                ScenePrimitive::Text(t)    => self.draw_text(t),
+                ScenePrimitive::Line(l)    => self.draw_line(l),
+                ScenePrimitive::Polygon(p) => self.draw_polygon(p),
             }
         }
 
@@ -91,6 +92,57 @@ impl CanvasRenderer {
         let _ = ctx.fill_text(&t.text, t.x, t.y);
 
         ctx.restore();
+    }
+
+    fn draw_polygon(&self, p: &PolygonPrimitive) {
+        let ctx = &self.ctx;
+        let n = p.points.len();
+        if n < 2 { return; }
+
+        ctx.begin_path();
+
+        if p.corner_radius <= 0.0 {
+            ctx.move_to(p.points[0][0], p.points[0][1]);
+            for pt in p.points.iter().skip(1) {
+                ctx.line_to(pt[0], pt[1]);
+            }
+        } else {
+            let r = p.corner_radius;
+            // For each vertex, round the corner using arcTo.
+            for i in 0..n {
+                let prev = p.points[(i + n - 1) % n];
+                let curr = p.points[i];
+                let next = p.points[(i + 1) % n];
+
+                // Unit vector from curr toward prev (incoming edge direction reversed).
+                let dx_in = prev[0] - curr[0];
+                let dy_in = prev[1] - curr[1];
+                let len_in = (dx_in * dx_in + dy_in * dy_in).sqrt().max(1e-9);
+                // Entry point: walk back from curr along the incoming edge by r.
+                let px = curr[0] + dx_in / len_in * r;
+                let py = curr[1] + dy_in / len_in * r;
+
+                // Unit vector from curr toward next (outgoing edge).
+                let dx_out = next[0] - curr[0];
+                let dy_out = next[1] - curr[1];
+                let len_out = (dx_out * dx_out + dy_out * dy_out).sqrt().max(1e-9);
+                // Exit point: walk forward from curr along the outgoing edge by r.
+                let qx = curr[0] + dx_out / len_out * r;
+                let qy = curr[1] + dy_out / len_out * r;
+
+                if i == 0 {
+                    ctx.move_to(px, py);
+                } else {
+                    ctx.line_to(px, py);
+                }
+                // arcTo rounds the corner between (px,py) → curr → (qx,qy).
+                ctx.arc_to(curr[0], curr[1], qx, qy, r).unwrap();
+            }
+        }
+
+        ctx.close_path();
+        ctx.set_fill_style_str(&p.fill.to_css());
+        ctx.fill();
     }
 
     fn draw_line(&self, l: &LinePrimitive) {
