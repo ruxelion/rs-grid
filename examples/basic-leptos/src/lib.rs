@@ -72,6 +72,25 @@ fn fmt_cols(n: usize) -> &'static str {
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(10usize);
+    let dark_mode = RwSignal::new(false);
+
+    // Sync <html class="dark"> with the signal on every change.
+    // This Effect handles the initial state; the on:change handler below
+    // also sets the class *synchronously* before dark_mode.set() so that
+    // theme_from_css_vars() in the GridCanvas Effect reads the right vars.
+    Effect::new(move |_| {
+        let dark = dark_mode.get();
+        if let Some(root) = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.document_element())
+        {
+            if dark {
+                let _ = root.class_list().add_1("dark");
+            } else {
+                let _ = root.class_list().remove_1("dark");
+            }
+        }
+    });
 
     view! {
         <main class="app-layout">
@@ -90,7 +109,9 @@ fn App() -> impl IntoView {
                         <select
                             class="app-control-select"
                             on:change=move |e| {
-                                let v = event_target_value(&e).parse::<u64>().unwrap_or(1_000);
+                                let v = event_target_value(&e)
+                                    .parse::<u64>()
+                                    .unwrap_or(1_000);
                                 row_count.set(v);
                             }
                         >
@@ -103,7 +124,9 @@ fn App() -> impl IntoView {
                         <select
                             class="app-control-select"
                             on:change=move |e| {
-                                let v = event_target_value(&e).parse::<usize>().unwrap_or(10);
+                                let v = event_target_value(&e)
+                                    .parse::<usize>()
+                                    .unwrap_or(10);
                                 col_count.set(v);
                             }
                         >
@@ -111,13 +134,61 @@ fn App() -> impl IntoView {
                             <option value="100">"100 columns"</option>
                         </select>
                     </div>
+
+                    // Dark-mode toggle switch
+                    <label class="theme-toggle" title="Toggle dark mode">
+                        <input
+                            type="checkbox"
+                            class="theme-toggle-input"
+                            prop:checked=move || dark_mode.get()
+                            on:change=move |_| {
+                                let new_dark = !dark_mode.get_untracked();
+                                // Apply the DOM class SYNCHRONOUSLY before
+                                // dark_mode.set() triggers reactive updates.
+                                // This ensures theme_from_css_vars() (called
+                                // in the GridCanvas Effect) already sees the
+                                // updated :root.dark CSS vars.
+                                if let Some(root) = web_sys::window()
+                                    .and_then(|w| w.document())
+                                    .and_then(|d| d.document_element())
+                                {
+                                    if new_dark {
+                                        let _ = root.class_list().add_1("dark");
+                                    } else {
+                                        let _ = root.class_list().remove_1("dark");
+                                    }
+                                }
+                                dark_mode.set(new_dark);
+                            }
+                        />
+                        <span class="theme-toggle-track">
+                            <span class="theme-toggle-thumb"></span>
+                        </span>
+                        <span class="theme-toggle-label">
+                            {move || if dark_mode.get() {
+                                "Light mode"
+                            } else {
+                                "Dark mode"
+                            }}
+                        </span>
+                    </label>
                 </div>
             </div>
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
-                        let model = build_model(row_count.get(), col_count.get());
-                        view! { <GridCanvas model=model width="100%".into() height="100%".into() /> }
+                        // Re-mount the grid when dark_mode changes so it
+                        // re-reads CSS vars via theme_from_css_vars().
+                        let _ = dark_mode.get();
+                        let model =
+                            build_model(row_count.get(), col_count.get());
+                        view! {
+                            <GridCanvas
+                                model=model
+                                width="100%".into()
+                                height="100%".into()
+                            />
+                        }
                     }}
                 </div>
             </div>

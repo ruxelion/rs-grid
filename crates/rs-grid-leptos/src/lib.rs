@@ -30,7 +30,6 @@ pub fn GridCanvas(
     // on first run without requiring GridModel: Clone.  This avoids
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
-    let resolved_theme = theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
 
     Effect::new(move |_| {
         let Some(canvas_el) = canvas_ref.get() else {
@@ -41,6 +40,13 @@ pub fn GridCanvas(
         let Some(model) = model_slot.borrow_mut().take() else {
             return;
         };
+
+        // Read the theme here, inside the Effect, so that any DOM class
+        // toggle (e.g. adding "dark" to <html>) applied synchronously
+        // before triggering the reactive update is already visible to
+        // theme_from_css_vars().
+        let mount_theme =
+            theme.clone().unwrap_or_else(rs_grid_web::theme_from_css_vars);
 
         // getBoundingClientRect() is reliable even before first paint;
         // fall back to window dimensions if the element has no size yet.
@@ -73,7 +79,7 @@ pub fn GridCanvas(
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
-        rs_grid_web::GridCanvas::mount(canvas, state, resolved_theme.clone());
+        rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
     });
 
     view! {

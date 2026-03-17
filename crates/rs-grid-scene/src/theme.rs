@@ -62,22 +62,22 @@ impl Theme {
         }
     }
 
-    /// Dark theme — blue-grey palette, bright accent selection.
+    /// Dark theme — Tokyo Night palette.
     pub fn dark() -> Self {
         Self {
-            bg:               Color::rgb(18,  18,  24),
-            header_bg:        Color::rgb(28,  28,  38),
-            header_text:      Color::rgb(160, 160, 180),
-            cell_text:        Color::rgb(220, 220, 230),
-            grid_line:        Color::rgb(45,  45,  58),
-            header_border:    Color::rgb(55,  55,  70),
-            selection_fill:   Color::rgba(99,  160, 255, 55),
-            selection_border: Color::rgba(99,  160, 255, 210),
-            scrollbar_track:  Color::rgba(255, 255, 255, 15),
-            scrollbar_thumb:  Color::rgba(180, 180, 200, 140),
-            row_alt_bg:       Color::rgb(22,  22,  30),
+            bg:               Color::rgb(26,  27,  38),
+            header_bg:        Color::rgb(36,  40,  59),
+            header_text:      Color::rgb(169, 177, 214),
+            cell_text:        Color::rgb(192, 202, 245),
+            grid_line:        Color::rgb(42,  47,  69),
+            header_border:    Color::rgb(61,  68,  102),
+            selection_fill:   Color::rgba(122, 162, 255, 51),
+            selection_border: Color::rgba(122, 162, 255, 204),
+            scrollbar_track:  Color::rgb(31,  35,  53),
+            scrollbar_thumb:  Color::rgba(169, 177, 214, 102),
+            row_alt_bg:       Color::rgb(30,  32,  48),
             font_size:        14.0,
-            header_font_size: 12.0,
+            header_font_size: 13.0,
             header_font_bold: true,
             cell_padding:     10.0,
             scrollbar_width:  14.0,

@@ -13,3 +13,9 @@ rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
 leptos = { version = "0.7", features = ["csr"] }
 wasm-bindgen = { workspace = true }
 console_error_panic_hook = { workspace = true }
+web-sys = { version = "0.3", features = [
+  "Document",
+  "DomTokenList",
+  "Element",
+  "Window",
+] }

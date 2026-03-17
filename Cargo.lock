@@ -96,6 +96,7 @@ dependencies = [
  "rs-grid-leptos",
  "rs-grid-scene",
  "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
