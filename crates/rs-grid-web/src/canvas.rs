@@ -26,10 +26,15 @@ struct Inner {
     builder: RefCell<SceneBuilder>,
     renderer: CanvasRenderer,
     canvas: HtmlCanvasElement,
-    /// Active scrollbar thumb drag, if any.
-    drag: RefCell<Option<ThumbDrag>>,
+    /// Active drag interaction, if any.
+    drag: RefCell<Option<ActiveDrag>>,
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
+}
+
+enum ActiveDrag {
+    Thumb(ThumbDrag),
+    Cell,
 }
 
 struct ThumbDrag {
@@ -213,10 +218,10 @@ impl GridCanvas {
             if let Some(sb) = gc.scrollbar() {
                 if sb.hit_thumb(x, y) {
                     // Start thumb drag
-                    *gc.0.drag.borrow_mut() = Some(ThumbDrag {
+                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::Thumb(ThumbDrag {
                         start_client_y: evt.client_y() as f64,
                         start_scroll_y: gc.0.state.borrow().viewport.scroll_y,
-                    });
+                    }));
                     return;
                 }
                 if sb.hit_track(x, y) {
@@ -239,6 +244,7 @@ impl GridCanvas {
                 } else {
                     gc.dispatch(GridCommand::SelectCell(coord));
                 }
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::Cell);
             }
         });
         self.0
@@ -252,31 +258,42 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             let drag = gc.0.drag.borrow();
-            let Some(ref ds) = *drag else { return };
+            match *drag {
+                Some(ActiveDrag::Thumb(ref ds)) => {
+                    let dy = evt.client_y() as f64 - ds.start_client_y;
+                    let start_scroll = ds.start_scroll_y;
+                    drop(drag);
 
-            let dy = evt.client_y() as f64 - ds.start_client_y;
-            let start_scroll = ds.start_scroll_y;
-            drop(drag); // release borrow before calling state
+                    let scroll_delta = {
+                        let s = gc.0.state.borrow();
+                        if let Some(sb) = ScrollbarGeom::compute(
+                            s.viewport.scroll_y,
+                            s.viewport.width,
+                            s.viewport.height,
+                            s.model.header_height,
+                            s.model.total_height(),
+                        ) {
+                            sb.drag_to_scroll(dy, s.model.total_height(), s.viewport.height, s.model.header_height)
+                        } else {
+                            return;
+                        }
+                    };
 
-            let scroll_delta = {
-                let s = gc.0.state.borrow();
-                if let Some(sb) = ScrollbarGeom::compute(
-                    s.viewport.scroll_y,
-                    s.viewport.width,
-                    s.viewport.height,
-                    s.model.header_height,
-                    s.model.total_height(),
-                ) {
-                    sb.drag_to_scroll(dy, s.model.total_height(), s.viewport.height, s.model.header_height)
-                } else {
-                    return;
+                    gc.dispatch(GridCommand::ScrollTo {
+                        x: 0.0,
+                        y: start_scroll + scroll_delta,
+                    });
                 }
-            };
-
-            gc.dispatch(GridCommand::ScrollTo {
-                x: 0.0,
-                y: start_scroll + scroll_delta,
-            });
+                Some(ActiveDrag::Cell) => {
+                    drop(drag);
+                    let (x, y) = gc.canvas_xy(&evt);
+                    let coord = gc.0.state.borrow().hit_test(x, y);
+                    if let Some(coord) = coord {
+                        gc.dispatch(GridCommand::ExtendSelection(coord));
+                    }
+                }
+                None => {}
+            }
         });
         document()
             .add_event_listener_with_callback("mousemove", cb.as_ref().unchecked_ref())
