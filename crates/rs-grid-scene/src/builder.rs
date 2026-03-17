@@ -168,16 +168,6 @@ impl SceneBuilder {
                     }
                 }
 
-                // Vertical grid line
-                let vline_x = cx + col.width - 0.5;
-                frame.push(ScenePrimitive::Line(LinePrimitive {
-                    x1: vline_x,
-                    y1: ry,
-                    x2: vline_x,
-                    y2: ry + model.row_height,
-                    color: GRID_LINE,
-                    width: 1.0,
-                }));
             }
 
             // Horizontal grid line
