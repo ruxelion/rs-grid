@@ -4,7 +4,29 @@
       "Bash(cd:*)",
       "Bash(cargo check:*)",
       "Bash(cargo build:*)",
-      "Bash(trunk --version)"
+      "Bash(cargo test:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(wasm-pack build:*)",
+      "Bash(trunk build:*)",
+      "Bash(trunk serve:*)",
+      "Bash(trunk --version)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); echo \"$input\" | grep -q '\\.rs\"' && cd /c/Dev/rs-grid && cargo check --workspace --message-format short 2>&1 | head -40 || true"
+          }
+        ]
+      }
     ]
   }
 }
