@@ -1,4 +1,4 @@
-use rs_grid_core::{scrollbar::ScrollbarGeom, state::GridState};
+use rs_grid_core::{scrollbar::{HScrollbarGeom, ScrollbarGeom}, state::GridState};
 
 use crate::{
     frame::SceneFrame,
@@ -386,6 +386,89 @@ impl SceneBuilder {
                 y: sb.thumb_y + INSET,
                 width: (sb.track_w - INSET * 2.0).max(2.0),
                 height: (sb.thumb_h - INSET * 2.0).max(4.0),
+                fill: t.scrollbar_thumb,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: t.scrollbar_radius,
+            }));
+        }
+
+        // ── horizontal scrollbar ─────────────────────────────────────────────
+        let vsb_w = if ScrollbarGeom::compute(
+            vp.scroll_y, vp.width, vp.height,
+            model.header_height, model.total_height(), t.scrollbar_width,
+        ).is_some() { t.scrollbar_width } else { 0.0 };
+
+        if let Some(hsb) = HScrollbarGeom::compute(
+            vp.scroll_x,
+            vp.width,
+            vp.height,
+            rnw,
+            model.total_width(),
+            vsb_w,
+            t.scrollbar_width,
+        ) {
+            // ── arrow buttons background ──────────────────────────────────────
+            for btn_x in [hsb.left_btn_x, hsb.right_btn_x] {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: btn_x,
+                    y: hsb.track_y,
+                    width: hsb.arrow_w,
+                    height: hsb.track_h,
+                    fill: t.scrollbar_track,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
+            // ── arrow icons ───────────────────────────────────────────────────
+            let cy = hsb.track_y + hsb.track_h * 0.5;
+            let arrow_size = (hsb.track_h * 0.45).max(3.0);
+
+            // Left arrow ◀
+            let mid_left = hsb.left_btn_x + hsb.arrow_w * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [mid_left - arrow_size * 0.45, cy],
+                    [mid_left + arrow_size * 1.0,  cy - arrow_size],
+                    [mid_left + arrow_size * 1.0,  cy + arrow_size],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Right arrow ▶
+            let mid_right = hsb.right_btn_x + hsb.arrow_w * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [mid_right + arrow_size * 0.45, cy],
+                    [mid_right - arrow_size * 1.0,  cy - arrow_size],
+                    [mid_right - arrow_size * 1.0,  cy + arrow_size],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // ── track ─────────────────────────────────────────────────────────
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: hsb.track_x,
+                y: hsb.track_y,
+                width: hsb.track_w,
+                height: hsb.track_h,
+                fill: t.scrollbar_track,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+
+            // ── thumb (inset 2px on each side) ────────────────────────────────
+            const INSET: f64 = 2.0;
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: hsb.thumb_x + INSET,
+                y: hsb.track_y + INSET,
+                width: (hsb.thumb_w - INSET * 2.0).max(4.0),
+                height: (hsb.track_h - INSET * 2.0).max(2.0),
                 fill: t.scrollbar_thumb,
                 stroke: None,
                 stroke_width: 0.0,

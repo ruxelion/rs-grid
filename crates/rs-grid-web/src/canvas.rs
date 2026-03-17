@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use rs_grid_core::{
     commands::{CommandOutput, GridCommand},
-    scrollbar::ScrollbarGeom,
+    scrollbar::{HScrollbarGeom, ScrollbarGeom},
     selection::CopyError,
     state::GridState,
 };
@@ -43,6 +43,7 @@ struct Inner {
 
 enum ActiveDrag {
     Thumb(ThumbDrag),
+    HThumb(HThumbDrag),
     Cell,
     Row,
     Col,
@@ -50,10 +51,13 @@ enum ActiveDrag {
 }
 
 struct ThumbDrag {
-    /// `clientY` of the mousedown that started the drag.
     start_client_y: f64,
-    /// `scroll_y` at the moment the drag started.
     start_scroll_y: f64,
+}
+
+struct HThumbDrag {
+    start_client_x: f64,
+    start_scroll_x: f64,
 }
 
 // ── impl ──────────────────────────────────────────────────────────────────────
@@ -139,6 +143,24 @@ impl GridCanvas {
             s.model.header_height,
             s.model.total_height(),
             track_w,
+        )
+    }
+
+    fn hscrollbar(&self) -> Option<HScrollbarGeom> {
+        let s = self.0.state.borrow();
+        let track_h = self.0.builder.borrow().theme.scrollbar_width;
+        let vsb_w = if ScrollbarGeom::compute(
+            s.viewport.scroll_y, s.viewport.width, s.viewport.height,
+            s.model.header_height, s.model.total_height(), track_h,
+        ).is_some() { track_h } else { 0.0 };
+        HScrollbarGeom::compute(
+            s.viewport.scroll_x,
+            s.viewport.width,
+            s.viewport.height,
+            s.model.row_number_width,
+            s.model.total_width(),
+            vsb_w,
+            track_h,
         )
     }
 
@@ -482,6 +504,133 @@ impl GridCanvas {
         self.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: step });
     }
 
+    // ── horizontal track scroll (mirrors vertical) ────────────────────────────
+
+    /// Arrow-button auto-repeat for horizontal (mirrors `start_scroll_repeat`).
+    fn start_scroll_repeat_x(&self, dx: f64) {
+        self.stop_scroll_repeat();
+        let gc = self.clone();
+        let win = web_sys::window().expect("no window");
+        let timeout_cb = Closure::<dyn FnMut()>::new(move || {
+            let gc2 = gc.clone();
+            let interval_cb = Closure::<dyn FnMut()>::new(move || {
+                gc2.dispatch(GridCommand::ScrollBy { dx, dy: 0.0 });
+            });
+            let win2 = web_sys::window().expect("no window");
+            let id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    interval_cb.as_ref().unchecked_ref(),
+                    60,
+                )
+                .expect("setInterval");
+            interval_cb.forget();
+            *gc.0.scroll_interval.borrow_mut() = Some(id);
+        });
+        let tid = win
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                timeout_cb.as_ref().unchecked_ref(),
+                350,
+            )
+            .expect("setTimeout");
+        timeout_cb.forget();
+        *self.0.scroll_timeout.borrow_mut() = Some(tid);
+    }
+
+    /// Single easing step toward `click_x`; stops interval when done.
+    fn do_htrack_scroll_step(&self, click_x: f64, going_right: bool) {
+        let Some(sb) = self.hscrollbar() else {
+            self.stop_scroll_repeat();
+            return;
+        };
+
+        let thumb_center = sb.thumb_x + sb.thumb_w * 0.5;
+        let still_going = if going_right {
+            thumb_center < click_x
+        } else {
+            thumb_center > click_x
+        };
+        if !still_going {
+            self.stop_scroll_repeat();
+            return;
+        }
+
+        let (total_w, viewport_w, gutter_w, vsb_w) = {
+            let s = self.0.state.borrow();
+            let sb_w = self.0.builder.borrow().theme.scrollbar_width;
+            let vsb_w = if ScrollbarGeom::compute(
+                s.viewport.scroll_y, s.viewport.width, s.viewport.height,
+                s.model.header_height, s.model.total_height(), sb_w,
+            ).is_some() { sb_w } else { 0.0 };
+            (s.model.total_width(), s.viewport.width, s.model.row_number_width, vsb_w)
+        };
+        let target = sb.track_click_scroll(click_x, total_w, viewport_w, gutter_w, vsb_w);
+        let current = self.0.state.borrow().viewport.scroll_x;
+        let remaining = target - current;
+
+        if remaining.abs() < 1.0 {
+            self.stop_scroll_repeat();
+            return;
+        }
+
+        let step = if remaining > 0.0 {
+            (remaining * 0.10).max(1.0)
+        } else {
+            (remaining * 0.10).min(-1.0)
+        };
+        self.dispatch(GridCommand::ScrollBy { dx: step, dy: 0.0 });
+    }
+
+    /// AG Grid-style three-phase track scroll for horizontal axis.
+    fn start_htrack_scroll_repeat(&self, click_x: f64, going_right: bool) {
+        self.stop_scroll_repeat();
+        let win = web_sys::window().expect("no window");
+
+        // Phase 1: slow mini-easing at 100 ms.
+        let gc1 = self.clone();
+        let slow_cb = Closure::<dyn FnMut()>::new(move || {
+            gc1.do_htrack_scroll_step(click_x, going_right);
+        });
+        let slow_id = win
+            .set_interval_with_callback_and_timeout_and_arguments_0(
+                slow_cb.as_ref().unchecked_ref(),
+                100,
+            )
+            .expect("setInterval");
+        slow_cb.forget();
+        *self.0.scroll_interval.borrow_mut() = Some(slow_id);
+
+        // Phase 2: after 350 ms, switch to full 60 fps easing.
+        let gc2 = self.clone();
+        let switch_cb = Closure::<dyn FnMut()>::new(move || {
+            if let Some(id) = gc2.0.scroll_interval.borrow_mut().take() {
+                web_sys::window()
+                    .expect("no window")
+                    .clear_interval_with_handle(id);
+            }
+            let gc3 = gc2.clone();
+            let fast_cb = Closure::<dyn FnMut()>::new(move || {
+                gc3.do_htrack_scroll_step(click_x, going_right);
+            });
+            let win2 = web_sys::window().expect("no window");
+            let fast_id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    fast_cb.as_ref().unchecked_ref(),
+                    16,
+                )
+                .expect("setInterval");
+            fast_cb.forget();
+            *gc2.0.scroll_interval.borrow_mut() = Some(fast_id);
+        });
+        let tid = win
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                switch_cb.as_ref().unchecked_ref(),
+                350,
+            )
+            .expect("setTimeout");
+        switch_cb.forget();
+        *self.0.scroll_timeout.borrow_mut() = Some(tid);
+    }
+
     // ── event wiring ─────────────────────────────────────────────────────────
 
     fn attach_resize_observer(&self) {
@@ -643,6 +792,37 @@ impl GridCanvas {
                 }
             }
 
+            // ── horizontal scrollbar interaction ──────────────────────────────
+            if let Some(hsb) = gc.hscrollbar() {
+                if hsb.hit_left_arrow(x, y) {
+                    let col_w = gc.0.state.borrow().model.columns
+                        .first().map_or(40.0, |c| c.width);
+                    gc.dispatch(GridCommand::ScrollBy { dx: -col_w, dy: 0.0 });
+                    gc.start_scroll_repeat_x(-col_w);
+                    return;
+                }
+                if hsb.hit_right_arrow(x, y) {
+                    let col_w = gc.0.state.borrow().model.columns
+                        .first().map_or(40.0, |c| c.width);
+                    gc.dispatch(GridCommand::ScrollBy { dx: col_w, dy: 0.0 });
+                    gc.start_scroll_repeat_x(col_w);
+                    return;
+                }
+                if hsb.hit_thumb(x, y) {
+                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::HThumb(HThumbDrag {
+                        start_client_x: evt.client_x() as f64,
+                        start_scroll_x: gc.0.state.borrow().viewport.scroll_x,
+                    }));
+                    return;
+                }
+                if hsb.hit_track(x, y) {
+                    let going_right = x > hsb.thumb_x + hsb.thumb_w * 0.5;
+                    gc.start_htrack_scroll_repeat(x, going_right);
+                    return;
+                }
+            }
+
+
             // ── row header selection ──────────────────────────────────────────
             let row = gc.0.state.borrow().hit_test_row_header(x, y);
             if let Some(row) = row {
@@ -724,6 +904,31 @@ impl GridCanvas {
                     gc.dispatch(GridCommand::ScrollTo {
                         x: 0.0,
                         y: start_scroll + scroll_delta,
+                    });
+                }
+                Some(ActiveDrag::HThumb(ref ds)) => {
+                    let dx = evt.client_x() as f64 - ds.start_client_x;
+                    let start_scroll = ds.start_scroll_x;
+                    drop(drag);
+                    let scroll_delta = {
+                        let s = gc.0.state.borrow();
+                        let track_h = gc.0.builder.borrow().theme.scrollbar_width;
+                        let vsb_w = if ScrollbarGeom::compute(
+                            s.viewport.scroll_y, s.viewport.width, s.viewport.height,
+                            s.model.header_height, s.model.total_height(), track_h,
+                        ).is_some() { track_h } else { 0.0 };
+                        if let Some(hsb) = HScrollbarGeom::compute(
+                            s.viewport.scroll_x, s.viewport.width, s.viewport.height,
+                            s.model.row_number_width, s.model.total_width(), vsb_w, track_h,
+                        ) {
+                            hsb.drag_to_scroll(dx, s.model.total_width(),
+                                s.viewport.width, s.model.row_number_width, vsb_w)
+                        } else { return; }
+                    };
+                    let current_y = gc.0.state.borrow().viewport.scroll_y;
+                    gc.dispatch(GridCommand::ScrollTo {
+                        x: start_scroll + scroll_delta,
+                        y: current_y,
                     });
                 }
                 Some(ActiveDrag::Cell) => {
