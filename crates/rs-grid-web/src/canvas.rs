@@ -9,7 +9,7 @@ use rs_grid_core::{
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::builder::SceneBuilder;
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, WheelEvent};
+use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, ResizeObserver, WheelEvent};
 
 // ── public handle ─────────────────────────────────────────────────────────────
 
@@ -23,11 +23,13 @@ pub struct GridCanvas(Rc<Inner>);
 
 struct Inner {
     state: RefCell<GridState>,
-    builder: SceneBuilder,
+    builder: RefCell<SceneBuilder>,
     renderer: CanvasRenderer,
     canvas: HtmlCanvasElement,
     /// Active scrollbar thumb drag, if any.
     drag: RefCell<Option<ThumbDrag>>,
+    _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
+    _resize_observer: RefCell<Option<ResizeObserver>>,
 }
 
 struct ThumbDrag {
@@ -67,21 +69,25 @@ impl GridCanvas {
 
         let inner = Rc::new(Inner {
             state: RefCell::new(state),
-            builder: SceneBuilder::new(dpr),
+            builder: RefCell::new(SceneBuilder::new(dpr)),
             renderer: CanvasRenderer::new(ctx),
             canvas,
             drag: RefCell::new(None),
+            _resize_closure: RefCell::new(None),
+            _resize_observer: RefCell::new(None),
         });
 
         let gc = GridCanvas(inner);
         gc.attach_listeners();
+        gc.attach_resize_observer();
+        gc.render();
         gc
     }
 
     /// Render the current state immediately.
     pub fn render(&self) {
         let state = self.0.state.borrow();
-        let frame = self.0.builder.build(&state);
+        let frame = self.0.builder.borrow().build(&state);
         self.0.renderer.render(&frame);
     }
 
@@ -141,6 +147,37 @@ impl GridCanvas {
     }
 
     // ── event wiring ─────────────────────────────────────────────────────────
+
+    fn attach_resize_observer(&self) {
+        let gc = self.clone();
+
+        let cb = Closure::<dyn FnMut(js_sys::Array)>::new(move |_entries: js_sys::Array| {
+            let canvas = &gc.0.canvas;
+            let win = web_sys::window().expect("no window");
+            let dpr = win.device_pixel_ratio();
+
+            let css_w = canvas.client_width() as f64;
+            let css_h = canvas.client_height() as f64;
+
+            if css_w <= 0.0 || css_h <= 0.0 {
+                return;
+            }
+
+            canvas.set_width((css_w * dpr) as u32);
+            canvas.set_height((css_h * dpr) as u32);
+
+            gc.0.builder.borrow_mut().dpr = dpr;
+
+            gc.dispatch(GridCommand::Resize { width: css_w, height: css_h });
+        });
+
+        let observer =
+            ResizeObserver::new(cb.as_ref().unchecked_ref()).expect("ResizeObserver::new");
+        observer.observe(&self.0.canvas);
+
+        *self.0._resize_closure.borrow_mut() = Some(cb);
+        *self.0._resize_observer.borrow_mut() = Some(observer);
+    }
 
     fn attach_listeners(&self) {
         self.attach_wheel();
