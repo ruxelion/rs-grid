@@ -141,7 +141,7 @@ impl SceneBuilder {
                 let col = &model.columns[ci];
                 let cx = model.column_offsets.offsets[ci] - sx;
 
-                // Selection fill
+                // Selection fill (no border — outer border drawn below)
                 if sel.is_selected(ri, ci) {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: cx,
@@ -149,8 +149,8 @@ impl SceneBuilder {
                         width: col.width,
                         height: model.row_height,
                         fill: SELECTION_FILL,
-                        stroke: Some(SELECTION_BORDER),
-                        stroke_width: 1.0,
+                        stroke: None,
+                        stroke_width: 0.0,
                     }));
                 }
 
@@ -178,6 +178,35 @@ impl SceneBuilder {
                 y2: ry + model.row_height - 0.5,
                 color: GRID_LINE,
                 width: 1.0,
+            }));
+        }
+
+        // ── selection outer border ───────────────────────────────────────────
+        if let Some((tl, br)) = sel.range() {
+            let x1 = model.column_offsets.offsets[tl.col] - sx;
+            let y1 = model.row_top(tl.row) - sy;
+            let x2 = model.column_offsets.offsets[br.col] - sx + model.columns[br.col].width;
+            let y2 = model.row_top(br.row) - sy + model.row_height;
+
+            // top
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1, y1: y1 + 0.5, x2, y2: y1 + 0.5,
+                color: SELECTION_BORDER, width: 1.0,
+            }));
+            // bottom
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1, y1: y2 - 0.5, x2, y2: y2 - 0.5,
+                color: SELECTION_BORDER, width: 1.0,
+            }));
+            // left
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: x1 + 0.5, y1, x2: x1 + 0.5, y2,
+                color: SELECTION_BORDER, width: 1.0,
+            }));
+            // right
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: x2 - 0.5, y1, x2: x2 - 0.5, y2,
+                color: SELECTION_BORDER, width: 1.0,
             }));
         }
 
