@@ -1,6 +1,3 @@
-/// Width of the scrollbar track in logical pixels.
-pub const WIDTH: f64 = 10.0;
-
 const MIN_THUMB_H: f64 = 24.0;
 
 /// Pre-computed geometry of the vertical scrollbar for one frame.
@@ -12,7 +9,7 @@ pub struct ScrollbarGeom {
     pub track_x: f64,
     /// Top edge of the track (= header height).
     pub track_y: f64,
-    /// Track width (= `WIDTH`).
+    /// Track width.
     pub track_w: f64,
     /// Track height.
     pub track_h: f64,
@@ -30,6 +27,7 @@ impl ScrollbarGeom {
         viewport_h: f64,
         header_h: f64,
         total_h: f64,
+        track_w: f64,
     ) -> Option<Self> {
         let visible_h = (viewport_h - header_h).max(0.0);
         if total_h <= viewport_h {
@@ -44,9 +42,9 @@ impl ScrollbarGeom {
         let thumb_offset = (scroll_y / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
 
         Some(Self {
-            track_x: viewport_w - WIDTH,
+            track_x: viewport_w - track_w,
             track_y: header_h,
-            track_w: WIDTH,
+            track_w,
             track_h,
             thumb_y: header_h + thumb_offset,
             thumb_h,

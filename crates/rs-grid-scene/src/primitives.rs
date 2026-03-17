@@ -33,6 +33,8 @@ pub struct RectPrimitive {
     pub fill: Color,
     pub stroke: Option<Color>,
     pub stroke_width: f64,
+    /// Corner radius in logical pixels (0 = sharp corners).
+    pub corner_radius: f64,
 }
 
 /// Horizontal text alignment.

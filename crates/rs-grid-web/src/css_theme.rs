@@ -23,6 +23,8 @@ use rs_grid_scene::{
 /// | `--rs-grid-selection-border`  | `Theme::selection_border` |
 /// | `--rs-grid-scrollbar-track`   | `Theme::scrollbar_track`  |
 /// | `--rs-grid-scrollbar-thumb`   | `Theme::scrollbar_thumb`  |
+/// | `--rs-grid-scrollbar-width`   | `Theme::scrollbar_width`  |
+/// | `--rs-grid-scrollbar-radius`  | `Theme::scrollbar_radius` |
 /// | `--rs-grid-font-size`         | `Theme::font_size`        |
 /// | `--rs-grid-header-font-size`  | `Theme::header_font_size` |
 /// | `--rs-grid-cell-padding`      | `Theme::cell_padding`     |
@@ -54,6 +56,8 @@ pub fn theme_from_css_vars() -> Theme {
         selection_border: color("--rs-grid-selection-border", fallback.selection_border),
         scrollbar_track:  color("--rs-grid-scrollbar-track",  fallback.scrollbar_track),
         scrollbar_thumb:  color("--rs-grid-scrollbar-thumb",  fallback.scrollbar_thumb),
+        scrollbar_width:  px("--rs-grid-scrollbar-width",     fallback.scrollbar_width),
+        scrollbar_radius: px("--rs-grid-scrollbar-radius",    fallback.scrollbar_radius),
         font_size:        px("--rs-grid-font-size",           fallback.font_size),
         header_font_size: px("--rs-grid-header-font-size",    fallback.header_font_size),
         cell_padding:     px("--rs-grid-cell-padding",        fallback.cell_padding),

@@ -113,12 +113,14 @@ impl GridCanvas {
 
     fn scrollbar(&self) -> Option<ScrollbarGeom> {
         let s = self.0.state.borrow();
+        let track_w = self.0.builder.borrow().theme.scrollbar_width;
         ScrollbarGeom::compute(
             s.viewport.scroll_y,
             s.viewport.width,
             s.viewport.height,
             s.model.header_height,
             s.model.total_height(),
+            track_w,
         )
     }
 
@@ -417,12 +419,14 @@ impl GridCanvas {
 
                     let scroll_delta = {
                         let s = gc.0.state.borrow();
+                        let track_w = gc.0.builder.borrow().theme.scrollbar_width;
                         if let Some(sb) = ScrollbarGeom::compute(
                             s.viewport.scroll_y,
                             s.viewport.width,
                             s.viewport.height,
                             s.model.header_height,
                             s.model.total_height(),
+                            track_w,
                         ) {
                             sb.drag_to_scroll(dy, s.model.total_height(), s.viewport.height, s.model.header_height)
                         } else {
