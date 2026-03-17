@@ -70,8 +70,7 @@ pub fn GridCanvas(
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
-        let gc = rs_grid_web::GridCanvas::mount(canvas, state);
-        gc.render();
+        rs_grid_web::GridCanvas::mount(canvas, state);
     });
 
     view! {
