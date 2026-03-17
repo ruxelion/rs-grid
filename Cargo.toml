@@ -43,5 +43,7 @@ features = [
   "ClipboardEvent",
   "DataTransfer",
   "CssStyleDeclaration",
+  "HtmlElement",
+  "Node",
 ]
 version = "0.3"

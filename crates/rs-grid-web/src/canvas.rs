@@ -9,7 +9,7 @@ use rs_grid_core::{
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{builder::SceneBuilder, Theme};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{HtmlCanvasElement, KeyboardEvent, MouseEvent, ResizeObserver, WheelEvent};
+use web_sys::{HtmlCanvasElement, HtmlElement, KeyboardEvent, MouseEvent, ResizeObserver, WheelEvent};
 
 // ── public handle ─────────────────────────────────────────────────────────────
 
@@ -151,6 +151,131 @@ impl GridCanvas {
         });
     }
 
+    // ── context menu ─────────────────────────────────────────────────────────
+
+    fn attach_contextmenu(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            evt.prevent_default();
+
+            // Select cell under right-click if nothing is selected yet
+            let (cx, cy) = gc.canvas_xy(&evt);
+            let has_sel = gc.0.state.borrow().selection.has_selection();
+            if !has_sel {
+                // Extract coord in its own statement so the Ref is dropped
+                // before dispatch() calls borrow_mut().
+                let coord = gc.0.state.borrow().hit_test(cx, cy);
+                if let Some(coord) = coord {
+                    gc.dispatch(GridCommand::SelectCell(coord));
+                }
+            }
+
+            gc.show_context_menu(evt.client_x(), evt.client_y());
+        });
+        self.0
+            .canvas
+            .add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref())
+            .unwrap();
+        cb.forget();
+    }
+
+    fn show_context_menu(&self, x: i32, y: i32) {
+        let doc = document();
+        remove_ctx_menu();
+
+        let body = doc.body().expect("no body");
+
+        // ── backdrop (transparent overlay, closes menu on click) ──────────────
+        let backdrop = make_el(&doc, "div");
+        backdrop.set_id("rs-grid-ctx-backdrop");
+        set_styles(
+            &backdrop,
+            &[("position", "fixed"), ("inset", "0"), ("z-index", "9998")],
+        );
+        {
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+                remove_ctx_menu();
+            });
+            backdrop
+                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .unwrap();
+            cb.forget();
+        }
+
+        // ── menu container ────────────────────────────────────────────────────
+        let menu = make_el(&doc, "div");
+        menu.set_id("rs-grid-ctx-menu");
+        set_styles(
+            &menu,
+            &[
+                ("position", "fixed"),
+                ("left", &format!("{}px", x)),
+                ("top", &format!("{}px", y)),
+                ("z-index", "9999"),
+                ("background", "#ffffff"),
+                ("border", "1px solid #d1d5db"),
+                ("border-radius", "6px"),
+                ("box-shadow", "0 4px 16px rgba(0,0,0,0.12)"),
+                ("padding", "4px 0"),
+                ("font", "13px/1.4 system-ui,sans-serif"),
+                ("min-width", "160px"),
+                ("user-select", "none"),
+            ],
+        );
+
+        let has_selection = self.0.state.borrow().selection.has_selection();
+
+        // ── Copy ──────────────────────────────────────────────────────────────
+        let copy_item = make_menu_item(&doc, "Copier", "Ctrl+C", has_selection);
+        if has_selection {
+            let gc = self.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+                remove_ctx_menu();
+                gc.handle_copy();
+            });
+            copy_item
+                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .unwrap();
+            cb.forget();
+        }
+        menu.append_child(&copy_item).unwrap();
+
+        // ── Paste ─────────────────────────────────────────────────────────────
+        let paste_item = make_menu_item(&doc, "Coller", "Ctrl+V", has_selection);
+        if has_selection {
+            let gc = self.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+                remove_ctx_menu();
+                if !gc.0.state.borrow().selection.has_selection() {
+                    return;
+                }
+                let win = web_sys::window().expect("no window");
+                let promise = win.navigator().clipboard().read_text();
+                let gc2 = gc.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    match wasm_bindgen_futures::JsFuture::from(promise).await {
+                        Ok(val) => {
+                            if let Some(text) = val.as_string() {
+                                gc2.dispatch(GridCommand::PasteAt { text });
+                            }
+                        }
+                        Err(e) => {
+                            web_sys::console::warn_1(&e);
+                        }
+                    }
+                });
+            });
+            paste_item
+                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .unwrap();
+            cb.forget();
+        }
+        menu.append_child(&paste_item).unwrap();
+
+        body.append_child(&backdrop).unwrap();
+        body.append_child(&menu).unwrap();
+    }
+
     // ── event wiring ─────────────────────────────────────────────────────────
 
     fn attach_resize_observer(&self) {
@@ -187,6 +312,7 @@ impl GridCanvas {
     fn attach_listeners(&self) {
         self.attach_wheel();
         self.attach_mousedown();
+        self.attach_contextmenu();
         self.attach_mousemove(); // on document — works even if cursor leaves canvas
         self.attach_mouseup();   // on document
         self.attach_keydown();   // on document
@@ -212,7 +338,15 @@ impl GridCanvas {
     fn attach_mousedown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            // Right-click is handled by contextmenu event
+            if evt.button() == 2 {
+                return;
+            }
+
             let (x, y) = gc.canvas_xy(&evt);
+
+            // Close any open context menu
+            remove_ctx_menu();
 
             // ── scrollbar interaction ─────────────────────────────────────────
             if let Some(sb) = gc.scrollbar() {
@@ -336,7 +470,10 @@ impl GridCanvas {
                     evt.prevent_default();
                     gc.handle_copy();
                 }
-                "Escape" => { gc.dispatch(GridCommand::ClearSelection); }
+                "Escape" => {
+                    remove_ctx_menu();
+                    gc.dispatch(GridCommand::ClearSelection);
+                }
                 _ => {}
             }
         });
@@ -364,6 +501,69 @@ impl GridCanvas {
     }
 }
 
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+
 fn document() -> web_sys::Document {
     web_sys::window().expect("no window").document().expect("no document")
+}
+
+fn make_el(doc: &web_sys::Document, tag: &str) -> HtmlElement {
+    doc.create_element(tag)
+        .unwrap()
+        .dyn_into::<HtmlElement>()
+        .unwrap()
+}
+
+fn set_styles(el: &HtmlElement, styles: &[(&str, &str)]) {
+    let s = el.style();
+    for (prop, val) in styles {
+        s.set_property(prop, val).unwrap();
+    }
+}
+
+fn make_menu_item(doc: &web_sys::Document, label: &str, shortcut: &str, enabled: bool) -> HtmlElement {
+    let item = make_el(doc, "div");
+    item.set_inner_html(&format!(
+        r#"<div style="display:flex;justify-content:space-between;align-items:center;gap:24px;padding:7px 14px">
+             <span>{label}</span>
+             <span style="color:#9ca3af;font-size:11px">{shortcut}</span>
+           </div>"#
+    ));
+    let (color, cursor) = if enabled {
+        ("#111827", "pointer")
+    } else {
+        ("#9ca3af", "default")
+    };
+    set_styles(
+        &item,
+        &[("color", color), ("cursor", cursor)],
+    );
+    if enabled {
+        let item_over = item.clone();
+        let cb_over = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            item_over.style().set_property("background", "#f3f4f6").unwrap();
+        });
+        item.add_event_listener_with_callback("mouseover", cb_over.as_ref().unchecked_ref())
+            .unwrap();
+        cb_over.forget();
+
+        let item_out = item.clone();
+        let cb_out = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            item_out.style().set_property("background", "").unwrap();
+        });
+        item.add_event_listener_with_callback("mouseout", cb_out.as_ref().unchecked_ref())
+            .unwrap();
+        cb_out.forget();
+    }
+    item
+}
+
+fn remove_ctx_menu() {
+    let doc = document();
+    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-backdrop") {
+        el.remove();
+    }
+    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-menu") {
+        el.remove();
+    }
 }
