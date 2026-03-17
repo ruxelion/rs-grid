@@ -9,7 +9,10 @@ use rs_grid_core::{
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{builder::SceneBuilder, Theme};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{HtmlCanvasElement, HtmlElement, KeyboardEvent, MouseEvent, ResizeObserver, WheelEvent};
+use web_sys::{
+    HtmlCanvasElement, HtmlElement, KeyboardEvent, MouseEvent, ResizeObserver,
+    WheelEvent,
+};
 
 // ── public handle ─────────────────────────────────────────────────────────────
 
@@ -28,6 +31,8 @@ struct Inner {
     canvas: HtmlCanvasElement,
     /// Active drag interaction, if any.
     drag: RefCell<Option<ActiveDrag>>,
+    /// Handle returned by `setTimeout` for the initial auto-scroll delay.
+    scroll_timeout: RefCell<Option<i32>>,
     /// Handle returned by `setInterval` for arrow-button auto-scroll (cleared on mouseup).
     scroll_interval: RefCell<Option<i32>>,
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
@@ -54,7 +59,11 @@ impl GridCanvas {
     ///
     /// - Sets the canvas physical size = CSS size × device-pixel-ratio.
     /// - Registers `wheel`, `mousedown`, `mousemove` (document), `mouseup` (document).
-    pub fn mount(canvas: HtmlCanvasElement, mut state: GridState, theme: Theme) -> Self {
+    pub fn mount(
+        canvas: HtmlCanvasElement,
+        mut state: GridState,
+        theme: Theme,
+    ) -> Self {
         let win = web_sys::window().expect("no window");
         let dpr = win.device_pixel_ratio();
 
@@ -81,6 +90,7 @@ impl GridCanvas {
             renderer: CanvasRenderer::new(ctx),
             canvas,
             drag: RefCell::new(None),
+            scroll_timeout: RefCell::new(None),
             scroll_interval: RefCell::new(None),
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
@@ -138,9 +148,16 @@ impl GridCanvas {
     fn handle_copy(&self) {
         match self.dispatch_with_output(GridCommand::CopySelection) {
             CommandOutput::CopyText(text) => self.write_clipboard(text),
-            CommandOutput::CopyError(CopyError::TooManyRows { actual, max }) => {
-                let msg = format!("Copy annulé : {actual} lignes sélectionnées (max {max})");
-                web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(&msg));
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => {
+                let msg = format!(
+                    "Copy annulé : {actual} lignes sélectionnées (max {max})"
+                );
+                web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(
+                    &msg,
+                ));
             }
             _ => {}
         }
@@ -151,7 +168,8 @@ impl GridCanvas {
         let clipboard = window.navigator().clipboard();
         let promise = clipboard.write_text(&text);
         wasm_bindgen_futures::spawn_local(async move {
-            if let Err(e) = wasm_bindgen_futures::JsFuture::from(promise).await {
+            if let Err(e) = wasm_bindgen_futures::JsFuture::from(promise).await
+            {
                 web_sys::console::warn_1(&e);
             }
         });
@@ -184,7 +202,10 @@ impl GridCanvas {
         });
         self.0
             .canvas
-            .add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "contextmenu",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -207,7 +228,10 @@ impl GridCanvas {
                 remove_ctx_menu();
             });
             backdrop
-                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
                 .unwrap();
             cb.forget();
         }
@@ -244,14 +268,18 @@ impl GridCanvas {
                 gc.handle_copy();
             });
             copy_item
-                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
                 .unwrap();
             cb.forget();
         }
         menu.append_child(&copy_item).unwrap();
 
         // ── Paste ─────────────────────────────────────────────────────────────
-        let paste_item = make_menu_item(&doc, "Coller", "Ctrl+V", has_selection);
+        let paste_item =
+            make_menu_item(&doc, "Coller", "Ctrl+V", has_selection);
         if has_selection {
             let gc = self.clone();
             let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
@@ -276,7 +304,10 @@ impl GridCanvas {
                 });
             });
             paste_item
-                .add_event_listener_with_callback("click", cb.as_ref().unchecked_ref())
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
                 .unwrap();
             cb.forget();
         }
@@ -288,90 +319,137 @@ impl GridCanvas {
 
     // ── arrow-button auto-scroll ─────────────────────────────────────────────
 
-    /// Start a repeating scroll interval (60 ms) in direction `dy`.
-    /// An initial delay of ~350 ms is emulated via a leading `setTimeout`.
+    /// Start a repeating scroll (arrows): immediate first scroll on mousedown,
+    /// then ~350 ms pause, then repeat every 60 ms.
     fn start_scroll_repeat(&self, dy: f64) {
         self.stop_scroll_repeat();
-        let gc_interval = self.clone();
-        let interval_cb = Closure::<dyn FnMut()>::new(move || {
-            gc_interval.dispatch(GridCommand::ScrollBy { dx: 0.0, dy });
-        });
+        let gc = self.clone();
         let win = web_sys::window().expect("no window");
-        // Start repeating at 60 ms; we already dispatched the first scroll on mousedown.
-        let id = win
-            .set_interval_with_callback_and_timeout_and_arguments_0(
-                interval_cb.as_ref().unchecked_ref(),
-                60,
+        let timeout_cb = Closure::<dyn FnMut()>::new(move || {
+            let gc2 = gc.clone();
+            let interval_cb = Closure::<dyn FnMut()>::new(move || {
+                gc2.dispatch(GridCommand::ScrollBy { dx: 0.0, dy });
+            });
+            let win2 = web_sys::window().expect("no window");
+            let id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    interval_cb.as_ref().unchecked_ref(),
+                    60,
+                )
+                .expect("setInterval");
+            interval_cb.forget();
+            *gc.0.scroll_interval.borrow_mut() = Some(id);
+        });
+        let tid = win
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                timeout_cb.as_ref().unchecked_ref(),
+                350,
             )
-            .expect("setInterval");
-        interval_cb.forget();
-        *self.0.scroll_interval.borrow_mut() = Some(id);
+            .expect("setTimeout");
+        timeout_cb.forget();
+        *self.0.scroll_timeout.borrow_mut() = Some(tid);
     }
 
     fn stop_scroll_repeat(&self) {
+        let win = web_sys::window().expect("no window");
+        if let Some(id) = self.0.scroll_timeout.borrow_mut().take() {
+            win.clear_timeout_with_handle(id);
+        }
         if let Some(id) = self.0.scroll_interval.borrow_mut().take() {
-            web_sys::window()
-                .expect("no window")
-                .clear_interval_with_handle(id);
+            win.clear_interval_with_handle(id);
         }
     }
 
-    /// Animate scroll toward `click_y` at ~60 fps.
-    ///
-    /// Each tick scrolls 25 % of the remaining distance (easing), stopping
-    /// once the thumb centre has reached or passed the original click position.
+    /// Animate scroll toward `click_y` (AG Grid style):
+    /// 1. Mini easing at ~100 ms interval (slow start)
+    /// 2. At 350 ms: switch to full 60 fps easing
     fn start_track_scroll_repeat(&self, click_y: f64, going_down: bool) {
         self.stop_scroll_repeat();
-        let gc = self.clone();
-        let cb = Closure::<dyn FnMut()>::new(move || {
-            let Some(sb) = gc.scrollbar() else {
-                gc.stop_scroll_repeat();
-                return;
-            };
-
-            // Check stop condition first (thumb has passed click).
-            let thumb_center = sb.thumb_y + sb.thumb_h * 0.5;
-            let still_going = if going_down {
-                thumb_center < click_y
-            } else {
-                thumb_center > click_y
-            };
-            if !still_going {
-                gc.stop_scroll_repeat();
-                return;
-            }
-
-            // Compute target scroll from click position.
-            let (total_h, viewport_h, header_h) = {
-                let s = gc.0.state.borrow();
-                (
-                    s.model.total_height(),
-                    s.viewport.height,
-                    s.model.header_height,
-                )
-            };
-            let target = sb.track_click_scroll(click_y, total_h, viewport_h, header_h);
-            let current = gc.0.state.borrow().viewport.scroll_y;
-            let remaining = target - current;
-
-            if remaining.abs() < 1.0 {
-                gc.stop_scroll_repeat();
-                return;
-            }
-
-            // 25 % of remaining per frame — fast start, smooth deceleration.
-            let step = (remaining * 0.25).max(1.0_f64.copysign(remaining));
-            gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: step });
-        });
         let win = web_sys::window().expect("no window");
-        let id = win
+
+        // Phase 1: slow mini-easing (few steps, 100 ms apart).
+        let gc1 = self.clone();
+        let slow_cb = Closure::<dyn FnMut()>::new(move || {
+            gc1.do_track_scroll_step(click_y, going_down);
+        });
+        let slow_id = win
             .set_interval_with_callback_and_timeout_and_arguments_0(
-                cb.as_ref().unchecked_ref(),
-                16, // ~60 fps
+                slow_cb.as_ref().unchecked_ref(),
+                100,
             )
             .expect("setInterval");
-        cb.forget();
-        *self.0.scroll_interval.borrow_mut() = Some(id);
+        slow_cb.forget();
+        *self.0.scroll_interval.borrow_mut() = Some(slow_id);
+
+        // Phase 2: after 350 ms, switch to full 60 fps easing.
+        let gc2 = self.clone();
+        let switch_cb = Closure::<dyn FnMut()>::new(move || {
+            if let Some(id) = gc2.0.scroll_interval.borrow_mut().take() {
+                web_sys::window()
+                    .expect("no window")
+                    .clear_interval_with_handle(id);
+            }
+            let gc3 = gc2.clone();
+            let fast_cb = Closure::<dyn FnMut()>::new(move || {
+                gc3.do_track_scroll_step(click_y, going_down);
+            });
+            let win2 = web_sys::window().expect("no window");
+            let fast_id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    fast_cb.as_ref().unchecked_ref(),
+                    16,
+                )
+                .expect("setInterval");
+            fast_cb.forget();
+            *gc2.0.scroll_interval.borrow_mut() = Some(fast_id);
+        });
+        let tid = win
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                switch_cb.as_ref().unchecked_ref(),
+                350,
+            )
+            .expect("setTimeout");
+        switch_cb.forget();
+        *self.0.scroll_timeout.borrow_mut() = Some(tid);
+    }
+
+    /// Single easing step toward `click_y`; stops interval when done.
+    fn do_track_scroll_step(&self, click_y: f64, going_down: bool) {
+        let Some(sb) = self.scrollbar() else {
+            self.stop_scroll_repeat();
+            return;
+        };
+
+        let thumb_center = sb.thumb_y + sb.thumb_h * 0.5;
+        let still_going = if going_down {
+            thumb_center < click_y
+        } else {
+            thumb_center > click_y
+        };
+        if !still_going {
+            self.stop_scroll_repeat();
+            return;
+        }
+
+        let (total_h, viewport_h, header_h) = {
+            let s = self.0.state.borrow();
+            (s.model.total_height(), s.viewport.height, s.model.header_height)
+        };
+        let target = sb.track_click_scroll(click_y, total_h, viewport_h, header_h);
+        let current = self.0.state.borrow().viewport.scroll_y;
+        let remaining = target - current;
+
+        if remaining.abs() < 1.0 {
+            self.stop_scroll_repeat();
+            return;
+        }
+
+        let step = if remaining > 0.0 {
+            (remaining * 0.10).max(1.0)
+        } else {
+            (remaining * 0.10).min(-1.0)
+        };
+        self.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: step });
     }
 
     // ── event wiring ─────────────────────────────────────────────────────────
@@ -379,28 +457,33 @@ impl GridCanvas {
     fn attach_resize_observer(&self) {
         let gc = self.clone();
 
-        let cb = Closure::<dyn FnMut(js_sys::Array)>::new(move |_entries: js_sys::Array| {
-            let canvas = &gc.0.canvas;
-            let win = web_sys::window().expect("no window");
-            let dpr = win.device_pixel_ratio();
+        let cb = Closure::<dyn FnMut(js_sys::Array)>::new(
+            move |_entries: js_sys::Array| {
+                let canvas = &gc.0.canvas;
+                let win = web_sys::window().expect("no window");
+                let dpr = win.device_pixel_ratio();
 
-            let css_w = canvas.client_width() as f64;
-            let css_h = canvas.client_height() as f64;
+                let css_w = canvas.client_width() as f64;
+                let css_h = canvas.client_height() as f64;
 
-            if css_w <= 0.0 || css_h <= 0.0 {
-                return;
-            }
+                if css_w <= 0.0 || css_h <= 0.0 {
+                    return;
+                }
 
-            canvas.set_width((css_w * dpr) as u32);
-            canvas.set_height((css_h * dpr) as u32);
+                canvas.set_width((css_w * dpr) as u32);
+                canvas.set_height((css_h * dpr) as u32);
 
-            gc.0.builder.borrow_mut().dpr = dpr;
+                gc.0.builder.borrow_mut().dpr = dpr;
 
-            gc.dispatch(GridCommand::Resize { width: css_w, height: css_h });
-        });
+                gc.dispatch(GridCommand::Resize {
+                    width: css_w,
+                    height: css_h,
+                });
+            },
+        );
 
-        let observer =
-            ResizeObserver::new(cb.as_ref().unchecked_ref()).expect("ResizeObserver::new");
+        let observer = ResizeObserver::new(cb.as_ref().unchecked_ref())
+            .expect("ResizeObserver::new");
         observer.observe(&self.0.canvas);
 
         *self.0._resize_closure.borrow_mut() = Some(cb);
@@ -412,9 +495,9 @@ impl GridCanvas {
         self.attach_mousedown();
         self.attach_contextmenu();
         self.attach_mousemove(); // on document — works even if cursor leaves canvas
-        self.attach_mouseup();   // on document
-        self.attach_keydown();   // on document
-        self.attach_paste();     // on document
+        self.attach_mouseup(); // on document
+        self.attach_keydown(); // on document
+        self.attach_paste(); // on document
     }
 
     fn attach_wheel(&self) {
@@ -428,7 +511,10 @@ impl GridCanvas {
         });
         self.0
             .canvas
-            .add_event_listener_with_callback("wheel", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "wheel",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -450,7 +536,10 @@ impl GridCanvas {
             if let Some(sb) = gc.scrollbar() {
                 if sb.hit_up_arrow(x, y) {
                     let row_h = gc.0.state.borrow().model.row_height;
-                    gc.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: -row_h });
+                    gc.dispatch(GridCommand::ScrollBy {
+                        dx: 0.0,
+                        dy: -row_h,
+                    });
                     gc.start_scroll_repeat(-row_h);
                     return;
                 }
@@ -462,10 +551,16 @@ impl GridCanvas {
                 }
                 if sb.hit_thumb(x, y) {
                     // Start thumb drag
-                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::Thumb(ThumbDrag {
-                        start_client_y: evt.client_y() as f64,
-                        start_scroll_y: gc.0.state.borrow().viewport.scroll_y,
-                    }));
+                    *gc.0.drag.borrow_mut() =
+                        Some(ActiveDrag::Thumb(ThumbDrag {
+                            start_client_y: evt.client_y() as f64,
+                            start_scroll_y: gc
+                                .0
+                                .state
+                                .borrow()
+                                .viewport
+                                .scroll_y,
+                        }));
                     return;
                 }
                 if sb.hit_track(x, y) {
@@ -500,7 +595,10 @@ impl GridCanvas {
         });
         self.0
             .canvas
-            .add_event_listener_with_callback("mousedown", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "mousedown",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -517,7 +615,8 @@ impl GridCanvas {
 
                     let scroll_delta = {
                         let s = gc.0.state.borrow();
-                        let track_w = gc.0.builder.borrow().theme.scrollbar_width;
+                        let track_w =
+                            gc.0.builder.borrow().theme.scrollbar_width;
                         if let Some(sb) = ScrollbarGeom::compute(
                             s.viewport.scroll_y,
                             s.viewport.width,
@@ -526,7 +625,12 @@ impl GridCanvas {
                             s.model.total_height(),
                             track_w,
                         ) {
-                            sb.drag_to_scroll(dy, s.model.total_height(), s.viewport.height, s.model.header_height)
+                            sb.drag_to_scroll(
+                                dy,
+                                s.model.total_height(),
+                                s.viewport.height,
+                                s.model.header_height,
+                            )
                         } else {
                             return;
                         }
@@ -557,7 +661,10 @@ impl GridCanvas {
             }
         });
         document()
-            .add_event_listener_with_callback("mousemove", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "mousemove",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -569,7 +676,10 @@ impl GridCanvas {
             *gc.0.drag.borrow_mut() = None;
         });
         document()
-            .add_event_listener_with_callback("mouseup", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "mouseup",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -579,22 +689,30 @@ impl GridCanvas {
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
             let key = evt.key();
             let shift = evt.shift_key();
-            let ctrl  = evt.ctrl_key() || evt.meta_key();
+            let ctrl = evt.ctrl_key() || evt.meta_key();
             match key.as_str() {
                 "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" => {
-                    if !gc.0.state.borrow().selection.has_selection() { return; }
+                    if !gc.0.state.borrow().selection.has_selection() {
+                        return;
+                    }
                     evt.prevent_default();
                     let (dr, dc) = match key.as_str() {
-                        "ArrowUp"    => (-1_i64,  0_i64),
-                        "ArrowDown"  => ( 1,  0),
-                        "ArrowLeft"  => ( 0, -1),
-                        "ArrowRight" => ( 0,  1),
+                        "ArrowUp" => (-1_i64, 0_i64),
+                        "ArrowDown" => (1, 0),
+                        "ArrowLeft" => (0, -1),
+                        "ArrowRight" => (0, 1),
                         _ => unreachable!(),
                     };
-                    gc.dispatch(GridCommand::MoveSelection { delta_row: dr, delta_col: dc, extend: shift });
+                    gc.dispatch(GridCommand::MoveSelection {
+                        delta_row: dr,
+                        delta_col: dc,
+                        extend: shift,
+                    });
                 }
                 "c" if ctrl => {
-                    if !gc.0.state.borrow().selection.has_selection() { return; }
+                    if !gc.0.state.borrow().selection.has_selection() {
+                        return;
+                    }
                     evt.prevent_default();
                     gc.handle_copy();
                 }
@@ -606,24 +724,34 @@ impl GridCanvas {
             }
         });
         document()
-            .add_event_listener_with_callback("keydown", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "keydown",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
 
     fn attach_paste(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(move |evt: web_sys::ClipboardEvent| {
-            if !gc.0.state.borrow().selection.has_selection() { return; }
-            if let Some(dt) = evt.clipboard_data() {
-                if let Ok(text) = dt.get_data("text/plain") {
-                    evt.prevent_default();
-                    gc.dispatch(GridCommand::PasteAt { text });
+        let cb = Closure::<dyn FnMut(_)>::new(
+            move |evt: web_sys::ClipboardEvent| {
+                if !gc.0.state.borrow().selection.has_selection() {
+                    return;
                 }
-            }
-        });
+                if let Some(dt) = evt.clipboard_data() {
+                    if let Ok(text) = dt.get_data("text/plain") {
+                        evt.prevent_default();
+                        gc.dispatch(GridCommand::PasteAt { text });
+                    }
+                }
+            },
+        );
         document()
-            .add_event_listener_with_callback("paste", cb.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "paste",
+                cb.as_ref().unchecked_ref(),
+            )
             .unwrap();
         cb.forget();
     }
@@ -632,7 +760,10 @@ impl GridCanvas {
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
 fn document() -> web_sys::Document {
-    web_sys::window().expect("no window").document().expect("no document")
+    web_sys::window()
+        .expect("no window")
+        .document()
+        .expect("no document")
 }
 
 fn make_el(doc: &web_sys::Document, tag: &str) -> HtmlElement {
@@ -649,7 +780,12 @@ fn set_styles(el: &HtmlElement, styles: &[(&str, &str)]) {
     }
 }
 
-fn make_menu_item(doc: &web_sys::Document, label: &str, shortcut: &str, enabled: bool) -> HtmlElement {
+fn make_menu_item(
+    doc: &web_sys::Document,
+    label: &str,
+    shortcut: &str,
+    enabled: bool,
+) -> HtmlElement {
     let item = make_el(doc, "div");
     item.set_inner_html(&format!(
         r#"<div style="display:flex;justify-content:space-between;align-items:center;gap:24px;padding:7px 14px">
@@ -662,25 +798,31 @@ fn make_menu_item(doc: &web_sys::Document, label: &str, shortcut: &str, enabled:
     } else {
         ("#9ca3af", "default")
     };
-    set_styles(
-        &item,
-        &[("color", color), ("cursor", cursor)],
-    );
+    set_styles(&item, &[("color", color), ("cursor", cursor)]);
     if enabled {
         let item_over = item.clone();
         let cb_over = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-            item_over.style().set_property("background", "#f3f4f6").unwrap();
+            item_over
+                .style()
+                .set_property("background", "#f3f4f6")
+                .unwrap();
         });
-        item.add_event_listener_with_callback("mouseover", cb_over.as_ref().unchecked_ref())
-            .unwrap();
+        item.add_event_listener_with_callback(
+            "mouseover",
+            cb_over.as_ref().unchecked_ref(),
+        )
+        .unwrap();
         cb_over.forget();
 
         let item_out = item.clone();
         let cb_out = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
             item_out.style().set_property("background", "").unwrap();
         });
-        item.add_event_listener_with_callback("mouseout", cb_out.as_ref().unchecked_ref())
-            .unwrap();
+        item.add_event_listener_with_callback(
+            "mouseout",
+            cb_out.as_ref().unchecked_ref(),
+        )
+        .unwrap();
         cb_out.forget();
     }
     item

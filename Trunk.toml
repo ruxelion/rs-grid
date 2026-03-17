@@ -1,4 +1,0 @@
-[build]
-dist = "examples/basic-leptos/dist"
-release = false
-target = "examples/basic-leptos/index.html"
