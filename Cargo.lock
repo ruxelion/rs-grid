@@ -91,10 +91,12 @@ name = "basic-leptos"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "js-sys",
  "leptos",
  "rs-grid-core",
  "rs-grid-leptos",
  "rs-grid-scene",
+ "send_wrapper",
  "wasm-bindgen",
  "web-sys",
 ]

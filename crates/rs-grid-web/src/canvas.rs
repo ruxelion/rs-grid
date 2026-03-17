@@ -41,6 +41,8 @@ struct Inner {
     _resize_observer: RefCell<Option<ResizeObserver>>,
     /// Stored references to document-level listeners so they can be removed on detach.
     doc_listeners: RefCell<Vec<(String, js_sys::Function)>>,
+    /// Optional callback fired after every command that mutates cell data.
+    on_change: RefCell<Option<Box<dyn Fn()>>>,
 }
 
 enum ActiveDrag {
@@ -119,6 +121,7 @@ impl GridCanvas {
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
             doc_listeners: RefCell::new(Vec::new()),
+            on_change: RefCell::new(None),
         });
 
         let gc = GridCanvas(inner);
@@ -137,14 +140,70 @@ impl GridCanvas {
 
     /// Apply a command, redraw, and return the output.
     fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+        let is_mutation = matches!(cmd, GridCommand::PasteAt { .. });
         let out = self.0.state.borrow_mut().apply(cmd);
         self.render();
+        if is_mutation {
+            if let Some(cb) = self.0.on_change.borrow().as_ref() {
+                cb();
+            }
+        }
         out
     }
 
     /// Apply a command then redraw.
     pub fn dispatch(&self, cmd: GridCommand) {
         self.dispatch_with_output(cmd);
+    }
+
+    /// Register a callback fired after every cell-data mutation (paste).
+    pub fn set_on_change(&self, cb: impl Fn() + 'static) {
+        *self.0.on_change.borrow_mut() = Some(Box::new(cb));
+    }
+
+    /// Serialize the current patch layer as TSV text (one line per edited
+    /// cell: `physical_row\tcol_key\tvalue`). Tab/newline/backslash in
+    /// keys/values are escaped as `\t`, `\n`, `\\`.
+    pub fn export_patches(&self) -> String {
+        let state = self.0.state.borrow();
+        let mut out = String::new();
+        for ((row, col), val) in &state.model.patches {
+            let ec = col
+                .replace('\\', "\\\\")
+                .replace('\t', "\\t")
+                .replace('\n', "\\n");
+            let ev = val
+                .replace('\\', "\\\\")
+                .replace('\t', "\\t")
+                .replace('\n', "\\n");
+            out.push_str(&format!("{row}\t{ec}\t{ev}\n"));
+        }
+        out
+    }
+
+    /// Deserialize TSV text produced by `export_patches` and apply it,
+    /// replacing any existing patches. Triggers a redraw.
+    pub fn import_patches(&self, data: &str) {
+        let unescape = |s: &str| {
+            s.replace("\\\\", "\x00")
+                .replace("\\t", "\t")
+                .replace("\\n", "\n")
+                .replace('\x00', "\\")
+        };
+        let mut state = self.0.state.borrow_mut();
+        state.model.patches.clear();
+        for line in data.lines() {
+            let mut parts = line.splitn(3, '\t');
+            let (Some(r), Some(c), Some(v)) =
+                (parts.next(), parts.next(), parts.next())
+            else {
+                continue;
+            };
+            let Ok(row) = r.parse::<u64>() else { continue };
+            state.model.patches.insert((row, unescape(c)), unescape(v));
+        }
+        drop(state);
+        self.render();
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

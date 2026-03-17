@@ -1,10 +1,14 @@
+use std::{cell::RefCell, rc::Rc};
+
 use leptos::prelude::*;
 use rs_grid_core::{
     column::ColumnDef, datasource::FnDataSource, model::GridModel,
 };
-use rs_grid_leptos::{theme_from_css_vars, GridCanvas};
+use rs_grid_leptos::{theme_from_css_vars, GridCanvas, WebGridCanvas};
 use rs_grid_scene::Theme;
-use wasm_bindgen::prelude::*;
+use send_wrapper::SendWrapper;
+use wasm_bindgen::{prelude::*, JsCast};
+use web_sys::js_sys;
 
 fn build_model(row_count: u64, col_count: usize) -> GridModel {
     let base: Vec<(&'static str, &'static str, f64)> = vec![
@@ -69,26 +73,32 @@ fn fmt_cols(n: usize) -> &'static str {
     }
 }
 
+fn local_storage() -> Option<web_sys::Storage> {
+    web_sys::window().and_then(|w| w.local_storage().ok().flatten())
+}
+
+const LS_KEY: &str = "rs-grid-patches";
+
 #[component]
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(10usize);
     let dark_mode = RwSignal::new(false);
 
-    // Recompute the theme whenever dark_mode changes (after DOM class is set).
-    // theme_from_css_vars() reads the computed CSS vars, so it sees the correct
-    // light/dark values as long as the <html class="dark"> toggle happens
-    // synchronously before dark_mode.set() — which the on:change handler below
-    // guarantees.
+    // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
+    // Wrapped in SendWrapper so the Rc can be captured in Leptos closures.
+    let gc_ref: Rc<RefCell<Option<WebGridCanvas>>> =
+        Rc::new(RefCell::new(None));
+    // The view closure and event handlers all need Send captures in Leptos 0.7.
+    let gc_for_mount  = SendWrapper::new(gc_ref.clone());
+    let gc_for_export = SendWrapper::new(gc_ref.clone());
+    let gc_for_import = SendWrapper::new(gc_ref.clone());
+
     let theme_memo = Memo::<Theme>::new(move |_| {
-        let _ = dark_mode.get(); // track dependency
+        let _ = dark_mode.get();
         theme_from_css_vars()
     });
 
-    // Sync <html class="dark"> with the signal on every change.
-    // This Effect handles the initial state; the on:change handler below
-    // also sets the class *synchronously* before dark_mode.set() so that
-    // theme_from_css_vars() in the Memo above reads the right vars.
     Effect::new(move |_| {
         let dark = dark_mode.get();
         if let Some(root) = web_sys::window()
@@ -102,6 +112,8 @@ fn App() -> impl IntoView {
             }
         }
     });
+
+    let file_input_ref = NodeRef::<leptos::html::Input>::new();
 
     view! {
         <main class="app-layout">
@@ -146,6 +158,95 @@ fn App() -> impl IntoView {
                         </select>
                     </div>
 
+                    // ── Export / Import ───────────────────────────────────────
+                    // Hidden file input driven by the Import button
+                    <input
+                        type="file"
+                        accept=".tsv,.txt"
+                        node_ref=file_input_ref
+                        style="display:none"
+                        on:change=move |e| {
+                            let file = e.target()
+                                .and_then(|t| {
+                                    t.dyn_into::<web_sys::HtmlInputElement>()
+                                        .ok()
+                                })
+                                .and_then(|i| i.files())
+                                .and_then(|fl| fl.get(0));
+                            if let Some(file) = file {
+                                let reader =
+                                    web_sys::FileReader::new().unwrap();
+                                let reader2 = reader.clone();
+                                let gc =
+                                    gc_for_import.borrow().clone().unwrap();
+                                let cb = Closure::once(move || {
+                                    if let Ok(result) = reader2.result() {
+                                        if let Some(text) =
+                                            result.as_string()
+                                        {
+                                            gc.import_patches(&text);
+                                            if let Some(s) = local_storage() {
+                                                let _ = s.set_item(
+                                                    LS_KEY,
+                                                    &gc.export_patches(),
+                                                );
+                                            }
+                                        }
+                                    }
+                                });
+                                reader.set_onloadend(Some(
+                                    cb.as_ref().unchecked_ref(),
+                                ));
+                                reader.read_as_text(&file).unwrap();
+                                cb.forget();
+                            }
+                        }
+                    />
+
+                    <button
+                        class="app-btn"
+                        on:click=move |_| {
+                            let Some(gc) = gc_for_export.borrow().clone()
+                            else {
+                                return;
+                            };
+                            let data = gc.export_patches();
+                            let encoded =
+                                js_sys::encode_uri_component(&data);
+                            let url = format!(
+                                "data:text/tab-separated-values;\
+                                 charset=utf-8,{encoded}"
+                            );
+                            let doc = web_sys::window()
+                                .unwrap()
+                                .document()
+                                .unwrap();
+                            let a = doc
+                                .create_element("a")
+                                .unwrap()
+                                .dyn_into::<web_sys::HtmlAnchorElement>()
+                                .unwrap();
+                            a.set_href(&url);
+                            a.set_download("rs-grid-patches.tsv");
+                            doc.body().unwrap().append_child(&a).unwrap();
+                            a.click();
+                            doc.body().unwrap().remove_child(&a).unwrap();
+                        }
+                    >
+                        "Export"
+                    </button>
+
+                    <button
+                        class="app-btn"
+                        on:click=move |_| {
+                            if let Some(input) = file_input_ref.get() {
+                                input.click();
+                            }
+                        }
+                    >
+                        "Import"
+                    </button>
+
                     // Dark-mode toggle switch
                     <label class="theme-toggle" title="Toggle dark mode">
                         <input
@@ -154,11 +255,6 @@ fn App() -> impl IntoView {
                             prop:checked=move || dark_mode.get()
                             on:change=move |_| {
                                 let new_dark = !dark_mode.get_untracked();
-                                // Apply the DOM class SYNCHRONOUSLY before
-                                // dark_mode.set() triggers reactive updates.
-                                // This ensures theme_from_css_vars() (called
-                                // in the GridCanvas Effect) already sees the
-                                // updated :root.dark CSS vars.
                                 if let Some(root) = web_sys::window()
                                     .and_then(|w| w.document())
                                     .and_then(|d| d.document_element())
@@ -166,7 +262,8 @@ fn App() -> impl IntoView {
                                     if new_dark {
                                         let _ = root.class_list().add_1("dark");
                                     } else {
-                                        let _ = root.class_list().remove_1("dark");
+                                        let _ =
+                                            root.class_list().remove_1("dark");
                                     }
                                 }
                                 dark_mode.set(new_dark);
@@ -188,17 +285,44 @@ fn App() -> impl IntoView {
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
-                        // Only remount when the dataset size changes, not on
-                        // dark_mode — theme updates are applied in-place via
-                        // set_theme() through the theme signal below.
                         let model =
                             build_model(row_count.get(), col_count.get());
+
+                        // Clone the SendWrapper to move into on_mount_cb.
+                        // SendWrapper<Rc<...>> is Send, so this closure is Send.
+                        // Inside on_mount_cb (a WASM callback), dereffing it
+                        // gives the inner Rc — safe because WASM is
+                        // single-threaded.
+                        let gc_holder = gc_for_mount.clone();
+                        let on_mount_cb = Box::new(
+                            move |gc: WebGridCanvas| {
+                                if let Some(s) = local_storage() {
+                                    if let Ok(Some(data)) =
+                                        s.get_item(LS_KEY)
+                                    {
+                                        gc.import_patches(&data);
+                                    }
+                                }
+                                let gc2 = gc.clone();
+                                gc.set_on_change(move || {
+                                    if let Some(s) = local_storage() {
+                                        let _ = s.set_item(
+                                            LS_KEY,
+                                            &gc2.export_patches(),
+                                        );
+                                    }
+                                });
+                                *gc_holder.borrow_mut() = Some(gc);
+                            },
+                        );
+
                         view! {
                             <GridCanvas
                                 model=model
                                 width="100%".into()
                                 height="100%".into()
                                 theme=Signal::derive(move || theme_memo.get())
+                                on_mount=on_mount_cb
                             />
                         }
                     }}

@@ -162,6 +162,26 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+/* ── export / import buttons ─────────────────────────────────────────────────── */
+
+.app-btn {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font: 600 13px/1 system-ui, sans-serif;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.app-btn:hover {
+  border-color: #9ca3af;
+}
+
 /* ── theme toggle switch ─────────────────────────────────────────────────────── */
 
 .theme-toggle {
@@ -314,4 +334,14 @@ body {
 
 :root.dark .theme-toggle-label {
   color: #a9b1d6;
+}
+
+:root.dark .app-btn {
+  background: #1e2030;
+  border-color: #3d4466;
+  color: #a9b1d6;
+}
+
+:root.dark .app-btn:hover {
+  border-color: #565f89;
 }
