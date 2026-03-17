@@ -1,5 +1,0 @@
-[watch]
-paths = ["src", "../../crates"]
-
-[build]
-release = false
