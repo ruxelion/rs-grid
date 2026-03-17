@@ -40,8 +40,26 @@ impl CanvasRenderer {
 
     fn draw_rect(&self, r: &RectPrimitive) {
         let ctx = &self.ctx;
-        ctx.set_fill_style_str(&r.fill.to_css());
-        ctx.fill_rect(r.x, r.y, r.width, r.height);
+        if r.corner_radius > 0.0 {
+            let rad = r.corner_radius.min(r.width / 2.0).min(r.height / 2.0);
+            let (x, y, w, h) = (r.x, r.y, r.width, r.height);
+            ctx.begin_path();
+            ctx.move_to(x + rad, y);
+            ctx.line_to(x + w - rad, y);
+            ctx.arc_to(x + w, y,     x + w, y + rad,     rad).unwrap();
+            ctx.line_to(x + w, y + h - rad);
+            ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad).unwrap();
+            ctx.line_to(x + rad, y + h);
+            ctx.arc_to(x,     y + h, x,     y + h - rad, rad).unwrap();
+            ctx.line_to(x, y + rad);
+            ctx.arc_to(x,     y,     x + rad, y,          rad).unwrap();
+            ctx.close_path();
+            ctx.set_fill_style_str(&r.fill.to_css());
+            ctx.fill();
+        } else {
+            ctx.set_fill_style_str(&r.fill.to_css());
+            ctx.fill_rect(r.x, r.y, r.width, r.height);
+        }
 
         if let Some(stroke) = r.stroke {
             ctx.save();

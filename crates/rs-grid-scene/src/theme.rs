@@ -25,6 +25,12 @@ pub struct Theme {
 
     // ── spacing ──────────────────────────────────────────────────────────────
     pub cell_padding:     f64,
+
+    // ── scrollbar ─────────────────────────────────────────────────────────────
+    /// Track + thumb total width in logical pixels.
+    pub scrollbar_width:  f64,
+    /// Corner radius of the thumb in logical pixels.
+    pub scrollbar_radius: f64,
 }
 
 impl Theme {
@@ -44,6 +50,8 @@ impl Theme {
             font_size:        13.0,
             header_font_size: 12.0,
             cell_padding:     8.0,
+            scrollbar_width:  8.0,
+            scrollbar_radius: 4.0,
         }
     }
 
@@ -63,6 +71,8 @@ impl Theme {
             font_size:        13.0,
             header_font_size: 12.0,
             cell_padding:     8.0,
+            scrollbar_width:  8.0,
+            scrollbar_radius: 4.0,
         }
     }
 }

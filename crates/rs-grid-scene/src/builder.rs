@@ -54,6 +54,7 @@ impl SceneBuilder {
             fill: t.bg,
             stroke: None,
             stroke_width: 0.0,
+            corner_radius: 0.0,
         }));
 
         let col_widths: Vec<f64> = model.columns.iter().map(|c| c.width).collect();
@@ -75,6 +76,7 @@ impl SceneBuilder {
             fill: t.header_bg,
             stroke: None,
             stroke_width: 0.0,
+            corner_radius: 0.0,
         }));
 
         // ── column headers ───────────────────────────────────────────────────
@@ -142,6 +144,7 @@ impl SceneBuilder {
                         fill: t.selection_fill,
                         stroke: None,
                         stroke_width: 0.0,
+                        corner_radius: 0.0,
                     }));
                 }
 
@@ -213,6 +216,7 @@ impl SceneBuilder {
                 fill: t.header_bg,
                 stroke: None,
                 stroke_width: 0.0,
+                corner_radius: 0.0,
             }));
 
             for ri in row_start..row_end {
@@ -233,6 +237,7 @@ impl SceneBuilder {
                         fill: t.selection_fill,
                         stroke: None,
                         stroke_width: 0.0,
+                        corner_radius: 0.0,
                     }));
                 }
 
@@ -276,6 +281,7 @@ impl SceneBuilder {
             vp.height,
             model.header_height,
             model.total_height(),
+            t.scrollbar_width,
         ) {
             // Track
             frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -286,6 +292,7 @@ impl SceneBuilder {
                 fill: t.scrollbar_track,
                 stroke: None,
                 stroke_width: 0.0,
+                corner_radius: 0.0,
             }));
 
             // Thumb (inset 2px on each side)
@@ -298,6 +305,7 @@ impl SceneBuilder {
                 fill: t.scrollbar_thumb,
                 stroke: None,
                 stroke_width: 0.0,
+                corner_radius: t.scrollbar_radius,
             }));
         }
 
