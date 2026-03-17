@@ -35,6 +35,7 @@ struct Inner {
 enum ActiveDrag {
     Thumb(ThumbDrag),
     Cell,
+    Row,
 }
 
 struct ThumbDrag {
@@ -162,11 +163,15 @@ impl GridCanvas {
             let (cx, cy) = gc.canvas_xy(&evt);
             let has_sel = gc.0.state.borrow().selection.has_selection();
             if !has_sel {
-                // Extract coord in its own statement so the Ref is dropped
-                // before dispatch() calls borrow_mut().
-                let coord = gc.0.state.borrow().hit_test(cx, cy);
-                if let Some(coord) = coord {
-                    gc.dispatch(GridCommand::SelectCell(coord));
+                // Row gutter takes priority.
+                let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
+                if let Some(row) = row {
+                    gc.dispatch(GridCommand::SelectRow(row));
+                } else {
+                    let coord = gc.0.state.borrow().hit_test(cx, cy);
+                    if let Some(coord) = coord {
+                        gc.dispatch(GridCommand::SelectCell(coord));
+                    }
                 }
             }
 
@@ -370,6 +375,18 @@ impl GridCanvas {
                 }
             }
 
+            // ── row header selection ──────────────────────────────────────────
+            let row = gc.0.state.borrow().hit_test_row_header(x, y);
+            if let Some(row) = row {
+                if evt.shift_key() {
+                    gc.dispatch(GridCommand::ExtendRowSelection(row));
+                } else {
+                    gc.dispatch(GridCommand::SelectRow(row));
+                }
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::Row);
+                return;
+            }
+
             // ── cell selection ────────────────────────────────────────────────
             let coord = gc.0.state.borrow().hit_test(x, y);
             if let Some(coord) = coord {
@@ -424,6 +441,14 @@ impl GridCanvas {
                     let coord = gc.0.state.borrow().hit_test(x, y);
                     if let Some(coord) = coord {
                         gc.dispatch(GridCommand::ExtendSelection(coord));
+                    }
+                }
+                Some(ActiveDrag::Row) => {
+                    drop(drag);
+                    let (x, y) = gc.canvas_xy(&evt);
+                    let row = gc.0.state.borrow().hit_test_row_header(x, y);
+                    if let Some(row) = row {
+                        gc.dispatch(GridCommand::ExtendRowSelection(row));
                     }
                 }
                 None => {}

@@ -20,6 +20,8 @@ pub struct GridModel {
     /// Edited cell values that override the underlying datasource (works for
     /// any source, including read-only `FnDataSource`).
     pub patches: HashMap<(u64, String), String>,
+    /// Width of the sticky row-number gutter on the left in logical pixels (0 = hidden).
+    pub row_number_width: f64,
 }
 
 impl GridModel {
@@ -46,7 +48,7 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
-        Self { columns, data, row_height, header_height, column_offsets, patches: HashMap::new() }
+        Self { columns, data, row_height, header_height, column_offsets, patches: HashMap::new(), row_number_width: 50.0 }
     }
 
     /// Read a cell value, checking local patches before the datasource.

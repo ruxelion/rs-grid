@@ -2,7 +2,7 @@ use rs_grid_core::{scrollbar::ScrollbarGeom, state::GridState};
 
 use crate::{
     frame::SceneFrame,
-    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextPrimitive},
+    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
     theme::Theme,
 };
 
@@ -62,8 +62,9 @@ impl SceneBuilder {
         let (row_start, row_end) =
             vp.visible_rows(model.data.row_count(), model.row_height, model.header_height);
 
-        let sx = vp.scroll_x;
-        let sy = vp.scroll_y;
+        let sx  = vp.scroll_x;
+        let sy  = vp.scroll_y;
+        let rnw = model.row_number_width; // row-number gutter width
 
         // ── header background ────────────────────────────────────────────────
         frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -79,7 +80,7 @@ impl SceneBuilder {
         // ── column headers ───────────────────────────────────────────────────
         for ci in col_start..col_end {
             let col = &model.columns[ci];
-            let cx = model.column_offsets.offsets[ci] - sx;
+            let cx = model.column_offsets.offsets[ci] - sx + rnw;
             let mid_y = model.header_height * 0.5 + t.header_font_size * 0.35;
 
             // Header label
@@ -90,6 +91,7 @@ impl SceneBuilder {
                 color: t.header_text,
                 font_size: t.header_font_size,
                 clip: Some([cx, 0.0, col.width, model.header_height]),
+                align: TextAlign::Left,
             }));
 
             // Column separator in header
@@ -128,7 +130,7 @@ impl SceneBuilder {
 
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
-                let cx = model.column_offsets.offsets[ci] - sx;
+                let cx = model.column_offsets.offsets[ci] - sx + rnw;
 
                 // Selection fill (no border — outer border drawn below)
                 if sel.is_selected(ri, ci) {
@@ -153,6 +155,7 @@ impl SceneBuilder {
                             color: t.cell_text,
                             font_size: t.font_size,
                             clip: Some([cx, ry, col.width, model.row_height]),
+                            align: TextAlign::Left,
                         }));
                     }
                 }
@@ -172,9 +175,9 @@ impl SceneBuilder {
 
         // ── selection outer border ───────────────────────────────────────────
         if let Some((tl, br)) = sel.range() {
-            let x1 = model.column_offsets.offsets[tl.col] - sx;
+            let x1 = model.column_offsets.offsets[tl.col] - sx + rnw;
             let y1 = model.row_top(tl.row) - sy;
-            let x2 = model.column_offsets.offsets[br.col] - sx + model.columns[br.col].width;
+            let x2 = model.column_offsets.offsets[br.col] - sx + rnw + model.columns[br.col].width;
             let y2 = model.row_top(br.row) - sy + model.row_height;
 
             // top
@@ -196,6 +199,73 @@ impl SceneBuilder {
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: x2 - 0.5, y1, x2: x2 - 0.5, y2,
                 color: t.selection_border, width: 1.0,
+            }));
+        }
+
+        // ── row-number gutter (sticky, drawn on top of scrolled data) ────────
+        if rnw > 0.0 {
+            // Header corner + gutter background
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: 0.0,
+                y: 0.0,
+                width: rnw,
+                height: vp.height,
+                fill: t.header_bg,
+                stroke: None,
+                stroke_width: 0.0,
+            }));
+
+            for ri in row_start..row_end {
+                let ry = model.row_top(ri) - sy;
+                if ry + model.row_height < model.header_height || ry > vp.height {
+                    continue;
+                }
+
+                let is_selected = sel.range()
+                    .map_or(false, |(tl, br)| ri >= tl.row && ri <= br.row);
+
+                if is_selected {
+                    frame.push(ScenePrimitive::Rect(RectPrimitive {
+                        x: 0.0,
+                        y: ry,
+                        width: rnw,
+                        height: model.row_height,
+                        fill: t.selection_fill,
+                        stroke: None,
+                        stroke_width: 0.0,
+                    }));
+                }
+
+                let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
+                frame.push(ScenePrimitive::Text(TextPrimitive {
+                    x: rnw - t.cell_padding,
+                    y: mid_y,
+                    text: (ri + 1).to_string(),
+                    color: t.header_text,
+                    font_size: t.font_size,
+                    clip: Some([0.0, ry, rnw, model.row_height]),
+                    align: TextAlign::Right,
+                }));
+            }
+
+            // Gutter right border (full height)
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: rnw - 0.5,
+                y1: 0.0,
+                x2: rnw - 0.5,
+                y2: vp.height,
+                color: t.header_border,
+                width: 1.0,
+            }));
+
+            // Header bottom border re-drawn on top of gutter
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: 0.0,
+                y1: model.header_height - 0.5,
+                x2: rnw,
+                y2: model.header_height - 0.5,
+                color: t.header_border,
+                width: 1.0,
             }));
         }
 
