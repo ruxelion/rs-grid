@@ -10,40 +10,44 @@
 
 /* ── light theme (default) ─────────────────────────────────────────────────── */
 :root {
-  --rs-grid-bg: #ffffff;
-  --rs-grid-header-bg: #f2f2f7;
-  --rs-grid-header-text: rgb(90, 90, 100);
-  --rs-grid-cell-text: #222222;
-  --rs-grid-grid-line: #e9e9e9;
-  --rs-grid-header-border: #dddddd;
-  --rs-grid-selection-fill: rgba(60, 140, 245, 0.15);
-  --rs-grid-selection-border: rgba(60, 140, 245, 0.6);
-  --rs-grid-scrollbar-track: rgb(255, 255, 255);
-  --rs-grid-scrollbar-thumb: rgba(90, 90, 90, 0.6);
-  --rs-grid-scrollbar-width: 15px;
-  --rs-grid-scrollbar-radius: 6px;
-  --rs-grid-font-size: 14px;
-  --rs-grid-header-font-size: 12px;
-  --rs-grid-cell-padding: 8px;
+  --rs-grid-bg:                 #ffffff;
+  --rs-grid-header-bg:          #f8f9fa;
+  --rs-grid-header-text:        #181d1f;
+  --rs-grid-cell-text:          #181d1f;
+  --rs-grid-grid-line:          #e0e0e0;
+  --rs-grid-header-border:      #babfc7;
+  --rs-grid-selection-fill:     rgba(31, 119, 220, 0.18);
+  --rs-grid-selection-border:   rgba(31, 119, 220, 0.82);
+  --rs-grid-scrollbar-track:    #f1f1f1;
+  --rs-grid-scrollbar-thumb:    rgba(100, 100, 110, 0.63);
+  --rs-grid-scrollbar-width:    14px;
+  --rs-grid-scrollbar-radius:   4px;
+  --rs-grid-row-alt-bg:         #fcfcfd;
+  --rs-grid-font-size:          14px;
+  --rs-grid-header-font-size:   13px;
+  --rs-grid-header-font-bold:   1;
+  --rs-grid-cell-padding:       10px;
 }
 
 /* ── dark theme example ─────────────────────────────────────────────────────
    Uncomment to activate, or scope to a class/media query.
 
 :root {
-  --rs-grid-bg:               #12121a;
-  --rs-grid-header-bg:        #1c1c26;
-  --rs-grid-header-text:      #a0a0b4;
-  --rs-grid-cell-text:        #dcdce6;
-  --rs-grid-grid-line:        #2d2d3a;
-  --rs-grid-header-border:    #373746;
-  --rs-grid-selection-fill:   rgba(99, 160, 255, 0.22);
-  --rs-grid-selection-border: rgba(99, 160, 255, 0.82);
-  --rs-grid-scrollbar-track:  rgba(255, 255, 255, 0.06);
-  --rs-grid-scrollbar-thumb:  rgba(180, 180, 200, 0.55);
-  --rs-grid-font-size:        13px;
-  --rs-grid-header-font-size: 12px;
-  --rs-grid-cell-padding:     8px;
+  --rs-grid-bg:                 #12121a;
+  --rs-grid-header-bg:          #1c1c26;
+  --rs-grid-header-text:        #a0a0b4;
+  --rs-grid-cell-text:          #dcdce6;
+  --rs-grid-grid-line:          #2d2d3a;
+  --rs-grid-header-border:      #373746;
+  --rs-grid-selection-fill:     rgba(99, 160, 255, 0.22);
+  --rs-grid-selection-border:   rgba(99, 160, 255, 0.82);
+  --rs-grid-scrollbar-track:    rgba(255, 255, 255, 0.06);
+  --rs-grid-scrollbar-thumb:    rgba(180, 180, 200, 0.55);
+  --rs-grid-row-alt-bg:         #16161e;
+  --rs-grid-font-size:          14px;
+  --rs-grid-header-font-size:   13px;
+  --rs-grid-header-font-bold:   1;
+  --rs-grid-cell-padding:       10px;
 }
 */
 

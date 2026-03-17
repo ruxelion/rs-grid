@@ -53,6 +53,8 @@ pub struct TextPrimitive {
     pub text: String,
     pub color: Color,
     pub font_size: f64,
+    /// Render with font-weight 600 when `true`.
+    pub bold: bool,
     /// Optional clipping rectangle `(x, y, width, height)`.
     pub clip: Option<[f64; 4]>,
     pub align: TextAlign,

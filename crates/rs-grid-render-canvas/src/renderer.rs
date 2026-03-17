@@ -81,8 +81,12 @@ impl CanvasRenderer {
             ctx.clip();
         }
 
+        let weight = if t.bold { "600" } else { "400" };
         ctx.set_fill_style_str(&t.color.to_css());
-        ctx.set_font(&format!("{}px system-ui, sans-serif", t.font_size));
+        ctx.set_font(&format!(
+            "{} {}px system-ui, sans-serif",
+            weight, t.font_size
+        ));
         ctx.set_text_baseline("alphabetic");
         ctx.set_text_align(match t.align {
             TextAlign::Left  => "left",
