@@ -251,3 +251,120 @@ impl HScrollbarGeom {
         rel / thumb_travel * max_scroll
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── ScrollbarGeom ─────────────────────────────────────────────────────────
+
+    /// viewport 800×600, header=40, total_h=3000, track_w=16
+    fn make_vscroll(scroll_y: f64) -> ScrollbarGeom {
+        ScrollbarGeom::compute(scroll_y, 800.0, 600.0, 40.0, 3000.0, 16.0).unwrap()
+    }
+
+    #[test]
+    fn vscroll_none_when_content_fits() {
+        // total_h=500 <= viewport_h=600 → None
+        assert!(ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 500.0, 16.0).is_none());
+    }
+
+    #[test]
+    fn vscroll_geometry_at_top() {
+        let g = make_vscroll(0.0);
+        assert_eq!(g.track_x, 784.0);   // 800 - 16
+        assert_eq!(g.up_btn_y, 40.0);   // header_h
+        assert_eq!(g.down_btn_y, 584.0); // 600 - 16
+        assert_eq!(g.track_y, 56.0);    // header + arrow_h
+        assert_eq!(g.thumb_y, g.track_y); // scroll=0 → thumb at top
+    }
+
+    #[test]
+    fn vscroll_thumb_moves_with_scroll() {
+        let g0 = make_vscroll(0.0);
+        let g1 = make_vscroll(1000.0);
+        assert!(g1.thumb_y > g0.thumb_y);
+    }
+
+    #[test]
+    fn vscroll_hit_up_arrow() {
+        let g = make_vscroll(0.0);
+        assert!(g.hit_up_arrow(790.0, 50.0));   // inside
+        assert!(!g.hit_up_arrow(790.0, 100.0)); // below arrow
+        assert!(!g.hit_up_arrow(700.0, 50.0));  // wrong x
+    }
+
+    #[test]
+    fn vscroll_hit_down_arrow() {
+        let g = make_vscroll(0.0);
+        assert!(g.hit_down_arrow(790.0, 590.0));   // inside
+        assert!(!g.hit_down_arrow(790.0, 50.0));   // wrong y
+    }
+
+    #[test]
+    fn vscroll_hit_thumb() {
+        let g = make_vscroll(0.0);
+        let mid = g.thumb_y + g.thumb_h / 2.0;
+        assert!(g.hit_thumb(790.0, mid));
+        assert!(!g.hit_thumb(700.0, mid)); // wrong x
+    }
+
+    #[test]
+    fn vscroll_hit_track() {
+        let g = make_vscroll(0.0);
+        // Between up and down arrows, on the track
+        let track_mid = g.track_y + g.track_h / 2.0;
+        assert!(g.hit_track(790.0, track_mid));
+        assert!(!g.hit_track(700.0, track_mid));
+    }
+
+    #[test]
+    fn vscroll_drag_to_scroll_positive() {
+        let g = make_vscroll(0.0);
+        let delta = g.drag_to_scroll(10.0, 3000.0, 600.0, 40.0);
+        assert!(delta > 0.0);
+    }
+
+    // ── HScrollbarGeom ────────────────────────────────────────────────────────
+
+    /// viewport 800×600, gutter=50, total_w=2000, vsb_w=16, track_h=16
+    fn make_hscroll(scroll_x: f64) -> HScrollbarGeom {
+        HScrollbarGeom::compute(scroll_x, 800.0, 600.0, 50.0, 2000.0, 16.0, 16.0).unwrap()
+    }
+
+    #[test]
+    fn hscroll_none_when_content_fits() {
+        // total_w=500, available_w=800-50-16=734 → None
+        assert!(HScrollbarGeom::compute(0.0, 800.0, 600.0, 50.0, 500.0, 16.0, 16.0).is_none());
+    }
+
+    #[test]
+    fn hscroll_geometry() {
+        let g = make_hscroll(0.0);
+        assert_eq!(g.track_y, 584.0);   // 600 - 16
+        assert_eq!(g.left_btn_x, 50.0); // gutter_w
+        assert_eq!(g.right_btn_x, 784.0 - 16.0); // 800 - vsb_w - arrow_w
+        assert_eq!(g.thumb_x, g.track_x); // scroll=0 → thumb at left
+    }
+
+    #[test]
+    fn hscroll_thumb_moves_with_scroll() {
+        let g0 = make_hscroll(0.0);
+        let g1 = make_hscroll(500.0);
+        assert!(g1.thumb_x > g0.thumb_x);
+    }
+
+    #[test]
+    fn hscroll_hit_left_arrow() {
+        let g = make_hscroll(0.0);
+        assert!(g.hit_left_arrow(55.0, 590.0));
+        assert!(!g.hit_left_arrow(10.0, 590.0)); // left of gutter
+    }
+
+    #[test]
+    fn hscroll_drag_to_scroll_positive() {
+        let g = make_hscroll(0.0);
+        let delta = g.drag_to_scroll(10.0, 2000.0, 800.0, 50.0, 16.0);
+        assert!(delta > 0.0);
+    }
+}

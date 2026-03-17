@@ -73,6 +73,12 @@ Les mutations passent exclusivement par `GridState::apply(GridCommand)`.
 Le thème est lu depuis les variables CSS (`rs-grid-web::theme_from_css_vars`).
 Le fichier de référence est `examples/basic-leptos/rs-grid-theme.css`.
 
+## Règles de travail pour Claude
+
+- Après toute modification de code dans `rs-grid-core`, toujours lancer `/test`
+  pour vérifier que les tests passent.
+- Si un test échoue, le corriger avant de continuer.
+
 ## Ajouter un nouveau renderer
 
 1. Créer une nouvelle crate dépendant de `rs-grid-scene`

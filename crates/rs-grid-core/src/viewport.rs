@@ -82,3 +82,85 @@ impl ViewportState {
         (first.min(col_count), last.min(col_count))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::column::{ColumnDef, ColumnOffsets};
+
+    fn vp(scroll_y: f64) -> ViewportState {
+        ViewportState { scroll_y, ..ViewportState::new(800.0, 600.0) }
+    }
+
+    // ── visible_rows ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn visible_rows_empty_grid() {
+        let vp = vp(0.0);
+        assert_eq!(vp.visible_rows(0, 30.0, 40.0), (0, 0));
+    }
+
+    #[test]
+    fn visible_rows_at_top() {
+        // height=600, header=40, row_height=30, overscan=3
+        // visible_height = 560, last_raw = ceil(560/30) = 19
+        // last = min(19+3, 100) = 22
+        let vp = vp(0.0);
+        let (first, last) = vp.visible_rows(100, 30.0, 40.0);
+        assert_eq!(first, 0); // saturating_sub overscan from 0 → 0
+        assert_eq!(last, 22);
+    }
+
+    #[test]
+    fn visible_rows_scrolled() {
+        // scroll_y=300, content_y=(300-40).max(0)=260
+        // first = (260/30) as u64 = 8, -overscan = 5
+        // last_raw = ceil((260+560)/30) = ceil(27.33) = 28
+        // last = min(28+3, 100) = 31
+        let vp = vp(300.0);
+        let (first, last) = vp.visible_rows(100, 30.0, 40.0);
+        assert_eq!(first, 5);
+        assert_eq!(last, 31);
+    }
+
+    #[test]
+    fn visible_rows_clamped_to_row_count() {
+        // scroll near the bottom — last must not exceed row_count
+        let vp = ViewportState {
+            scroll_y: 10_000.0,
+            ..ViewportState::new(800.0, 600.0)
+        };
+        let (_, last) = vp.visible_rows(10, 30.0, 40.0);
+        assert_eq!(last, 10);
+    }
+
+    // ── visible_columns ───────────────────────────────────────────────────────
+
+    fn make_offsets() -> (ColumnOffsets, Vec<f64>) {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let widths = cols.iter().map(|c| c.width).collect();
+        (ColumnOffsets::compute(&cols), widths)
+    }
+
+    #[test]
+    fn visible_columns_all_visible() {
+        let vp = ViewportState::new(800.0, 600.0); // width=800 > total 450
+        let (offsets, widths) = make_offsets();
+        assert_eq!(vp.visible_columns(&offsets, &widths), (0, 3));
+    }
+
+    #[test]
+    fn visible_columns_scrolled_past_first() {
+        let vp = ViewportState {
+            scroll_x: 110.0, // past first col (0..100)
+            ..ViewportState::new(400.0, 600.0)
+        };
+        let (offsets, widths) = make_offsets();
+        let (first, _) = vp.visible_columns(&offsets, &widths);
+        assert_eq!(first, 1);
+    }
+}
