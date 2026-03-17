@@ -35,6 +35,14 @@ pub struct RectPrimitive {
     pub stroke_width: f64,
 }
 
+/// Horizontal text alignment.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum TextAlign {
+    #[default]
+    Left,
+    Right,
+}
+
 /// A clipped text run.
 #[derive(Debug, Clone)]
 pub struct TextPrimitive {
@@ -45,6 +53,7 @@ pub struct TextPrimitive {
     pub font_size: f64,
     /// Optional clipping rectangle `(x, y, width, height)`.
     pub clip: Option<[f64; 4]>,
+    pub align: TextAlign,
 }
 
 /// A straight line segment.

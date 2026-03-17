@@ -21,6 +21,10 @@ pub enum GridCommand {
     MoveSelection { delta_row: i64, delta_col: i64, extend: bool },
     /// Paste TSV text starting at the current selection anchor.
     PasteAt { text: String },
+    /// Select all cells in a row (click on row-number gutter).
+    SelectRow(u64),
+    /// Extend the current row selection to cover a new row (drag in gutter).
+    ExtendRowSelection(u64),
 }
 
 #[derive(Debug, Clone)]

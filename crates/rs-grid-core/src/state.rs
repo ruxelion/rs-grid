@@ -35,7 +35,8 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::ScrollTo { x, y } => {
-                let max_x = (self.model.total_width() - self.viewport.width).max(0.0);
+                let rnw = self.model.row_number_width;
+                let max_x = (self.model.total_width() - (self.viewport.width - rnw)).max(0.0);
                 let max_y = (self.model.total_height() - self.viewport.height).max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
@@ -44,7 +45,8 @@ impl GridState {
             GridCommand::ScrollBy { dx, dy } => {
                 let x = self.viewport.scroll_x + dx;
                 let y = self.viewport.scroll_y + dy;
-                let max_x = (self.model.total_width() - self.viewport.width).max(0.0);
+                let rnw = self.model.row_number_width;
+                let max_x = (self.model.total_width() - (self.viewport.width - rnw)).max(0.0);
                 let max_y = (self.model.total_height() - self.viewport.height).max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
@@ -92,6 +94,19 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SelectRow(row) => {
+                let last_col = self.model.columns.len().saturating_sub(1);
+                self.selection.anchor = Some(CellCoord { row, col: 0 });
+                self.selection.focus  = Some(CellCoord { row, col: last_col });
+                CommandOutput::None
+            }
+            GridCommand::ExtendRowSelection(row) => {
+                let last_col = self.model.columns.len().saturating_sub(1);
+                // Clamp anchor column to 0 so the range always spans all columns.
+                if let Some(ref mut a) = self.selection.anchor { a.col = 0; }
+                self.selection.focus = Some(CellCoord { row, col: last_col });
+                CommandOutput::None
+            }
             GridCommand::MoveSelection { delta_row, delta_col, extend } => {
                 let row_count = self.model.data.row_count();
                 let col_count = self.model.columns.len();
@@ -110,7 +125,7 @@ impl GridState {
         }
     }
 
-    /// Hit-test a viewport-space pointer position against the grid.
+    /// Hit-test a viewport-space pointer position against the data cells.
     pub fn hit_test(&self, vx: f64, vy: f64) -> Option<CellCoord> {
         hit_test::hit_test(
             vx,
@@ -119,5 +134,10 @@ impl GridState {
             self.viewport.scroll_x,
             self.viewport.scroll_y,
         )
+    }
+
+    /// Hit-test the sticky row-number gutter. Returns the row index or `None`.
+    pub fn hit_test_row_header(&self, vx: f64, vy: f64) -> Option<u64> {
+        hit_test::hit_test_row_header(vx, vy, &self.model, self.viewport.scroll_y)
     }
 }

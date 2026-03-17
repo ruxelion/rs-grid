@@ -1,6 +1,6 @@
 use rs_grid_scene::{
     frame::SceneFrame,
-    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextPrimitive},
+    primitives::{LinePrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
 };
 use web_sys::CanvasRenderingContext2d;
 
@@ -65,6 +65,10 @@ impl CanvasRenderer {
         ctx.set_fill_style_str(&t.color.to_css());
         ctx.set_font(&format!("{}px system-ui, sans-serif", t.font_size));
         ctx.set_text_baseline("alphabetic");
+        ctx.set_text_align(match t.align {
+            TextAlign::Left  => "left",
+            TextAlign::Right => "right",
+        });
         // Ignore the Result — fill_text only fails on infinite coords.
         let _ = ctx.fill_text(&t.text, t.x, t.y);
 
