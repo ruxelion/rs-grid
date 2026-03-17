@@ -107,6 +107,19 @@ impl GridState {
                 self.selection.focus = Some(CellCoord { row, col: last_col });
                 CommandOutput::None
             }
+            GridCommand::SelectCol(col) => {
+                let last_row = self.model.data.row_count().saturating_sub(1);
+                self.selection.anchor = Some(CellCoord { row: 0, col });
+                self.selection.focus  = Some(CellCoord { row: last_row, col });
+                CommandOutput::None
+            }
+            GridCommand::ExtendColSelection(col) => {
+                let last_row = self.model.data.row_count().saturating_sub(1);
+                // Clamp anchor row to 0 so the range always spans all rows.
+                if let Some(ref mut a) = self.selection.anchor { a.row = 0; }
+                self.selection.focus = Some(CellCoord { row: last_row, col });
+                CommandOutput::None
+            }
             GridCommand::MoveSelection { delta_row, delta_col, extend } => {
                 let row_count = self.model.data.row_count();
                 let col_count = self.model.columns.len();
@@ -139,5 +152,10 @@ impl GridState {
     /// Hit-test the sticky row-number gutter. Returns the row index or `None`.
     pub fn hit_test_row_header(&self, vx: f64, vy: f64) -> Option<u64> {
         hit_test::hit_test_row_header(vx, vy, &self.model, self.viewport.scroll_y)
+    }
+
+    /// Hit-test a column header. Returns the column index or `None`.
+    pub fn hit_test_col_header(&self, vx: f64, vy: f64) -> Option<usize> {
+        hit_test::hit_test_col_header(vx, vy, &self.model, self.viewport.scroll_x)
     }
 }

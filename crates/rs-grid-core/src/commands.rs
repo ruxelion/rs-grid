@@ -25,6 +25,10 @@ pub enum GridCommand {
     SelectRow(u64),
     /// Extend the current row selection to cover a new row (drag in gutter).
     ExtendRowSelection(u64),
+    /// Select all cells in a column (click on column header).
+    SelectCol(usize),
+    /// Extend the current column selection to cover a new column (drag in header).
+    ExtendColSelection(usize),
 }
 
 #[derive(Debug, Clone)]

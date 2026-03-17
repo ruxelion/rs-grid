@@ -35,6 +35,8 @@ struct Inner {
     scroll_timeout: RefCell<Option<i32>>,
     /// Handle returned by `setInterval` for arrow-button auto-scroll (cleared on mouseup).
     scroll_interval: RefCell<Option<i32>>,
+    /// Current mouse position during middle-click autoscroll (client coords).
+    pan_mouse: RefCell<(f64, f64)>,
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
 }
@@ -43,6 +45,8 @@ enum ActiveDrag {
     Thumb(ThumbDrag),
     Cell,
     Row,
+    Col,
+    Pan { origin_x: f64, origin_y: f64 },
 }
 
 struct ThumbDrag {
@@ -92,6 +96,7 @@ impl GridCanvas {
             drag: RefCell::new(None),
             scroll_timeout: RefCell::new(None),
             scroll_interval: RefCell::new(None),
+            pan_mouse: RefCell::new((0.0, 0.0)),
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
         });
@@ -350,6 +355,31 @@ impl GridCanvas {
         *self.0.scroll_timeout.borrow_mut() = Some(tid);
     }
 
+    fn pan_cursor() -> &'static str {
+        // SVG autoscroll cursor: circle + 4 arrows, hotspot at centre (16 16).
+        concat!(
+            "url(\"data:image/svg+xml,",
+            "%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E",
+            "%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%23555' stroke-width='1.5'/%3E",
+            "%3Ccircle cx='16' cy='16' r='2' fill='%23555'/%3E",
+            // up
+            "%3Cpolygon points='16,3 12.5,10 19.5,10' fill='%23555'/%3E",
+            // down
+            "%3Cpolygon points='16,29 12.5,22 19.5,22' fill='%23555'/%3E",
+            // left
+            "%3Cpolygon points='3,16 10,12.5 10,19.5' fill='%23555'/%3E",
+            // right
+            "%3Cpolygon points='29,16 22,12.5 22,19.5' fill='%23555'/%3E",
+            "%3C/svg%3E\") 16 16, all-scroll",
+        )
+    }
+
+    fn stop_pan(&self) {
+        self.stop_scroll_repeat();
+        *self.0.drag.borrow_mut() = None;
+        let _ = self.0.canvas.style().set_property("cursor", "");
+    }
+
     fn stop_scroll_repeat(&self) {
         let win = web_sys::window().expect("no window");
         if let Some(id) = self.0.scroll_timeout.borrow_mut().take() {
@@ -527,6 +557,49 @@ impl GridCanvas {
                 return;
             }
 
+            // Middle-click → browser-style autoscroll
+            if evt.button() == 1 {
+                evt.prevent_default();
+                // If already panning, stop on second middle-click.
+                if matches!(*gc.0.drag.borrow(), Some(ActiveDrag::Pan { .. })) {
+                    gc.stop_pan();
+                    return;
+                }
+                let cx = evt.client_x() as f64;
+                let cy = evt.client_y() as f64;
+                *gc.0.pan_mouse.borrow_mut() = (cx, cy);
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::Pan { origin_x: cx, origin_y: cy });
+                let _ = gc.0.canvas.style().set_property("cursor", GridCanvas::pan_cursor());
+                // Interval: scroll proportional to distance from origin.
+                let gc2 = gc.clone();
+                let cb2 = Closure::<dyn FnMut()>::new(move || {
+                    let (ox, oy) = match *gc2.0.drag.borrow() {
+                        Some(ActiveDrag::Pan { origin_x, origin_y }) => (origin_x, origin_y),
+                        _ => return,
+                    };
+                    let (mx, my) = *gc2.0.pan_mouse.borrow();
+                    const DEADZONE: f64 = 8.0;
+                    const SPEED: f64 = 0.04;
+                    let raw_dx = mx - ox;
+                    let raw_dy = my - oy;
+                    let dx = if raw_dx.abs() > DEADZONE { (raw_dx.abs() - DEADZONE) * raw_dx.signum() * SPEED * 16.0 } else { 0.0 };
+                    let dy = if raw_dy.abs() > DEADZONE { (raw_dy.abs() - DEADZONE) * raw_dy.signum() * SPEED * 16.0 } else { 0.0 };
+                    if dx != 0.0 || dy != 0.0 {
+                        gc2.dispatch(GridCommand::ScrollBy { dx, dy });
+                    }
+                });
+                let win2 = web_sys::window().expect("no window");
+                let id = win2
+                    .set_interval_with_callback_and_timeout_and_arguments_0(
+                        cb2.as_ref().unchecked_ref(),
+                        16,
+                    )
+                    .expect("setInterval");
+                cb2.forget();
+                *gc.0.scroll_interval.borrow_mut() = Some(id);
+                return;
+            }
+
             let (x, y) = gc.canvas_xy(&evt);
 
             // Close any open context menu
@@ -579,6 +652,18 @@ impl GridCanvas {
                     gc.dispatch(GridCommand::SelectRow(row));
                 }
                 *gc.0.drag.borrow_mut() = Some(ActiveDrag::Row);
+                return;
+            }
+
+            // ── column header selection ───────────────────────────────────────
+            let col = gc.0.state.borrow().hit_test_col_header(x, y);
+            if let Some(col) = col {
+                if evt.shift_key() {
+                    gc.dispatch(GridCommand::ExtendColSelection(col));
+                } else {
+                    gc.dispatch(GridCommand::SelectCol(col));
+                }
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
                 return;
             }
 
@@ -657,6 +742,21 @@ impl GridCanvas {
                         gc.dispatch(GridCommand::ExtendRowSelection(row));
                     }
                 }
+                Some(ActiveDrag::Col) => {
+                    drop(drag);
+                    let (x, y) = gc.canvas_xy(&evt);
+                    let col = gc.0.state.borrow().hit_test_col_header(x, y);
+                    if let Some(col) = col {
+                        gc.dispatch(GridCommand::ExtendColSelection(col));
+                    }
+                }
+                Some(ActiveDrag::Pan { .. }) => {
+                    drop(drag);
+                    *gc.0.pan_mouse.borrow_mut() = (
+                        evt.client_x() as f64,
+                        evt.client_y() as f64,
+                    );
+                }
                 None => {}
             }
         });
@@ -671,7 +771,14 @@ impl GridCanvas {
 
     fn attach_mouseup(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            // Middle-button release stops pan.
+            if evt.button() == 1 {
+                if matches!(*gc.0.drag.borrow(), Some(ActiveDrag::Pan { .. })) {
+                    gc.stop_pan();
+                }
+                return;
+            }
             gc.stop_scroll_repeat();
             *gc.0.drag.borrow_mut() = None;
         });
