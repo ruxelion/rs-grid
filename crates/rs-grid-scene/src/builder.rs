@@ -77,57 +77,6 @@ impl SceneBuilder {
         let sy = vp.scroll_y;
         let rnw = model.row_number_width; // row-number gutter width
 
-        // ── header background ────────────────────────────────────────────────
-        frame.push(ScenePrimitive::Rect(RectPrimitive {
-            x: 0.0,
-            y: 0.0,
-            width: vp.width,
-            height: model.header_height,
-            fill: t.header_bg,
-            stroke: None,
-            stroke_width: 0.0,
-            corner_radius: 0.0,
-        }));
-
-        // ── column headers ───────────────────────────────────────────────────
-        for ci in col_start..col_end {
-            let col = &model.columns[ci];
-            let cx = model.column_offsets.offsets[ci] - sx + rnw;
-            let mid_y = model.header_height * 0.5 + t.header_font_size * 0.35;
-
-            // Header label
-            frame.push(ScenePrimitive::Text(TextPrimitive {
-                x: cx + t.cell_padding,
-                y: mid_y,
-                text: col.label.clone(),
-                color: t.header_text,
-                font_size: t.header_font_size,
-                clip: Some([cx, 0.0, col.width, model.header_height]),
-                align: TextAlign::Left,
-            }));
-
-            // Column separator in header
-            let sep_x = cx + col.width - 0.5;
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: sep_x,
-                y1: 0.0,
-                x2: sep_x,
-                y2: model.header_height,
-                color: t.header_border,
-                width: 1.0,
-            }));
-        }
-
-        // Header bottom border
-        frame.push(ScenePrimitive::Line(LinePrimitive {
-            x1: 0.0,
-            y1: model.header_height - 0.5,
-            x2: vp.width,
-            y2: model.header_height - 0.5,
-            color: t.header_border,
-            width: 1.0,
-        }));
-
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
             let ry = model.row_top(ri) - sy;
@@ -231,6 +180,70 @@ impl SceneBuilder {
                 width: 1.0,
             }));
         }
+
+        // ── header (sticky, drawn on top of scrolled data) ───────────────────
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: 0.0,
+            y: 0.0,
+            width: vp.width,
+            height: model.header_height,
+            fill: t.header_bg,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+        }));
+
+        for ci in col_start..col_end {
+            let col = &model.columns[ci];
+            let cx = model.column_offsets.offsets[ci] - sx + rnw;
+            let mid_y = model.header_height * 0.5 + t.header_font_size * 0.35;
+
+            // Column header selection highlight
+            let col_in_sel = sel
+                .range()
+                .map_or(false, |(tl, br)| ci >= tl.col && ci <= br.col);
+            if col_in_sel {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: cx,
+                    y: 0.0,
+                    width: col.width,
+                    height: model.header_height,
+                    fill: t.selection_fill,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
+            frame.push(ScenePrimitive::Text(TextPrimitive {
+                x: cx + t.cell_padding,
+                y: mid_y,
+                text: col.label.clone(),
+                color: t.header_text,
+                font_size: t.header_font_size,
+                clip: Some([cx, 0.0, col.width, model.header_height]),
+                align: TextAlign::Left,
+            }));
+
+            let sep_x = cx + col.width - 0.5;
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: sep_x,
+                y1: 0.0,
+                x2: sep_x,
+                y2: model.header_height,
+                color: t.header_border,
+                width: 1.0,
+            }));
+        }
+
+        frame.push(ScenePrimitive::Line(LinePrimitive {
+            x1: 0.0,
+            y1: model.header_height - 0.5,
+            x2: vp.width,
+            y2: model.header_height - 0.5,
+            color: t.header_border,
+            width: 1.0,
+        }));
 
         // ── row-number gutter (sticky, drawn on top of scrolled data) ────────
         if rnw > 0.0 {

@@ -58,7 +58,7 @@
 html,
 body {
   height: 100%;
-  background: #f0f1f5;
+  background: #f3f4f6;
   font-family: system-ui, sans-serif;
 }
 
@@ -68,61 +68,86 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  padding: 15px;
 }
 
-/* ── header ─────────────────────────────────────────────────────────────────── */
+/* ── page header ────────────────────────────────────────────────────────────── */
 
-.app-header {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  background: #1a1b2e;
+.app-page-header {
   flex-shrink: 0;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  margin-bottom: 15px;
 }
 
-.app-header-brand {
+.app-title {
+  font: 700 22px;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.app-subtitle {
+  font: 400 14px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.app-highlight {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.app-controls {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.app-header-logo {
-  background: #6d28d9;
-  color: #fff;
-  font:
-    700 11px/1 ui-monospace,
-    monospace;
-  padding: 4px 8px;
-  border-radius: 5px;
-  letter-spacing: 0.04em;
+.app-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 12px;
 }
 
-.app-header-title {
-  color: #a0a8c0;
-  font:
-    500 14px/1 system-ui,
-    sans-serif;
+.app-control-label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.app-header-badge {
-  color: #5a5f7a;
+.app-control-select {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
   font:
-    500 12px/1 system-ui,
+    500 13px/1 system-ui,
     sans-serif;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 5px 30px 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  min-width: 120px;
+}
+
+.app-control-select:hover {
+  border-color: #9ca3af;
+}
+
+.app-control-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 /* ── body ───────────────────────────────────────────────────────────────────── */
 
 .app-body {
   flex: 1;
-  padding: 16px;
   min-height: 0;
 }
 

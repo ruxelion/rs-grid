@@ -44,6 +44,25 @@ pub fn hit_test(
     Some(CellCoord { row, col })
 }
 
+/// Returns the column index when the pointer is over a column header.
+///
+/// Returns `None` when the pointer is outside the header zone or in the
+/// row-number corner (x < row_number_width).
+pub fn hit_test_col_header(
+    vx: f64,
+    vy: f64,
+    model: &GridModel,
+    scroll_x: f64,
+) -> Option<usize> {
+    let rnw = model.row_number_width;
+    // Must be in header row and to the right of the row-number gutter corner.
+    if vy >= model.header_height || vx < rnw {
+        return None;
+    }
+    let abs_x = (vx - rnw) + scroll_x;
+    model.column_offsets.hit_column(abs_x, &model.columns)
+}
+
 /// Returns the row index when the pointer is over the sticky row-number gutter.
 ///
 /// Returns `None` when the pointer is outside the gutter, in the header area,
