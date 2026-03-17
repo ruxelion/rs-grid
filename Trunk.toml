@@ -1,0 +1,8 @@
+[watch]
+paths = ["crates", "examples/basic-leptos/src"]
+ignore = ["target", "examples/basic-leptos/dist"]
+
+[build]
+target = "examples/basic-leptos/index.html"
+dist = "examples/basic-leptos/dist"
+release = false
