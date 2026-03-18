@@ -28,6 +28,15 @@
   --rs-grid-header-font-size: 13px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
+
+  /* context menu */
+  --rs-grid-ctx-bg: #ffffff;
+  --rs-grid-ctx-border: #d1d5db;
+  --rs-grid-ctx-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --rs-grid-ctx-text: #111827;
+  --rs-grid-ctx-text-disabled: #9ca3af;
+  --rs-grid-ctx-hover-bg: #f3f4f6;
+  --rs-grid-ctx-separator: #e5e7eb;
 }
 
 /* ── dark theme — active when <html class="dark"> ───────────────────────────── */
@@ -48,6 +57,15 @@
   --rs-grid-header-font-size: 13px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
+
+  /* context menu */
+  --rs-grid-ctx-bg: #1e2030;
+  --rs-grid-ctx-border: #3d4466;
+  --rs-grid-ctx-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --rs-grid-ctx-text: #c0caf5;
+  --rs-grid-ctx-text-disabled: #565f89;
+  --rs-grid-ctx-hover-bg: #24283b;
+  --rs-grid-ctx-separator: #2a2f45;
 }
 
 *,
