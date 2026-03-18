@@ -9,7 +9,6 @@
       "Bash(cargo clippy:*)",
       "Bash(wasm-pack build:*)",
       "Bash(trunk build:*)",
-      "Bash(trunk serve:*)",
       "Bash(taskkill:*)",
       "Bash(nohup trunk:*)",
       "Bash(trunk --version)",

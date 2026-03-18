@@ -17,6 +17,8 @@ pub enum GridCommand {
     ClearSelection,
     /// Copy the current selection to clipboard (returns TSV text).
     CopySelection,
+    /// Copy the current selection to clipboard and clear the selected cells.
+    CutSelection,
     /// Move or extend the selection by a row/col delta.
     MoveSelection { delta_row: i64, delta_col: i64, extend: bool },
     /// Paste TSV text starting at the current selection anchor.

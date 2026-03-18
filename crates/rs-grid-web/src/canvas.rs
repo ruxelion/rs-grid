@@ -301,6 +301,56 @@ impl GridCanvas {
         }
     }
 
+    fn handle_cut(&self) {
+        match self.dispatch_with_output(GridCommand::CutSelection) {
+            CommandOutput::CopyText(text) => self.write_clipboard(text),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => {
+                let msg = format!(
+                    "Cut annulé : {actual} lignes sélectionnées (max {max})"
+                );
+                web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(
+                    &msg,
+                ));
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_copy_headers(&self) {
+        let header_row = {
+            let state = self.0.state.borrow();
+            let (tl, br) = match state.selection.range() {
+                Some(r) => r,
+                None => return,
+            };
+            let cols = &state.model.columns;
+            (tl.col..=br.col)
+                .map(|ci| cols[ci].label.clone())
+                .collect::<Vec<_>>()
+                .join("\t")
+        };
+        match self.dispatch_with_output(GridCommand::CopySelection) {
+            CommandOutput::CopyText(data) => {
+                self.write_clipboard(format!("{header_row}\n{data}"));
+            }
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => {
+                let msg = format!(
+                    "Copy annulé : {actual} lignes sélectionnées (max {max})"
+                );
+                web_sys::console::warn_1(
+                    &wasm_bindgen::JsValue::from_str(&msg),
+                );
+            }
+            _ => {}
+        }
+    }
+
     fn write_clipboard(&self, text: String) {
         let window = web_sys::window().expect("no window");
         let clipboard = window.navigator().clipboard();
@@ -397,8 +447,38 @@ impl GridCanvas {
 
         let has_selection = self.0.state.borrow().selection.has_selection();
 
+        // ── Cut ───────────────────────────────────────────────────────────────
+        let cut_item = make_menu_item(
+            &doc,
+            ICON_CUT,
+            "Couper",
+            "Ctrl+X",
+            has_selection,
+        );
+        if has_selection {
+            let gc = self.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+                remove_ctx_menu();
+                gc.handle_cut();
+            });
+            cut_item
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+        menu.append_child(&cut_item).unwrap();
+
         // ── Copy ──────────────────────────────────────────────────────────────
-        let copy_item = make_menu_item(&doc, "Copier", "Ctrl+C", has_selection);
+        let copy_item = make_menu_item(
+            &doc,
+            ICON_COPY,
+            "Copier",
+            "Ctrl+C",
+            has_selection,
+        );
         if has_selection {
             let gc = self.clone();
             let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
@@ -415,9 +495,36 @@ impl GridCanvas {
         }
         menu.append_child(&copy_item).unwrap();
 
+        // ── Copy with Headers ─────────────────────────────────────────────────
+        let copy_hdrs_item = make_menu_item(
+            &doc,
+            ICON_COPY,
+            "Copier avec en-têtes",
+            "",
+            has_selection,
+        );
+        if has_selection {
+            let gc = self.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+                remove_ctx_menu();
+                gc.handle_copy_headers();
+            });
+            copy_hdrs_item
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+        menu.append_child(&copy_hdrs_item).unwrap();
+
+        // ── separator ─────────────────────────────────────────────────────────
+        menu.append_child(&make_menu_separator(&doc)).unwrap();
+
         // ── Paste ─────────────────────────────────────────────────────────────
         let paste_item =
-            make_menu_item(&doc, "Coller", "Ctrl+V", has_selection);
+            make_menu_item(&doc, ICON_PASTE, "Coller", "Ctrl+V", has_selection);
         if has_selection {
             let gc = self.clone();
             let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
@@ -1310,19 +1417,90 @@ fn set_styles(el: &HtmlElement, styles: &[(&str, &str)]) {
     }
 }
 
+// ── context-menu icons (Feather Icons) ───────────────────────────────────────
+
+const ICON_CUT: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>"#,
+    r#"<line x1="20" y1="4" x2="8.12" y2="15.88"/>"#,
+    r#"<line x1="14.47" y1="14.48" x2="20" y2="20"/>"#,
+    r#"<line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>"#
+);
+const ICON_COPY: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>"#,
+    r#"<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>"#,
+    r#"</svg>"#
+);
+const ICON_PASTE: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6"#,
+    r#" a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>"#,
+    r#"<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>"#
+);
+
+fn make_menu_separator(doc: &web_sys::Document) -> HtmlElement {
+    let sep = make_el(doc, "div");
+    set_styles(
+        &sep,
+        &[("border-top", "1px solid #e5e7eb"), ("margin", "4px 0")],
+    );
+    sep
+}
+
 fn make_menu_item(
     doc: &web_sys::Document,
+    icon: &str,
     label: &str,
     shortcut: &str,
     enabled: bool,
 ) -> HtmlElement {
     let item = make_el(doc, "div");
-    item.set_inner_html(&format!(
-        r#"<div style="display:flex;justify-content:space-between;align-items:center;gap:24px;padding:7px 14px">
-             <span>{label}</span>
-             <span style="color:#9ca3af;font-size:11px">{shortcut}</span>
-           </div>"#
-    ));
+    let row = make_el(doc, "div");
+    set_styles(
+        &row,
+        &[
+            ("display", "flex"),
+            ("align-items", "center"),
+            ("gap", "8px"),
+            ("padding", "6px 12px"),
+        ],
+    );
+    let icon_el = make_el(doc, "span");
+    set_styles(
+        &icon_el,
+        &[
+            ("width", "16px"),
+            ("height", "16px"),
+            ("display", "flex"),
+            ("align-items", "center"),
+            ("justify-content", "center"),
+            ("flex-shrink", "0"),
+            ("opacity", "0.6"),
+        ],
+    );
+    icon_el.set_inner_html(icon);
+    let label_el = make_el(doc, "span");
+    set_styles(&label_el, &[("flex", "1")]);
+    label_el.set_text_content(Some(label));
+    let sc_el = make_el(doc, "span");
+    set_styles(
+        &sc_el,
+        &[("color", "#9ca3af"), ("font-size", "11px"),
+          ("white-space", "nowrap")],
+    );
+    sc_el.set_text_content(Some(shortcut));
+    row.append_child(&icon_el).unwrap();
+    row.append_child(&label_el).unwrap();
+    row.append_child(&sc_el).unwrap();
+    item.append_child(&row).unwrap();
+
     let (color, cursor) = if enabled {
         ("#111827", "pointer")
     } else {

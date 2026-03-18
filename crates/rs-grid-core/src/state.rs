@@ -74,6 +74,21 @@ impl GridState {
                     Err(e)   => CommandOutput::CopyError(e),
                 }
             }
+            GridCommand::CutSelection => {
+                let result = match self.selection.to_tsv(&self.model) {
+                    Ok(text) => CommandOutput::CopyText(text),
+                    Err(e)   => return CommandOutput::CopyError(e),
+                };
+                if let Some((tl, br)) = self.selection.range() {
+                    for r in tl.row..=br.row {
+                        for ci in tl.col..=br.col {
+                            let key = self.model.columns[ci].key.clone();
+                            self.model.set_cell(r, key, String::new());
+                        }
+                    }
+                }
+                result
+            }
             GridCommand::PasteAt { text } => {
                 let origin = self.selection.anchor.clone()
                     .or_else(|| self.selection.focus.clone());
