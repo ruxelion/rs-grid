@@ -22,7 +22,8 @@
       "Bash(npx serve:*)",
       "Bash(grep -A1 'name = \"\"\"\"send_wrapper\"\"\"\"')",
       "Bash(grep -A2 'name = \"\"\"\"send_wrapper\"\"\"\"' D:/Dev/rs-grid/Cargo.lock)",
-      "Bash(grep -r \"Ctrl+X\\\\|ctrl.*x\\\\|CutSelection\" c:/Dev/rs-grid/crates --include=*.rs)"
+      "Bash(grep -r \"Ctrl+X\\\\|ctrl.*x\\\\|CutSelection\" c:/Dev/rs-grid/crates --include=*.rs)",
+      "Bash(xargs grep:*)"
     ]
   },
   "hooks": {

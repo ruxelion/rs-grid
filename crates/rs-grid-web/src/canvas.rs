@@ -102,8 +102,17 @@ impl GridCanvas {
             height: css_h,
         });
 
+        // Opaque canvas (alpha: false) enables sub-pixel text
+        // rendering (ClearType on Windows, LCD on macOS).
+        let ctx_opts = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &ctx_opts,
+            &"alpha".into(),
+            &false.into(),
+        )
+        .expect("set alpha");
         let ctx = canvas
-            .get_context("2d")
+            .get_context_with_context_options("2d", &ctx_opts)
             .expect("getContext")
             .expect("2d context")
             .dyn_into::<web_sys::CanvasRenderingContext2d>()

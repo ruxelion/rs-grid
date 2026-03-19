@@ -77,23 +77,25 @@ impl CanvasRenderer {
 
         if let Some([cx, cy, cw, ch]) = t.clip {
             ctx.begin_path();
-            ctx.rect(cx, cy, cw, ch);
+            ctx.rect(cx.round(), cy.round(), cw.round(), ch.round());
             ctx.clip();
         }
 
         let weight = if t.bold { "600" } else { "400" };
         ctx.set_fill_style_str(&t.color.to_css());
+        // Round font size to integer: consistent glyph metrics across cells.
         ctx.set_font(&format!(
             "{} {}px system-ui, sans-serif",
-            weight, t.font_size
+            weight,
+            t.font_size.round() as u32,
         ));
         ctx.set_text_baseline("alphabetic");
         ctx.set_text_align(match t.align {
             TextAlign::Left  => "left",
             TextAlign::Right => "right",
         });
-        // Ignore the Result — fill_text only fails on infinite coords.
-        let _ = ctx.fill_text(&t.text, t.x, t.y);
+        // Round to integer CSS pixels: avoids sub-pixel blur on text.
+        let _ = ctx.fill_text(&t.text, t.x.round(), t.y.round());
 
         ctx.restore();
     }
