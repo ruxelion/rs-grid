@@ -90,29 +90,77 @@ impl GridState {
                 result
             }
             GridCommand::PasteAt { text } => {
+                let sel_range = self.selection.range();
                 let origin = self.selection.anchor.clone()
                     .or_else(|| self.selection.focus.clone());
                 if let Some(orig) = origin {
-                    let rows = crate::selection::parse_tsv(&text);
+                    let clip = crate::selection::parse_tsv(&text);
+                    if clip.is_empty() || clip[0].is_empty() {
+                        return CommandOutput::None;
+                    }
                     let col_count = self.model.columns.len();
                     let row_count = self.model.data.row_count();
-                    for (dr, row_vals) in rows.iter().enumerate() {
+                    let clip_rows = clip.len();
+                    let clip_cols = clip[0].len();
+
+                    // Determine target rectangle.
+                    // Single-cell selection → paste clipboard
+                    // as-is. Multi-cell selection → tile
+                    // clipboard to fill the target range
+                    // (Excel-like behavior).
+                    let (target_rows, target_cols) =
+                        match sel_range {
+                            Some((ref tl, ref br))
+                                if tl.row != br.row
+                                    || tl.col != br.col =>
+                            {
+                                let tr = (br.row - tl.row + 1)
+                                    as usize;
+                                let tc = br.col - tl.col + 1;
+                                (tr, tc)
+                            }
+                            _ => (clip_rows, clip_cols),
+                        };
+
+                    for dr in 0..target_rows {
                         let r = orig.row + dr as u64;
-                        if r >= row_count { break; }
-                        for (dc, val) in row_vals.iter().enumerate() {
+                        if r >= row_count {
+                            break;
+                        }
+                        let src_row = &clip[dr % clip_rows];
+                        for dc in 0..target_cols {
                             let c = orig.col + dc;
-                            if c >= col_count { break; }
-                            let key = self.model.columns[c].key.clone();
-                            self.model.set_cell(r, key, val.clone());
+                            if c >= col_count {
+                                break;
+                            }
+                            let val =
+                                &src_row[dc % clip_cols];
+                            let key =
+                                self.model.columns[c]
+                                    .key
+                                    .clone();
+                            self.model.set_cell(
+                                r,
+                                key,
+                                val.clone(),
+                            );
                         }
                     }
-                    // Update selection to cover the pasted rectangle
-                    if !rows.is_empty() && !rows[0].is_empty() {
-                        let last_r = (orig.row + rows.len() as u64 - 1).min(row_count - 1);
-                        let last_c = (orig.col + rows[0].len() - 1).min(col_count - 1);
-                        self.selection.anchor = Some(CellCoord { row: orig.row, col: orig.col });
-                        self.selection.focus  = Some(CellCoord { row: last_r,   col: last_c });
-                    }
+                    // Update selection to cover pasted area
+                    let last_r = (orig.row
+                        + target_rows as u64
+                        - 1)
+                    .min(row_count - 1);
+                    let last_c = (orig.col + target_cols - 1)
+                        .min(col_count - 1);
+                    self.selection.anchor = Some(CellCoord {
+                        row: orig.row,
+                        col: orig.col,
+                    });
+                    self.selection.focus = Some(CellCoord {
+                        row: last_r,
+                        col: last_c,
+                    });
                 }
                 CommandOutput::None
             }
