@@ -1,9 +1,7 @@
 # rs-grid — recettes just
 # Usage: just <recipe>
 
-# Afficher les recettes disponibles
-default:
-    @just --list
+set shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # Vérification rapide (tout le workspace)
 check:
