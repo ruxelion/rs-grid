@@ -10,7 +10,11 @@ pub struct ColumnDef {
 }
 
 impl ColumnDef {
-    pub fn new(key: impl Into<String>, label: impl Into<String>, width: f64) -> Self {
+    pub fn new(
+        key: impl Into<String>,
+        label: impl Into<String>,
+        width: f64,
+    ) -> Self {
         Self {
             key: key.into(),
             label: label.into(),

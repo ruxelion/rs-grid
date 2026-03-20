@@ -132,15 +132,12 @@ impl GridModel {
             } else {
                 self.sort_order[i]
             };
-            let passes =
-                self.filters.iter().all(|(col_key, text)| {
-                    let cell = self
-                        .data
-                        .get_cell(physical, col_key)
-                        .unwrap_or_default();
-                    cell.to_ascii_lowercase()
-                        .contains(&text.to_ascii_lowercase())
-                });
+            let passes = self.filters.iter().all(|(col_key, text)| {
+                let cell =
+                    self.data.get_cell(physical, col_key).unwrap_or_default();
+                cell.to_ascii_lowercase()
+                    .contains(&text.to_ascii_lowercase())
+            });
             if passes {
                 result.push(physical);
             }
@@ -160,7 +157,12 @@ impl GridModel {
 
     /// Write a cell value into the patch layer (works for any datasource).
     /// Applies the sort mapping so callers always use logical row indices.
-    pub fn set_cell(&mut self, logical_row: u64, col_key: impl Into<String>, value: String) {
+    pub fn set_cell(
+        &mut self,
+        logical_row: u64,
+        col_key: impl Into<String>,
+        value: String,
+    ) {
         let physical = self.logical_to_physical(logical_row);
         self.patches.insert((physical, col_key.into()), value);
     }
@@ -179,12 +181,16 @@ impl GridModel {
             let va = self.data.get_cell(a, col_key).unwrap_or_default();
             let vb = self.data.get_cell(b, col_key).unwrap_or_default();
             let cmp = match (va.parse::<f64>(), vb.parse::<f64>()) {
-                (Ok(fa), Ok(fb)) => fa
-                    .partial_cmp(&fb)
-                    .unwrap_or(std::cmp::Ordering::Equal),
+                (Ok(fa), Ok(fb)) => {
+                    fa.partial_cmp(&fb).unwrap_or(std::cmp::Ordering::Equal)
+                }
                 _ => va.cmp(&vb),
             };
-            if *dir == SortDir::Desc { cmp.reverse() } else { cmp }
+            if *dir == SortDir::Desc {
+                cmp.reverse()
+            } else {
+                cmp
+            }
         });
         self.sort_order = indices;
     }
@@ -204,8 +210,7 @@ impl GridModel {
 
     /// Total scrollable height (header + visible rows).
     pub fn total_height(&self) -> f64 {
-        self.header_height
-            + self.display_row_count() as f64 * self.row_height
+        self.header_height + self.display_row_count() as f64 * self.row_height
     }
 
     /// Total scrollable width.
@@ -235,8 +240,18 @@ mod tests {
             ColumnDef::new("b", "B", 150.0),
         ];
         let rows = vec![
-            { let mut r = RowRecord::new(0); r.set("a", "hello"); r.set("b", "world"); r },
-            { let mut r = RowRecord::new(1); r.set("a", "foo"); r.set("b", "bar"); r },
+            {
+                let mut r = RowRecord::new(0);
+                r.set("a", "hello");
+                r.set("b", "world");
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("a", "foo");
+                r.set("b", "bar");
+                r
+            },
         ];
         GridModel::new(cols, rows, 30.0, 40.0)
     }

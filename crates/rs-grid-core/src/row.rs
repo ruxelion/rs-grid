@@ -19,7 +19,11 @@ impl RowRecord {
         }
     }
 
-    pub fn set(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
+    pub fn set(
+        &mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> &mut Self {
         self.cells.insert(key.into(), CellValue(value.into()));
         self
     }

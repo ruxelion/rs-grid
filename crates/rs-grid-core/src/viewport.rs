@@ -50,7 +50,8 @@ impl ViewportState {
         let first = first.saturating_sub(self.overscan as u64);
 
         let visible_height = (self.height - header_height).max(0.0);
-        let last_raw = ((content_y + visible_height) / row_height).ceil() as u64;
+        let last_raw =
+            ((content_y + visible_height) / row_height).ceil() as u64;
         let last = last_raw.saturating_add(self.overscan as u64).min(row_count);
 
         (first, last)
@@ -69,7 +70,9 @@ impl ViewportState {
         let mut first = 0usize;
         let mut last = col_count;
 
-        for (i, (&offset, &w)) in offsets.offsets.iter().zip(col_widths.iter()).enumerate() {
+        for (i, (&offset, &w)) in
+            offsets.offsets.iter().zip(col_widths.iter()).enumerate()
+        {
             if offset + w <= x_start {
                 first = i + 1;
             }
@@ -96,8 +99,7 @@ impl ViewportState {
         pinned_width: f64,
         row_number_width: f64,
     ) -> (usize, usize) {
-        let avail =
-            (self.width - row_number_width - pinned_width).max(0.0);
+        let avail = (self.width - row_number_width - pinned_width).max(0.0);
         let x_start = pinned_width + self.scroll_x;
         let x_end = x_start + avail;
 
@@ -127,7 +129,10 @@ mod tests {
     use crate::column::{ColumnDef, ColumnOffsets};
 
     fn vp(scroll_y: f64) -> ViewportState {
-        ViewportState { scroll_y, ..ViewportState::new(800.0, 600.0) }
+        ViewportState {
+            scroll_y,
+            ..ViewportState::new(800.0, 600.0)
+        }
     }
 
     // ── visible_rows ──────────────────────────────────────────────────────────

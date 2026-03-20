@@ -9,5 +9,5 @@ pub enum SortDir {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SortState {
     pub col_key: String,
-    pub dir:     SortDir,
+    pub dir: SortDir,
 }

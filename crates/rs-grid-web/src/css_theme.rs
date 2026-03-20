@@ -1,7 +1,4 @@
-use rs_grid_scene::{
-    primitives::Color,
-    Theme,
-};
+use rs_grid_scene::{primitives::Color, Theme};
 
 /// Build a `Theme` by reading `--rs-grid-*` CSS custom properties from the
 /// document root element (`:root`).
@@ -50,41 +47,63 @@ pub fn theme_from_css_vars() -> Theme {
     let bool_var = |name: &str, fb: bool| -> bool {
         match get_var(&style, name).trim() {
             "0" | "false" => false,
-            "1" | "true"  => true,
-            _              => fb,
+            "1" | "true" => true,
+            _ => fb,
         }
     };
 
     Theme {
-        bg:               color("--rs-grid-bg",               fallback.bg),
-        header_bg:        color("--rs-grid-header-bg",        fallback.header_bg),
-        header_text:      color("--rs-grid-header-text",      fallback.header_text),
-        cell_text:        color("--rs-grid-cell-text",        fallback.cell_text),
-        grid_line:        color("--rs-grid-grid-line",        fallback.grid_line),
-        header_border:    color("--rs-grid-header-border",    fallback.header_border),
-        selection_fill:   color("--rs-grid-selection-fill",   fallback.selection_fill),
-        selection_border: color("--rs-grid-selection-border", fallback.selection_border),
-        scrollbar_track:  color("--rs-grid-scrollbar-track",  fallback.scrollbar_track),
-        scrollbar_thumb:  color("--rs-grid-scrollbar-thumb",  fallback.scrollbar_thumb),
-        row_alt_bg:       color("--rs-grid-row-alt-bg",       fallback.row_alt_bg),
-        row_hover_bg:     color("--rs-grid-row-hover-bg",     fallback.row_hover_bg),
-        scrollbar_width:  px("--rs-grid-scrollbar-width",     fallback.scrollbar_width),
-        scrollbar_radius: px("--rs-grid-scrollbar-radius",    fallback.scrollbar_radius),
-        font_size:        px("--rs-grid-font-size",           fallback.font_size),
-        header_font_size: px("--rs-grid-header-font-size",    fallback.header_font_size),
-        header_font_bold: bool_var(
-            "--rs-grid-header-font-bold", fallback.header_font_bold,
+        bg: color("--rs-grid-bg", fallback.bg),
+        header_bg: color("--rs-grid-header-bg", fallback.header_bg),
+        header_text: color("--rs-grid-header-text", fallback.header_text),
+        cell_text: color("--rs-grid-cell-text", fallback.cell_text),
+        grid_line: color("--rs-grid-grid-line", fallback.grid_line),
+        header_border: color("--rs-grid-header-border", fallback.header_border),
+        selection_fill: color(
+            "--rs-grid-selection-fill",
+            fallback.selection_fill,
         ),
-        cell_padding:     px("--rs-grid-cell-padding",        fallback.cell_padding),
+        selection_border: color(
+            "--rs-grid-selection-border",
+            fallback.selection_border,
+        ),
+        scrollbar_track: color(
+            "--rs-grid-scrollbar-track",
+            fallback.scrollbar_track,
+        ),
+        scrollbar_thumb: color(
+            "--rs-grid-scrollbar-thumb",
+            fallback.scrollbar_thumb,
+        ),
+        row_alt_bg: color("--rs-grid-row-alt-bg", fallback.row_alt_bg),
+        row_hover_bg: color("--rs-grid-row-hover-bg", fallback.row_hover_bg),
+        scrollbar_width: px(
+            "--rs-grid-scrollbar-width",
+            fallback.scrollbar_width,
+        ),
+        scrollbar_radius: px(
+            "--rs-grid-scrollbar-radius",
+            fallback.scrollbar_radius,
+        ),
+        font_size: px("--rs-grid-font-size", fallback.font_size),
+        header_font_size: px(
+            "--rs-grid-header-font-size",
+            fallback.header_font_size,
+        ),
+        header_font_bold: bool_var(
+            "--rs-grid-header-font-bold",
+            fallback.header_font_bold,
+        ),
+        cell_padding: px("--rs-grid-cell-padding", fallback.cell_padding),
     }
 }
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
 fn root_computed_style() -> Option<web_sys::CssStyleDeclaration> {
-    let window   = web_sys::window()?;
+    let window = web_sys::window()?;
     let document = window.document()?;
-    let root     = document.document_element()?;
+    let root = document.document_element()?;
     window.get_computed_style(&root).ok().flatten()
 }
 
@@ -155,9 +174,7 @@ fn parse_hex(s: &str) -> Option<Color> {
 }
 
 fn parse_rgb_fn(s: &str) -> Option<Color> {
-    let inner = s
-        .trim_start_matches("rgb(")
-        .trim_end_matches(')');
+    let inner = s.trim_start_matches("rgb(").trim_end_matches(')');
     let parts: Vec<&str> = inner.split(',').collect();
     if parts.len() != 3 {
         return None;
@@ -169,9 +186,7 @@ fn parse_rgb_fn(s: &str) -> Option<Color> {
 }
 
 fn parse_rgba_fn(s: &str) -> Option<Color> {
-    let inner = s
-        .trim_start_matches("rgba(")
-        .trim_end_matches(')');
+    let inner = s.trim_start_matches("rgba(").trim_end_matches(')');
     let parts: Vec<&str> = inner.split(',').collect();
     if parts.len() != 4 {
         return None;

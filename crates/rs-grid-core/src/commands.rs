@@ -20,7 +20,11 @@ pub enum GridCommand {
     /// Copy the current selection to clipboard and clear the selected cells.
     CutSelection,
     /// Move or extend the selection by a row/col delta.
-    MoveSelection { delta_row: i64, delta_col: i64, extend: bool },
+    MoveSelection {
+        delta_row: i64,
+        delta_col: i64,
+        extend: bool,
+    },
     /// Paste TSV text starting at the current selection anchor.
     PasteAt { text: String },
     /// Select all cells in a row (click on row-number gutter).
@@ -50,7 +54,11 @@ pub enum GridCommand {
     /// Start editing a cell (double-click).
     StartEdit { row: u64, col_key: String },
     /// Commit the current cell edit with a new value.
-    CommitEdit { row: u64, col_key: String, value: String },
+    CommitEdit {
+        row: u64,
+        col_key: String,
+        value: String,
+    },
     /// Cancel the current cell edit.
     CancelEdit,
 }

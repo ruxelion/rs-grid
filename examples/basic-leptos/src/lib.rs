@@ -90,7 +90,7 @@ fn App() -> impl IntoView {
     let gc_ref: Rc<RefCell<Option<WebGridCanvas>>> =
         Rc::new(RefCell::new(None));
     // The view closure and event handlers all need Send captures in Leptos 0.7.
-    let gc_for_mount  = SendWrapper::new(gc_ref.clone());
+    let gc_for_mount = SendWrapper::new(gc_ref.clone());
     let gc_for_export = SendWrapper::new(gc_ref.clone());
     let gc_for_import = SendWrapper::new(gc_ref.clone());
     let gc_for_pinned = SendWrapper::new(gc_ref.clone());

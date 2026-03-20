@@ -52,8 +52,14 @@ impl SelectionState {
     pub fn range(&self) -> Option<(CellCoord, CellCoord)> {
         match (&self.anchor, &self.focus) {
             (Some(a), Some(f)) => Some((
-                CellCoord { row: a.row.min(f.row), col: a.col.min(f.col) },
-                CellCoord { row: a.row.max(f.row), col: a.col.max(f.col) },
+                CellCoord {
+                    row: a.row.min(f.row),
+                    col: a.col.min(f.col),
+                },
+                CellCoord {
+                    row: a.row.max(f.row),
+                    col: a.col.max(f.col),
+                },
             )),
             _ => None,
         }
@@ -67,18 +73,27 @@ impl SelectionState {
         let (tl, br) = self.range().ok_or(CopyError::NoSelection)?;
         let row_count = br.row - tl.row + 1;
         if row_count > MAX_COPY_ROWS {
-            return Err(CopyError::TooManyRows { actual: row_count, max: MAX_COPY_ROWS });
+            return Err(CopyError::TooManyRows {
+                actual: row_count,
+                max: MAX_COPY_ROWS,
+            });
         }
         let mut out = String::new();
         for r in tl.row..=br.row {
             for ci in tl.col..=br.col {
-                if ci > tl.col { out.push('\t'); }
-                let cell = model.get_cell(r, &model.columns[ci].key).unwrap_or_default();
+                if ci > tl.col {
+                    out.push('\t');
+                }
+                let cell = model
+                    .get_cell(r, &model.columns[ci].key)
+                    .unwrap_or_default();
                 // RFC 4180 : guillemets si la cellule contient tab, newline ou guillemet
                 if cell.contains(['\t', '\n', '\r', '"']) {
                     out.push('"');
                     for ch in cell.chars() {
-                        if ch == '"' { out.push('"'); }
+                        if ch == '"' {
+                            out.push('"');
+                        }
                         out.push(ch);
                     }
                     out.push('"');
@@ -99,7 +114,9 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
     let mut chars = text.chars().peekable();
 
     loop {
-        if chars.peek().is_none() { break; }
+        if chars.peek().is_none() {
+            break;
+        }
         let mut row: Vec<String> = Vec::new();
         loop {
             // Parse one field
@@ -136,13 +153,20 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
             };
             row.push(field);
             match chars.peek() {
-                Some('\t') => { chars.next(); } // more fields on same row
+                Some('\t') => {
+                    chars.next();
+                } // more fields on same row
                 Some('\r') => {
                     chars.next();
-                    if chars.peek() == Some(&'\n') { chars.next(); }
+                    if chars.peek() == Some(&'\n') {
+                        chars.next();
+                    }
                     break;
                 }
-                Some('\n') => { chars.next(); break; }
+                Some('\n') => {
+                    chars.next();
+                    break;
+                }
                 _ => break, // EOF
             }
         }
@@ -150,7 +174,10 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
     }
 
     // Drop a trailing empty row (produced by a final newline)
-    if rows.last().map_or(false, |r| r.len() == 1 && r[0].is_empty()) {
+    if rows
+        .last()
+        .map_or(false, |r| r.len() == 1 && r[0].is_empty())
+    {
         rows.pop();
     }
     rows
@@ -167,11 +194,7 @@ pub enum CopyError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        column::ColumnDef,
-        model::GridModel,
-        row::RowRecord,
-    };
+    use crate::{column::ColumnDef, model::GridModel, row::RowRecord};
 
     fn sel(r: u64, c: usize) -> SelectionState {
         let mut s = SelectionState::default();
@@ -295,8 +318,18 @@ mod tests {
             ColumnDef::new("b", "B", 100.0),
         ];
         let rows = vec![
-            { let mut r = RowRecord::new(0); r.set("a", "hello"); r.set("b", "world"); r },
-            { let mut r = RowRecord::new(1); r.set("a", "foo"); r.set("b", "bar"); r },
+            {
+                let mut r = RowRecord::new(0);
+                r.set("a", "hello");
+                r.set("b", "world");
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("a", "foo");
+                r.set("b", "bar");
+                r
+            },
         ];
         GridModel::new(cols, rows, 30.0, 40.0)
     }
