@@ -449,6 +449,17 @@ impl SceneBuilder {
         render_col_headers(&mut frame, col_start..col_end);
         // Pinned column headers (on top)
         if pinned_count > 0 {
+            // Solid background masking scrollable headers underneath.
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: rnw,
+                y: 0.0,
+                width: pinned_width,
+                height: model.header_height,
+                fill: t.header_bg,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
             render_col_headers(&mut frame, 0..pinned_count);
         }
 
