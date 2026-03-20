@@ -81,6 +81,44 @@ impl ViewportState {
 
         (first.min(col_count), last.min(col_count))
     }
+
+    /// Visible column range for the scrollable (non-pinned) area.
+    ///
+    /// Columns `0..pinned_count` are always visible and excluded
+    /// from this range.  `pinned_width` is the sum of their widths,
+    /// `row_number_width` is the gutter width; both are subtracted
+    /// from the viewport to obtain the scrollable band.
+    pub fn visible_scrollable_columns(
+        &self,
+        offsets: &ColumnOffsets,
+        col_widths: &[f64],
+        pinned_count: usize,
+        pinned_width: f64,
+        row_number_width: f64,
+    ) -> (usize, usize) {
+        let avail =
+            (self.width - row_number_width - pinned_width).max(0.0);
+        let x_start = pinned_width + self.scroll_x;
+        let x_end = x_start + avail;
+
+        let col_count = offsets.offsets.len();
+        let mut first = pinned_count;
+        let mut last = col_count;
+
+        for i in pinned_count..col_count {
+            let offset = offsets.offsets[i];
+            let w = col_widths[i];
+            if offset + w <= x_start {
+                first = i + 1;
+            }
+            if offset >= x_end && last == col_count {
+                last = i;
+                break;
+            }
+        }
+
+        (first.min(col_count), last.min(col_count))
+    }
 }
 
 #[cfg(test)]
