@@ -13,7 +13,10 @@ use rs_grid_core::{
     state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
-use rs_grid_scene::{builder::SceneBuilder, Theme};
+use rs_grid_scene::{
+    builder::{ColumnDragHint, SceneBuilder},
+    Theme,
+};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
     HtmlCanvasElement, HtmlInputElement, MouseEvent, ResizeObserver,
@@ -75,6 +78,8 @@ enum ActiveDrag {
     /// Column reorder drag (activated from `ColClick`).
     ColumnDrag {
         col_idx: usize,
+        /// Current viewport-relative X of the cursor.
+        current_vx: f64,
     },
     Pan {
         origin_x: f64,
@@ -169,7 +174,9 @@ impl GridCanvas {
     /// Render the current state immediately.
     pub fn render(&self) {
         let state = self.0.state.borrow();
-        let frame = self.0.builder.borrow().build(&state);
+        let hint = self.column_drag_hint();
+        let frame =
+            self.0.builder.borrow().build(&state, hint.as_ref());
         self.0.renderer.render(&frame);
     }
 
@@ -345,6 +352,69 @@ impl GridCanvas {
             Some(row)
         } else {
             None
+        }
+    }
+
+    /// Compute which column gap the cursor is closest to.
+    /// Returns the index to insert *before* (0..=columns.len()).
+    fn insertion_index(&self, vx: f64) -> usize {
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let sx = state.viewport.scroll_x;
+        let rnw = model.row_number_width;
+        let pinned = model.pinned_count;
+        let len = model.columns.len();
+
+        let edge_vx = |i: usize| -> f64 {
+            if i < len {
+                let off = model.column_offsets.offsets[i];
+                if i < pinned {
+                    off + rnw
+                } else {
+                    off - sx + rnw
+                }
+            } else {
+                let last = len - 1;
+                let off = model.column_offsets.offsets[last]
+                    + model.columns[last].width;
+                if last < pinned {
+                    off + rnw
+                } else {
+                    off - sx + rnw
+                }
+            }
+        };
+
+        let mut best_idx = 0;
+        let mut best_dist = f64::MAX;
+        for i in 0..=len {
+            let d = (vx - edge_vx(i)).abs();
+            if d < best_dist {
+                best_dist = d;
+                best_idx = i;
+            }
+        }
+        best_idx
+    }
+
+    /// Build a `ColumnDragHint` from the current drag state,
+    /// or `None` if no column drag is active.
+    fn column_drag_hint(&self) -> Option<ColumnDragHint> {
+        let drag = self.0.drag.borrow();
+        match *drag {
+            Some(ActiveDrag::ColumnDrag {
+                col_idx,
+                current_vx,
+            }) => {
+                drop(drag);
+                let insert = self.insertion_index(current_vx);
+                Some(ColumnDragHint {
+                    source_col: col_idx,
+                    insert_before: insert,
+                    cursor_vx: current_vx,
+                })
+            }
+            _ => None,
         }
     }
 

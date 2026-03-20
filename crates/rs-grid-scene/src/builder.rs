@@ -7,11 +7,27 @@ use rs_grid_core::{
 use crate::{
     frame::SceneFrame,
     primitives::{
-        LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
-        TextAlign, TextPrimitive,
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive,
+        ScenePrimitive, TextAlign, TextPrimitive,
     },
     theme::Theme,
 };
+
+// ── column drag hint ─────────────────────────────────────────────────────────
+
+/// Transient UI hint for column-drag visual feedback.
+///
+/// Computed by the web layer, consumed by the scene builder to
+/// render a dimmed source header, an insertion line, and a ghost.
+pub struct ColumnDragHint {
+    /// Index of the column being dragged.
+    pub source_col: usize,
+    /// The column will be inserted *before* this index.
+    /// Equal to `columns.len()` means "insert at end".
+    pub insert_before: usize,
+    /// Viewport-relative X of the cursor (positions the ghost).
+    pub cursor_vx: f64,
+}
 
 // ── builder ───────────────────────────────────────────────────────────────────
 
@@ -46,8 +62,13 @@ impl SceneBuilder {
         Self { dpr, theme }
     }
 
-    /// Build a complete `SceneFrame` from the current `GridState`.
-    pub fn build(&self, state: &GridState) -> SceneFrame {
+    /// Build a complete `SceneFrame` from the current
+    /// `GridState`, with optional column-drag visual hints.
+    pub fn build(
+        &self,
+        state: &GridState,
+        col_drag: Option<&ColumnDragHint>,
+    ) -> SceneFrame {
         let vp = &state.viewport;
         let model = &state.model;
         let sel = &state.selection;
@@ -680,6 +701,91 @@ impl SceneBuilder {
                 stroke_width: 0.0,
                 corner_radius: t.scrollbar_radius,
             }));
+        }
+
+        // ── column drag preview ────────────────────────────────
+        if let Some(hint) = col_drag {
+            let cols = &model.columns;
+            if hint.source_col < cols.len() {
+                let src_w = cols[hint.source_col].width;
+                let src_vx = col_vx(hint.source_col);
+
+                // 1. Dim the source column header
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: src_vx,
+                    y: 0.0,
+                    width: src_w,
+                    height: model.header_height,
+                    fill: Color::rgba(128, 128, 128, 100),
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+
+                // 2. Insertion line
+                let insert_vx = if hint.insert_before < cols.len()
+                {
+                    col_vx(hint.insert_before)
+                } else {
+                    let last = cols.len() - 1;
+                    col_vx(last) + cols[last].width
+                };
+                frame.push(ScenePrimitive::Line(LinePrimitive {
+                    x1: insert_vx,
+                    y1: 0.0,
+                    x2: insert_vx,
+                    y2: vp.height,
+                    color: t.selection_border,
+                    width: 3.0,
+                }));
+
+                // 3. Ghost header (follows cursor)
+                let ghost_w = src_w;
+                let ghost_x = (hint.cursor_vx - ghost_w / 2.0)
+                    .max(0.0)
+                    .min(vp.width - ghost_w);
+                let ghost_fill = Color::rgba(
+                    t.header_bg.r,
+                    t.header_bg.g,
+                    t.header_bg.b,
+                    180,
+                );
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: ghost_x,
+                    y: 0.0,
+                    width: ghost_w,
+                    height: model.header_height,
+                    fill: ghost_fill,
+                    stroke: Some(t.header_border),
+                    stroke_width: 1.0,
+                    corner_radius: 0.0,
+                }));
+
+                // Ghost label
+                let mid_y = model.header_height * 0.5
+                    + t.header_font_size * 0.35;
+                let ghost_text = Color::rgba(
+                    t.header_text.r,
+                    t.header_text.g,
+                    t.header_text.b,
+                    200,
+                );
+                frame.push(ScenePrimitive::Text(TextPrimitive {
+                    x: ghost_x + t.cell_padding,
+                    y: mid_y,
+                    text: cols[hint.source_col].label.clone(),
+                    color: ghost_text,
+                    font_size: t.header_font_size,
+                    bold: t.header_font_bold,
+                    clip: Some([
+                        ghost_x,
+                        0.0,
+                        ghost_w,
+                        model.header_height,
+                    ]),
+                    align: TextAlign::Left,
+                }));
+            }
         }
 
         frame
