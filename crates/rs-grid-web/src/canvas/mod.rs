@@ -5,6 +5,7 @@ mod dom_helpers;
 mod edit;
 mod events;
 mod scroll;
+mod search;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -57,6 +58,8 @@ struct Inner {
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// DOM `<input>` element used for inline cell editing.
     edit_input: RefCell<Option<HtmlInputElement>>,
+    /// DOM `<input>` element for the search bar (Ctrl+F).
+    search_input: RefCell<Option<HtmlInputElement>>,
     /// Text waiting to be placed on the clipboard by the next
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
@@ -164,6 +167,7 @@ impl GridCanvas {
             doc_listeners: RefCell::new(Vec::new()),
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
+            search_input: RefCell::new(None),
             pending_clipboard: RefCell::new(None),
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
