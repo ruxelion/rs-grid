@@ -16,7 +16,11 @@
       "Bash(cargo test:*)",
       "Bash(wc -l /c/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
       "Bash(cargo install:*)",
-      "Bash(rustup target:*)"
+      "Bash(rustup target:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ls e2e/node_modules/.bin/serve*)",
+      "Bash(npm ls:*)",
+      "Bash(find e2e/node_modules/serve -name *.js -maxdepth 2)"
     ]
   }
 }
