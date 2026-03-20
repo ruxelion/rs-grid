@@ -3,6 +3,10 @@
 
 set shell := ["powershell.exe", "-NoLogo", "-Command"]
 
+# Liste des recettes disponibles
+default:
+    @just --list
+
 # Vérification rapide (tout le workspace)
 check:
     cargo check --workspace
@@ -32,22 +36,22 @@ ci: fmt lint test
 
 # Build WASM (exemple Leptos)
 build-wasm:
-    cd examples/basic-leptos && trunk build
+    Push-Location examples/basic-leptos; trunk build; Pop-Location
 
 # Serveur de développement
 serve:
-    cd examples/basic-leptos && trunk serve
+    Push-Location examples/basic-leptos; trunk serve; Pop-Location
 
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
-    cd e2e && npm install && npx playwright install chromium
+    Push-Location e2e; npm install; npx playwright install chromium; Pop-Location
 
 # Lancer les tests e2e (build WASM + tests Playwright)
 e2e:
-    cd examples/basic-leptos && trunk build
-    cd e2e && npm test
+    Push-Location examples/basic-leptos; trunk build; Pop-Location
+    Push-Location e2e; npm test; Pop-Location
 
 # Regénérer les screenshots de référence
 e2e-update-snapshots:
-    cd examples/basic-leptos && trunk build
-    cd e2e && npm run update-snapshots
+    Push-Location examples/basic-leptos; trunk build; Pop-Location
+    Push-Location e2e; npm run update-snapshots; Pop-Location

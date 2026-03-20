@@ -1,0 +1,94 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "just: check",
+      "type": "shell",
+      "command": "just check",
+      "group": "build",
+      "problemMatcher": ["$rustc"],
+      "detail": "cargo check --workspace"
+    },
+    {
+      "label": "just: build",
+      "type": "shell",
+      "command": "just build",
+      "group": "build",
+      "problemMatcher": ["$rustc"],
+      "detail": "cargo build -p rs-grid-core"
+    },
+    {
+      "label": "just: test",
+      "type": "shell",
+      "command": "just test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": ["$rustc"],
+      "detail": "cargo test --workspace"
+    },
+    {
+      "label": "just: test-core",
+      "type": "shell",
+      "command": "just test-core",
+      "group": "test",
+      "problemMatcher": ["$rustc"],
+      "detail": "cargo test -p rs-grid-core"
+    },
+    {
+      "label": "just: fmt",
+      "type": "shell",
+      "command": "just fmt",
+      "problemMatcher": [],
+      "detail": "cargo fmt --all"
+    },
+    {
+      "label": "just: lint",
+      "type": "shell",
+      "command": "just lint",
+      "group": "build",
+      "problemMatcher": ["$rustc"],
+      "detail": "cargo clippy --workspace -- -D warnings"
+    },
+    {
+      "label": "just: ci",
+      "type": "shell",
+      "command": "just ci",
+      "group": "build",
+      "problemMatcher": ["$rustc"],
+      "detail": "fmt + lint + test"
+    },
+    {
+      "label": "just: build-wasm",
+      "type": "shell",
+      "command": "just build-wasm",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "trunk build (exemple Leptos)"
+    },
+    {
+      "label": "just: serve",
+      "type": "shell",
+      "command": "just serve",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "trunk serve (dev server :8080)"
+    },
+    {
+      "label": "just: e2e",
+      "type": "shell",
+      "command": "just e2e",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Build WASM + tests Playwright"
+    },
+    {
+      "label": "just: e2e-update-snapshots",
+      "type": "shell",
+      "command": "just e2e-update-snapshots",
+      "problemMatcher": [],
+      "detail": "Regénérer screenshots de référence"
+    }
+  ]
+}
