@@ -32,6 +32,14 @@ enum UndoEntry {
     MoveColumn { from_idx: usize, to_idx: usize },
 }
 
+/// Active search state.
+#[derive(Debug, Clone, Default)]
+pub struct SearchState {
+    pub query: String,
+    pub matches: Vec<CellCoord>,
+    pub current: usize,
+}
+
 const MAX_UNDO: usize = 100;
 
 /// The complete mutable state of a grid instance.
@@ -46,6 +54,8 @@ pub struct GridState {
     pub sort: Option<SortState>,
     /// Cell currently being edited (`None` = no edit in progress).
     pub edit: Option<EditCell>,
+    /// Active search (empty query = inactive).
+    pub search: SearchState,
     undo_stack: Vec<UndoEntry>,
     redo_stack: Vec<UndoEntry>,
 }
@@ -63,6 +73,7 @@ impl GridState {
             hovered_row: None,
             sort: None,
             edit: None,
+            search: SearchState::default(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         }
@@ -137,6 +148,82 @@ impl GridState {
                 }
             }
         }
+    }
+
+    fn run_search(&mut self, query: &str) {
+        self.search.query = query.to_string();
+        self.search.matches.clear();
+        self.search.current = 0;
+        if query.is_empty() {
+            return;
+        }
+        const MAX_MATCHES: usize = 10_000;
+        const MAX_ROWS: u64 = 100_000;
+        let query_lower = query.to_ascii_lowercase();
+        let row_count =
+            self.model.display_row_count().min(MAX_ROWS);
+        let col_count = self.model.columns.len();
+        for r in 0..row_count {
+            for ci in 0..col_count {
+                let key = &self.model.columns[ci].key;
+                if let Some(val) = self.model.get_cell(r, key) {
+                    if val
+                        .to_ascii_lowercase()
+                        .contains(&query_lower)
+                    {
+                        self.search.matches.push(CellCoord {
+                            row: r,
+                            col: ci,
+                        });
+                        if self.search.matches.len() >= MAX_MATCHES
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn scroll_to_search_match(&mut self) {
+        let coord =
+            match self.search.matches.get(self.search.current) {
+                Some(c) => c.clone(),
+                None => return,
+            };
+        // Select the matched cell.
+        self.selection.select_cell(coord.row, coord.col);
+        // Scroll to make the cell visible.
+        let ry = self.model.row_top(coord.row);
+        let cy =
+            ry - self.viewport.scroll_y;
+        if cy < self.model.header_height {
+            self.viewport.scroll_y =
+                ry - self.model.header_height;
+        } else if cy + self.model.row_height > self.viewport.height
+        {
+            self.viewport.scroll_y =
+                ry + self.model.row_height - self.viewport.height;
+        }
+        if coord.col < self.model.columns.len() {
+            let off =
+                self.model.column_offsets.offsets[coord.col];
+            let w = self.model.columns[coord.col].width;
+            let rnw = self.model.row_number_width;
+            // Don't scroll for pinned columns.
+            if coord.col >= self.model.pinned_count {
+                let cx = off - self.viewport.scroll_x + rnw;
+                if cx < rnw + self.model.pinned_width() {
+                    self.viewport.scroll_x =
+                        off - self.model.pinned_width();
+                } else if cx + w > self.viewport.width {
+                    self.viewport.scroll_x =
+                        off + w - self.viewport.width + rnw;
+                }
+            }
+        }
+        self.viewport.scroll_x = self.viewport.scroll_x.max(0.0);
+        self.viewport.scroll_y = self.viewport.scroll_y.max(0.0);
     }
 
     fn push_undo(&mut self, entry: UndoEntry) {
@@ -451,6 +538,31 @@ impl GridState {
                     let undo = self.apply_undo_entry(&entry);
                     self.undo_stack.push(undo);
                 }
+                CommandOutput::None
+            }
+            GridCommand::Search { query } => {
+                self.run_search(&query);
+                CommandOutput::None
+            }
+            GridCommand::SearchNext => {
+                if !self.search.matches.is_empty() {
+                    self.search.current = (self.search.current + 1)
+                        % self.search.matches.len();
+                    self.scroll_to_search_match();
+                }
+                CommandOutput::None
+            }
+            GridCommand::SearchPrev => {
+                if !self.search.matches.is_empty() {
+                    let len = self.search.matches.len();
+                    self.search.current =
+                        (self.search.current + len - 1) % len;
+                    self.scroll_to_search_match();
+                }
+                CommandOutput::None
+            }
+            GridCommand::ClearSearch => {
+                self.search = SearchState::default();
                 CommandOutput::None
             }
             GridCommand::AutoFitColumn {
@@ -1042,5 +1154,95 @@ mod tests {
         let val = s.model.get_cell(0, "a");
         s.apply(GridCommand::Undo);
         assert_eq!(s.model.get_cell(0, "a"), val);
+    }
+
+    // ── Search ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn search_finds_matches() {
+        let mut s = make_state();
+        // Data: column "a" has values "a0".."a9"
+        s.apply(GridCommand::Search {
+            query: "a0".into(),
+        });
+        assert_eq!(s.search.matches.len(), 1);
+        assert_eq!(s.search.matches[0].row, 0);
+        assert_eq!(s.search.matches[0].col, 0);
+    }
+
+    #[test]
+    fn search_case_insensitive() {
+        let mut s = make_state();
+        s.apply(GridCommand::Search {
+            query: "A0".into(),
+        });
+        assert_eq!(s.search.matches.len(), 1);
+    }
+
+    #[test]
+    fn search_multiple_matches() {
+        let mut s = make_state();
+        // "b" appears in column "b" values: "b0".."b9" (10 matches)
+        s.apply(GridCommand::Search {
+            query: "b".into(),
+        });
+        assert_eq!(s.search.matches.len(), 10);
+    }
+
+    #[test]
+    fn search_next_cycles() {
+        let mut s = make_state();
+        s.apply(GridCommand::Search {
+            query: "a".into(),
+        });
+        let len = s.search.matches.len();
+        assert!(len > 1);
+        assert_eq!(s.search.current, 0);
+        s.apply(GridCommand::SearchNext);
+        assert_eq!(s.search.current, 1);
+        // Cycle back to 0
+        for _ in 0..len - 1 {
+            s.apply(GridCommand::SearchNext);
+        }
+        assert_eq!(s.search.current, 0);
+    }
+
+    #[test]
+    fn search_prev_cycles() {
+        let mut s = make_state();
+        s.apply(GridCommand::Search {
+            query: "a".into(),
+        });
+        assert_eq!(s.search.current, 0);
+        s.apply(GridCommand::SearchPrev);
+        assert_eq!(
+            s.search.current,
+            s.search.matches.len() - 1
+        );
+    }
+
+    #[test]
+    fn clear_search_resets() {
+        let mut s = make_state();
+        s.apply(GridCommand::Search {
+            query: "a".into(),
+        });
+        assert!(!s.search.matches.is_empty());
+        s.apply(GridCommand::ClearSearch);
+        assert!(s.search.query.is_empty());
+        assert!(s.search.matches.is_empty());
+    }
+
+    #[test]
+    fn search_empty_query_clears() {
+        let mut s = make_state();
+        s.apply(GridCommand::Search {
+            query: "a".into(),
+        });
+        assert!(!s.search.matches.is_empty());
+        s.apply(GridCommand::Search {
+            query: String::new(),
+        });
+        assert!(s.search.matches.is_empty());
     }
 }

@@ -30,6 +30,12 @@ pub struct Theme {
     /// Render column header labels with font-weight 600.
     pub header_font_bold: bool,
 
+    // ── search ──────────────────────────────────────────────────────────────
+    /// Background highlight for cells matching the active search query.
+    pub search_highlight: Color,
+    /// Background highlight for the current (focused) search match.
+    pub search_current: Color,
+
     // ── spacing ──────────────────────────────────────────────────────────────
     pub cell_padding: f64,
 
@@ -56,6 +62,8 @@ impl Theme {
             scrollbar_thumb: Color::rgba(100, 100, 110, 160),
             row_alt_bg: Color::rgb(252, 252, 253),
             row_hover_bg: Color::rgba(0, 0, 0, 10),
+            search_highlight: Color::rgba(255, 213, 0, 80),
+            search_current: Color::rgba(255, 165, 0, 140),
             font_size: 14.0,
             header_font_size: 12.0,
             header_font_bold: true,
@@ -80,6 +88,8 @@ impl Theme {
             scrollbar_thumb: Color::rgba(169, 177, 214, 102),
             row_alt_bg: Color::rgb(30, 32, 48),
             row_hover_bg: Color::rgba(255, 255, 255, 10),
+            search_highlight: Color::rgba(255, 213, 0, 80),
+            search_current: Color::rgba(255, 165, 0, 140),
             font_size: 14.0,
             header_font_size: 13.0,
             header_font_bold: true,

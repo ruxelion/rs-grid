@@ -65,6 +65,14 @@ pub enum GridCommand {
     Undo,
     /// Redo the last undone action.
     Redo,
+    /// Search all visible cells for a query (case-insensitive).
+    Search { query: String },
+    /// Jump to the next search match.
+    SearchNext,
+    /// Jump to the previous search match.
+    SearchPrev,
+    /// Clear the search state.
+    ClearSearch,
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
         col_idx: usize,

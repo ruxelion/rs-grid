@@ -627,6 +627,14 @@ impl GridCanvas {
     fn attach_keydown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
+            // Ctrl+F always opens search, even during edit.
+            if (evt.ctrl_key() || evt.meta_key())
+                && evt.key() == "f"
+            {
+                evt.prevent_default();
+                gc.show_search_input();
+                return;
+            }
             if gc.0.edit_input.borrow().is_some() {
                 return;
             }

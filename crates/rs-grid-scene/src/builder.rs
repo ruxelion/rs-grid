@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rs_grid_core::{
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
     sort::SortDir,
@@ -126,6 +128,19 @@ impl SceneBuilder {
             }
         };
 
+        // ── search match set ─────────────────────────────────────────────────
+        let search_set: HashSet<(u64, usize)> = state
+            .search
+            .matches
+            .iter()
+            .map(|c| (c.row, c.col))
+            .collect();
+        let search_current: Option<(u64, usize)> = state
+            .search
+            .matches
+            .get(state.search.current)
+            .map(|c| (c.row, c.col));
+
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
             let ry = model.row_top(ri) - sy;
@@ -178,6 +193,26 @@ impl SceneBuilder {
                         width: col.width,
                         height: model.row_height,
                         fill: t.selection_fill,
+                        stroke: None,
+                        stroke_width: 0.0,
+                        corner_radius: 0.0,
+                    }));
+                }
+
+                // Search highlight
+                if search_set.contains(&(ri, ci)) {
+                    let fill =
+                        if search_current == Some((ri, ci)) {
+                            t.search_current
+                        } else {
+                            t.search_highlight
+                        };
+                    frame.push(ScenePrimitive::Rect(RectPrimitive {
+                        x: cx,
+                        y: ry,
+                        width: col.width,
+                        height: model.row_height,
+                        fill,
                         stroke: None,
                         stroke_width: 0.0,
                         corner_radius: 0.0,
@@ -275,6 +310,27 @@ impl SceneBuilder {
                             stroke_width: 0.0,
                             corner_radius: 0.0,
                         }));
+                    }
+
+                    if search_set.contains(&(ri, ci)) {
+                        let fill =
+                            if search_current == Some((ri, ci)) {
+                                t.search_current
+                            } else {
+                                t.search_highlight
+                            };
+                        frame.push(ScenePrimitive::Rect(
+                            RectPrimitive {
+                                x: cx,
+                                y: ry,
+                                width: col.width,
+                                height: model.row_height,
+                                fill,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: 0.0,
+                            },
+                        ));
                     }
 
                     if let Some(text) = model.get_cell(ri, &col.key) {
