@@ -73,7 +73,7 @@
       "command": "just serve",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "trunk serve (dev server :8080)"
+      "detail": "trunk serve (port aléatoire 9000-9999)"
     },
     {
       "label": "just: e2e",
