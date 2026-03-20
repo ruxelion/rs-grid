@@ -100,14 +100,14 @@ pub fn theme_from_css_vars() -> Theme {
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
-fn root_computed_style() -> Option<web_sys::CssStyleDeclaration> {
+pub(crate) fn root_computed_style() -> Option<web_sys::CssStyleDeclaration> {
     let window = web_sys::window()?;
     let document = window.document()?;
     let root = document.document_element()?;
     window.get_computed_style(&root).ok().flatten()
 }
 
-fn get_var(style: &web_sys::CssStyleDeclaration, name: &str) -> String {
+pub(crate) fn get_var(style: &web_sys::CssStyleDeclaration, name: &str) -> String {
     style
         .get_property_value(name)
         .unwrap_or_default()
