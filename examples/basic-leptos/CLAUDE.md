@@ -1,6 +1,6 @@
 # examples/basic-leptos
 
-Application de démonstration de rs-grid. Construite avec Leptos 0.7 CSR + Trunk.
+Application de démonstration de rs-grid. Construite avec Leptos 0.8 CSR + Trunk.
 
 ## Build et dev
 

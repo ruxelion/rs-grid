@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 rs-grid-core   = { path = "../../crates/rs-grid-core" }
 rs-grid-scene  = { path = "../../crates/rs-grid-scene" }
 rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
-leptos = { version = "0.7", features = ["csr"] }
+leptos = { version = "0.8", features = ["csr"] }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
 send_wrapper = "0.6"

@@ -41,11 +41,11 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
                 "name" => Some(format!("User {row}")),
                 "email" => Some(format!("user{row}@example.com")),
                 "role" => Some(
-                    if row % 3 == 0 { "Admin" } else { "Member" }.to_owned(),
+                    if row.is_multiple_of(3) { "Admin" } else { "Member" }.to_owned(),
                 ),
                 "dept" => Some(format!("Dept {}", row % 20)),
                 "status" => Some(
-                    if row % 5 == 0 { "Inactive" } else { "Active" }.to_owned(),
+                    if row.is_multiple_of(5) { "Inactive" } else { "Active" }.to_owned(),
                 ),
                 key if key.starts_with("col") => {
                     key[3..].parse::<u64>().ok().map(|n| format!("{row}×{n}"))

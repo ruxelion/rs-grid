@@ -8,7 +8,7 @@ description = "Leptos component wrapper for rs-grid"
 rs-grid-core  = { path = "../rs-grid-core" }
 rs-grid-scene = { path = "../rs-grid-scene" }
 rs-grid-web   = { path = "../rs-grid-web" }
-leptos = { version = "0.7", features = ["csr"] }
+leptos = { version = "0.8", features = ["csr"] }
 send_wrapper = "0.6"
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }

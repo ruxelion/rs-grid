@@ -107,9 +107,12 @@ impl ViewportState {
         let mut first = pinned_count;
         let mut last = col_count;
 
-        for i in pinned_count..col_count {
-            let offset = offsets.offsets[i];
-            let w = col_widths[i];
+        for (i, (&offset, &w)) in offsets.offsets[pinned_count..col_count]
+            .iter()
+            .zip(&col_widths[pinned_count..col_count])
+            .enumerate()
+        {
+            let i = i + pinned_count;
             if offset + w <= x_start {
                 first = i + 1;
             }

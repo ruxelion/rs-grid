@@ -44,6 +44,7 @@ struct Inner {
     scroll_interval: RefCell<Option<i32>>,
     /// Current mouse position during middle-click autoscroll (client coords).
     pan_mouse: RefCell<(f64, f64)>,
+    #[allow(clippy::type_complexity)]
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
     /// Stored references to document-level listeners so they can be removed on detach.

@@ -176,7 +176,7 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
     // Drop a trailing empty row (produced by a final newline)
     if rows
         .last()
-        .map_or(false, |r| r.len() == 1 && r[0].is_empty())
+        .is_some_and(|r| r.len() == 1 && r[0].is_empty())
     {
         rows.pop();
     }
