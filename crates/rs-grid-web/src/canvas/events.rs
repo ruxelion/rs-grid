@@ -472,14 +472,27 @@ impl GridCanvas {
                     drop(drag);
                     let dx = evt.client_x() as f64 - scx;
                     if dx.abs() > 5.0 {
+                        let (vx, _) = gc.canvas_xy(&evt);
                         *gc.0.drag.borrow_mut() =
-                            Some(ActiveDrag::ColumnDrag { col_idx: ci });
+                            Some(ActiveDrag::ColumnDrag {
+                                col_idx: ci,
+                                current_vx: vx,
+                            });
                         gc.set_cursor("grabbing");
+                        gc.render();
                     }
                 }
-                Some(ActiveDrag::ColumnDrag { .. }) => {
+                Some(ActiveDrag::ColumnDrag { col_idx, .. }) => {
+                    let ci = col_idx;
                     drop(drag);
+                    let (vx, _) = gc.canvas_xy(&evt);
+                    *gc.0.drag.borrow_mut() =
+                        Some(ActiveDrag::ColumnDrag {
+                            col_idx: ci,
+                            current_vx: vx,
+                        });
                     gc.set_cursor("grabbing");
+                    gc.render();
                 }
                 Some(ActiveDrag::Pan { .. }) => {
                     drop(drag);
@@ -552,17 +565,27 @@ impl GridCanvas {
                         gc.dispatch(GridCommand::ToggleSort { col_key: key });
                     }
                 }
-                Some(ActiveDrag::ColumnDrag { col_idx }) => {
+                Some(ActiveDrag::ColumnDrag {
+                    col_idx,
+                    current_vx,
+                }) => {
                     gc.set_cursor("default");
-                    let (x, y) = gc.canvas_xy(&evt);
-                    let target = gc.0.state.borrow().hit_test_col_header(x, y);
-                    if let Some(to) = target {
-                        if to != col_idx {
-                            gc.dispatch(GridCommand::MoveColumn {
-                                from_idx: col_idx,
-                                to_idx: to,
-                            });
-                        }
+                    let insert =
+                        gc.insertion_index(current_vx);
+                    let to = if insert > col_idx {
+                        insert - 1
+                    } else {
+                        insert
+                    };
+                    if to != col_idx {
+                        gc.dispatch(GridCommand::MoveColumn {
+                            from_idx: col_idx,
+                            to_idx: to,
+                        });
+                    } else {
+                        // No move — just redraw to clear
+                        // the drag preview.
+                        gc.render();
                     }
                 }
                 Some(ActiveDrag::ColumnResize { .. }) => {
