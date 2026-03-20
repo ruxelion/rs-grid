@@ -7,6 +7,14 @@ use crate::{
     viewport::ViewportState,
 };
 
+/// Cell currently being edited inline.
+#[derive(Debug, Clone)]
+pub struct EditCell {
+    pub row: u64,
+    pub col_key: String,
+    pub initial_value: String,
+}
+
 /// The complete mutable state of a grid instance.
 #[derive(Debug)]
 pub struct GridState {
@@ -17,6 +25,8 @@ pub struct GridState {
     pub hovered_row: Option<u64>,
     /// Active sort column and direction (`None` = natural order).
     pub sort: Option<SortState>,
+    /// Cell currently being edited (`None` = no edit in progress).
+    pub edit: Option<EditCell>,
 }
 
 impl GridState {
@@ -27,6 +37,7 @@ impl GridState {
             selection: SelectionState::default(),
             hovered_row: None,
             sort: None,
+            edit: None,
         }
     }
 
@@ -99,7 +110,7 @@ impl GridState {
                         return CommandOutput::None;
                     }
                     let col_count = self.model.columns.len();
-                    let row_count = self.model.data.row_count();
+                    let row_count = self.model.display_row_count();
                     let clip_rows = clip.len();
                     let clip_cols = clip[0].len();
 
@@ -178,13 +189,13 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::SelectCol(col) => {
-                let last_row = self.model.data.row_count().saturating_sub(1);
+                let last_row = self.model.display_row_count().saturating_sub(1);
                 self.selection.anchor = Some(CellCoord { row: 0, col });
                 self.selection.focus  = Some(CellCoord { row: last_row, col });
                 CommandOutput::None
             }
             GridCommand::ExtendColSelection(col) => {
-                let last_row = self.model.data.row_count().saturating_sub(1);
+                let last_row = self.model.display_row_count().saturating_sub(1);
                 // Clamp anchor row to 0 so the range always spans all rows.
                 if let Some(ref mut a) = self.selection.anchor { a.row = 0; }
                 self.selection.focus = Some(CellCoord { row: last_row, col });
@@ -225,11 +236,72 @@ impl GridState {
                     None => self.model.sort_order.clear(),
                 }
                 self.sort = new_sort;
+                // Reapply filter with updated sort order.
+                if !self.model.filters.is_empty() {
+                    self.model.apply_filter();
+                }
                 self.viewport.scroll_y = 0.0;
                 CommandOutput::None
             }
+            GridCommand::SetPinnedColumnCount { count } => {
+                self.model.pinned_count =
+                    count.min(self.model.columns.len());
+                CommandOutput::None
+            }
+            GridCommand::SetColumnFilter { col_key, text } => {
+                if text.is_empty() {
+                    self.model.filters.remove(&col_key);
+                } else {
+                    self.model.filters.insert(col_key, text);
+                }
+                self.model.apply_filter();
+                self.selection.clear();
+                self.viewport.scroll_y = 0.0;
+                CommandOutput::None
+            }
+            GridCommand::ClearAllFilters => {
+                self.model.filters.clear();
+                self.model.filtered_indices.clear();
+                self.selection.clear();
+                self.viewport.scroll_y = 0.0;
+                CommandOutput::None
+            }
+            GridCommand::MoveColumn { from_idx, to_idx } => {
+                let len = self.model.columns.len();
+                if from_idx < len && to_idx < len && from_idx != to_idx {
+                    let col = self.model.columns.remove(from_idx);
+                    self.model.columns.insert(to_idx, col);
+                    self.model.rebuild_offsets();
+                }
+                CommandOutput::None
+            }
+            GridCommand::StartEdit { row, col_key } => {
+                let initial_value = self
+                    .model
+                    .get_cell(row, &col_key)
+                    .unwrap_or_default();
+                self.edit = Some(EditCell {
+                    row,
+                    col_key,
+                    initial_value,
+                });
+                CommandOutput::None
+            }
+            GridCommand::CommitEdit { row, col_key, value } => {
+                if self.edit.as_ref().is_some_and(|e| {
+                    e.row == row && e.col_key == col_key
+                }) {
+                    self.model.set_cell(row, &col_key, value);
+                    self.edit = None;
+                }
+                CommandOutput::None
+            }
+            GridCommand::CancelEdit => {
+                self.edit = None;
+                CommandOutput::None
+            }
             GridCommand::MoveSelection { delta_row, delta_col, extend } => {
-                let row_count = self.model.data.row_count();
+                let row_count = self.model.display_row_count();
                 let col_count = self.model.columns.len();
                 let base = self.selection.focus.clone()
                     .or_else(|| self.selection.anchor.clone());
@@ -454,5 +526,131 @@ mod tests {
         s.apply(GridCommand::PasteAt { text: "X\tY\n".into() });
         assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
         assert_eq!(s.model.get_cell(1, "b"), Some("Y".into()));
+    }
+
+    // ── SetColumnFilter ──────────────────────────────────────────────────────
+
+    #[test]
+    fn filter_reduces_display_row_count() {
+        let mut s = make_state();
+        // Only rows containing "a3" in column "a"
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "a3".into(),
+        });
+        assert_eq!(s.model.display_row_count(), 1);
+        // Logical row 0 maps to physical row 3
+        assert_eq!(s.model.get_cell(0, "a"), Some("a3".into()));
+    }
+
+    #[test]
+    fn filter_empty_text_clears() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "a1".into(),
+        });
+        assert_eq!(s.model.display_row_count(), 1);
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "".into(),
+        });
+        assert_eq!(s.model.display_row_count(), 10);
+    }
+
+    #[test]
+    fn clear_all_filters() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "a5".into(),
+        });
+        s.apply(GridCommand::ClearAllFilters);
+        assert_eq!(s.model.display_row_count(), 10);
+    }
+
+    // ── MoveColumn ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn move_column_reorders() {
+        let mut s = make_state();
+        // [a, b, c] → move 0 to 2 → [b, c, a]
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 2,
+        });
+        assert_eq!(s.model.columns[0].key, "b");
+        assert_eq!(s.model.columns[1].key, "c");
+        assert_eq!(s.model.columns[2].key, "a");
+    }
+
+    #[test]
+    fn move_column_out_of_range_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 99,
+        });
+        // unchanged
+        assert_eq!(s.model.columns[0].key, "a");
+    }
+
+    // ── StartEdit / CommitEdit / CancelEdit ──────────────────────────────────
+
+    #[test]
+    fn start_and_commit_edit() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        assert!(s.edit.is_some());
+        assert_eq!(
+            s.edit.as_ref().unwrap().initial_value,
+            "a0"
+        );
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "edited".into(),
+        });
+        assert!(s.edit.is_none());
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("edited".into())
+        );
+    }
+
+    #[test]
+    fn cancel_edit_discards() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CancelEdit);
+        assert!(s.edit.is_none());
+        // Cell unchanged
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("a0".into())
+        );
+    }
+
+    // ── SetPinnedColumnCount ─────────────────────────────────────────────────
+
+    #[test]
+    fn set_pinned_count() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetPinnedColumnCount { count: 1 });
+        assert_eq!(s.model.pinned_count, 1);
+        assert_eq!(s.model.pinned_width(), 100.0);
+    }
+
+    #[test]
+    fn set_pinned_count_clamped() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetPinnedColumnCount { count: 99 });
+        assert_eq!(s.model.pinned_count, 3);
     }
 }

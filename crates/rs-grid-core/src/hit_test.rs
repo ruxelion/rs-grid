@@ -22,8 +22,14 @@ pub fn hit_test(
     }
 
     // Convert viewport coords to content (absolute) coords.
-    // Data columns are shifted right by rnw, so subtract rnw before adding scroll.
-    let abs_x = (vx - rnw) + scroll_x;
+    // Pinned columns are not affected by scroll_x; scrollable columns are.
+    let vx_data = vx - rnw;
+    let pinned_width = model.pinned_width();
+    let abs_x = if vx_data < pinned_width {
+        vx_data              // pinned zone: no scroll
+    } else {
+        vx_data + scroll_x   // scrollable zone: add scroll
+    };
     let abs_y = vy + scroll_y;
 
     // Header zone — not a data cell.
@@ -34,7 +40,7 @@ pub fn hit_test(
     // Row index.
     let row_y = abs_y - model.header_height;
     let row = (row_y / model.row_height) as u64;
-    if row >= model.data.row_count() {
+    if row >= model.display_row_count() {
         return None;
     }
 
@@ -59,7 +65,13 @@ pub fn hit_test_col_header(
     if vy >= model.header_height || vx < rnw {
         return None;
     }
-    let abs_x = (vx - rnw) + scroll_x;
+    let vx_data = vx - rnw;
+    let pinned_width = model.pinned_width();
+    let abs_x = if vx_data < pinned_width {
+        vx_data
+    } else {
+        vx_data + scroll_x
+    };
     model.column_offsets.hit_column(abs_x, &model.columns)
 }
 
@@ -85,7 +97,7 @@ pub fn hit_test_row_header(
 
     let row_y = abs_y - model.header_height;
     let row = (row_y / model.row_height) as u64;
-    if row >= model.data.row_count() {
+    if row >= model.display_row_count() {
         return None;
     }
 

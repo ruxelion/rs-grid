@@ -26,6 +26,15 @@ pub struct GridModel {
     /// Logical→physical row index mapping built by `apply_sort`.
     /// Empty = natural (unsorted) order.
     pub sort_order: Vec<u64>,
+    /// Number of leading columns that remain fixed during horizontal scroll.
+    /// 0 = no pinned columns (default).
+    pub pinned_count: usize,
+    /// Per-column text filters (col_key → search text, case-insensitive
+    /// contains match). Empty map = no filter active.
+    pub filters: HashMap<String, String>,
+    /// Physical row indices that pass all active filters, stored in
+    /// sort order.  Empty = no filter active (all rows visible).
+    pub filtered_indices: Vec<u64>,
 }
 
 impl GridModel {
@@ -61,11 +70,25 @@ impl GridModel {
             patches: HashMap::new(),
             row_number_width: 50.0,
             sort_order: Vec::new(),
+            pinned_count: 0,
+            filters: HashMap::new(),
+            filtered_indices: Vec::new(),
         }
     }
 
-    /// Translate a logical (display) row index to its physical (datasource) index.
+    /// Translate a display row index to its physical (datasource) index.
+    ///
+    /// When a filter is active `filtered_indices` already holds
+    /// physical rows in sort order, so we index directly.
+    /// Otherwise we fall back to `sort_order`.
     fn logical_to_physical(&self, logical: u64) -> u64 {
+        if !self.filtered_indices.is_empty() {
+            return self
+                .filtered_indices
+                .get(logical as usize)
+                .copied()
+                .unwrap_or(logical);
+        }
         if self.sort_order.is_empty() {
             logical
         } else {
@@ -74,6 +97,55 @@ impl GridModel {
                 .copied()
                 .unwrap_or(logical)
         }
+    }
+
+    /// Number of rows currently visible (respects active filters).
+    pub fn display_row_count(&self) -> u64 {
+        if self.filtered_indices.is_empty() {
+            self.data.row_count()
+        } else {
+            self.filtered_indices.len() as u64
+        }
+    }
+
+    /// Rebuild `filtered_indices` from active `filters`.
+    ///
+    /// Iterates rows in sort order and keeps those that match
+    /// every filter (case-insensitive contains).  No-op for
+    /// datasets larger than 1 000 000 rows.
+    pub fn apply_filter(&mut self) {
+        if self.filters.is_empty() {
+            self.filtered_indices.clear();
+            return;
+        }
+        const MAX: u64 = 1_000_000;
+        let n = self.data.row_count();
+        if n > MAX {
+            self.filtered_indices.clear();
+            return;
+        }
+        let count = n as usize;
+        let mut result = Vec::with_capacity(count);
+        for i in 0..count {
+            let physical = if self.sort_order.is_empty() {
+                i as u64
+            } else {
+                self.sort_order[i]
+            };
+            let passes =
+                self.filters.iter().all(|(col_key, text)| {
+                    let cell = self
+                        .data
+                        .get_cell(physical, col_key)
+                        .unwrap_or_default();
+                    cell.to_ascii_lowercase()
+                        .contains(&text.to_ascii_lowercase())
+                });
+            if passes {
+                result.push(physical);
+            }
+        }
+        self.filtered_indices = result;
     }
 
     /// Read a cell value, checking local patches before the datasource.
@@ -117,9 +189,23 @@ impl GridModel {
         self.sort_order = indices;
     }
 
-    /// Total scrollable height (header + all rows).
+    /// Total width of the pinned (frozen) columns in logical pixels.
+    pub fn pinned_width(&self) -> f64 {
+        if self.pinned_count == 0 {
+            return 0.0;
+        }
+        let n = self.pinned_count.min(self.columns.len());
+        if n == self.columns.len() {
+            self.column_offsets.total_width
+        } else {
+            self.column_offsets.offsets[n]
+        }
+    }
+
+    /// Total scrollable height (header + visible rows).
     pub fn total_height(&self) -> f64 {
-        self.header_height + self.data.row_count() as f64 * self.row_height
+        self.header_height
+            + self.display_row_count() as f64 * self.row_height
     }
 
     /// Total scrollable width.
@@ -212,5 +298,34 @@ mod tests {
         m.rebuild_offsets();
         assert_eq!(m.column_offsets.offsets[1], 200.0);
         assert_eq!(m.total_width(), 350.0);
+    }
+
+    #[test]
+    fn pinned_width_default_zero() {
+        let m = make_model();
+        assert_eq!(m.pinned_count, 0);
+        assert_eq!(m.pinned_width(), 0.0);
+    }
+
+    #[test]
+    fn pinned_width_one_column() {
+        let mut m = make_model();
+        m.pinned_count = 1;
+        // First column width = 100
+        assert_eq!(m.pinned_width(), 100.0);
+    }
+
+    #[test]
+    fn pinned_width_all_columns() {
+        let mut m = make_model();
+        m.pinned_count = 2; // all columns
+        assert_eq!(m.pinned_width(), 250.0); // 100 + 150
+    }
+
+    #[test]
+    fn pinned_width_clamped_to_col_count() {
+        let mut m = make_model();
+        m.pinned_count = 99;
+        assert_eq!(m.pinned_width(), 250.0);
     }
 }

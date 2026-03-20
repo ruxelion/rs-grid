@@ -93,6 +93,8 @@ fn App() -> impl IntoView {
     let gc_for_mount  = SendWrapper::new(gc_ref.clone());
     let gc_for_export = SendWrapper::new(gc_ref.clone());
     let gc_for_import = SendWrapper::new(gc_ref.clone());
+    let gc_for_pinned = SendWrapper::new(gc_ref.clone());
+    let gc_for_filter = SendWrapper::new(gc_ref.clone());
 
     let theme_memo = Memo::<Theme>::new(move |_| {
         let _ = dark_mode.get();
@@ -246,6 +248,43 @@ fn App() -> impl IntoView {
                     >
                         "Import"
                     </button>
+
+                    // ── Pinned columns ────────────────────────────────────
+                    <div class="app-control">
+                        <span class="app-control-label">"Pinned cols"</span>
+                        <select
+                            class="app-control-select"
+                            on:change=move |e| {
+                                let v = event_target_value(&e)
+                                    .parse::<usize>()
+                                    .unwrap_or(0);
+                                if let Some(gc) = gc_for_pinned.borrow().as_ref() {
+                                    gc.set_pinned_count(v);
+                                }
+                            }
+                        >
+                            <option value="0" selected=true>"None"</option>
+                            <option value="1">"1"</option>
+                            <option value="2">"2"</option>
+                            <option value="3">"3"</option>
+                        </select>
+                    </div>
+
+                    // ── Filter ────────────────────────────────────────────
+                    <div class="app-control">
+                        <span class="app-control-label">"Filter Name"</span>
+                        <input
+                            type="text"
+                            class="app-control-select"
+                            placeholder="type to filter…"
+                            on:input=move |e| {
+                                let text = event_target_value(&e);
+                                if let Some(gc) = gc_for_filter.borrow().as_ref() {
+                                    gc.set_filter("name", &text);
+                                }
+                            }
+                        />
+                    </div>
 
                     // Dark-mode toggle switch
                     <label class="theme-toggle" title="Toggle dark mode">

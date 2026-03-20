@@ -69,10 +69,23 @@ impl SceneBuilder {
 
         let col_widths: Vec<f64> =
             model.columns.iter().map(|c| c.width).collect();
-        let (col_start, col_end) =
-            vp.visible_columns(&model.column_offsets, &col_widths);
+        let pinned_count = model.pinned_count;
+        let pinned_width = model.pinned_width();
+        // Scrollable columns — exclude pinned ones and account for
+        // the narrower scrollable viewport band.
+        let (col_start, col_end) = if pinned_count == 0 {
+            vp.visible_columns(&model.column_offsets, &col_widths)
+        } else {
+            vp.visible_scrollable_columns(
+                &model.column_offsets,
+                &col_widths,
+                pinned_count,
+                pinned_width,
+                model.row_number_width,
+            )
+        };
         let (row_start, row_end) = vp.visible_rows(
-            model.data.row_count(),
+            model.display_row_count(),
             model.row_height,
             model.header_height,
         );
@@ -80,6 +93,13 @@ impl SceneBuilder {
         let sx = vp.scroll_x;
         let sy = vp.scroll_y;
         let rnw = model.row_number_width; // row-number gutter width
+
+        // Helper: viewport x of the left edge of column `ci`.
+        // Pinned columns are not shifted by scroll_x.
+        let col_vx = |ci: usize| -> f64 {
+            let off = model.column_offsets.offsets[ci];
+            if ci < pinned_count { off + rnw } else { off - sx + rnw }
+        };
 
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
@@ -123,7 +143,7 @@ impl SceneBuilder {
 
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
-                let cx = model.column_offsets.offsets[ci] - sx + rnw;
+                let cx = col_vx(ci);
 
                 // Selection fill (no border — outer border drawn below)
                 if sel.is_selected(ri, ci) {
@@ -167,13 +187,112 @@ impl SceneBuilder {
             }));
         }
 
+        // ── pinned-column data overlay ────────────────────────────────────────
+        // Rendered after scrollable rows so pinned cells appear on top.
+        if pinned_count > 0 && pinned_count <= model.columns.len() {
+            // Solid background covering the full pinned band.
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: rnw,
+                y: model.header_height,
+                width: pinned_width,
+                height: vp.height - model.header_height,
+                fill: t.bg,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+
+            for ri in row_start..row_end {
+                let ry = model.row_top(ri) - sy;
+                if ry + model.row_height < model.header_height
+                    || ry > vp.height
+                {
+                    continue;
+                }
+                let mid_y =
+                    ry + model.row_height * 0.5 + t.font_size * 0.35;
+
+                if ri % 2 == 1 {
+                    frame.push(ScenePrimitive::Rect(RectPrimitive {
+                        x: rnw,
+                        y: ry,
+                        width: pinned_width,
+                        height: model.row_height,
+                        fill: t.row_alt_bg,
+                        stroke: None,
+                        stroke_width: 0.0,
+                        corner_radius: 0.0,
+                    }));
+                }
+                if state.hovered_row == Some(ri) {
+                    frame.push(ScenePrimitive::Rect(RectPrimitive {
+                        x: rnw,
+                        y: ry,
+                        width: pinned_width,
+                        height: model.row_height,
+                        fill: t.row_hover_bg,
+                        stroke: None,
+                        stroke_width: 0.0,
+                        corner_radius: 0.0,
+                    }));
+                }
+
+                for ci in 0..pinned_count {
+                    let col = &model.columns[ci];
+                    let cx = col_vx(ci);
+
+                    if sel.is_selected(ri, ci) {
+                        frame.push(ScenePrimitive::Rect(RectPrimitive {
+                            x: cx,
+                            y: ry,
+                            width: col.width,
+                            height: model.row_height,
+                            fill: t.selection_fill,
+                            stroke: None,
+                            stroke_width: 0.0,
+                            corner_radius: 0.0,
+                        }));
+                    }
+
+                    if let Some(text) = model.get_cell(ri, &col.key) {
+                        if !text.is_empty() {
+                            frame.push(ScenePrimitive::Text(TextPrimitive {
+                                x: cx + t.cell_padding,
+                                y: mid_y,
+                                text,
+                                color: t.cell_text,
+                                font_size: t.font_size,
+                                bold: false,
+                                clip: Some([
+                                    cx,
+                                    ry,
+                                    col.width,
+                                    model.row_height,
+                                ]),
+                                align: TextAlign::Left,
+                            }));
+                        }
+                    }
+                }
+            }
+
+            // Separator line on the right edge of the pinned band.
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: rnw + pinned_width - 0.5,
+                y1: model.header_height,
+                x2: rnw + pinned_width - 0.5,
+                y2: vp.height,
+                color: t.header_border,
+                width: 1.0,
+            }));
+        }
+
         // ── selection outer border ───────────────────────────────────────────
         if let Some((tl, br)) = sel.range() {
-            let x1 = model.column_offsets.offsets[tl.col] - sx + rnw;
+            let x1 = col_vx(tl.col);
             let y1 = model.row_top(tl.row) - sy;
-            let x2 = model.column_offsets.offsets[br.col] - sx
-                + rnw
-                + model.columns[br.col].width;
+            let x2 =
+                col_vx(br.col) + model.columns[br.col].width;
             let y2 = model.row_top(br.row) - sy + model.row_height;
 
             // top
@@ -226,76 +345,98 @@ impl SceneBuilder {
             corner_radius: 0.0,
         }));
 
-        for ci in col_start..col_end {
-            let col = &model.columns[ci];
-            let cx = model.column_offsets.offsets[ci] - sx + rnw;
-            let mid_y = model.header_height * 0.5 + t.header_font_size * 0.35;
+        // Render column headers for a given index range.
+        let render_col_headers =
+            |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
+                let mid_y =
+                    model.header_height * 0.5 + t.header_font_size * 0.35;
+                for ci in range {
+                    let col = &model.columns[ci];
+                    let cx = col_vx(ci);
 
-            // Column header selection highlight
-            let col_in_sel = sel
-                .range()
-                .map_or(false, |(tl, br)| ci >= tl.col && ci <= br.col);
-            if col_in_sel {
-                frame.push(ScenePrimitive::Rect(RectPrimitive {
-                    x: cx,
-                    y: 0.0,
-                    width: col.width,
-                    height: model.header_height,
-                    fill: t.selection_fill,
-                    stroke: None,
-                    stroke_width: 0.0,
-                    corner_radius: 0.0,
-                }));
-            }
+                    let col_in_sel = sel
+                        .range()
+                        .map_or(false, |(tl, br)| {
+                            ci >= tl.col && ci <= br.col
+                        });
+                    if col_in_sel {
+                        frame.push(ScenePrimitive::Rect(RectPrimitive {
+                            x: cx,
+                            y: 0.0,
+                            width: col.width,
+                            height: model.header_height,
+                            fill: t.selection_fill,
+                            stroke: None,
+                            stroke_width: 0.0,
+                            corner_radius: 0.0,
+                        }));
+                    }
 
-            frame.push(ScenePrimitive::Text(TextPrimitive {
-                x: cx + t.cell_padding,
-                y: mid_y,
-                text: col.label.clone(),
-                color: t.header_text,
-                font_size: t.header_font_size,
-                bold: t.header_font_bold,
-                clip: Some([cx, 0.0, col.width, model.header_height]),
-                align: TextAlign::Left,
-            }));
+                    frame.push(ScenePrimitive::Text(TextPrimitive {
+                        x: cx + t.cell_padding,
+                        y: mid_y,
+                        text: col.label.clone(),
+                        color: t.header_text,
+                        font_size: t.header_font_size,
+                        bold: t.header_font_bold,
+                        clip: Some([
+                            cx,
+                            0.0,
+                            col.width,
+                            model.header_height,
+                        ]),
+                        align: TextAlign::Left,
+                    }));
 
-            // Sort indicator ▲ / ▼
-            if let Some(s) = &state.sort {
-                if s.col_key == col.key {
-                    const AW: f64 = 4.0; // half-base of triangle
-                    const AH: f64 = 3.5; // height of triangle
-                    let ax = cx + col.width - t.cell_padding - AW;
-                    let ay = mid_y - t.header_font_size * 0.35;
-                    let points = if s.dir == SortDir::Asc {
-                        vec![
-                            [ax, ay - AH],
-                            [ax + AW, ay + AH * 0.6],
-                            [ax - AW, ay + AH * 0.6],
-                        ]
-                    } else {
-                        vec![
-                            [ax, ay + AH],
-                            [ax + AW, ay - AH * 0.6],
-                            [ax - AW, ay - AH * 0.6],
-                        ]
-                    };
-                    frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                        points,
-                        fill: t.header_text,
-                        corner_radius: 0.5,
+                    // Sort indicator ▲ / ▼
+                    if let Some(s) = &state.sort {
+                        if s.col_key == col.key {
+                            const AW: f64 = 4.0;
+                            const AH: f64 = 3.5;
+                            let ax =
+                                cx + col.width - t.cell_padding - AW;
+                            let ay =
+                                mid_y - t.header_font_size * 0.35;
+                            let points = if s.dir == SortDir::Asc {
+                                vec![
+                                    [ax, ay - AH],
+                                    [ax + AW, ay + AH * 0.6],
+                                    [ax - AW, ay + AH * 0.6],
+                                ]
+                            } else {
+                                vec![
+                                    [ax, ay + AH],
+                                    [ax + AW, ay - AH * 0.6],
+                                    [ax - AW, ay - AH * 0.6],
+                                ]
+                            };
+                            frame.push(ScenePrimitive::Polygon(
+                                PolygonPrimitive {
+                                    points,
+                                    fill: t.header_text,
+                                    corner_radius: 0.5,
+                                },
+                            ));
+                        }
+                    }
+
+                    let sep_x = cx + col.width - 0.5;
+                    frame.push(ScenePrimitive::Line(LinePrimitive {
+                        x1: sep_x,
+                        y1: 0.0,
+                        x2: sep_x,
+                        y2: model.header_height,
+                        color: t.header_border,
+                        width: 1.0,
                     }));
                 }
-            }
+            };
 
-            let sep_x = cx + col.width - 0.5;
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: sep_x,
-                y1: 0.0,
-                x2: sep_x,
-                y2: model.header_height,
-                color: t.header_border,
-                width: 1.0,
-            }));
+        // Scrollable column headers
+        render_col_headers(&mut frame, col_start..col_end);
+        // Pinned column headers (on top)
+        if pinned_count > 0 {
+            render_col_headers(&mut frame, 0..pinned_count);
         }
 
         frame.push(ScenePrimitive::Line(LinePrimitive {

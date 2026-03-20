@@ -10,8 +10,8 @@ use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{builder::SceneBuilder, Theme};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
-    HtmlCanvasElement, HtmlElement, KeyboardEvent, MouseEvent, ResizeObserver,
-    WheelEvent,
+    HtmlCanvasElement, HtmlElement, HtmlInputElement, KeyboardEvent,
+    MouseEvent, ResizeObserver, WheelEvent,
 };
 
 // ── public handle ─────────────────────────────────────────────────────────────
@@ -43,6 +43,8 @@ struct Inner {
     doc_listeners: RefCell<Vec<(String, js_sys::Function)>>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
+    /// DOM `<input>` element used for inline cell editing.
+    edit_input: RefCell<Option<HtmlInputElement>>,
 }
 
 enum ActiveDrag {
@@ -50,7 +52,18 @@ enum ActiveDrag {
     HThumb(HThumbDrag),
     Cell,
     Row,
+    /// Shift-drag extend column selection.
     Col,
+    /// Single click on column header — deferred sort on mouseup,
+    /// upgrades to `ColumnDrag` if mouse moves > 5 px.
+    ColClick {
+        col_idx: usize,
+        start_client_x: f64,
+    },
+    /// Column reorder drag (activated from `ColClick`).
+    ColumnDrag {
+        col_idx: usize,
+    },
     Pan { origin_x: f64, origin_y: f64 },
     ColumnResize {
         col_idx: usize,
@@ -131,6 +144,7 @@ impl GridCanvas {
             _resize_observer: RefCell::new(None),
             doc_listeners: RefCell::new(Vec::new()),
             on_change: RefCell::new(None),
+            edit_input: RefCell::new(None),
         });
 
         let gc = GridCanvas(inner);
@@ -149,7 +163,11 @@ impl GridCanvas {
 
     /// Apply a command, redraw, and return the output.
     fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
-        let is_mutation = matches!(cmd, GridCommand::PasteAt { .. });
+        let is_mutation = matches!(
+            cmd,
+            GridCommand::PasteAt { .. }
+                | GridCommand::CommitEdit { .. }
+        );
         let out = self.0.state.borrow_mut().apply(cmd);
         self.render();
         if is_mutation {
@@ -266,9 +284,14 @@ impl GridCanvas {
         if vx < model.row_number_width { return None; }
         let scroll_x = state.viewport.scroll_x;
         let rnw = model.row_number_width;
+        let pinned = model.pinned_count;
         for (i, col) in model.columns.iter().enumerate() {
-            let sep_vx =
-                model.column_offsets.offsets[i] + col.width - scroll_x + rnw;
+            let off = model.column_offsets.offsets[i] + col.width;
+            let sep_vx = if i < pinned {
+                off + rnw
+            } else {
+                off - scroll_x + rnw
+            };
             if (vx - sep_vx).abs() <= HIT_ZONE {
                 return Some(i);
             }
@@ -289,7 +312,7 @@ impl GridCanvas {
         if vx < 0.0 || vx > state.viewport.width { return None; }
         let abs_y = vy - model.header_height + state.viewport.scroll_y;
         let row = (abs_y / model.row_height) as u64;
-        if row < model.data.row_count() { Some(row) } else { None }
+        if row < model.display_row_count() { Some(row) } else { None }
     }
 
     fn handle_copy(&self) {
@@ -379,11 +402,22 @@ impl GridCanvas {
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             evt.prevent_default();
 
-            // Select cell under right-click if nothing is selected yet
             let (cx, cy) = gc.canvas_xy(&evt);
+
+            // Right-click on column header → column-specific menu.
+            let col = gc.0.state.borrow().hit_test_col_header(cx, cy);
+            if let Some(col_idx) = col {
+                gc.show_col_header_menu(
+                    col_idx,
+                    evt.client_x(),
+                    evt.client_y(),
+                );
+                return;
+            }
+
+            // Select cell under right-click if nothing is selected yet
             let has_sel = gc.0.state.borrow().selection.has_selection();
             if !has_sel {
-                // Row gutter takes priority.
                 let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
                 if let Some(row) = row {
                     gc.dispatch(GridCommand::SelectRow(row));
@@ -407,6 +441,134 @@ impl GridCanvas {
         cb.forget();
     }
 
+    fn show_col_header_menu(
+        &self,
+        col_idx: usize,
+        x: i32,
+        y: i32,
+    ) {
+        let doc = document();
+        remove_ctx_menu();
+        let body = doc.body().expect("no body");
+
+        // Backdrop
+        let backdrop = make_el(&doc, "div");
+        backdrop.set_id("rs-grid-ctx-backdrop");
+        set_styles(
+            &backdrop,
+            &[
+                ("position", "fixed"),
+                ("inset", "0"),
+                ("z-index", "9998"),
+            ],
+        );
+        {
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |_: MouseEvent| {
+                    remove_ctx_menu();
+                },
+            );
+            backdrop
+                .add_event_listener_with_callback(
+                    "click",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+        {
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |evt: MouseEvent| {
+                    evt.prevent_default();
+                    remove_ctx_menu();
+                },
+            );
+            backdrop
+                .add_event_listener_with_callback(
+                    "contextmenu",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+
+        // Menu
+        let menu = make_el(&doc, "div");
+        menu.set_id("rs-grid-ctx-menu");
+        set_styles(
+            &menu,
+            &[
+                ("position", "fixed"),
+                ("left", &format!("{}px", x)),
+                ("top", &format!("{}px", y)),
+                ("z-index", "9999"),
+                ("background", "#ffffff"),
+                ("border", "1px solid #d1d5db"),
+                ("border-radius", "6px"),
+                ("box-shadow", "0 4px 16px rgba(0,0,0,0.12)"),
+                ("padding", "4px 0"),
+                ("font", "13px/1.4 system-ui,sans-serif"),
+                ("min-width", "160px"),
+                ("user-select", "none"),
+            ],
+        );
+
+        let is_pinned = {
+            let state = self.0.state.borrow();
+            col_idx < state.model.pinned_count
+        };
+
+        if is_pinned {
+            let item = make_menu_item(
+                &doc,
+                ICON_PIN,
+                "Unpin Column",
+                "",
+                true,
+            );
+            let gc = self.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |_: MouseEvent| {
+                    remove_ctx_menu();
+                    gc.set_pinned_count(0);
+                },
+            );
+            item.add_event_listener_with_callback(
+                "click",
+                cb.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+            cb.forget();
+            menu.append_child(&item).unwrap();
+        } else {
+            let item = make_menu_item(
+                &doc,
+                ICON_PIN,
+                "Pin Column",
+                "",
+                true,
+            );
+            let gc = self.clone();
+            let ci = col_idx;
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |_: MouseEvent| {
+                    remove_ctx_menu();
+                    gc.set_pinned_count(ci + 1);
+                },
+            );
+            item.add_event_listener_with_callback(
+                "click",
+                cb.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+            cb.forget();
+            menu.append_child(&item).unwrap();
+        }
+
+        body.append_child(&backdrop).unwrap();
+        body.append_child(&menu).unwrap();
+    }
+
     fn show_context_menu(&self, x: i32, y: i32) {
         let doc = document();
         remove_ctx_menu();
@@ -427,6 +589,21 @@ impl GridCanvas {
             backdrop
                 .add_event_listener_with_callback(
                     "click",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+        {
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |evt: MouseEvent| {
+                    evt.prevent_default();
+                    remove_ctx_menu();
+                },
+            );
+            backdrop
+                .add_event_listener_with_callback(
+                    "contextmenu",
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
@@ -910,6 +1087,7 @@ impl GridCanvas {
         self.attach_wheel();
         self.attach_mousedown();
         self.attach_mouseleave();
+        self.attach_dblclick();
         self.attach_contextmenu();
         self.attach_mousemove(); // on document — works even if cursor leaves canvas
         self.attach_mouseup(); // on document
@@ -947,6 +1125,37 @@ impl GridCanvas {
             .canvas
             .add_event_listener_with_callback(
                 "mouseleave",
+                cb.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+        cb.forget();
+    }
+
+    fn attach_dblclick(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            let (x, y) = gc.canvas_xy(&evt);
+            let coord = gc.0.state.borrow().hit_test(x, y);
+            if let Some(coord) = coord {
+                let col_key = gc
+                    .0
+                    .state
+                    .borrow()
+                    .model
+                    .columns[coord.col]
+                    .key
+                    .clone();
+                gc.dispatch(GridCommand::StartEdit {
+                    row: coord.row,
+                    col_key,
+                });
+                gc.show_edit_input();
+            }
+        });
+        self.0
+            .canvas
+            .add_event_listener_with_callback(
+                "dblclick",
                 cb.as_ref().unchecked_ref(),
             )
             .unwrap();
@@ -1103,23 +1312,22 @@ impl GridCanvas {
                 return;
             }
 
-            // ── column header: sort on click, extend-select on shift+click ───
+            // ── column header ─────────────────────────────────────────────
+            // Shift+click → extend column selection.
+            // Plain click → deferred sort (on mouseup) so that a
+            // drag can upgrade to column reorder.
             let col = gc.0.state.borrow().hit_test_col_header(x, y);
             if let Some(col) = col {
                 if evt.shift_key() {
                     gc.dispatch(GridCommand::ExtendColSelection(col));
+                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
                 } else {
-                    let key = gc
-                        .0
-                        .state
-                        .borrow()
-                        .model
-                        .columns[col]
-                        .key
-                        .clone();
-                    gc.dispatch(GridCommand::ToggleSort { col_key: key });
+                    *gc.0.drag.borrow_mut() =
+                        Some(ActiveDrag::ColClick {
+                            col_idx: col,
+                            start_client_x: evt.client_x() as f64,
+                        });
                 }
-                *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
                 return;
             }
 
@@ -1231,6 +1439,23 @@ impl GridCanvas {
                         gc.dispatch(GridCommand::ExtendColSelection(col));
                     }
                 }
+                Some(ActiveDrag::ColClick {
+                    col_idx,
+                    start_client_x,
+                }) => {
+                    let (ci, scx) = (col_idx, start_client_x);
+                    drop(drag);
+                    let dx = evt.client_x() as f64 - scx;
+                    if dx.abs() > 5.0 {
+                        *gc.0.drag.borrow_mut() =
+                            Some(ActiveDrag::ColumnDrag { col_idx: ci });
+                        gc.set_cursor("grabbing");
+                    }
+                }
+                Some(ActiveDrag::ColumnDrag { .. }) => {
+                    drop(drag);
+                    gc.set_cursor("grabbing");
+                }
                 Some(ActiveDrag::Pan { .. }) => {
                     drop(drag);
                     *gc.0.pan_mouse.borrow_mut() = (
@@ -1289,14 +1514,48 @@ impl GridCanvas {
                 return;
             }
             gc.stop_scroll_repeat();
-            // Restore cursor after a column-resize drag.
-            if matches!(
-                *gc.0.drag.borrow(),
-                Some(ActiveDrag::ColumnResize { .. })
-            ) {
-                gc.set_cursor("default");
+
+            let finished_drag = gc.0.drag.borrow_mut().take();
+            match finished_drag {
+                // Column click without drag → toggle sort.
+                Some(ActiveDrag::ColClick { col_idx, .. }) => {
+                    let key = gc
+                        .0
+                        .state
+                        .borrow()
+                        .model
+                        .columns
+                        .get(col_idx)
+                        .map(|c| c.key.clone());
+                    if let Some(key) = key {
+                        gc.dispatch(GridCommand::ToggleSort {
+                            col_key: key,
+                        });
+                    }
+                }
+                // Column drag released → reorder.
+                Some(ActiveDrag::ColumnDrag { col_idx }) => {
+                    gc.set_cursor("default");
+                    let (x, y) = gc.canvas_xy(&evt);
+                    let target = gc
+                        .0
+                        .state
+                        .borrow()
+                        .hit_test_col_header(x, y);
+                    if let Some(to) = target {
+                        if to != col_idx {
+                            gc.dispatch(GridCommand::MoveColumn {
+                                from_idx: col_idx,
+                                to_idx: to,
+                            });
+                        }
+                    }
+                }
+                Some(ActiveDrag::ColumnResize { .. }) => {
+                    gc.set_cursor("default");
+                }
+                _ => {}
             }
-            *gc.0.drag.borrow_mut() = None;
         });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
@@ -1310,6 +1569,11 @@ impl GridCanvas {
     fn attach_keydown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
+            // While inline edit input is active, don't intercept keys
+            // (the input has its own keydown handler).
+            if gc.0.edit_input.borrow().is_some() {
+                return;
+            }
             let key = evt.key();
             let shift = evt.shift_key();
             let ctrl = evt.ctrl_key() || evt.meta_key();
@@ -1340,8 +1604,13 @@ impl GridCanvas {
                     gc.handle_copy();
                 }
                 "Escape" => {
-                    remove_ctx_menu();
-                    gc.dispatch(GridCommand::ClearSelection);
+                    if gc.0.state.borrow().edit.is_some() {
+                        gc.dispatch(GridCommand::CancelEdit);
+                        gc.remove_edit_input();
+                    } else {
+                        remove_ctx_menu();
+                        gc.dispatch(GridCommand::ClearSelection);
+                    }
                 }
                 _ => {}
             }
@@ -1401,6 +1670,181 @@ impl GridCanvas {
         self.0.builder.borrow_mut().theme = theme;
         self.render();
     }
+
+    // ── public API for new v1 features ────────────────────────────────────────
+
+    /// Set the number of pinned (frozen) columns.
+    pub fn set_pinned_count(&self, count: usize) {
+        self.dispatch(GridCommand::SetPinnedColumnCount { count });
+    }
+
+    /// Set a text filter on a column (case-insensitive contains).
+    /// Pass an empty string to clear the filter for that column.
+    pub fn set_filter(&self, col_key: &str, text: &str) {
+        self.dispatch(GridCommand::SetColumnFilter {
+            col_key: col_key.to_string(),
+            text: text.to_string(),
+        });
+    }
+
+    /// Remove all column filters.
+    pub fn clear_filters(&self) {
+        self.dispatch(GridCommand::ClearAllFilters);
+    }
+
+    // ── inline edit helpers ───────────────────────────────────────────────────
+
+    /// Viewport rectangle `(x, y, w, h)` of a cell.
+    fn cell_viewport_rect(
+        &self,
+        row: u64,
+        col_idx: usize,
+    ) -> (f64, f64, f64, f64) {
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let off = model.column_offsets.offsets[col_idx];
+        let cx = if col_idx < model.pinned_count {
+            off + model.row_number_width
+        } else {
+            off - state.viewport.scroll_x + model.row_number_width
+        };
+        let cy = model.row_top(row) - state.viewport.scroll_y;
+        let w = model.columns[col_idx].width;
+        let h = model.row_height;
+        (cx, cy, w, h)
+    }
+
+    /// Create a DOM `<input>` overlay for inline cell editing.
+    fn show_edit_input(&self) {
+        self.remove_edit_input();
+
+        let (row, col_key) = {
+            let state = self.0.state.borrow();
+            let edit = match &state.edit {
+                Some(e) => e,
+                None => return,
+            };
+            (edit.row, edit.col_key.clone())
+        };
+
+        let col_idx = {
+            let state = self.0.state.borrow();
+            match state.model.columns.iter().position(|c| c.key == col_key) {
+                Some(i) => i,
+                None => return,
+            }
+        };
+
+        let (cx, cy, w, h) = self.cell_viewport_rect(row, col_idx);
+        let canvas_rect = self.0.canvas.get_bounding_client_rect();
+        let left = canvas_rect.left() + cx;
+        let top = canvas_rect.top() + cy;
+
+        let doc = document();
+        let input: HtmlInputElement = doc
+            .create_element("input")
+            .expect("create input")
+            .dyn_into()
+            .expect("cast");
+
+        let initial = self.0.state.borrow().edit
+            .as_ref()
+            .map(|e| e.initial_value.clone())
+            .unwrap_or_default();
+        input.set_value(&initial);
+
+        let style = input.style();
+        let _ = style.set_property("position", "fixed");
+        let _ = style.set_property("left", &format!("{left}px"));
+        let _ = style.set_property("top", &format!("{top}px"));
+        let _ = style.set_property("width", &format!("{w}px"));
+        let _ = style.set_property("height", &format!("{h}px"));
+        let _ = style.set_property("z-index", "10000");
+        let _ = style.set_property("border", "2px solid #2563eb");
+        let _ = style.set_property("outline", "none");
+        let _ = style.set_property("padding", "0 4px");
+        let _ = style.set_property("margin", "0");
+        let _ = style.set_property("box-sizing", "border-box");
+        let _ = style.set_property("font", "inherit");
+        let _ = style.set_property("background", "#fff");
+
+        doc.body().expect("body").append_child(&input).unwrap();
+        let _ = input.focus();
+        let _ = input.select();
+
+        // Enter → commit
+        {
+            let gc = self.clone();
+            let r = row;
+            let ck = col_key.clone();
+            let inp = input.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |evt: KeyboardEvent| {
+                    match evt.key().as_str() {
+                        "Enter" => {
+                            let val = inp.value();
+                            gc.dispatch(GridCommand::CommitEdit {
+                                row: r,
+                                col_key: ck.clone(),
+                                value: val,
+                            });
+                            gc.remove_edit_input();
+                        }
+                        "Escape" => {
+                            gc.dispatch(GridCommand::CancelEdit);
+                            gc.remove_edit_input();
+                        }
+                        _ => {}
+                    }
+                },
+            );
+            input
+                .add_event_listener_with_callback(
+                    "keydown",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+
+        // Blur → commit
+        {
+            let gc = self.clone();
+            let r = row;
+            let ck = col_key;
+            let inp = input.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(
+                move |_: web_sys::FocusEvent| {
+                    // Only commit if edit is still active
+                    if gc.0.state.borrow().edit.is_some() {
+                        let val = inp.value();
+                        gc.dispatch(GridCommand::CommitEdit {
+                            row: r,
+                            col_key: ck.clone(),
+                            value: val,
+                        });
+                        gc.remove_edit_input();
+                    }
+                },
+            );
+            input
+                .add_event_listener_with_callback(
+                    "blur",
+                    cb.as_ref().unchecked_ref(),
+                )
+                .unwrap();
+            cb.forget();
+        }
+
+        *self.0.edit_input.borrow_mut() = Some(input);
+    }
+
+    /// Remove the inline edit input from the DOM.
+    fn remove_edit_input(&self) {
+        if let Some(input) = self.0.edit_input.borrow_mut().take() {
+            input.remove();
+        }
+    }
 }
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────
@@ -1428,6 +1872,14 @@ fn set_styles(el: &HtmlElement, styles: &[(&str, &str)]) {
 
 // ── context-menu icons (Feather Icons) ───────────────────────────────────────
 
+const ICON_PIN: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<path d="M12 17v5"/>"#,
+    r#"<path d="M9 11V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7"/>"#,
+    r#"<path d="M5 17h14l-1.5-6H6.5L5 17z"/></svg>"#
+);
 const ICON_CUT: &str = concat!(
     r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
     r#"stroke="currentColor" stroke-width="2" "#,

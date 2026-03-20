@@ -37,6 +37,22 @@ pub enum GridCommand {
     SetHoveredRow(Option<u64>),
     /// Cycle sort state for a column: None → Asc → Desc → None.
     ToggleSort { col_key: String },
+    /// Set the number of leading columns pinned (frozen) during
+    /// horizontal scroll.
+    SetPinnedColumnCount { count: usize },
+    /// Set a text filter on a column (case-insensitive contains).
+    /// Empty text clears the filter for that column.
+    SetColumnFilter { col_key: String, text: String },
+    /// Clear all column filters at once.
+    ClearAllFilters,
+    /// Move a column from one position to another (drag & drop).
+    MoveColumn { from_idx: usize, to_idx: usize },
+    /// Start editing a cell (double-click).
+    StartEdit { row: u64, col_key: String },
+    /// Commit the current cell edit with a new value.
+    CommitEdit { row: u64, col_key: String, value: String },
+    /// Cancel the current cell edit.
+    CancelEdit,
 }
 
 #[derive(Debug, Clone)]
