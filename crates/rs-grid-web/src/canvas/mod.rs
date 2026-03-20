@@ -52,6 +52,10 @@ struct Inner {
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// DOM `<input>` element used for inline cell editing.
     edit_input: RefCell<Option<HtmlInputElement>>,
+    /// Text waiting to be placed on the clipboard by the next
+    /// `copy` event (set by context-menu copy/cut before
+    /// triggering `execCommand("copy")`).
+    pending_clipboard: RefCell<Option<String>>,
 }
 
 enum ActiveDrag {
@@ -151,6 +155,7 @@ impl GridCanvas {
             doc_listeners: RefCell::new(Vec::new()),
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
+            pending_clipboard: RefCell::new(None),
         });
 
         let gc = GridCanvas(inner);

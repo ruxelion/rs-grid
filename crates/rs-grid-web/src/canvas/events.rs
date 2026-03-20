@@ -65,6 +65,8 @@ impl GridCanvas {
         self.attach_mousemove();
         self.attach_mouseup();
         self.attach_keydown();
+        self.attach_copy();
+        self.attach_cut();
         self.attach_paste();
     }
 
@@ -589,7 +591,6 @@ impl GridCanvas {
             }
             let key = evt.key();
             let shift = evt.shift_key();
-            let ctrl = evt.ctrl_key() || evt.meta_key();
             match key.as_str() {
                 "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" => {
                     if !gc.0.state.borrow().selection.has_selection() {
@@ -608,13 +609,6 @@ impl GridCanvas {
                         delta_col: dc,
                         extend: shift,
                     });
-                }
-                "c" if ctrl => {
-                    if !gc.0.state.borrow().selection.has_selection() {
-                        return;
-                    }
-                    evt.prevent_default();
-                    gc.handle_copy();
                 }
                 "Escape" => {
                     if gc.0.state.borrow().edit.is_some() {
@@ -637,6 +631,44 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("keydown".to_string(), f));
+        cb.forget();
+    }
+
+    fn attach_copy(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(
+            move |evt: web_sys::ClipboardEvent| {
+                gc.on_copy_event(&evt);
+            },
+        );
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+        document()
+            .add_event_listener_with_callback("copy", &f)
+            .unwrap();
+        self.0
+            .doc_listeners
+            .borrow_mut()
+            .push(("copy".to_string(), f));
+        cb.forget();
+    }
+
+    fn attach_cut(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut(_)>::new(
+            move |evt: web_sys::ClipboardEvent| {
+                gc.on_cut_event(&evt);
+            },
+        );
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+        document()
+            .add_event_listener_with_callback("cut", &f)
+            .unwrap();
+        self.0
+            .doc_listeners
+            .borrow_mut()
+            .push(("cut".to_string(), f));
         cb.forget();
     }
 
