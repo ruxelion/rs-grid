@@ -128,6 +128,53 @@ test.describe('interaction canvas', () => {
   });
 });
 
+// ── colonnes pinnées ────────────────────────────────────────────────────────────
+//
+// Le dropdown « Pinned cols » est le 3e <select> du DOM (nth(2)).
+// Ces tests vérifient que le pin + scroll ne provoque pas de crash
+// et que les en-têtes pinnés restent intacts visuellement.
+
+test.describe('colonnes pinnées', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+  });
+
+  test('pin 1 colonne ne plante pas', async ({ page }) => {
+    await page.locator('select').nth(2).selectOption('1');
+    await waitForPaint(page);
+    await expect(page.locator('canvas')).toBeVisible();
+  });
+
+  test('pin 3 colonnes ne plante pas', async ({ page }) => {
+    await page.locator('select').nth(2).selectOption('3');
+    await waitForPaint(page);
+    await expect(page.locator('canvas')).toBeVisible();
+  });
+
+  test('scroll horizontal avec colonnes pinnées', async ({ page }) => {
+    await page.locator('select').nth(2).selectOption('2');
+    await waitForPaint(page);
+    const canvas = page.locator('canvas');
+    await canvas.hover();
+    await page.mouse.wheel(500, 0);
+    await waitForPaint(page);
+    await expect(canvas).toBeVisible();
+  });
+
+  test('clic cellule après pin + scroll horizontal', async ({ page }) => {
+    await page.locator('select').nth(2).selectOption('1');
+    await waitForPaint(page);
+    const canvas = page.locator('canvas');
+    await canvas.hover();
+    await page.mouse.wheel(300, 0);
+    await waitForPaint(page);
+    await canvas.click({ position: { x: 80, y: 80 } });
+    await waitForPaint(page, 100);
+    await expect(canvas).toBeVisible();
+  });
+});
+
 // ── régression visuelle ────────────────────────────────────────────────────────
 //
 // Ces tests comparent le rendu pixel-à-pixel avec des screenshots de référence.
@@ -170,6 +217,44 @@ test.describe('visual regression', () => {
     await page.locator('select').first().selectOption('100000');
     await waitForPaint(page);
     await expect(page.locator('canvas')).toHaveScreenshot('100k-rows.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('colonnes pinnées', async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+    await page.locator('select').nth(2).selectOption('2');
+    await waitForPaint(page);
+    await expect(page.locator('canvas')).toHaveScreenshot('pinned-cols.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('colonnes pinnées + scroll horizontal', async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+    await page.locator('select').nth(2).selectOption('2');
+    await waitForPaint(page);
+    const canvas = page.locator('canvas');
+    await canvas.hover();
+    await page.mouse.wheel(500, 0);
+    await waitForPaint(page);
+    await expect(canvas).toHaveScreenshot('pinned-scroll-h.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('colonnes pinnées + scroll vertical', async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+    await page.locator('select').nth(2).selectOption('2');
+    await waitForPaint(page);
+    const canvas = page.locator('canvas');
+    await canvas.hover();
+    await page.mouse.wheel(0, 500);
+    await waitForPaint(page);
+    await expect(canvas).toHaveScreenshot('pinned-scroll-v.png', {
       maxDiffPixelRatio: 0.02,
     });
   });
