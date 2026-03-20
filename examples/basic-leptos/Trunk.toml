@@ -9,6 +9,7 @@ paths = [
   "../../crates/rs-grid-web/src",
 ]
 
+
 [build]
 dist = "dist"
 release = false

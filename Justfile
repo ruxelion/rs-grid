@@ -38,9 +38,9 @@ ci: fmt lint test
 build-wasm:
     Push-Location examples/basic-leptos; trunk build; Pop-Location
 
-# Serveur de développement
+# Serveur de développement (port aléatoire entre 9000-9999)
 serve:
-    Push-Location examples/basic-leptos; trunk serve; Pop-Location
+    $port = Get-Random -Minimum 9000 -Maximum 10000; Write-Host "Serving on http://localhost:$port"; Push-Location examples/basic-leptos; trunk serve --port $port; Pop-Location
 
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
