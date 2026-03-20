@@ -26,7 +26,13 @@
       "Bash(xargs grep:*)",
       "Bash(just)",
       "Bash(just --list)",
-      "Bash(just check:*)"
+      "Bash(just check:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8080)",
+      "Bash(tasklist /FI \"PID eq 36260\" /FO TABLE)",
+      "Bash(powershell.exe -Command \"Get-Process -Id 36260 | Select-Object Id, ProcessName, Path\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Name trunk -Force -ErrorAction SilentlyContinue\")",
+      "Bash(powershell.exe -Command \"Remove-Item -Recurse -Force ''c:\\\\Dev\\\\rs-grid\\\\examples\\\\basic-leptos\\\\dist'' -ErrorAction SilentlyContinue\")"
     ]
   },
   "hooks": {
