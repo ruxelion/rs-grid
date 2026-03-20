@@ -110,6 +110,24 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             let (x, y) = gc.canvas_xy(&evt);
+            // Double-click on column separator → auto-fit width
+            if let Some(col_idx) = gc.hit_col_resize_separator(x, y) {
+                let theme = &gc.0.builder.borrow().theme;
+                let char_width = theme.font_size * 0.6;
+                let header_char_width = if theme.header_font_bold {
+                    theme.header_font_size * 0.65
+                } else {
+                    theme.header_font_size * 0.6
+                };
+                let cell_padding = theme.cell_padding;
+                gc.dispatch(GridCommand::AutoFitColumn {
+                    col_idx,
+                    char_width,
+                    header_char_width,
+                    cell_padding,
+                });
+                return;
+            }
             let coord = gc.0.state.borrow().hit_test(x, y);
             if let Some(coord) = coord {
                 let col_key =

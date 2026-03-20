@@ -61,6 +61,17 @@ pub enum GridCommand {
     },
     /// Cancel the current cell edit.
     CancelEdit,
+    /// Auto-fit a column width to its content (double-click separator).
+    AutoFitColumn {
+        col_idx: usize,
+        /// Average character width in logical pixels, provided by the
+        /// renderer (derived from `font_size`).
+        char_width: f64,
+        /// Average character width for the header font (may be bold).
+        header_char_width: f64,
+        /// Horizontal cell padding (both sides).
+        cell_padding: f64,
+    },
 }
 
 #[derive(Debug, Clone)]

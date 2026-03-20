@@ -310,6 +310,39 @@ impl GridState {
                 self.edit = None;
                 CommandOutput::None
             }
+            GridCommand::AutoFitColumn {
+                col_idx,
+                char_width,
+                header_char_width,
+                cell_padding,
+            } => {
+                const MIN_COL_WIDTH: f64 = 20.0;
+                const MAX_SAMPLE_ROWS: u64 = 1_000;
+                if col_idx < self.model.columns.len() {
+                    let col_key = self.model.columns[col_idx].key.clone();
+                    let label = &self.model.columns[col_idx].label;
+                    let header_w = label.len() as f64 * header_char_width
+                        + cell_padding * 2.0;
+                    let row_count =
+                        self.model.display_row_count().min(MAX_SAMPLE_ROWS);
+                    let mut max_w = header_w;
+                    for r in 0..row_count {
+                        if let Some(val) =
+                            self.model.get_cell(r, &col_key)
+                        {
+                            let w = val.len() as f64 * char_width
+                                + cell_padding * 2.0;
+                            if w > max_w {
+                                max_w = w;
+                            }
+                        }
+                    }
+                    self.model.columns[col_idx].width =
+                        max_w.max(MIN_COL_WIDTH);
+                    self.model.rebuild_offsets();
+                }
+                CommandOutput::None
+            }
             GridCommand::MoveSelection {
                 delta_row,
                 delta_col,
@@ -685,5 +718,60 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetPinnedColumnCount { count: 99 });
         assert_eq!(s.model.pinned_count, 3);
+    }
+
+    // ── AutoFitColumn ──────────────────────────────────────────────────────
+
+    #[test]
+    fn auto_fit_column_adjusts_width() {
+        let mut s = make_state();
+        // Column "a" has label "A" (1 char) and values "a0".."a9" (2 chars).
+        // Heuristic: max_w = max(header, data) + padding*2
+        // data: 2 * 8.4 + 10*2 = 36.8
+        // header: 1 * 8.45 + 10*2 = 28.45
+        // Expected: 36.8 (data wins)
+        let old_width = s.model.columns[0].width;
+        assert_eq!(old_width, 100.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.4,
+            header_char_width: 8.45,
+            cell_padding: 10.0,
+        });
+        let new_width = s.model.columns[0].width;
+        assert!(
+            (new_width - 36.8).abs() < 0.01,
+            "expected ~36.8, got {new_width}"
+        );
+    }
+
+    #[test]
+    fn auto_fit_column_respects_min_width() {
+        let mut s = make_state();
+        // With very small char_width the result should be at least 20.0
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 0.1,
+            header_char_width: 0.1,
+            cell_padding: 0.1,
+        });
+        assert!(
+            s.model.columns[0].width >= 20.0,
+            "width should be at least 20.0, got {}",
+            s.model.columns[0].width
+        );
+    }
+
+    #[test]
+    fn auto_fit_column_out_of_range_noop() {
+        let mut s = make_state();
+        let old_width = s.model.columns[0].width;
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 99,
+            char_width: 8.4,
+            header_char_width: 8.45,
+            cell_padding: 10.0,
+        });
+        assert_eq!(s.model.columns[0].width, old_width);
     }
 }
