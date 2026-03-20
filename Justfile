@@ -40,7 +40,7 @@ build-wasm:
 
 # Serveur de développement (port aléatoire entre 9000-9999)
 serve:
-    $port = Get-Random -Minimum 9000 -Maximum 10000; Write-Host "Serving on http://localhost:$port"; Push-Location examples/basic-leptos; trunk serve --port $port; Pop-Location
+    $port = Get-Random -Minimum 9000 -Maximum 10000; Write-Host "Serving on http://0.0.0.0:$port"; Push-Location examples/basic-leptos; trunk serve --address 0.0.0.0 --port $port; Pop-Location
 
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
