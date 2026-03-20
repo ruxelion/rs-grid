@@ -42,6 +42,7 @@ pub struct RectPrimitive {
 pub enum TextAlign {
     #[default]
     Left,
+    Center,
     Right,
 }
 
