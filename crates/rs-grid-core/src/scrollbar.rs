@@ -59,7 +59,8 @@ impl ScrollbarGeom {
         let thumb_h = (thumb_ratio * track_h).max(MIN_THUMB_H).min(track_h);
         let max_scroll = (total_h - full_h).max(1.0);
         let thumb_travel = (track_h - thumb_h).max(0.0);
-        let thumb_offset = (scroll_y / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
+        let thumb_offset =
+            (scroll_y / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
 
         Some(Self {
             track_x,
@@ -107,7 +108,13 @@ impl ScrollbarGeom {
     }
 
     /// Scroll delta produced by dragging the thumb `dy` pixels.
-    pub fn drag_to_scroll(&self, dy: f64, total_h: f64, viewport_h: f64, header_h: f64) -> f64 {
+    pub fn drag_to_scroll(
+        &self,
+        dy: f64,
+        total_h: f64,
+        viewport_h: f64,
+        header_h: f64,
+    ) -> f64 {
         let full_h = (viewport_h - header_h).max(0.0);
         let max_scroll = (total_h - full_h).max(1.0);
         let thumb_travel = (self.track_h - self.thumb_h).max(1.0);
@@ -116,11 +123,18 @@ impl ScrollbarGeom {
 
     /// Absolute scroll-y for a click on the track at viewport-y `click_y`
     /// (centers the thumb under the cursor).
-    pub fn track_click_scroll(&self, click_y: f64, total_h: f64, viewport_h: f64, header_h: f64) -> f64 {
+    pub fn track_click_scroll(
+        &self,
+        click_y: f64,
+        total_h: f64,
+        viewport_h: f64,
+        header_h: f64,
+    ) -> f64 {
         let full_h = (viewport_h - header_h).max(0.0);
         let max_scroll = (total_h - full_h).max(1.0);
         let thumb_travel = (self.track_h - self.thumb_h).max(1.0);
-        let rel = (click_y - self.track_y - self.thumb_h / 2.0).clamp(0.0, thumb_travel);
+        let rel = (click_y - self.track_y - self.thumb_h / 2.0)
+            .clamp(0.0, thumb_travel);
         rel / thumb_travel * max_scroll
     }
 }
@@ -187,7 +201,8 @@ impl HScrollbarGeom {
         let thumb_w = (thumb_ratio * track_w).max(MIN_THUMB_W).min(track_w);
         let max_scroll = (total_w - available_w).max(1.0);
         let thumb_travel = (track_w - thumb_w).max(0.0);
-        let thumb_offset = (scroll_x / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
+        let thumb_offset =
+            (scroll_x / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
 
         Some(Self {
             track_y,
@@ -235,7 +250,14 @@ impl HScrollbarGeom {
     }
 
     /// Scroll delta produced by dragging the thumb `dx` pixels.
-    pub fn drag_to_scroll(&self, dx: f64, total_w: f64, viewport_w: f64, gutter_w: f64, vsb_w: f64) -> f64 {
+    pub fn drag_to_scroll(
+        &self,
+        dx: f64,
+        total_w: f64,
+        viewport_w: f64,
+        gutter_w: f64,
+        vsb_w: f64,
+    ) -> f64 {
         let available_w = (viewport_w - gutter_w - vsb_w).max(0.0);
         let max_scroll = (total_w - available_w).max(1.0);
         let thumb_travel = (self.track_w - self.thumb_w).max(1.0);
@@ -243,11 +265,19 @@ impl HScrollbarGeom {
     }
 
     /// Absolute scroll-x for a click on the track at viewport-x `click_x`.
-    pub fn track_click_scroll(&self, click_x: f64, total_w: f64, viewport_w: f64, gutter_w: f64, vsb_w: f64) -> f64 {
+    pub fn track_click_scroll(
+        &self,
+        click_x: f64,
+        total_w: f64,
+        viewport_w: f64,
+        gutter_w: f64,
+        vsb_w: f64,
+    ) -> f64 {
         let available_w = (viewport_w - gutter_w - vsb_w).max(0.0);
         let max_scroll = (total_w - available_w).max(1.0);
         let thumb_travel = (self.track_w - self.thumb_w).max(1.0);
-        let rel = (click_x - self.track_x - self.thumb_w / 2.0).clamp(0.0, thumb_travel);
+        let rel = (click_x - self.track_x - self.thumb_w / 2.0)
+            .clamp(0.0, thumb_travel);
         rel / thumb_travel * max_scroll
     }
 }
@@ -260,22 +290,24 @@ mod tests {
 
     /// viewport 800×600, header=40, total_h=3000, track_w=16
     fn make_vscroll(scroll_y: f64) -> ScrollbarGeom {
-        ScrollbarGeom::compute(scroll_y, 800.0, 600.0, 40.0, 3000.0, 16.0).unwrap()
+        ScrollbarGeom::compute(scroll_y, 800.0, 600.0, 40.0, 3000.0, 16.0)
+            .unwrap()
     }
 
     #[test]
     fn vscroll_none_when_content_fits() {
         // total_h=500 <= viewport_h=600 → None
-        assert!(ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 500.0, 16.0).is_none());
+        assert!(ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 500.0, 16.0)
+            .is_none());
     }
 
     #[test]
     fn vscroll_geometry_at_top() {
         let g = make_vscroll(0.0);
-        assert_eq!(g.track_x, 784.0);   // 800 - 16
-        assert_eq!(g.up_btn_y, 40.0);   // header_h
+        assert_eq!(g.track_x, 784.0); // 800 - 16
+        assert_eq!(g.up_btn_y, 40.0); // header_h
         assert_eq!(g.down_btn_y, 584.0); // 600 - 16
-        assert_eq!(g.track_y, 56.0);    // header + arrow_h
+        assert_eq!(g.track_y, 56.0); // header + arrow_h
         assert_eq!(g.thumb_y, g.track_y); // scroll=0 → thumb at top
     }
 
@@ -289,16 +321,16 @@ mod tests {
     #[test]
     fn vscroll_hit_up_arrow() {
         let g = make_vscroll(0.0);
-        assert!(g.hit_up_arrow(790.0, 50.0));   // inside
+        assert!(g.hit_up_arrow(790.0, 50.0)); // inside
         assert!(!g.hit_up_arrow(790.0, 100.0)); // below arrow
-        assert!(!g.hit_up_arrow(700.0, 50.0));  // wrong x
+        assert!(!g.hit_up_arrow(700.0, 50.0)); // wrong x
     }
 
     #[test]
     fn vscroll_hit_down_arrow() {
         let g = make_vscroll(0.0);
-        assert!(g.hit_down_arrow(790.0, 590.0));   // inside
-        assert!(!g.hit_down_arrow(790.0, 50.0));   // wrong y
+        assert!(g.hit_down_arrow(790.0, 590.0)); // inside
+        assert!(!g.hit_down_arrow(790.0, 50.0)); // wrong y
     }
 
     #[test]
@@ -329,19 +361,25 @@ mod tests {
 
     /// viewport 800×600, gutter=50, total_w=2000, vsb_w=16, track_h=16
     fn make_hscroll(scroll_x: f64) -> HScrollbarGeom {
-        HScrollbarGeom::compute(scroll_x, 800.0, 600.0, 50.0, 2000.0, 16.0, 16.0).unwrap()
+        HScrollbarGeom::compute(
+            scroll_x, 800.0, 600.0, 50.0, 2000.0, 16.0, 16.0,
+        )
+        .unwrap()
     }
 
     #[test]
     fn hscroll_none_when_content_fits() {
         // total_w=500, available_w=800-50-16=734 → None
-        assert!(HScrollbarGeom::compute(0.0, 800.0, 600.0, 50.0, 500.0, 16.0, 16.0).is_none());
+        assert!(HScrollbarGeom::compute(
+            0.0, 800.0, 600.0, 50.0, 500.0, 16.0, 16.0
+        )
+        .is_none());
     }
 
     #[test]
     fn hscroll_geometry() {
         let g = make_hscroll(0.0);
-        assert_eq!(g.track_y, 584.0);   // 600 - 16
+        assert_eq!(g.track_y, 584.0); // 600 - 16
         assert_eq!(g.left_btn_x, 50.0); // gutter_w
         assert_eq!(g.right_btn_x, 784.0 - 16.0); // 800 - vsb_w - arrow_w
         assert_eq!(g.thumb_x, g.track_x); // scroll=0 → thumb at left

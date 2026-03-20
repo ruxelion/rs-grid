@@ -34,7 +34,8 @@ pub fn GridCanvas(
     /// Called once after the grid is mounted with a cloned handle to the
     /// underlying `GridCanvas`. Use it to call `set_on_change`,
     /// `import_patches`, or `export_patches`.
-    #[prop(optional)] on_mount: Option<Box<dyn FnOnce(rs_grid_web::GridCanvas)>>,
+    #[prop(optional)]
+    on_mount: Option<Box<dyn FnOnce(rs_grid_web::GridCanvas)>>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 

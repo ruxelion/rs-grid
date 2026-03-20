@@ -98,7 +98,11 @@ impl SceneBuilder {
         // Pinned columns are not shifted by scroll_x.
         let col_vx = |ci: usize| -> f64 {
             let off = model.column_offsets.offsets[ci];
-            if ci < pinned_count { off + rnw } else { off - sx + rnw }
+            if ci < pinned_count {
+                off + rnw
+            } else {
+                off - sx + rnw
+            }
         };
 
         // ── data rows ────────────────────────────────────────────────────────
@@ -204,13 +208,11 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = model.row_top(ri) - sy;
-                if ry + model.row_height < model.header_height
-                    || ry > vp.height
+                if ry + model.row_height < model.header_height || ry > vp.height
                 {
                     continue;
                 }
-                let mid_y =
-                    ry + model.row_height * 0.5 + t.font_size * 0.35;
+                let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
 
                 if ri % 2 == 1 {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -291,8 +293,7 @@ impl SceneBuilder {
         if let Some((tl, br)) = sel.range() {
             let x1 = col_vx(tl.col);
             let y1 = model.row_top(tl.row) - sy;
-            let x2 =
-                col_vx(br.col) + model.columns[br.col].width;
+            let x2 = col_vx(br.col) + model.columns[br.col].width;
             let y2 = model.row_top(br.row) - sy + model.row_height;
 
             // top
@@ -356,9 +357,7 @@ impl SceneBuilder {
 
                     let col_in_sel = sel
                         .range()
-                        .map_or(false, |(tl, br)| {
-                            ci >= tl.col && ci <= br.col
-                        });
+                        .map_or(false, |(tl, br)| ci >= tl.col && ci <= br.col);
                     if col_in_sel {
                         frame.push(ScenePrimitive::Rect(RectPrimitive {
                             x: cx,
@@ -379,12 +378,7 @@ impl SceneBuilder {
                         color: t.header_text,
                         font_size: t.header_font_size,
                         bold: t.header_font_bold,
-                        clip: Some([
-                            cx,
-                            0.0,
-                            col.width,
-                            model.header_height,
-                        ]),
+                        clip: Some([cx, 0.0, col.width, model.header_height]),
                         align: TextAlign::Left,
                     }));
 
@@ -393,10 +387,8 @@ impl SceneBuilder {
                         if s.col_key == col.key {
                             const AW: f64 = 4.0;
                             const AH: f64 = 3.5;
-                            let ax =
-                                cx + col.width - t.cell_padding - AW;
-                            let ay =
-                                mid_y - t.header_font_size * 0.35;
+                            let ax = cx + col.width - t.cell_padding - AW;
+                            let ay = mid_y - t.header_font_size * 0.35;
                             let points = if s.dir == SortDir::Asc {
                                 vec![
                                     [ax, ay - AH],
@@ -599,9 +591,19 @@ impl SceneBuilder {
 
         // ── horizontal scrollbar ─────────────────────────────────────────────
         let vsb_w = if ScrollbarGeom::compute(
-            vp.scroll_y, vp.width, vp.height,
-            model.header_height, model.total_height(), t.scrollbar_width,
-        ).is_some() { t.scrollbar_width } else { 0.0 };
+            vp.scroll_y,
+            vp.width,
+            vp.height,
+            model.header_height,
+            model.total_height(),
+            t.scrollbar_width,
+        )
+        .is_some()
+        {
+            t.scrollbar_width
+        } else {
+            0.0
+        };
 
         if let Some(hsb) = HScrollbarGeom::compute(
             vp.scroll_x,
@@ -635,8 +637,8 @@ impl SceneBuilder {
             frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
                 points: vec![
                     [mid_left - arrow_size * 0.45, cy],
-                    [mid_left + arrow_size * 1.0,  cy - arrow_size],
-                    [mid_left + arrow_size * 1.0,  cy + arrow_size],
+                    [mid_left + arrow_size * 1.0, cy - arrow_size],
+                    [mid_left + arrow_size * 1.0, cy + arrow_size],
                 ],
                 fill: t.scrollbar_thumb,
                 corner_radius: arrow_size * 0.25,
@@ -647,8 +649,8 @@ impl SceneBuilder {
             frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
                 points: vec![
                     [mid_right + arrow_size * 0.45, cy],
-                    [mid_right - arrow_size * 1.0,  cy - arrow_size],
-                    [mid_right - arrow_size * 1.0,  cy + arrow_size],
+                    [mid_right - arrow_size * 1.0, cy - arrow_size],
+                    [mid_right - arrow_size * 1.0, cy + arrow_size],
                 ],
                 fill: t.scrollbar_thumb,
                 corner_radius: arrow_size * 0.25,

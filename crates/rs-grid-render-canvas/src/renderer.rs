@@ -1,6 +1,9 @@
 use rs_grid_scene::{
     frame::SceneFrame,
-    primitives::{LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive, TextAlign, TextPrimitive},
+    primitives::{
+        LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextAlign, TextPrimitive,
+    },
 };
 use web_sys::CanvasRenderingContext2d;
 
@@ -22,16 +25,15 @@ impl CanvasRenderer {
         ctx.save();
 
         // Scale for device pixel ratio so all coordinates are in CSS pixels.
-        ctx.scale(dpr, dpr)
-            .expect("canvas scale should not fail");
+        ctx.scale(dpr, dpr).expect("canvas scale should not fail");
 
         ctx.clear_rect(0.0, 0.0, frame.viewport_width, frame.viewport_height);
 
         for prim in &frame.primitives {
             match prim {
-                ScenePrimitive::Rect(r)    => self.draw_rect(r),
-                ScenePrimitive::Text(t)    => self.draw_text(t),
-                ScenePrimitive::Line(l)    => self.draw_line(l),
+                ScenePrimitive::Rect(r) => self.draw_rect(r),
+                ScenePrimitive::Text(t) => self.draw_text(t),
+                ScenePrimitive::Line(l) => self.draw_line(l),
                 ScenePrimitive::Polygon(p) => self.draw_polygon(p),
             }
         }
@@ -47,13 +49,13 @@ impl CanvasRenderer {
             ctx.begin_path();
             ctx.move_to(x + rad, y);
             ctx.line_to(x + w - rad, y);
-            ctx.arc_to(x + w, y,     x + w, y + rad,     rad).unwrap();
+            ctx.arc_to(x + w, y, x + w, y + rad, rad).unwrap();
             ctx.line_to(x + w, y + h - rad);
             ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad).unwrap();
             ctx.line_to(x + rad, y + h);
-            ctx.arc_to(x,     y + h, x,     y + h - rad, rad).unwrap();
+            ctx.arc_to(x, y + h, x, y + h - rad, rad).unwrap();
             ctx.line_to(x, y + rad);
-            ctx.arc_to(x,     y,     x + rad, y,          rad).unwrap();
+            ctx.arc_to(x, y, x + rad, y, rad).unwrap();
             ctx.close_path();
             ctx.set_fill_style_str(&r.fill.to_css());
             ctx.fill();
@@ -91,8 +93,9 @@ impl CanvasRenderer {
         ));
         ctx.set_text_baseline("alphabetic");
         ctx.set_text_align(match t.align {
-            TextAlign::Left  => "left",
+            TextAlign::Left => "left",
             TextAlign::Right => "right",
+            TextAlign::Center => "center",
         });
         // Round to integer CSS pixels: avoids sub-pixel blur on text.
         let _ = ctx.fill_text(&t.text, t.x.round(), t.y.round());
@@ -103,7 +106,9 @@ impl CanvasRenderer {
     fn draw_polygon(&self, p: &PolygonPrimitive) {
         let ctx = &self.ctx;
         let n = p.points.len();
-        if n < 2 { return; }
+        if n < 2 {
+            return;
+        }
 
         ctx.begin_path();
 
@@ -131,7 +136,8 @@ impl CanvasRenderer {
                 // Unit vector from curr toward next (outgoing edge).
                 let dx_out = next[0] - curr[0];
                 let dy_out = next[1] - curr[1];
-                let len_out = (dx_out * dx_out + dy_out * dy_out).sqrt().max(1e-9);
+                let len_out =
+                    (dx_out * dx_out + dy_out * dy_out).sqrt().max(1e-9);
                 // Exit point: walk forward from curr along the outgoing edge by r.
                 let qx = curr[0] + dx_out / len_out * r;
                 let qy = curr[1] + dy_out / len_out * r;

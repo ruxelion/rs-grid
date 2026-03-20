@@ -26,9 +26,9 @@ pub fn hit_test(
     let vx_data = vx - rnw;
     let pinned_width = model.pinned_width();
     let abs_x = if vx_data < pinned_width {
-        vx_data              // pinned zone: no scroll
+        vx_data // pinned zone: no scroll
     } else {
-        vx_data + scroll_x   // scrollable zone: add scroll
+        vx_data + scroll_x // scrollable zone: add scroll
     };
     let abs_y = vy + scroll_y;
 
@@ -107,11 +107,7 @@ pub fn hit_test_row_header(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        column::ColumnDef,
-        model::GridModel,
-        row::RowRecord,
-    };
+    use crate::{column::ColumnDef, model::GridModel, row::RowRecord};
 
     /// 2 columns (100 + 150 px), 5 rows, row_height=30, header=40,
     /// row_number_width=50 (default).

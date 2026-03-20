@@ -30,7 +30,11 @@ pub struct GridState {
 }
 
 impl GridState {
-    pub fn new(model: GridModel, viewport_width: f64, viewport_height: f64) -> Self {
+    pub fn new(
+        model: GridModel,
+        viewport_width: f64,
+        viewport_height: f64,
+    ) -> Self {
         Self {
             model,
             viewport: ViewportState::new(viewport_width, viewport_height),
@@ -54,8 +58,11 @@ impl GridState {
             }
             GridCommand::ScrollTo { x, y } => {
                 let rnw = self.model.row_number_width;
-                let max_x = (self.model.total_width() - (self.viewport.width - rnw)).max(0.0);
-                let max_y = (self.model.total_height() - self.viewport.height).max(0.0);
+                let max_x = (self.model.total_width()
+                    - (self.viewport.width - rnw))
+                    .max(0.0);
+                let max_y =
+                    (self.model.total_height() - self.viewport.height).max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
                 CommandOutput::None
@@ -64,8 +71,11 @@ impl GridState {
                 let x = self.viewport.scroll_x + dx;
                 let y = self.viewport.scroll_y + dy;
                 let rnw = self.model.row_number_width;
-                let max_x = (self.model.total_width() - (self.viewport.width - rnw)).max(0.0);
-                let max_y = (self.model.total_height() - self.viewport.height).max(0.0);
+                let max_x = (self.model.total_width()
+                    - (self.viewport.width - rnw))
+                    .max(0.0);
+                let max_y =
+                    (self.model.total_height() - self.viewport.height).max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
                 CommandOutput::None
@@ -82,13 +92,13 @@ impl GridState {
             GridCommand::CopySelection => {
                 match self.selection.to_tsv(&self.model) {
                     Ok(text) => CommandOutput::CopyText(text),
-                    Err(e)   => CommandOutput::CopyError(e),
+                    Err(e) => CommandOutput::CopyError(e),
                 }
             }
             GridCommand::CutSelection => {
                 let result = match self.selection.to_tsv(&self.model) {
                     Ok(text) => CommandOutput::CopyText(text),
-                    Err(e)   => return CommandOutput::CopyError(e),
+                    Err(e) => return CommandOutput::CopyError(e),
                 };
                 if let Some((tl, br)) = self.selection.range() {
                     for r in tl.row..=br.row {
@@ -102,7 +112,10 @@ impl GridState {
             }
             GridCommand::PasteAt { text } => {
                 let sel_range = self.selection.range();
-                let origin = self.selection.anchor.clone()
+                let origin = self
+                    .selection
+                    .anchor
+                    .clone()
                     .or_else(|| self.selection.focus.clone());
                 if let Some(orig) = origin {
                     let clip = crate::selection::parse_tsv(&text);
@@ -119,19 +132,16 @@ impl GridState {
                     // as-is. Multi-cell selection → tile
                     // clipboard to fill the target range
                     // (Excel-like behavior).
-                    let (target_rows, target_cols) =
-                        match sel_range {
-                            Some((ref tl, ref br))
-                                if tl.row != br.row
-                                    || tl.col != br.col =>
-                            {
-                                let tr = (br.row - tl.row + 1)
-                                    as usize;
-                                let tc = br.col - tl.col + 1;
-                                (tr, tc)
-                            }
-                            _ => (clip_rows, clip_cols),
-                        };
+                    let (target_rows, target_cols) = match sel_range {
+                        Some((ref tl, ref br))
+                            if tl.row != br.row || tl.col != br.col =>
+                        {
+                            let tr = (br.row - tl.row + 1) as usize;
+                            let tc = br.col - tl.col + 1;
+                            (tr, tc)
+                        }
+                        _ => (clip_rows, clip_cols),
+                    };
 
                     for dr in 0..target_rows {
                         let r = orig.row + dr as u64;
@@ -144,26 +154,16 @@ impl GridState {
                             if c >= col_count {
                                 break;
                             }
-                            let val =
-                                &src_row[dc % clip_cols];
-                            let key =
-                                self.model.columns[c]
-                                    .key
-                                    .clone();
-                            self.model.set_cell(
-                                r,
-                                key,
-                                val.clone(),
-                            );
+                            let val = &src_row[dc % clip_cols];
+                            let key = self.model.columns[c].key.clone();
+                            self.model.set_cell(r, key, val.clone());
                         }
                     }
                     // Update selection to cover pasted area
-                    let last_r = (orig.row
-                        + target_rows as u64
-                        - 1)
-                    .min(row_count - 1);
-                    let last_c = (orig.col + target_cols - 1)
-                        .min(col_count - 1);
+                    let last_r =
+                        (orig.row + target_rows as u64 - 1).min(row_count - 1);
+                    let last_c =
+                        (orig.col + target_cols - 1).min(col_count - 1);
                     self.selection.anchor = Some(CellCoord {
                         row: orig.row,
                         col: orig.col,
@@ -178,26 +178,30 @@ impl GridState {
             GridCommand::SelectRow(row) => {
                 let last_col = self.model.columns.len().saturating_sub(1);
                 self.selection.anchor = Some(CellCoord { row, col: 0 });
-                self.selection.focus  = Some(CellCoord { row, col: last_col });
+                self.selection.focus = Some(CellCoord { row, col: last_col });
                 CommandOutput::None
             }
             GridCommand::ExtendRowSelection(row) => {
                 let last_col = self.model.columns.len().saturating_sub(1);
                 // Clamp anchor column to 0 so the range always spans all columns.
-                if let Some(ref mut a) = self.selection.anchor { a.col = 0; }
+                if let Some(ref mut a) = self.selection.anchor {
+                    a.col = 0;
+                }
                 self.selection.focus = Some(CellCoord { row, col: last_col });
                 CommandOutput::None
             }
             GridCommand::SelectCol(col) => {
                 let last_row = self.model.display_row_count().saturating_sub(1);
                 self.selection.anchor = Some(CellCoord { row: 0, col });
-                self.selection.focus  = Some(CellCoord { row: last_row, col });
+                self.selection.focus = Some(CellCoord { row: last_row, col });
                 CommandOutput::None
             }
             GridCommand::ExtendColSelection(col) => {
                 let last_row = self.model.display_row_count().saturating_sub(1);
                 // Clamp anchor row to 0 so the range always spans all rows.
-                if let Some(ref mut a) = self.selection.anchor { a.row = 0; }
+                if let Some(ref mut a) = self.selection.anchor {
+                    a.row = 0;
+                }
                 self.selection.focus = Some(CellCoord { row: last_row, col });
                 CommandOutput::None
             }
@@ -208,7 +212,8 @@ impl GridState {
             GridCommand::ResizeColumn { col_idx, new_width } => {
                 const MIN_COL_WIDTH: f64 = 20.0;
                 if col_idx < self.model.columns.len() {
-                    self.model.columns[col_idx].width = new_width.max(MIN_COL_WIDTH);
+                    self.model.columns[col_idx].width =
+                        new_width.max(MIN_COL_WIDTH);
                     self.model.rebuild_offsets();
                 }
                 CommandOutput::None
@@ -219,7 +224,9 @@ impl GridState {
                         col_key: col_key.clone(),
                         dir: SortDir::Asc,
                     }),
-                    Some(s) if s.col_key == col_key && s.dir == SortDir::Asc => {
+                    Some(s)
+                        if s.col_key == col_key && s.dir == SortDir::Asc =>
+                    {
                         Some(SortState {
                             col_key: col_key.clone(),
                             dir: SortDir::Desc,
@@ -244,8 +251,7 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::SetPinnedColumnCount { count } => {
-                self.model.pinned_count =
-                    count.min(self.model.columns.len());
+                self.model.pinned_count = count.min(self.model.columns.len());
                 CommandOutput::None
             }
             GridCommand::SetColumnFilter { col_key, text } => {
@@ -276,10 +282,8 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::StartEdit { row, col_key } => {
-                let initial_value = self
-                    .model
-                    .get_cell(row, &col_key)
-                    .unwrap_or_default();
+                let initial_value =
+                    self.model.get_cell(row, &col_key).unwrap_or_default();
                 self.edit = Some(EditCell {
                     row,
                     col_key,
@@ -287,10 +291,16 @@ impl GridState {
                 });
                 CommandOutput::None
             }
-            GridCommand::CommitEdit { row, col_key, value } => {
-                if self.edit.as_ref().is_some_and(|e| {
-                    e.row == row && e.col_key == col_key
-                }) {
+            GridCommand::CommitEdit {
+                row,
+                col_key,
+                value,
+            } => {
+                if self
+                    .edit
+                    .as_ref()
+                    .is_some_and(|e| e.row == row && e.col_key == col_key)
+                {
                     self.model.set_cell(row, &col_key, value);
                     self.edit = None;
                 }
@@ -300,18 +310,30 @@ impl GridState {
                 self.edit = None;
                 CommandOutput::None
             }
-            GridCommand::MoveSelection { delta_row, delta_col, extend } => {
+            GridCommand::MoveSelection {
+                delta_row,
+                delta_col,
+                extend,
+            } => {
                 let row_count = self.model.display_row_count();
                 let col_count = self.model.columns.len();
-                let base = self.selection.focus.clone()
+                let base = self
+                    .selection
+                    .focus
+                    .clone()
                     .or_else(|| self.selection.anchor.clone());
                 if let Some(b) = base {
                     let new_row = (b.row as i64 + delta_row)
-                        .clamp(0, row_count.saturating_sub(1) as i64) as u64;
+                        .clamp(0, row_count.saturating_sub(1) as i64)
+                        as u64;
                     let new_col = (b.col as i64 + delta_col)
-                        .clamp(0, col_count.saturating_sub(1) as i64) as usize;
-                    if extend { self.selection.extend_to(new_row, new_col); }
-                    else      { self.selection.select_cell(new_row, new_col); }
+                        .clamp(0, col_count.saturating_sub(1) as i64)
+                        as usize;
+                    if extend {
+                        self.selection.extend_to(new_row, new_col);
+                    } else {
+                        self.selection.select_cell(new_row, new_col);
+                    }
                 }
                 CommandOutput::None
             }
@@ -331,12 +353,22 @@ impl GridState {
 
     /// Hit-test the sticky row-number gutter. Returns the row index or `None`.
     pub fn hit_test_row_header(&self, vx: f64, vy: f64) -> Option<u64> {
-        hit_test::hit_test_row_header(vx, vy, &self.model, self.viewport.scroll_y)
+        hit_test::hit_test_row_header(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_y,
+        )
     }
 
     /// Hit-test a column header. Returns the column index or `None`.
     pub fn hit_test_col_header(&self, vx: f64, vy: f64) -> Option<usize> {
-        hit_test::hit_test_col_header(vx, vy, &self.model, self.viewport.scroll_x)
+        hit_test::hit_test_col_header(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+        )
     }
 }
 
@@ -358,13 +390,15 @@ mod tests {
             ColumnDef::new("b", "B", 150.0),
             ColumnDef::new("c", "C", 200.0),
         ];
-        let rows = (0..10).map(|i| {
-            let mut r = RowRecord::new(i);
-            r.set("a", format!("a{i}"));
-            r.set("b", format!("b{i}"));
-            r.set("c", format!("c{i}"));
-            r
-        }).collect();
+        let rows = (0..10)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         GridState::new(model, 800.0, 600.0)
     }
@@ -374,7 +408,10 @@ mod tests {
     #[test]
     fn resize_updates_viewport() {
         let mut s = make_state();
-        s.apply(GridCommand::Resize { width: 1024.0, height: 768.0 });
+        s.apply(GridCommand::Resize {
+            width: 1024.0,
+            height: 768.0,
+        });
         assert_eq!(s.viewport.width, 1024.0);
         assert_eq!(s.viewport.height, 768.0);
     }
@@ -408,7 +445,10 @@ mod tests {
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         // max_y = 2840
-        s.apply(GridCommand::ScrollTo { x: 0.0, y: 99_999.0 });
+        s.apply(GridCommand::ScrollTo {
+            x: 0.0,
+            y: 99_999.0,
+        });
         assert_eq!(s.viewport.scroll_y, 2840.0);
     }
 
@@ -523,7 +563,9 @@ mod tests {
     fn paste_at_origin() {
         let mut s = make_state();
         s.apply(GridCommand::SelectCell(CellCoord { row: 1, col: 0 }));
-        s.apply(GridCommand::PasteAt { text: "X\tY\n".into() });
+        s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
         assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
         assert_eq!(s.model.get_cell(1, "b"), Some("Y".into()));
     }
@@ -605,20 +647,14 @@ mod tests {
             col_key: "a".into(),
         });
         assert!(s.edit.is_some());
-        assert_eq!(
-            s.edit.as_ref().unwrap().initial_value,
-            "a0"
-        );
+        assert_eq!(s.edit.as_ref().unwrap().initial_value, "a0");
         s.apply(GridCommand::CommitEdit {
             row: 0,
             col_key: "a".into(),
             value: "edited".into(),
         });
         assert!(s.edit.is_none());
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("edited".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("edited".into()));
     }
 
     #[test]
@@ -631,10 +667,7 @@ mod tests {
         s.apply(GridCommand::CancelEdit);
         assert!(s.edit.is_none());
         // Cell unchanged
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
     }
 
     // ── SetPinnedColumnCount ─────────────────────────────────────────────────

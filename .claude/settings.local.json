@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo llvm-cov:*)",
+      "Bash(rustup component:*)",
+      "Bash(rustup show:*)",
+      "Bash(rustup toolchain:*)",
+      "Bash(cargo +stable-x86_64-pc-windows-msvc llvm-cov -p rs-grid-core)",
+      "Bash(while read:*)",
+      "Bash(do grep:*)",
+      "Bash(done)",
+      "Bash(xargs grep:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo test:*)",
+      "Bash(wc -l /c/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)"
+    ]
+  }
+}
