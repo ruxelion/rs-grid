@@ -86,7 +86,7 @@ impl GridCanvas {
 
         doc.body().expect("body").append_child(&input).unwrap();
         let _ = input.focus();
-        let _ = input.select();
+        input.select();
 
         // Enter → commit
         {

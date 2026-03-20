@@ -357,7 +357,7 @@ impl SceneBuilder {
 
                     let col_in_sel = sel
                         .range()
-                        .map_or(false, |(tl, br)| ci >= tl.col && ci <= br.col);
+                        .is_some_and(|(tl, br)| ci >= tl.col && ci <= br.col);
                     if col_in_sel {
                         frame.push(ScenePrimitive::Rect(RectPrimitive {
                             x: cx,
@@ -463,7 +463,7 @@ impl SceneBuilder {
 
                 let is_selected = sel
                     .range()
-                    .map_or(false, |(tl, br)| ri >= tl.row && ri <= br.row);
+                    .is_some_and(|(tl, br)| ri >= tl.row && ri <= br.row);
 
                 if is_selected {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
