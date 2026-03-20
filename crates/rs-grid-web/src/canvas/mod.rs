@@ -1,5 +1,6 @@
 mod clipboard;
 mod context_menu;
+pub mod context_menu_config;
 mod dom_helpers;
 mod edit;
 mod events;
@@ -60,6 +61,8 @@ struct Inner {
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
     pending_clipboard: RefCell<Option<String>>,
+    /// Context menu configuration (items + overrides).
+    ctx_menu_config: RefCell<context_menu_config::ContextMenuConfig>,
 }
 
 enum ActiveDrag {
@@ -162,6 +165,9 @@ impl GridCanvas {
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
             pending_clipboard: RefCell::new(None),
+            ctx_menu_config: RefCell::new(
+                context_menu_config::ContextMenuConfig::default(),
+            ),
         });
 
         let gc = GridCanvas(inner);
@@ -462,5 +468,13 @@ impl GridCanvas {
     /// Remove all column filters.
     pub fn clear_filters(&self) {
         self.dispatch(GridCommand::ClearAllFilters);
+    }
+
+    /// Replace the context menu configuration.
+    pub fn set_context_menu(
+        &self,
+        config: context_menu_config::ContextMenuConfig,
+    ) {
+        *self.0.ctx_menu_config.borrow_mut() = config;
     }
 }

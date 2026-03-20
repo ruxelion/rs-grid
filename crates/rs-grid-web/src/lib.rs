@@ -1,5 +1,8 @@
 mod canvas;
 mod css_theme;
 
+pub use canvas::context_menu_config::{
+    BuiltinAction, ContextMenuConfig, ContextMenuItem,
+};
 pub use canvas::GridCanvas;
 pub use css_theme::theme_from_css_vars;
