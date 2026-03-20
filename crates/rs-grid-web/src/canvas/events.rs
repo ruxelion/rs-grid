@@ -660,6 +660,14 @@ impl GridCanvas {
                         gc.dispatch(GridCommand::ClearSelection);
                     }
                 }
+                "z" if evt.ctrl_key() || evt.meta_key() => {
+                    evt.prevent_default();
+                    gc.dispatch(GridCommand::Undo);
+                }
+                "y" if evt.ctrl_key() || evt.meta_key() => {
+                    evt.prevent_default();
+                    gc.dispatch(GridCommand::Redo);
+                }
                 _ => {}
             }
         });

@@ -15,6 +15,25 @@ pub struct EditCell {
     pub initial_value: String,
 }
 
+/// A reversible action stored in the undo/redo stack.
+#[derive(Debug, Clone)]
+enum UndoEntry {
+    /// Restore a single cell to its previous value.
+    SetCell {
+        row: u64,
+        col_key: String,
+        old_value: Option<String>,
+    },
+    /// Restore multiple cells (batch paste/cut).
+    SetCells(Vec<(u64, String, Option<String>)>),
+    /// Restore a column width.
+    ResizeColumn { col_idx: usize, old_width: f64 },
+    /// Reverse a column move.
+    MoveColumn { from_idx: usize, to_idx: usize },
+}
+
+const MAX_UNDO: usize = 100;
+
 /// The complete mutable state of a grid instance.
 #[derive(Debug)]
 pub struct GridState {
@@ -27,6 +46,8 @@ pub struct GridState {
     pub sort: Option<SortState>,
     /// Cell currently being edited (`None` = no edit in progress).
     pub edit: Option<EditCell>,
+    undo_stack: Vec<UndoEntry>,
+    redo_stack: Vec<UndoEntry>,
 }
 
 impl GridState {
@@ -42,7 +63,88 @@ impl GridState {
             hovered_row: None,
             sort: None,
             edit: None,
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
         }
+    }
+
+    /// Apply an undo entry and return the inverse entry for redo.
+    fn apply_undo_entry(&mut self, entry: &UndoEntry) -> UndoEntry {
+        match entry {
+            UndoEntry::SetCell {
+                row,
+                col_key,
+                old_value,
+            } => {
+                let current =
+                    self.model.get_cell(*row, col_key);
+                if let Some(v) = old_value {
+                    self.model.set_cell(*row, col_key, v.clone());
+                } else {
+                    // Remove patch to restore datasource value.
+                    let physical =
+                        self.model.logical_to_physical(*row);
+                    self.model
+                        .patches
+                        .remove(&(physical, col_key.clone()));
+                }
+                UndoEntry::SetCell {
+                    row: *row,
+                    col_key: col_key.clone(),
+                    old_value: current,
+                }
+            }
+            UndoEntry::SetCells(cells) => {
+                let mut inverse = Vec::with_capacity(cells.len());
+                for (row, col_key, old_value) in cells {
+                    let current =
+                        self.model.get_cell(*row, col_key);
+                    if let Some(v) = old_value {
+                        self.model
+                            .set_cell(*row, col_key, v.clone());
+                    } else {
+                        let physical =
+                            self.model.logical_to_physical(*row);
+                        self.model.patches.remove(
+                            &(physical, col_key.clone()),
+                        );
+                    }
+                    inverse.push((
+                        *row,
+                        col_key.clone(),
+                        current,
+                    ));
+                }
+                UndoEntry::SetCells(inverse)
+            }
+            UndoEntry::ResizeColumn { col_idx, old_width } => {
+                let current_width =
+                    self.model.columns[*col_idx].width;
+                self.model.columns[*col_idx].width = *old_width;
+                self.model.rebuild_offsets();
+                UndoEntry::ResizeColumn {
+                    col_idx: *col_idx,
+                    old_width: current_width,
+                }
+            }
+            UndoEntry::MoveColumn { from_idx, to_idx } => {
+                let col = self.model.columns.remove(*from_idx);
+                self.model.columns.insert(*to_idx, col);
+                self.model.rebuild_offsets();
+                UndoEntry::MoveColumn {
+                    from_idx: *to_idx,
+                    to_idx: *from_idx,
+                }
+            }
+        }
+    }
+
+    fn push_undo(&mut self, entry: UndoEntry) {
+        if self.undo_stack.len() >= MAX_UNDO {
+            self.undo_stack.remove(0);
+        }
+        self.undo_stack.push(entry);
+        self.redo_stack.clear();
     }
 
     /// Apply a command, mutating state in place.
@@ -101,12 +203,18 @@ impl GridState {
                     Err(e) => return CommandOutput::CopyError(e),
                 };
                 if let Some((tl, br)) = self.selection.range() {
+                    let mut old_cells = Vec::new();
                     for r in tl.row..=br.row {
                         for ci in tl.col..=br.col {
-                            let key = self.model.columns[ci].key.clone();
+                            let key =
+                                self.model.columns[ci].key.clone();
+                            let old =
+                                self.model.get_cell(r, &key);
+                            old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, String::new());
                         }
                     }
+                    self.push_undo(UndoEntry::SetCells(old_cells));
                 }
                 result
             }
@@ -143,6 +251,7 @@ impl GridState {
                         _ => (clip_rows, clip_cols),
                     };
 
+                    let mut old_cells = Vec::new();
                     for dr in 0..target_rows {
                         let r = orig.row + dr as u64;
                         if r >= row_count {
@@ -155,9 +264,18 @@ impl GridState {
                                 break;
                             }
                             let val = &src_row[dc % clip_cols];
-                            let key = self.model.columns[c].key.clone();
+                            let key =
+                                self.model.columns[c].key.clone();
+                            let old =
+                                self.model.get_cell(r, &key);
+                            old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, val.clone());
                         }
+                    }
+                    if !old_cells.is_empty() {
+                        self.push_undo(
+                            UndoEntry::SetCells(old_cells),
+                        );
                     }
                     // Update selection to cover pasted area
                     let last_r =
@@ -278,6 +396,10 @@ impl GridState {
                     let col = self.model.columns.remove(from_idx);
                     self.model.columns.insert(to_idx, col);
                     self.model.rebuild_offsets();
+                    self.push_undo(UndoEntry::MoveColumn {
+                        from_idx: to_idx,
+                        to_idx: from_idx,
+                    });
                 }
                 CommandOutput::None
             }
@@ -301,13 +423,34 @@ impl GridState {
                     .as_ref()
                     .is_some_and(|e| e.row == row && e.col_key == col_key)
                 {
+                    let old_value =
+                        self.model.get_cell(row, &col_key);
                     self.model.set_cell(row, &col_key, value);
                     self.edit = None;
+                    self.push_undo(UndoEntry::SetCell {
+                        row,
+                        col_key,
+                        old_value,
+                    });
                 }
                 CommandOutput::None
             }
             GridCommand::CancelEdit => {
                 self.edit = None;
+                CommandOutput::None
+            }
+            GridCommand::Undo => {
+                if let Some(entry) = self.undo_stack.pop() {
+                    let redo = self.apply_undo_entry(&entry);
+                    self.redo_stack.push(redo);
+                }
+                CommandOutput::None
+            }
+            GridCommand::Redo => {
+                if let Some(entry) = self.redo_stack.pop() {
+                    let undo = self.apply_undo_entry(&entry);
+                    self.undo_stack.push(undo);
+                }
                 CommandOutput::None
             }
             GridCommand::AutoFitColumn {
@@ -319,6 +462,7 @@ impl GridState {
                 const MIN_COL_WIDTH: f64 = 20.0;
                 const MAX_SAMPLE_ROWS: u64 = 1_000;
                 if col_idx < self.model.columns.len() {
+                    let old_width = self.model.columns[col_idx].width;
                     let col_key = self.model.columns[col_idx].key.clone();
                     let label = &self.model.columns[col_idx].label;
                     let header_w = label.len() as f64 * header_char_width
@@ -340,6 +484,10 @@ impl GridState {
                     self.model.columns[col_idx].width =
                         max_w.max(MIN_COL_WIDTH);
                     self.model.rebuild_offsets();
+                    self.push_undo(UndoEntry::ResizeColumn {
+                        col_idx,
+                        old_width,
+                    });
                 }
                 CommandOutput::None
             }
@@ -773,5 +921,126 @@ mod tests {
             cell_padding: 10.0,
         });
         assert_eq!(s.model.columns[0].width, old_width);
+    }
+
+    // ── Undo / Redo ────────────────────────────────────────────────────────
+
+    #[test]
+    fn undo_commit_edit() {
+        let mut s = make_state();
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "edited".into(),
+        });
+        assert_eq!(s.model.get_cell(0, "a"), Some("edited".into()));
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
+    }
+
+    #[test]
+    fn redo_after_undo() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "edited".into(),
+        });
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
+        s.apply(GridCommand::Redo);
+        assert_eq!(s.model.get_cell(0, "a"), Some("edited".into()));
+    }
+
+    #[test]
+    fn undo_paste() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord {
+            row: 0,
+            col: 0,
+        }));
+        s.apply(GridCommand::PasteAt {
+            text: "X\tY".into(),
+        });
+        assert_eq!(s.model.get_cell(0, "a"), Some("X".into()));
+        assert_eq!(s.model.get_cell(0, "b"), Some("Y".into()));
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
+        assert_eq!(s.model.get_cell(0, "b"), Some("b0".into()));
+    }
+
+    #[test]
+    fn undo_move_column() {
+        let mut s = make_state();
+        assert_eq!(s.model.columns[0].key, "a");
+        assert_eq!(s.model.columns[1].key, "b");
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 1,
+        });
+        assert_eq!(s.model.columns[0].key, "b");
+        assert_eq!(s.model.columns[1].key, "a");
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[0].key, "a");
+        assert_eq!(s.model.columns[1].key, "b");
+    }
+
+    #[test]
+    fn undo_auto_fit_restores_width() {
+        let mut s = make_state();
+        assert_eq!(s.model.columns[0].width, 100.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.4,
+            header_char_width: 8.45,
+            cell_padding: 10.0,
+        });
+        assert_ne!(s.model.columns[0].width, 100.0);
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[0].width, 100.0);
+    }
+
+    #[test]
+    fn new_action_clears_redo_stack() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "v1".into(),
+        });
+        s.apply(GridCommand::Undo);
+        // Now do a new edit — redo stack should be cleared
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "v2".into(),
+        });
+        s.apply(GridCommand::Redo); // should be no-op
+        assert_eq!(s.model.get_cell(0, "a"), Some("v2".into()));
+    }
+
+    #[test]
+    fn undo_on_empty_stack_is_noop() {
+        let mut s = make_state();
+        let val = s.model.get_cell(0, "a");
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.get_cell(0, "a"), val);
     }
 }

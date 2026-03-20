@@ -61,6 +61,10 @@ pub enum GridCommand {
     },
     /// Cancel the current cell edit.
     CancelEdit,
+    /// Undo the last undoable action.
+    Undo,
+    /// Redo the last undone action.
+    Redo,
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
         col_idx: usize,

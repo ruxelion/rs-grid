@@ -81,7 +81,7 @@ impl GridModel {
     /// When a filter is active `filtered_indices` already holds
     /// physical rows in sort order, so we index directly.
     /// Otherwise we fall back to `sort_order`.
-    fn logical_to_physical(&self, logical: u64) -> u64 {
+    pub fn logical_to_physical(&self, logical: u64) -> u64 {
         if !self.filtered_indices.is_empty() {
             return self
                 .filtered_indices
