@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Trunk Dev Server",
+      "runtimeExecutable": "trunk",
+      "runtimeArgs": ["serve"],
+      "port": 8080,
+      "cwd": "examples/basic-leptos"
+    },
+    {
+      "name": "Playwright E2E Server",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4173", "-d", "examples/basic-leptos/dist"],
+      "port": 4173
+    }
+  ]
+}
