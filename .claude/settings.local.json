@@ -14,7 +14,9 @@
       "Bash(cargo fmt:*)",
       "Bash(cargo clippy:*)",
       "Bash(cargo test:*)",
-      "Bash(wc -l /c/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)"
+      "Bash(wc -l /c/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
+      "Bash(cargo install:*)",
+      "Bash(rustup target:*)"
     ]
   }
 }
