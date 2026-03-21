@@ -63,26 +63,19 @@ impl PageCacheDataSource {
     }
 
     /// Insert a fetched page into the cache.
-    pub fn insert_page(
-        &self,
-        page_num: u64,
-        rows: Vec<RowRecord>,
-    ) {
+    pub fn insert_page(&self, page_num: u64, rows: Vec<RowRecord>) {
         let mut inner = self.inner.borrow_mut();
         inner.pending.remove(&page_num);
 
         // LRU: remove old entry from access order if present
-        inner
-            .access_order
-            .retain(|&p| p != page_num);
+        inner.access_order.retain(|&p| p != page_num);
         inner.access_order.push_back(page_num);
 
         inner.pages.insert(page_num, rows);
 
         // Evict oldest pages if over limit
         while inner.pages.len() > inner.max_cached_pages {
-            if let Some(old) = inner.access_order.pop_front()
-            {
+            if let Some(old) = inner.access_order.pop_front() {
                 inner.pages.remove(&old);
             } else {
                 break;
@@ -116,20 +109,14 @@ impl PageCacheDataSource {
 
     /// Return page numbers in the given row range that are
     /// neither loaded nor pending.
-    pub fn needed_pages(
-        &self,
-        first_row: u64,
-        last_row: u64,
-    ) -> Vec<u64> {
+    pub fn needed_pages(&self, first_row: u64, last_row: u64) -> Vec<u64> {
         let inner = self.inner.borrow();
         let ps = inner.page_size;
         let first_page = first_row / ps;
         let last_page = last_row.saturating_sub(1) / ps;
         let mut result = Vec::new();
         for p in first_page..=last_page {
-            if !inner.pages.contains_key(&p)
-                && !inner.pending.contains(&p)
-            {
+            if !inner.pages.contains_key(&p) && !inner.pending.contains(&p) {
                 result.push(p);
             }
         }
@@ -137,10 +124,7 @@ impl PageCacheDataSource {
     }
 
     /// Page number for a given row.
-    fn page_for_row(
-        page_size: u64,
-        row: u64,
-    ) -> (u64, usize) {
+    fn page_for_row(page_size: u64, row: u64) -> (u64, usize) {
         let page = row / page_size;
         let offset = (row % page_size) as usize;
         (page, offset)
@@ -152,44 +136,26 @@ impl DataSource for PageCacheDataSource {
         self.inner.borrow().total_rows
     }
 
-    fn get_cell(
-        &self,
-        row: u64,
-        col_key: &str,
-    ) -> Option<String> {
+    fn get_cell(&self, row: u64, col_key: &str) -> Option<String> {
         let inner = self.inner.borrow();
-        let (page, offset) =
-            Self::page_for_row(inner.page_size, row);
+        let (page, offset) = Self::page_for_row(inner.page_size, row);
         let page_data = inner.pages.get(&page)?;
         let record = page_data.get(offset)?;
         record.get(col_key).map(str::to_owned)
     }
 
-    fn cell_status(
-        &self,
-        row: u64,
-        col_key: &str,
-    ) -> CellStatus {
+    fn cell_status(&self, row: u64, col_key: &str) -> CellStatus {
         let inner = self.inner.borrow();
-        let (page, offset) =
-            Self::page_for_row(inner.page_size, row);
+        let (page, offset) = Self::page_for_row(inner.page_size, row);
         match inner.pages.get(&page) {
             None => CellStatus::Loading,
-            Some(page_data) => {
-                match page_data.get(offset) {
+            Some(page_data) => match page_data.get(offset) {
+                None => CellStatus::Absent,
+                Some(record) => match record.get(col_key) {
+                    Some(v) => CellStatus::Ready(v.to_owned()),
                     None => CellStatus::Absent,
-                    Some(record) => {
-                        match record.get(col_key) {
-                            Some(v) => {
-                                CellStatus::Ready(
-                                    v.to_owned(),
-                                )
-                            }
-                            None => CellStatus::Absent,
-                        }
-                    }
-                }
-            }
+                },
+            },
         }
     }
 
@@ -219,14 +185,8 @@ mod tests {
     #[test]
     fn empty_cache_returns_loading() {
         let ds = PageCacheDataSource::new(1000, 100);
-        assert_eq!(
-            ds.cell_status(0, "name"),
-            CellStatus::Loading
-        );
-        assert_eq!(
-            ds.cell_status(50, "name"),
-            CellStatus::Loading
-        );
+        assert_eq!(ds.cell_status(0, "name"), CellStatus::Loading);
+        assert_eq!(ds.cell_status(50, "name"), CellStatus::Loading);
         assert_eq!(ds.get_cell(0, "name"), None);
     }
 
@@ -238,25 +198,16 @@ mod tests {
             ds.cell_status(0, "name"),
             CellStatus::Ready("user_0".into())
         );
-        assert_eq!(
-            ds.get_cell(50, "name"),
-            Some("user_50".into())
-        );
+        assert_eq!(ds.get_cell(50, "name"), Some("user_50".into()));
         // Page 1 still loading
-        assert_eq!(
-            ds.cell_status(100, "name"),
-            CellStatus::Loading
-        );
+        assert_eq!(ds.cell_status(100, "name"), CellStatus::Loading);
     }
 
     #[test]
     fn absent_for_missing_column() {
         let ds = PageCacheDataSource::new(1000, 100);
         ds.insert_page(0, make_page(0, 100));
-        assert_eq!(
-            ds.cell_status(0, "nonexistent"),
-            CellStatus::Absent
-        );
+        assert_eq!(ds.cell_status(0, "nonexistent"), CellStatus::Absent);
     }
 
     #[test]
@@ -285,10 +236,7 @@ mod tests {
         ds.insert_page(0, make_page(0, 100));
         ds.mark_pending(1);
         ds.clear();
-        assert_eq!(
-            ds.cell_status(0, "name"),
-            CellStatus::Loading
-        );
+        assert_eq!(ds.cell_status(0, "name"), CellStatus::Loading);
         assert!(!ds.is_page_pending(1));
     }
 
@@ -298,10 +246,7 @@ mod tests {
         let ds2 = ds.clone();
         ds2.insert_page(0, make_page(0, 100));
         // Original sees the data
-        assert_eq!(
-            ds.get_cell(0, "name"),
-            Some("user_0".into())
-        );
+        assert_eq!(ds.get_cell(0, "name"), Some("user_0".into()));
     }
 
     #[test]

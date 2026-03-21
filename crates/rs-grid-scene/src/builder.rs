@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
+    column::{format_cell, CellAlign},
     datasource::CellStatus,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
     sort::SortDir,
@@ -10,8 +11,8 @@ use rs_grid_core::{
 use crate::{
     frame::SceneFrame,
     primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive,
-        ScenePrimitive, TextAlign, TextPrimitive,
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextAlign, TextPrimitive,
     },
     theme::Theme,
 };
@@ -202,12 +203,11 @@ impl SceneBuilder {
 
                 // Search highlight
                 if search_set.contains(&(ri, ci)) {
-                    let fill =
-                        if search_current == Some((ri, ci)) {
-                            t.search_current
-                        } else {
-                            t.search_highlight
-                        };
+                    let fill = if search_current == Some((ri, ci)) {
+                        t.search_current
+                    } else {
+                        t.search_highlight
+                    };
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: cx,
                         y: ry,
@@ -222,46 +222,55 @@ impl SceneBuilder {
 
                 // Cell text or skeleton
                 match model.cell_status(ri, &col.key) {
-                    CellStatus::Ready(text)
-                        if !text.is_empty() =>
-                    {
-                        frame.push(ScenePrimitive::Text(
-                            TextPrimitive {
-                                x: cx + t.cell_padding,
-                                y: mid_y,
-                                text,
-                                color: t.cell_text,
-                                font_size: t.font_size,
-                                bold: false,
-                                clip: Some([
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                ]),
-                                align: TextAlign::Left,
-                            },
-                        ));
+                    CellStatus::Ready(raw) if !raw.is_empty() => {
+                        let (txt, align, bold, color) = if let Some(fmt) =
+                            &col.format
+                        {
+                            let fc = format_cell(&raw, fmt);
+                            let a = match fc.align.unwrap_or_default() {
+                                CellAlign::Left => TextAlign::Left,
+                                CellAlign::Right => TextAlign::Right,
+                                CellAlign::Center => TextAlign::Center,
+                            };
+                            let c = fc
+                                .color
+                                .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
+                                .unwrap_or(t.cell_text);
+                            (fc.text, a, fc.bold, c)
+                        } else {
+                            (raw, TextAlign::Left, false, t.cell_text)
+                        };
+                        let x = match align {
+                            TextAlign::Right => cx + col.width - t.cell_padding,
+                            TextAlign::Center => cx + col.width / 2.0,
+                            TextAlign::Left => cx + t.cell_padding,
+                        };
+                        frame.push(ScenePrimitive::Text(TextPrimitive {
+                            x,
+                            y: mid_y,
+                            text: txt,
+                            color,
+                            font_size: t.font_size,
+                            bold,
+                            clip: Some([cx, ry, col.width, model.row_height]),
+                            align,
+                        }));
                     }
                     CellStatus::Loading => {
                         let bar_w = col.width * 0.6;
                         let bar_h = t.font_size * 0.5;
                         let bar_x = cx + t.cell_padding;
-                        let bar_y = ry
-                            + (model.row_height - bar_h)
-                                / 2.0;
-                        frame.push(ScenePrimitive::Rect(
-                            RectPrimitive {
-                                x: bar_x,
-                                y: bar_y,
-                                width: bar_w,
-                                height: bar_h,
-                                fill: t.skeleton_fg,
-                                stroke: None,
-                                stroke_width: 0.0,
-                                corner_radius: bar_h / 2.0,
-                            },
-                        ));
+                        let bar_y = ry + (model.row_height - bar_h) / 2.0;
+                        frame.push(ScenePrimitive::Rect(RectPrimitive {
+                            x: bar_x,
+                            y: bar_y,
+                            width: bar_w,
+                            height: bar_h,
+                            fill: t.skeleton_fg,
+                            stroke: None,
+                            stroke_width: 0.0,
+                            corner_radius: bar_h / 2.0,
+                        }));
                     }
                     _ => {}
                 }
@@ -344,78 +353,81 @@ impl SceneBuilder {
                     }
 
                     if search_set.contains(&(ri, ci)) {
-                        let fill =
-                            if search_current == Some((ri, ci)) {
-                                t.search_current
-                            } else {
-                                t.search_highlight
-                            };
-                        frame.push(ScenePrimitive::Rect(
-                            RectPrimitive {
-                                x: cx,
-                                y: ry,
-                                width: col.width,
-                                height: model.row_height,
-                                fill,
-                                stroke: None,
-                                stroke_width: 0.0,
-                                corner_radius: 0.0,
-                            },
-                        ));
+                        let fill = if search_current == Some((ri, ci)) {
+                            t.search_current
+                        } else {
+                            t.search_highlight
+                        };
+                        frame.push(ScenePrimitive::Rect(RectPrimitive {
+                            x: cx,
+                            y: ry,
+                            width: col.width,
+                            height: model.row_height,
+                            fill,
+                            stroke: None,
+                            stroke_width: 0.0,
+                            corner_radius: 0.0,
+                        }));
                     }
 
                     match model.cell_status(ri, &col.key) {
-                        CellStatus::Ready(text)
-                            if !text.is_empty() =>
-                        {
-                            frame.push(
-                                ScenePrimitive::Text(
-                                    TextPrimitive {
-                                        x: cx
-                                            + t.cell_padding,
-                                        y: mid_y,
-                                        text,
-                                        color: t.cell_text,
-                                        font_size: t
-                                            .font_size,
-                                        bold: false,
-                                        clip: Some([
-                                            cx,
-                                            ry,
-                                            col.width,
-                                            model.row_height,
-                                        ]),
-                                        align:
-                                            TextAlign::Left,
-                                    },
-                                ),
-                            );
+                        CellStatus::Ready(raw) if !raw.is_empty() => {
+                            let (txt, align, bold, color) =
+                                if let Some(fmt) = &col.format {
+                                    let fc = format_cell(&raw, fmt);
+                                    let a = match fc.align.unwrap_or_default() {
+                                        CellAlign::Left => TextAlign::Left,
+                                        CellAlign::Right => TextAlign::Right,
+                                        CellAlign::Center => TextAlign::Center,
+                                    };
+                                    let c = fc
+                                        .color
+                                        .map(|c| {
+                                            Color::rgba(c[0], c[1], c[2], c[3])
+                                        })
+                                        .unwrap_or(t.cell_text);
+                                    (fc.text, a, fc.bold, c)
+                                } else {
+                                    (raw, TextAlign::Left, false, t.cell_text)
+                                };
+                            let x = match align {
+                                TextAlign::Right => {
+                                    cx + col.width - t.cell_padding
+                                }
+                                TextAlign::Center => cx + col.width / 2.0,
+                                TextAlign::Left => cx + t.cell_padding,
+                            };
+                            frame.push(ScenePrimitive::Text(TextPrimitive {
+                                x,
+                                y: mid_y,
+                                text: txt,
+                                color,
+                                font_size: t.font_size,
+                                bold,
+                                clip: Some([
+                                    cx,
+                                    ry,
+                                    col.width,
+                                    model.row_height,
+                                ]),
+                                align,
+                            }));
                         }
                         CellStatus::Loading => {
                             let bar_w = col.width * 0.6;
                             let bar_h = t.font_size * 0.5;
-                            let bar_x =
-                                cx + t.cell_padding;
-                            let bar_y = ry
-                                + (model.row_height
-                                    - bar_h)
-                                    / 2.0;
-                            frame.push(
-                                ScenePrimitive::Rect(
-                                    RectPrimitive {
-                                        x: bar_x,
-                                        y: bar_y,
-                                        width: bar_w,
-                                        height: bar_h,
-                                        fill: t
-                                            .skeleton_fg,
-                                        stroke: None,
-                                        stroke_width: 0.0,
-                                        corner_radius:
-                                            bar_h / 2.0,
-                                    },
-                                ),
-                            );
+                            let bar_x = cx + t.cell_padding;
+                            let bar_y = ry + (model.row_height - bar_h) / 2.0;
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: bar_x,
+                                y: bar_y,
+                                width: bar_w,
+                                height: bar_h,
+                                fill: t.skeleton_fg,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: bar_h / 2.0,
+                            }));
                         }
                         _ => {}
                     }
@@ -857,8 +869,7 @@ impl SceneBuilder {
                 }));
 
                 // 2. Insertion line
-                let insert_vx = if hint.insert_before < cols.len()
-                {
+                let insert_vx = if hint.insert_before < cols.len() {
                     col_vx(hint.insert_before)
                 } else {
                     let last = cols.len() - 1;
@@ -896,8 +907,8 @@ impl SceneBuilder {
                 }));
 
                 // Ghost label
-                let mid_y = model.header_height * 0.5
-                    + t.header_font_size * 0.35;
+                let mid_y =
+                    model.header_height * 0.5 + t.header_font_size * 0.35;
                 let ghost_text = Color::rgba(
                     t.header_text.r,
                     t.header_text.g,
@@ -911,12 +922,7 @@ impl SceneBuilder {
                     color: ghost_text,
                     font_size: t.header_font_size,
                     bold: t.header_font_bold,
-                    clip: Some([
-                        ghost_x,
-                        0.0,
-                        ghost_w,
-                        model.header_height,
-                    ]),
+                    clip: Some([ghost_x, 0.0, ghost_w, model.header_height]),
                     align: TextAlign::Left,
                 }));
             }

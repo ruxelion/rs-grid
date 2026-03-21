@@ -2,7 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use leptos::prelude::*;
 use rs_grid_core::{
-    column::ColumnDef, datasource::FnDataSource, model::GridModel,
+    column::{CellFormat, ColumnDef},
+    datasource::FnDataSource,
+    model::GridModel,
 };
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, WebGridCanvas};
 use rs_grid_scene::Theme;
@@ -11,20 +13,42 @@ use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::js_sys;
 
 fn build_model(row_count: u64, col_count: usize) -> GridModel {
-    let base: Vec<(&'static str, &'static str, f64)> = vec![
-        ("id", "ID", 60.0),
-        ("name", "Name", 200.0),
-        ("email", "Email", 260.0),
-        ("role", "Role", 140.0),
-        ("dept", "Department", 160.0),
-        ("status", "Status", 100.0),
+    let base: Vec<ColumnDef> = vec![
+        {
+            let mut c = ColumnDef::new("id", "ID", 80.0);
+            c.format = Some(CellFormat::Number {
+                decimal_places: 0,
+                thousands_sep: Some(' '),
+                decimal_sep: '.',
+            });
+            c
+        },
+        ColumnDef::new("name", "Name", 200.0),
+        ColumnDef::new("email", "Email", 260.0),
+        ColumnDef::new("role", "Role", 140.0),
+        ColumnDef::new("dept", "Department", 160.0),
+        {
+            let mut c = ColumnDef::new("salary", "Salary", 120.0);
+            c.format = Some(CellFormat::Currency {
+                symbol: "$".into(),
+                decimal_places: 2,
+                thousands_sep: Some(','),
+                symbol_after: false,
+            });
+            c
+        },
+        {
+            let mut c = ColumnDef::new("active", "Active", 80.0);
+            c.format = Some(CellFormat::Boolean {
+                true_label: "\u{2713}".into(),
+                false_label: "\u{2717}".into(),
+            });
+            c
+        },
     ];
 
-    let mut columns: Vec<ColumnDef> = base
-        .iter()
-        .take(col_count.min(base.len()))
-        .map(|(k, l, w)| ColumnDef::new(*k, *l, *w))
-        .collect();
+    let mut columns: Vec<ColumnDef> =
+        base.into_iter().take(col_count.min(7)).collect();
 
     for i in (columns.len() + 1)..=col_count {
         columns.push(ColumnDef::new(
@@ -41,11 +65,25 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
                 "name" => Some(format!("User {row}")),
                 "email" => Some(format!("user{row}@example.com")),
                 "role" => Some(
-                    if row.is_multiple_of(3) { "Admin" } else { "Member" }.to_owned(),
+                    if row.is_multiple_of(3) {
+                        "Admin"
+                    } else {
+                        "Member"
+                    }
+                    .to_owned(),
                 ),
                 "dept" => Some(format!("Dept {}", row % 20)),
-                "status" => Some(
-                    if row.is_multiple_of(5) { "Inactive" } else { "Active" }.to_owned(),
+                "salary" => {
+                    let base = 30000.0 + (row % 80) as f64 * 1000.0;
+                    Some(format!("{base}"))
+                }
+                "active" => Some(
+                    if row.is_multiple_of(5) {
+                        "false"
+                    } else {
+                        "true"
+                    }
+                    .to_owned(),
                 ),
                 key if key.starts_with("col") => {
                     key[3..].parse::<u64>().ok().map(|n| format!("{row}×{n}"))

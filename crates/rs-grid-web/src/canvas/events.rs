@@ -504,11 +504,10 @@ impl GridCanvas {
                     let ci = col_idx;
                     drop(drag);
                     let (vx, _) = gc.canvas_xy(&evt);
-                    *gc.0.drag.borrow_mut() =
-                        Some(ActiveDrag::ColumnDrag {
-                            col_idx: ci,
-                            current_vx: vx,
-                        });
+                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColumnDrag {
+                        col_idx: ci,
+                        current_vx: vx,
+                    });
                     gc.set_cursor("grabbing");
                     gc.render();
                 }
@@ -588,13 +587,8 @@ impl GridCanvas {
                     current_vx,
                 }) => {
                     gc.set_cursor("default");
-                    let insert =
-                        gc.insertion_index(current_vx);
-                    let to = if insert > col_idx {
-                        insert - 1
-                    } else {
-                        insert
-                    };
+                    let insert = gc.insertion_index(current_vx);
+                    let to = if insert > col_idx { insert - 1 } else { insert };
                     if to != col_idx {
                         gc.dispatch(GridCommand::MoveColumn {
                             from_idx: col_idx,
@@ -628,9 +622,7 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
             // Ctrl+F always opens search, even during edit.
-            if (evt.ctrl_key() || evt.meta_key())
-                && evt.key() == "f"
-            {
+            if (evt.ctrl_key() || evt.meta_key()) && evt.key() == "f" {
                 evt.prevent_default();
                 gc.show_search_input();
                 return;

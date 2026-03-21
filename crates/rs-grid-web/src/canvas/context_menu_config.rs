@@ -115,10 +115,7 @@ impl ContextMenuItem {
 
     /// Override the shortcut hint for a `Builtin` item.
     /// No-op on `Separator`.
-    pub fn with_shortcut(
-        mut self,
-        shortcut: impl Into<String>,
-    ) -> Self {
+    pub fn with_shortcut(mut self, shortcut: impl Into<String>) -> Self {
         if let Self::Builtin {
             shortcut: ref mut s,
             ..
@@ -143,4 +140,3 @@ pub struct ContextMenuConfig {
     /// Default: Pin / Unpin Column.
     pub col_header_items: Option<Vec<ContextMenuItem>>,
 }
-
