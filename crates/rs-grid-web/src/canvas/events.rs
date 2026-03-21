@@ -79,14 +79,23 @@ impl GridCanvas {
                 dy: evt.delta_y(),
             });
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+        // Browsers default wheel to passive — we must
+        // opt out so preventDefault() actually works.
+        let opts = web_sys::AddEventListenerOptions::new();
+        opts.set_passive(false);
         self.0
             .canvas
-            .add_event_listener_with_callback(
-                "wheel",
-                cb.as_ref().unchecked_ref(),
+            .add_event_listener_with_callback_and_add_event_listener_options(
+                "wheel", &f, &opts,
             )
             .unwrap();
-        cb.forget();
+        self.0
+            .canvas_listeners
+            .borrow_mut()
+            .push(("wheel".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_mouseleave(&self) {
@@ -96,14 +105,17 @@ impl GridCanvas {
                 gc.dispatch(GridCommand::SetHoveredRow(None));
             }
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         self.0
             .canvas
-            .add_event_listener_with_callback(
-                "mouseleave",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("mouseleave", &f)
             .unwrap();
-        cb.forget();
+        self.0
+            .canvas_listeners
+            .borrow_mut()
+            .push(("mouseleave".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_dblclick(&self) {
@@ -139,14 +151,17 @@ impl GridCanvas {
                 gc.show_edit_input();
             }
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         self.0
             .canvas
-            .add_event_listener_with_callback(
-                "dblclick",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("dblclick", &f)
             .unwrap();
-        cb.forget();
+        self.0
+            .canvas_listeners
+            .borrow_mut()
+            .push(("dblclick".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_mousedown(&self) {
@@ -366,14 +381,17 @@ impl GridCanvas {
                 *gc.0.drag.borrow_mut() = Some(ActiveDrag::Cell);
             }
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         self.0
             .canvas
-            .add_event_listener_with_callback(
-                "mousedown",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("mousedown", &f)
             .unwrap();
-        cb.forget();
+        self.0
+            .canvas_listeners
+            .borrow_mut()
+            .push(("mousedown".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_mousemove(&self) {
@@ -558,7 +576,7 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("mousemove".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_mouseup(&self) {
@@ -620,7 +638,7 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("mouseup".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_keydown(&self) {
@@ -689,14 +707,18 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("keydown".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_copy(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
-                if !gc.has_focus() {
+                // Always handle pending clipboard (context-menu
+                // copy via execCommand). Otherwise require focus.
+                let has_pending =
+                    gc.0.pending_clipboard.borrow().is_some();
+                if !has_pending && !gc.has_focus() {
                     return;
                 }
                 gc.on_copy_event(&evt);
@@ -711,14 +733,16 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("copy".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_cut(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
-                if !gc.has_focus() {
+                let has_pending =
+                    gc.0.pending_clipboard.borrow().is_some();
+                if !has_pending && !gc.has_focus() {
                     return;
                 }
                 gc.on_cut_event(&evt);
@@ -733,7 +757,7 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("cut".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn attach_paste(&self) {
@@ -763,6 +787,6 @@ impl GridCanvas {
             .doc_listeners
             .borrow_mut()
             .push(("paste".to_string(), f));
-        cb.forget();
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 }

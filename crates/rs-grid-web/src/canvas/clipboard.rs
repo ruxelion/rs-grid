@@ -162,6 +162,9 @@ impl GridCanvas {
         ta.select();
         let _ = html_doc.exec_command("copy");
         ta.remove();
+        // Restore focus to the canvas after the temporary
+        // textarea stole it.
+        let _ = self.0.canvas.focus();
 
         // If execCommand didn't trigger copy (pending still
         // set), fall back to async Clipboard API.

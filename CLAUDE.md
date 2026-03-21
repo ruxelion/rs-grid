@@ -1,5 +1,53 @@
 # rs-grid — Claude Code guide
 
+## Contexte global
+
+Ce dépôt s'inscrit dans une roadmap globale centralisée ici :
+https://github.com/bpodwinski/roadmap
+
+Avant toute proposition structurante, consulter dans le dépôt roadmap :
+- `AI_CONTEXT.md`
+- `docs/00-hub.md`
+- `docs/02-current-focus.md`
+- `docs/projects/rs-grid.md`
+
+## Position dans la roadmap
+
+`rs-grid` est un projet stratégique transverse, mais il n'est pas la priorité
+absolue tant que `FDF` n'est pas stabilisé.
+
+Rôle de `rs-grid` dans l'ensemble :
+- moteur de data grid Rust/WASM haute performance
+- base UI réutilisable pour des outils futurs
+- socle potentiel pour un futur produit concurrent d'AG Grid
+- brique réutilisable pour le futur `Product Data Editor`
+
+## Règles stratégiques
+
+- Ne pas faire dériver le projet trop tôt vers une parité complète avec AG Grid
+- Prioriser d'abord un noyau technique solide
+- Éviter les développements business, SaaS ou expansion JS large tant que le
+  cœur produit n'est pas suffisamment mature
+- Si une décision importante change le cap du projet, proposer une mise à jour
+  dans le dépôt `forge-roadmap`, notamment dans `docs/03-decisions.md`
+
+## Priorités actuelles pour rs-grid
+
+À privilégier :
+- virtualisation viewport
+- rendu fluide
+- sélection
+- hit-testing performant
+- édition basique
+- architecture renderer-agnostic
+- stabilité du core
+
+À éviter pour l'instant :
+- course à la feature contre AG Grid
+- dispersion sur des intégrations secondaires
+- complexification prématurée de l'API
+- expansion commerciale trop tôt
+
 ## Architecture
 
 ```
