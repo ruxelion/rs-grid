@@ -139,6 +139,8 @@ const CITIES: &[&str] = &[
     "Seattle", "Portland",
 ];
 
+/// (code, display_name) — codes are ISO 3166-1 alpha-2.
+/// Flag images come from `rs_grid_flags`.
 const COUNTRIES: &[(&str, &str)] = &[
     ("US", "United States"),
     ("GB", "United Kingdom"),
@@ -155,6 +157,41 @@ const COUNTRIES: &[(&str, &str)] = &[
     ("AE", "UAE"),
     ("SE", "Sweden"),
     ("ES", "Spain"),
+    ("IT", "Italy"),
+    ("MX", "Mexico"),
+    ("CN", "China"),
+    ("RU", "Russia"),
+    ("ZA", "South Africa"),
+    ("NO", "Norway"),
+    ("DK", "Denmark"),
+    ("FI", "Finland"),
+    ("PL", "Poland"),
+    ("PT", "Portugal"),
+    ("CH", "Switzerland"),
+    ("AT", "Austria"),
+    ("BE", "Belgium"),
+    ("IE", "Ireland"),
+    ("NZ", "New Zealand"),
+    ("AR", "Argentina"),
+    ("CL", "Chile"),
+    ("CO", "Colombia"),
+    ("IL", "Israel"),
+    ("TH", "Thailand"),
+    ("MY", "Malaysia"),
+    ("PH", "Philippines"),
+    ("ID", "Indonesia"),
+    ("VN", "Vietnam"),
+    ("EG", "Egypt"),
+    ("NG", "Nigeria"),
+    ("KE", "Kenya"),
+    ("GH", "Ghana"),
+    ("SA", "Saudi Arabia"),
+    ("TR", "Turkey"),
+    ("GR", "Greece"),
+    ("CZ", "Czech Republic"),
+    ("RO", "Romania"),
+    ("HU", "Hungary"),
+    ("UA", "Ukraine"),
 ];
 
 const STATES_US: &[&str] = &[
@@ -599,7 +636,9 @@ fn generate_extra(
             let idx = hash_field(row, salt) as usize
                 % COUNTRIES.len();
             let (code, name) = COUNTRIES[idx];
-            format!("{code} {name}")
+            let uri = rs_grid_flags::flag_data_uri(code)
+                .unwrap_or("");
+            format!("{uri} {name}")
         }
     })
 }

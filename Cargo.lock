@@ -106,6 +106,7 @@ dependencies = [
  "js-sys",
  "leptos",
  "rs-grid-core",
+ "rs-grid-flags",
  "rs-grid-leptos",
  "rs-grid-scene",
  "send_wrapper",
@@ -1202,6 +1203,10 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "rs-grid-core"
+version = "0.1.0"
+
+[[package]]
+name = "rs-grid-flags"
 version = "0.1.0"
 
 [[package]]

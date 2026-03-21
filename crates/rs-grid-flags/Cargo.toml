@@ -1,0 +1,7 @@
+[package]
+name = "rs-grid-flags"
+version = "0.1.0"
+edition = "2021"
+description = "Embedded SVG country flags (254 ISO 3166-1 codes)"
+
+[dependencies]

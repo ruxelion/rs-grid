@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(grep -n \"hit_col_resize_separator\" /d/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
-      "Bash(rustc --version)"
+      "Bash(rustc --version)",
+      "Bash(for code:*)",
+      "Bash(do echo:*)",
+      "Bash(mkdir -p crates/rs-grid-flags/flags)",
+      "Bash(curl -L -o /tmp/flags.zip \"https://flagcdn.com/svg.zip\")",
+      "Bash(unzip -o /tmp/flags.zip -d flags/)",
+      "Bash(ls d:/Dev/rs-grid/crates/rs-grid-flags/flags/*.svg)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }
