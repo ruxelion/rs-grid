@@ -26,9 +26,11 @@ impl GridCanvas {
         (cx, cy, w, h)
     }
 
-    /// Create a DOM `<input>` overlay for inline cell editing.
+    /// Create a DOM `<input>` overlay for inline cell
+    /// editing.
     pub(super) fn show_edit_input(&self) {
         self.remove_edit_input();
+        self.0.edit_closures.borrow_mut().clear();
 
         let (row, col_key) = {
             let state = self.0.state.borrow();
@@ -119,7 +121,10 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            cb.forget();
+            self.0
+                .edit_closures
+                .borrow_mut()
+                .push(Box::new(cb));
         }
 
         // Blur → commit
@@ -146,16 +151,23 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            cb.forget();
+            self.0
+                .edit_closures
+                .borrow_mut()
+                .push(Box::new(cb));
         }
 
         *self.0.edit_input.borrow_mut() = Some(input);
     }
 
-    /// Remove the inline edit input from the DOM.
+    /// Remove the inline edit input from the DOM and
+    /// drop its closures.
     pub(super) fn remove_edit_input(&self) {
-        if let Some(input) = self.0.edit_input.borrow_mut().take() {
+        if let Some(input) =
+            self.0.edit_input.borrow_mut().take()
+        {
             input.remove();
         }
+        self.0.edit_closures.borrow_mut().clear();
     }
 }
