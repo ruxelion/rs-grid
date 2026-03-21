@@ -8,7 +8,10 @@ pub use rs_grid_web::theme_from_css_vars;
 /// depending on `rs-grid-web` directly.
 pub use rs_grid_web::GridCanvas as WebGridCanvas;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use leptos::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
@@ -108,12 +111,18 @@ pub fn GridCanvas(
         }
     });
 
-    // Reactive theme effect: when the theme signal changes, update in-place
-    // without remounting (no new listeners, no flicker).
+    // Reactive theme effect: when the theme signal changes,
+    // update in-place without remounting. Skip the first run
+    // because mount() already applied the initial theme.
     if let Some(theme_sig) = theme {
+        let first_run = Cell::new(true);
         Effect::new(move |_| {
             let t = theme_sig.get();
-            if let Some(gc) = gc_for_theme.borrow().as_ref() {
+            if first_run.replace(false) {
+                return; // mount already applied this theme
+            }
+            if let Some(gc) = gc_for_theme.borrow().as_ref()
+            {
                 gc.set_theme(t);
             }
         });

@@ -68,6 +68,9 @@ struct Inner {
     /// prevent `forget()`-style leaks and to break the
     /// `Rc<Inner>` cycle on `detach()`.
     closures: RefCell<Vec<Box<dyn Any>>>,
+    /// Closures backing scroll timers (setTimeout /
+    /// setInterval) — cleared on `stop_scroll_repeat`.
+    scroll_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Whether a render is already scheduled via rAF.
     raf_scheduled: Cell<bool>,
     /// Optional callback fired after every command that mutates cell data.
@@ -195,6 +198,7 @@ impl GridCanvas {
             doc_listeners: RefCell::new(Vec::new()),
             canvas_listeners: RefCell::new(Vec::new()),
             closures: RefCell::new(Vec::new()),
+            scroll_closures: RefCell::new(Vec::new()),
             raf_scheduled: Cell::new(false),
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
@@ -575,9 +579,13 @@ impl GridCanvas {
         }
         self.0._resize_closure.borrow_mut().take();
 
-        // 4. Drop all stored closures (invalidates their JS
+        // 4. Stop any running scroll timers.
+        self.stop_scroll_repeat();
+
+        // 5. Drop all stored closures (invalidates their JS
         //    functions and breaks Rc<Inner> cycles).
         self.0.closures.borrow_mut().clear();
+        self.0.scroll_closures.borrow_mut().clear();
     }
 
     /// Update the theme in-place without remounting the grid.
