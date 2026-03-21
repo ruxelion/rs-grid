@@ -71,10 +71,7 @@ fn read_ctx_colors() -> CtxColors {
     CtxColors {
         bg: v("--rs-grid-ctx-bg", "#ffffff"),
         border: v("--rs-grid-ctx-border", "#d1d5db"),
-        shadow: v(
-            "--rs-grid-ctx-shadow",
-            "0 4px 16px rgba(0,0,0,0.12)",
-        ),
+        shadow: v("--rs-grid-ctx-shadow", "0 4px 16px rgba(0,0,0,0.12)"),
         text: v("--rs-grid-ctx-text", "#111827"),
         text_disabled: v("--rs-grid-ctx-text-disabled", "#9ca3af"),
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
@@ -154,13 +151,12 @@ fn make_menu_item(
     if enabled {
         let hover = colors.hover_bg.clone();
         let item_over = item.clone();
-        let cb_over =
-            Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-                item_over
-                    .style()
-                    .set_property("background", &hover)
-                    .unwrap();
-            });
+        let cb_over = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            item_over
+                .style()
+                .set_property("background", &hover)
+                .unwrap();
+        });
         item.add_event_listener_with_callback(
             "mouseover",
             cb_over.as_ref().unchecked_ref(),
@@ -169,13 +165,9 @@ fn make_menu_item(
         cb_over.forget();
 
         let item_out = item.clone();
-        let cb_out =
-            Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-                item_out
-                    .style()
-                    .set_property("background", "")
-                    .unwrap();
-            });
+        let cb_out = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            item_out.style().set_property("background", "").unwrap();
+        });
         item.add_event_listener_with_callback(
             "mouseout",
             cb_out.as_ref().unchecked_ref(),
@@ -188,8 +180,7 @@ fn make_menu_item(
 
 pub(super) fn remove_ctx_menu() {
     let doc = document();
-    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-backdrop")
-    {
+    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-backdrop") {
         el.remove();
     }
     if let Some(el) = doc.get_element_by_id("rs-grid-ctx-menu") {
@@ -202,13 +193,9 @@ pub(super) fn remove_ctx_menu() {
 fn builtin_icon(action: BuiltinAction) -> &'static str {
     match action {
         BuiltinAction::Cut => ICON_CUT,
-        BuiltinAction::Copy | BuiltinAction::CopyWithHeaders => {
-            ICON_COPY
-        }
+        BuiltinAction::Copy | BuiltinAction::CopyWithHeaders => ICON_COPY,
         BuiltinAction::Paste => ICON_PASTE,
-        BuiltinAction::PinColumn | BuiltinAction::UnpinColumn => {
-            ICON_PIN
-        }
+        BuiltinAction::PinColumn | BuiltinAction::UnpinColumn => ICON_PIN,
     }
 }
 
@@ -246,17 +233,12 @@ fn create_menu_shell(
     backdrop.set_id("rs-grid-ctx-backdrop");
     set_styles(
         &backdrop,
-        &[
-            ("position", "fixed"),
-            ("inset", "0"),
-            ("z-index", "9998"),
-        ],
+        &[("position", "fixed"), ("inset", "0"), ("z-index", "9998")],
     );
     {
-        let cb =
-            Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-                remove_ctx_menu();
-            });
+        let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            remove_ctx_menu();
+        });
         backdrop
             .add_event_listener_with_callback(
                 "click",
@@ -266,12 +248,10 @@ fn create_menu_shell(
         cb.forget();
     }
     {
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |evt: MouseEvent| {
-                evt.prevent_default();
-                remove_ctx_menu();
-            },
-        );
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            evt.prevent_default();
+            remove_ctx_menu();
+        });
         backdrop
             .add_event_listener_with_callback(
                 "contextmenu",
@@ -313,55 +293,38 @@ fn create_menu_shell(
 impl GridCanvas {
     pub(super) fn attach_contextmenu(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |evt: MouseEvent| {
-                evt.prevent_default();
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            evt.prevent_default();
 
-                let (cx, cy) = gc.canvas_xy(&evt);
+            let (cx, cy) = gc.canvas_xy(&evt);
 
-                // Right-click on column header → column menu.
-                let col = gc
-                    .0
-                    .state
-                    .borrow()
-                    .hit_test_col_header(cx, cy);
-                if let Some(col_idx) = col {
-                    gc.show_col_header_menu(
-                        col_idx,
-                        evt.client_x(),
-                        evt.client_y(),
-                    );
-                    return;
-                }
-
-                // Select cell under right-click if needed.
-                let has_sel =
-                    gc.0.state.borrow().selection.has_selection();
-                if !has_sel {
-                    let row = gc
-                        .0
-                        .state
-                        .borrow()
-                        .hit_test_row_header(cx, cy);
-                    if let Some(row) = row {
-                        gc.dispatch(GridCommand::SelectRow(row));
-                    } else {
-                        let coord =
-                            gc.0.state.borrow().hit_test(cx, cy);
-                        if let Some(coord) = coord {
-                            gc.dispatch(
-                                GridCommand::SelectCell(coord),
-                            );
-                        }
-                    }
-                }
-
-                gc.show_context_menu(
+            // Right-click on column header → column menu.
+            let col = gc.0.state.borrow().hit_test_col_header(cx, cy);
+            if let Some(col_idx) = col {
+                gc.show_col_header_menu(
+                    col_idx,
                     evt.client_x(),
                     evt.client_y(),
                 );
-            },
-        );
+                return;
+            }
+
+            // Select cell under right-click if needed.
+            let has_sel = gc.0.state.borrow().selection.has_selection();
+            if !has_sel {
+                let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
+                if let Some(row) = row {
+                    gc.dispatch(GridCommand::SelectRow(row));
+                } else {
+                    let coord = gc.0.state.borrow().hit_test(cx, cy);
+                    if let Some(coord) = coord {
+                        gc.dispatch(GridCommand::SelectCell(coord));
+                    }
+                }
+            }
+
+            gc.show_context_menu(evt.client_x(), evt.client_y());
+        });
         self.0
             .canvas
             .add_event_listener_with_callback(
@@ -372,12 +335,7 @@ impl GridCanvas {
         cb.forget();
     }
 
-    fn show_col_header_menu(
-        &self,
-        col_idx: usize,
-        x: i32,
-        y: i32,
-    ) {
+    fn show_col_header_menu(&self, col_idx: usize, x: i32, y: i32) {
         remove_ctx_menu();
         let colors = read_ctx_colors();
         let doc = document();
@@ -391,26 +349,24 @@ impl GridCanvas {
 
         // Build item list.
         let default_items;
-        let items: &[ContextMenuItem] =
-            match config.col_header_items.as_deref() {
-                Some(list) => list,
-                None => {
-                    default_items = if is_pinned {
-                        vec![ContextMenuItem::unpin_column()]
-                    } else {
-                        vec![ContextMenuItem::pin_column()]
-                    };
-                    &default_items
-                }
-            };
+        let items: &[ContextMenuItem] = match config.col_header_items.as_deref()
+        {
+            Some(list) => list,
+            None => {
+                default_items = if is_pinned {
+                    vec![ContextMenuItem::unpin_column()]
+                } else {
+                    vec![ContextMenuItem::pin_column()]
+                };
+                &default_items
+            }
+        };
 
         for item_cfg in items {
             match item_cfg {
                 ContextMenuItem::Separator => {
-                    menu.append_child(&make_menu_separator(
-                        &doc, &colors,
-                    ))
-                    .unwrap();
+                    menu.append_child(&make_menu_separator(&doc, &colors))
+                        .unwrap();
                 }
                 ContextMenuItem::Builtin {
                     action,
@@ -421,19 +377,16 @@ impl GridCanvas {
                     let action = *action;
                     // For PinColumn in config, show Pin or
                     // Unpin based on actual state.
-                    let effective_action =
-                        if action == BuiltinAction::PinColumn
-                            && is_pinned
-                        {
-                            BuiltinAction::UnpinColumn
-                        } else if action
-                            == BuiltinAction::UnpinColumn
-                            && !is_pinned
-                        {
-                            BuiltinAction::PinColumn
-                        } else {
-                            action
-                        };
+                    let effective_action = if action == BuiltinAction::PinColumn
+                        && is_pinned
+                    {
+                        BuiltinAction::UnpinColumn
+                    } else if action == BuiltinAction::UnpinColumn && !is_pinned
+                    {
+                        BuiltinAction::PinColumn
+                    } else {
+                        action
+                    };
                     let lbl = label
                         .as_deref()
                         .unwrap_or(builtin_label(effective_action));
@@ -444,14 +397,8 @@ impl GridCanvas {
                         .as_deref()
                         .unwrap_or(builtin_shortcut(effective_action));
 
-                    let el = make_menu_item(
-                        &doc, ico, lbl, sc, true, &colors,
-                    );
-                    self.wire_builtin(
-                        &el,
-                        effective_action,
-                        col_idx,
-                    );
+                    let el = make_menu_item(&doc, ico, lbl, sc, true, &colors);
+                    self.wire_builtin(&el, effective_action, col_idx);
                     menu.append_child(&el).unwrap();
                 }
             }
@@ -465,32 +412,28 @@ impl GridCanvas {
         let (_, menu) = create_menu_shell(x, y, &colors);
 
         let config = self.0.ctx_menu_config.borrow();
-        let has_selection =
-            self.0.state.borrow().selection.has_selection();
+        let has_selection = self.0.state.borrow().selection.has_selection();
 
         let default_items;
-        let items: &[ContextMenuItem] =
-            match config.cell_items.as_deref() {
-                Some(list) => list,
-                None => {
-                    default_items = vec![
-                        ContextMenuItem::cut(),
-                        ContextMenuItem::copy(),
-                        ContextMenuItem::copy_with_headers(),
-                        ContextMenuItem::separator(),
-                        ContextMenuItem::paste(),
-                    ];
-                    &default_items
-                }
-            };
+        let items: &[ContextMenuItem] = match config.cell_items.as_deref() {
+            Some(list) => list,
+            None => {
+                default_items = vec![
+                    ContextMenuItem::cut(),
+                    ContextMenuItem::copy(),
+                    ContextMenuItem::copy_with_headers(),
+                    ContextMenuItem::separator(),
+                    ContextMenuItem::paste(),
+                ];
+                &default_items
+            }
+        };
 
         for item_cfg in items {
             match item_cfg {
                 ContextMenuItem::Separator => {
-                    menu.append_child(&make_menu_separator(
-                        &doc, &colors,
-                    ))
-                    .unwrap();
+                    menu.append_child(&make_menu_separator(&doc, &colors))
+                        .unwrap();
                 }
                 ContextMenuItem::Builtin {
                     action,
@@ -506,19 +449,13 @@ impl GridCanvas {
                         | BuiltinAction::Paste => has_selection,
                         _ => true,
                     };
-                    let lbl = label
-                        .as_deref()
-                        .unwrap_or(builtin_label(action));
-                    let ico = icon
-                        .as_deref()
-                        .unwrap_or(builtin_icon(action));
-                    let sc = shortcut
-                        .as_deref()
-                        .unwrap_or(builtin_shortcut(action));
+                    let lbl = label.as_deref().unwrap_or(builtin_label(action));
+                    let ico = icon.as_deref().unwrap_or(builtin_icon(action));
+                    let sc =
+                        shortcut.as_deref().unwrap_or(builtin_shortcut(action));
 
-                    let el = make_menu_item(
-                        &doc, ico, lbl, sc, enabled, &colors,
-                    );
+                    let el =
+                        make_menu_item(&doc, ico, lbl, sc, enabled, &colors);
                     if enabled {
                         self.wire_builtin(&el, action, 0);
                     }
@@ -537,66 +474,42 @@ impl GridCanvas {
         col_idx: usize,
     ) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |_: MouseEvent| {
-                remove_ctx_menu();
-                match action {
-                    BuiltinAction::Cut => gc.handle_cut(),
-                    BuiltinAction::Copy => gc.handle_copy(),
-                    BuiltinAction::CopyWithHeaders => {
-                        gc.handle_copy_headers()
+        let cb = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
+            remove_ctx_menu();
+            match action {
+                BuiltinAction::Cut => gc.handle_cut(),
+                BuiltinAction::Copy => gc.handle_copy(),
+                BuiltinAction::CopyWithHeaders => gc.handle_copy_headers(),
+                BuiltinAction::Paste => {
+                    if !gc.0.state.borrow().selection.has_selection() {
+                        return;
                     }
-                    BuiltinAction::Paste => {
-                        if !gc
-                            .0
-                            .state
-                            .borrow()
-                            .selection
-                            .has_selection()
+                    let win = web_sys::window().expect("no window");
+                    let promise = win.navigator().clipboard().read_text();
+                    let gc2 = gc.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        match wasm_bindgen_futures::JsFuture::from(promise)
+                            .await
                         {
-                            return;
-                        }
-                        let win =
-                            web_sys::window().expect("no window");
-                        let promise =
-                            win.navigator().clipboard().read_text();
-                        let gc2 = gc.clone();
-                        wasm_bindgen_futures::spawn_local(
-                            async move {
-                                match wasm_bindgen_futures::JsFuture::from(
-                                    promise,
-                                )
-                                .await
-                                {
-                                    Ok(val) => {
-                                        if let Some(text) =
-                                            val.as_string()
-                                        {
-                                            gc2.dispatch(
-                                                GridCommand::PasteAt {
-                                                    text,
-                                                },
-                                            );
-                                        }
-                                    }
-                                    Err(e) => {
-                                        web_sys::console::warn_1(
-                                            &e,
-                                        );
-                                    }
+                            Ok(val) => {
+                                if let Some(text) = val.as_string() {
+                                    gc2.dispatch(GridCommand::PasteAt { text });
                                 }
-                            },
-                        );
-                    }
-                    BuiltinAction::PinColumn => {
-                        gc.set_pinned_count(col_idx + 1);
-                    }
-                    BuiltinAction::UnpinColumn => {
-                        gc.set_pinned_count(0);
-                    }
+                            }
+                            Err(e) => {
+                                web_sys::console::warn_1(&e);
+                            }
+                        }
+                    });
                 }
-            },
-        );
+                BuiltinAction::PinColumn => {
+                    gc.set_pinned_count(col_idx + 1);
+                }
+                BuiltinAction::UnpinColumn => {
+                    gc.set_pinned_count(0);
+                }
+            }
+        });
         el.add_event_listener_with_callback(
             "click",
             cb.as_ref().unchecked_ref(),

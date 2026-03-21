@@ -103,10 +103,7 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-search-current",
             fallback.search_current,
         ),
-        skeleton_fg: color(
-            "--rs-grid-skeleton-fg",
-            fallback.skeleton_fg,
-        ),
+        skeleton_fg: color("--rs-grid-skeleton-fg", fallback.skeleton_fg),
     }
 }
 
@@ -119,7 +116,10 @@ pub(crate) fn root_computed_style() -> Option<web_sys::CssStyleDeclaration> {
     window.get_computed_style(&root).ok().flatten()
 }
 
-pub(crate) fn get_var(style: &web_sys::CssStyleDeclaration, name: &str) -> String {
+pub(crate) fn get_var(
+    style: &web_sys::CssStyleDeclaration,
+    name: &str,
+) -> String {
     style
         .get_property_value(name)
         .unwrap_or_default()

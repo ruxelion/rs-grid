@@ -176,15 +176,9 @@ impl GridModel {
     }
 
     /// Return the loading status of a cell, checking patches first.
-    pub fn cell_status(
-        &self,
-        logical_row: u64,
-        col_key: &str,
-    ) -> CellStatus {
+    pub fn cell_status(&self, logical_row: u64, col_key: &str) -> CellStatus {
         let physical = self.logical_to_physical(logical_row);
-        if let Some(v) =
-            self.patches.get(&(physical, col_key.to_owned()))
-        {
+        if let Some(v) = self.patches.get(&(physical, col_key.to_owned())) {
             return CellStatus::Ready(v.clone());
         }
         self.data.cell_status(physical, col_key)

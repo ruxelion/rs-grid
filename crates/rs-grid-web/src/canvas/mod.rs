@@ -195,20 +195,15 @@ impl GridCanvas {
     pub fn render(&self) {
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
-        let frame =
-            self.0.builder.borrow().build(&state, hint.as_ref());
+        let frame = self.0.builder.borrow().build(&state, hint.as_ref());
         self.0.renderer.render(&frame);
     }
 
     /// Apply a command, redraw, and return the output.
-    fn dispatch_with_output(
-        &self,
-        cmd: GridCommand,
-    ) -> CommandOutput {
+    fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
         let is_mutation = matches!(
             cmd,
-            GridCommand::PasteAt { .. }
-                | GridCommand::CommitEdit { .. }
+            GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
         );
         let triggers_fetch = matches!(
             cmd,
@@ -229,18 +224,14 @@ impl GridCanvas {
                 | GridCommand::ClearAllFilters
         );
         if invalidates_cache {
-            if let Some(cache) =
-                self.0.page_cache.borrow().as_ref()
-            {
+            if let Some(cache) = self.0.page_cache.borrow().as_ref() {
                 cache.clear();
             }
         }
         let out = self.0.state.borrow_mut().apply(cmd);
         self.render();
         if is_mutation {
-            if let Some(cb) =
-                self.0.on_change.borrow().as_ref()
-            {
+            if let Some(cb) = self.0.on_change.borrow().as_ref() {
                 cb();
             }
         }

@@ -11,14 +11,9 @@ impl GridCanvas {
     // ── native event handlers (Ctrl+C / Ctrl+X) ──────────
 
     /// Called from the document-level `copy` event.
-    pub(super) fn on_copy_event(
-        &self,
-        evt: &web_sys::ClipboardEvent,
-    ) {
+    pub(super) fn on_copy_event(&self, evt: &web_sys::ClipboardEvent) {
         // Pending text from context-menu copy/cut takes priority.
-        if let Some(text) =
-            self.0.pending_clipboard.borrow_mut().take()
-        {
+        if let Some(text) = self.0.pending_clipboard.borrow_mut().take() {
             if let Some(dt) = evt.clipboard_data() {
                 evt.prevent_default();
                 let _ = dt.set_data("text/plain", &text);
@@ -32,32 +27,25 @@ impl GridCanvas {
         if !self.0.state.borrow().selection.has_selection() {
             return;
         }
-        match self
-            .dispatch_with_output(GridCommand::CopySelection)
-        {
+        match self.dispatch_with_output(GridCommand::CopySelection) {
             CommandOutput::CopyText(text) => {
                 if let Some(dt) = evt.clipboard_data() {
                     evt.prevent_default();
-                    let _ =
-                        dt.set_data("text/plain", &text);
+                    let _ = dt.set_data("text/plain", &text);
                 }
             }
-            CommandOutput::CopyError(
-                CopyError::TooManyRows { actual, max },
-            ) => Self::warn_too_many("Copy", actual, max),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => Self::warn_too_many("Copy", actual, max),
             _ => {}
         }
     }
 
     /// Called from the document-level `cut` event.
-    pub(super) fn on_cut_event(
-        &self,
-        evt: &web_sys::ClipboardEvent,
-    ) {
+    pub(super) fn on_cut_event(&self, evt: &web_sys::ClipboardEvent) {
         // Pending text from context-menu cut takes priority.
-        if let Some(text) =
-            self.0.pending_clipboard.borrow_mut().take()
-        {
+        if let Some(text) = self.0.pending_clipboard.borrow_mut().take() {
             if let Some(dt) = evt.clipboard_data() {
                 evt.prevent_default();
                 let _ = dt.set_data("text/plain", &text);
@@ -70,19 +58,17 @@ impl GridCanvas {
         if !self.0.state.borrow().selection.has_selection() {
             return;
         }
-        match self
-            .dispatch_with_output(GridCommand::CutSelection)
-        {
+        match self.dispatch_with_output(GridCommand::CutSelection) {
             CommandOutput::CopyText(text) => {
                 if let Some(dt) = evt.clipboard_data() {
                     evt.prevent_default();
-                    let _ =
-                        dt.set_data("text/plain", &text);
+                    let _ = dt.set_data("text/plain", &text);
                 }
             }
-            CommandOutput::CopyError(
-                CopyError::TooManyRows { actual, max },
-            ) => Self::warn_too_many("Cut", actual, max),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => Self::warn_too_many("Cut", actual, max),
             _ => {}
         }
     }
@@ -90,29 +76,27 @@ impl GridCanvas {
     // ── context-menu actions ─────────────────────────────
 
     pub(super) fn handle_copy(&self) {
-        match self
-            .dispatch_with_output(GridCommand::CopySelection)
-        {
+        match self.dispatch_with_output(GridCommand::CopySelection) {
             CommandOutput::CopyText(text) => {
                 self.write_clipboard(text);
             }
-            CommandOutput::CopyError(
-                CopyError::TooManyRows { actual, max },
-            ) => Self::warn_too_many("Copy", actual, max),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => Self::warn_too_many("Copy", actual, max),
             _ => {}
         }
     }
 
     pub(super) fn handle_cut(&self) {
-        match self
-            .dispatch_with_output(GridCommand::CutSelection)
-        {
+        match self.dispatch_with_output(GridCommand::CutSelection) {
             CommandOutput::CopyText(text) => {
                 self.write_clipboard(text);
             }
-            CommandOutput::CopyError(
-                CopyError::TooManyRows { actual, max },
-            ) => Self::warn_too_many("Cut", actual, max),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => Self::warn_too_many("Cut", actual, max),
             _ => {}
         }
     }
@@ -130,17 +114,14 @@ impl GridCanvas {
                 .collect::<Vec<_>>()
                 .join("\t")
         };
-        match self
-            .dispatch_with_output(GridCommand::CopySelection)
-        {
+        match self.dispatch_with_output(GridCommand::CopySelection) {
             CommandOutput::CopyText(data) => {
-                self.write_clipboard(format!(
-                    "{header_row}\n{data}"
-                ));
+                self.write_clipboard(format!("{header_row}\n{data}"));
             }
-            CommandOutput::CopyError(
-                CopyError::TooManyRows { actual, max },
-            ) => Self::warn_too_many("Copy", actual, max),
+            CommandOutput::CopyError(CopyError::TooManyRows {
+                actual,
+                max,
+            }) => Self::warn_too_many("Copy", actual, max),
             _ => {}
         }
     }
@@ -184,18 +165,13 @@ impl GridCanvas {
 
         // If execCommand didn't trigger copy (pending still
         // set), fall back to async Clipboard API.
-        if let Some(text) =
-            self.0.pending_clipboard.borrow_mut().take()
-        {
+        if let Some(text) = self.0.pending_clipboard.borrow_mut().take() {
             let window = web_sys::window().expect("no window");
             let clipboard = window.navigator().clipboard();
             let promise = clipboard.write_text(&text);
             wasm_bindgen_futures::spawn_local(async move {
                 if let Err(e) =
-                    wasm_bindgen_futures::JsFuture::from(
-                        promise,
-                    )
-                    .await
+                    wasm_bindgen_futures::JsFuture::from(promise).await
                 {
                     web_sys::console::warn_1(&e);
                 }
@@ -208,8 +184,6 @@ impl GridCanvas {
             "{op} annulé : {actual} lignes sélectionnées \
              (max {max})"
         );
-        web_sys::console::warn_1(
-            &wasm_bindgen::JsValue::from_str(&msg),
-        );
+        web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(&msg));
     }
 }

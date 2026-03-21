@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use rs_grid_core::{
-    commands::GridCommand, row::RowRecord, sort::SortState,
-};
+use rs_grid_core::{commands::GridCommand, row::RowRecord, sort::SortState};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
@@ -26,22 +24,14 @@ pub struct PageFetchRequest {
 /// - `build_url` turns a `PageFetchRequest` into a URL
 /// - `parse_response` converts a JSON `JsValue` into rows
 pub struct FetchConfig {
-    pub build_url:
-        Box<dyn Fn(&PageFetchRequest) -> String>,
-    pub parse_response: Box<
-        dyn Fn(
-            wasm_bindgen::JsValue,
-        )
-            -> Result<PageFetchResponse, String>,
-    >,
+    pub build_url: Box<dyn Fn(&PageFetchRequest) -> String>,
+    pub parse_response:
+        Box<dyn Fn(wasm_bindgen::JsValue) -> Result<PageFetchResponse, String>>,
     pub buffer_pages: u64,
 }
 
 impl std::fmt::Debug for FetchConfig {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FetchConfig")
             .field("buffer_pages", &self.buffer_pages)
             .finish()
@@ -52,18 +42,11 @@ impl std::fmt::Debug for FetchConfig {
 async fn fetch_json(
     url: &str,
 ) -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue> {
-    let window =
-        web_sys::window().expect("no global window");
+    let window = web_sys::window().expect("no global window");
     let opts = web_sys::RequestInit::new();
     opts.set_method("GET");
-    let request =
-        web_sys::Request::new_with_str_and_init(
-            url, &opts,
-        )?;
-    let resp = JsFuture::from(
-        window.fetch_with_request(&request),
-    )
-    .await?;
+    let request = web_sys::Request::new_with_str_and_init(url, &opts)?;
+    let resp = JsFuture::from(window.fetch_with_request(&request)).await?;
     let resp: web_sys::Response = resp.dyn_into()?;
     let json = JsFuture::from(resp.json()?).await?;
     Ok(json)
@@ -85,12 +68,11 @@ impl GridCanvas {
         };
 
         let state = self.0.state.borrow();
-        let (row_start, row_end) =
-            state.viewport.visible_rows(
-                state.model.display_row_count(),
-                state.model.row_height,
-                state.model.header_height,
-            );
+        let (row_start, row_end) = state.viewport.visible_rows(
+            state.model.display_row_count(),
+            state.model.row_height,
+            state.model.header_height,
+        );
         let sort = state.sort.clone();
         let filters = state.model.filters.clone();
         drop(state);
@@ -100,8 +82,7 @@ impl GridCanvas {
         let fetch_start = row_start.saturating_sub(buf);
         let fetch_end = row_end.saturating_add(buf);
 
-        let needed =
-            cache.needed_pages(fetch_start, fetch_end);
+        let needed = cache.needed_pages(fetch_start, fetch_end);
 
         for page_num in needed {
             cache.mark_pending(page_num);
@@ -118,58 +99,36 @@ impl GridCanvas {
             // can re-borrow fetch_config from Inner.
             let gc = self.clone();
 
-            wasm_bindgen_futures::spawn_local(
-                async move {
-                    match fetch_json(&url).await {
-                        Ok(json) => {
-                            // Re-borrow parse_response
-                            // from the Rc<Inner>.
-                            let cfg =
-                                gc.0.fetch_config
-                                    .borrow();
-                            let parse = &cfg
-                                .as_ref()
-                                .expect("config")
-                                .parse_response;
-                            match parse(json) {
-                                Ok(resp) => {
-                                    cache_clone
-                                        .set_total_rows(
-                                            resp.total_rows,
-                                        );
-                                    cache_clone
-                                        .insert_page(
-                                            page_num,
-                                            resp.rows,
-                                        );
-                                    drop(cfg);
-                                    gc.dispatch(
-                                        GridCommand::NotifyPageLoaded,
-                                    );
-                                }
-                                Err(e) => {
-                                    cache_clone
-                                        .unmark_pending(
-                                            page_num,
-                                        );
-                                    drop(cfg);
-                                    web_sys::console::warn_1(
-                                        &format!(
-                                            "parse error: {e}"
-                                        )
-                                        .into(),
-                                    );
-                                }
+            wasm_bindgen_futures::spawn_local(async move {
+                match fetch_json(&url).await {
+                    Ok(json) => {
+                        // Re-borrow parse_response
+                        // from the Rc<Inner>.
+                        let cfg = gc.0.fetch_config.borrow();
+                        let parse =
+                            &cfg.as_ref().expect("config").parse_response;
+                        match parse(json) {
+                            Ok(resp) => {
+                                cache_clone.set_total_rows(resp.total_rows);
+                                cache_clone.insert_page(page_num, resp.rows);
+                                drop(cfg);
+                                gc.dispatch(GridCommand::NotifyPageLoaded);
+                            }
+                            Err(e) => {
+                                cache_clone.unmark_pending(page_num);
+                                drop(cfg);
+                                web_sys::console::warn_1(
+                                    &format!("parse error: {e}").into(),
+                                );
                             }
                         }
-                        Err(e) => {
-                            cache_clone
-                                .unmark_pending(page_num);
-                            web_sys::console::warn_1(&e);
-                        }
                     }
-                },
-            );
+                    Err(e) => {
+                        cache_clone.unmark_pending(page_num);
+                        web_sys::console::warn_1(&e);
+                    }
+                }
+            });
         }
     }
 }

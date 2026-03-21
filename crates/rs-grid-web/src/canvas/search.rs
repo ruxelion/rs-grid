@@ -9,15 +9,13 @@ impl GridCanvas {
     /// Show the floating search bar above the canvas.
     pub(super) fn show_search_input(&self) {
         // Already open — just re-focus.
-        if let Some(input) = self.0.search_input.borrow().as_ref()
-        {
+        if let Some(input) = self.0.search_input.borrow().as_ref() {
             let _ = input.focus();
             input.select();
             return;
         }
 
-        let canvas_rect =
-            self.0.canvas.get_bounding_client_rect();
+        let canvas_rect = self.0.canvas.get_bounding_client_rect();
         let left = canvas_rect.right() - 260.0;
         let top = canvas_rect.top() + 4.0;
 
@@ -37,24 +35,15 @@ impl GridCanvas {
         let _ = style.set_property("width", "250px");
         let _ = style.set_property("height", "28px");
         let _ = style.set_property("z-index", "10001");
-        let _ = style.set_property(
-            "border",
-            "1px solid #babfc7",
-        );
+        let _ = style.set_property("border", "1px solid #babfc7");
         let _ = style.set_property("border-radius", "4px");
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 8px");
         let _ = style.set_property("margin", "0");
         let _ = style.set_property("box-sizing", "border-box");
-        let _ = style.set_property(
-            "font",
-            "13px system-ui, sans-serif",
-        );
+        let _ = style.set_property("font", "13px system-ui, sans-serif");
         let _ = style.set_property("background", "#fff");
-        let _ = style.set_property(
-            "box-shadow",
-            "0 2px 8px rgba(0,0,0,.15)",
-        );
+        let _ = style.set_property("box-shadow", "0 2px 8px rgba(0,0,0,.15)");
 
         doc.body().expect("body").append_child(&input).unwrap();
         let _ = input.focus();
@@ -63,14 +52,10 @@ impl GridCanvas {
         {
             let gc = self.clone();
             let inp = input.clone();
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |_: web_sys::Event| {
-                    let query = inp.value();
-                    gc.dispatch(GridCommand::Search {
-                        query,
-                    });
-                },
-            );
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: web_sys::Event| {
+                let query = inp.value();
+                gc.dispatch(GridCommand::Search { query });
+            });
             input
                 .add_event_listener_with_callback(
                     "input",
@@ -83,28 +68,24 @@ impl GridCanvas {
         // Keydown → Enter=next, Shift+Enter=prev, Escape=close
         {
             let gc = self.clone();
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |evt: KeyboardEvent| match evt.key().as_str()
-                {
-                    "Enter" => {
-                        evt.prevent_default();
-                        if evt.shift_key() {
-                            gc.dispatch(
-                                GridCommand::SearchPrev,
-                            );
-                        } else {
-                            gc.dispatch(
-                                GridCommand::SearchNext,
-                            );
+            let cb =
+                Closure::<dyn FnMut(_)>::new(
+                    move |evt: KeyboardEvent| match evt.key().as_str() {
+                        "Enter" => {
+                            evt.prevent_default();
+                            if evt.shift_key() {
+                                gc.dispatch(GridCommand::SearchPrev);
+                            } else {
+                                gc.dispatch(GridCommand::SearchNext);
+                            }
                         }
-                    }
-                    "Escape" => {
-                        gc.dispatch(GridCommand::ClearSearch);
-                        gc.remove_search_input();
-                    }
-                    _ => {}
-                },
-            );
+                        "Escape" => {
+                            gc.dispatch(GridCommand::ClearSearch);
+                            gc.remove_search_input();
+                        }
+                        _ => {}
+                    },
+                );
             input
                 .add_event_listener_with_callback(
                     "keydown",
@@ -119,9 +100,7 @@ impl GridCanvas {
 
     /// Remove the search bar from the DOM.
     pub(super) fn remove_search_input(&self) {
-        if let Some(input) =
-            self.0.search_input.borrow_mut().take()
-        {
+        if let Some(input) = self.0.search_input.borrow_mut().take() {
             input.remove();
         }
     }

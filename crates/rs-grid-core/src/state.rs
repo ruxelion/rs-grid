@@ -87,17 +87,13 @@ impl GridState {
                 col_key,
                 old_value,
             } => {
-                let current =
-                    self.model.get_cell(*row, col_key);
+                let current = self.model.get_cell(*row, col_key);
                 if let Some(v) = old_value {
                     self.model.set_cell(*row, col_key, v.clone());
                 } else {
                     // Remove patch to restore datasource value.
-                    let physical =
-                        self.model.logical_to_physical(*row);
-                    self.model
-                        .patches
-                        .remove(&(physical, col_key.clone()));
+                    let physical = self.model.logical_to_physical(*row);
+                    self.model.patches.remove(&(physical, col_key.clone()));
                 }
                 UndoEntry::SetCell {
                     row: *row,
@@ -108,29 +104,19 @@ impl GridState {
             UndoEntry::SetCells(cells) => {
                 let mut inverse = Vec::with_capacity(cells.len());
                 for (row, col_key, old_value) in cells {
-                    let current =
-                        self.model.get_cell(*row, col_key);
+                    let current = self.model.get_cell(*row, col_key);
                     if let Some(v) = old_value {
-                        self.model
-                            .set_cell(*row, col_key, v.clone());
+                        self.model.set_cell(*row, col_key, v.clone());
                     } else {
-                        let physical =
-                            self.model.logical_to_physical(*row);
-                        self.model.patches.remove(
-                            &(physical, col_key.clone()),
-                        );
+                        let physical = self.model.logical_to_physical(*row);
+                        self.model.patches.remove(&(physical, col_key.clone()));
                     }
-                    inverse.push((
-                        *row,
-                        col_key.clone(),
-                        current,
-                    ));
+                    inverse.push((*row, col_key.clone(), current));
                 }
                 UndoEntry::SetCells(inverse)
             }
             UndoEntry::ResizeColumn { col_idx, old_width } => {
-                let current_width =
-                    self.model.columns[*col_idx].width;
+                let current_width = self.model.columns[*col_idx].width;
                 self.model.columns[*col_idx].width = *old_width;
                 self.model.rebuild_offsets();
                 UndoEntry::ResizeColumn {
@@ -164,23 +150,15 @@ impl GridState {
         const MAX_MATCHES: usize = 10_000;
         const MAX_ROWS: u64 = 100_000;
         let query_lower = query.to_ascii_lowercase();
-        let row_count =
-            self.model.display_row_count().min(MAX_ROWS);
+        let row_count = self.model.display_row_count().min(MAX_ROWS);
         let col_count = self.model.columns.len();
         for r in 0..row_count {
             for ci in 0..col_count {
                 let key = &self.model.columns[ci].key;
                 if let Some(val) = self.model.get_cell(r, key) {
-                    if val
-                        .to_ascii_lowercase()
-                        .contains(&query_lower)
-                    {
-                        self.search.matches.push(CellCoord {
-                            row: r,
-                            col: ci,
-                        });
-                        if self.search.matches.len() >= MAX_MATCHES
-                        {
+                    if val.to_ascii_lowercase().contains(&query_lower) {
+                        self.search.matches.push(CellCoord { row: r, col: ci });
+                        if self.search.matches.len() >= MAX_MATCHES {
                             return;
                         }
                     }
@@ -190,36 +168,30 @@ impl GridState {
     }
 
     fn scroll_to_search_match(&mut self) {
-        let coord =
-            match self.search.matches.get(self.search.current) {
-                Some(c) => c.clone(),
-                None => return,
-            };
+        let coord = match self.search.matches.get(self.search.current) {
+            Some(c) => c.clone(),
+            None => return,
+        };
         // Select the matched cell.
         self.selection.select_cell(coord.row, coord.col);
         // Scroll to make the cell visible.
         let ry = self.model.row_top(coord.row);
-        let cy =
-            ry - self.viewport.scroll_y;
+        let cy = ry - self.viewport.scroll_y;
         if cy < self.model.header_height {
-            self.viewport.scroll_y =
-                ry - self.model.header_height;
-        } else if cy + self.model.row_height > self.viewport.height
-        {
+            self.viewport.scroll_y = ry - self.model.header_height;
+        } else if cy + self.model.row_height > self.viewport.height {
             self.viewport.scroll_y =
                 ry + self.model.row_height - self.viewport.height;
         }
         if coord.col < self.model.columns.len() {
-            let off =
-                self.model.column_offsets.offsets[coord.col];
+            let off = self.model.column_offsets.offsets[coord.col];
             let w = self.model.columns[coord.col].width;
             let rnw = self.model.row_number_width;
             // Don't scroll for pinned columns.
             if coord.col >= self.model.pinned_count {
                 let cx = off - self.viewport.scroll_x + rnw;
                 if cx < rnw + self.model.pinned_width() {
-                    self.viewport.scroll_x =
-                        off - self.model.pinned_width();
+                    self.viewport.scroll_x = off - self.model.pinned_width();
                 } else if cx + w > self.viewport.width {
                     self.viewport.scroll_x =
                         off + w - self.viewport.width + rnw;
@@ -297,10 +269,8 @@ impl GridState {
                     let mut old_cells = Vec::new();
                     for r in tl.row..=br.row {
                         for ci in tl.col..=br.col {
-                            let key =
-                                self.model.columns[ci].key.clone();
-                            let old =
-                                self.model.get_cell(r, &key);
+                            let key = self.model.columns[ci].key.clone();
+                            let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, String::new());
                         }
@@ -355,18 +325,14 @@ impl GridState {
                                 break;
                             }
                             let val = &src_row[dc % clip_cols];
-                            let key =
-                                self.model.columns[c].key.clone();
-                            let old =
-                                self.model.get_cell(r, &key);
+                            let key = self.model.columns[c].key.clone();
+                            let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, val.clone());
                         }
                     }
                     if !old_cells.is_empty() {
-                        self.push_undo(
-                            UndoEntry::SetCells(old_cells),
-                        );
+                        self.push_undo(UndoEntry::SetCells(old_cells));
                     }
                     // Update selection to cover pasted area
                     let last_r =
@@ -514,8 +480,7 @@ impl GridState {
                     .as_ref()
                     .is_some_and(|e| e.row == row && e.col_key == col_key)
                 {
-                    let old_value =
-                        self.model.get_cell(row, &col_key);
+                    let old_value = self.model.get_cell(row, &col_key);
                     self.model.set_cell(row, &col_key, value);
                     self.edit = None;
                     self.push_undo(UndoEntry::SetCell {
@@ -550,8 +515,8 @@ impl GridState {
             }
             GridCommand::SearchNext => {
                 if !self.search.matches.is_empty() {
-                    self.search.current = (self.search.current + 1)
-                        % self.search.matches.len();
+                    self.search.current =
+                        (self.search.current + 1) % self.search.matches.len();
                     self.scroll_to_search_match();
                 }
                 CommandOutput::None
@@ -559,8 +524,7 @@ impl GridState {
             GridCommand::SearchPrev => {
                 if !self.search.matches.is_empty() {
                     let len = self.search.matches.len();
-                    self.search.current =
-                        (self.search.current + len - 1) % len;
+                    self.search.current = (self.search.current + len - 1) % len;
                     self.scroll_to_search_match();
                 }
                 CommandOutput::None
@@ -598,9 +562,7 @@ impl GridState {
                         self.model.display_row_count().min(MAX_SAMPLE_ROWS);
                     let mut max_w = header_w;
                     for r in 0..row_count {
-                        if let Some(val) =
-                            self.model.get_cell(r, &col_key)
-                        {
+                        if let Some(val) = self.model.get_cell(r, &col_key) {
                             let w = val.len() as f64 * char_width
                                 + cell_padding * 2.0;
                             if w > max_w {
@@ -1091,10 +1053,7 @@ mod tests {
     #[test]
     fn undo_paste() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::PasteAt {
             text: "X\tY".into(),
         });
@@ -1177,9 +1136,7 @@ mod tests {
     fn search_finds_matches() {
         let mut s = make_state();
         // Data: column "a" has values "a0".."a9"
-        s.apply(GridCommand::Search {
-            query: "a0".into(),
-        });
+        s.apply(GridCommand::Search { query: "a0".into() });
         assert_eq!(s.search.matches.len(), 1);
         assert_eq!(s.search.matches[0].row, 0);
         assert_eq!(s.search.matches[0].col, 0);
@@ -1188,9 +1145,7 @@ mod tests {
     #[test]
     fn search_case_insensitive() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "A0".into(),
-        });
+        s.apply(GridCommand::Search { query: "A0".into() });
         assert_eq!(s.search.matches.len(), 1);
     }
 
@@ -1198,18 +1153,14 @@ mod tests {
     fn search_multiple_matches() {
         let mut s = make_state();
         // "b" appears in column "b" values: "b0".."b9" (10 matches)
-        s.apply(GridCommand::Search {
-            query: "b".into(),
-        });
+        s.apply(GridCommand::Search { query: "b".into() });
         assert_eq!(s.search.matches.len(), 10);
     }
 
     #[test]
     fn search_next_cycles() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "a".into(),
-        });
+        s.apply(GridCommand::Search { query: "a".into() });
         let len = s.search.matches.len();
         assert!(len > 1);
         assert_eq!(s.search.current, 0);
@@ -1225,23 +1176,16 @@ mod tests {
     #[test]
     fn search_prev_cycles() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "a".into(),
-        });
+        s.apply(GridCommand::Search { query: "a".into() });
         assert_eq!(s.search.current, 0);
         s.apply(GridCommand::SearchPrev);
-        assert_eq!(
-            s.search.current,
-            s.search.matches.len() - 1
-        );
+        assert_eq!(s.search.current, s.search.matches.len() - 1);
     }
 
     #[test]
     fn clear_search_resets() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "a".into(),
-        });
+        s.apply(GridCommand::Search { query: "a".into() });
         assert!(!s.search.matches.is_empty());
         s.apply(GridCommand::ClearSearch);
         assert!(s.search.query.is_empty());
@@ -1251,9 +1195,7 @@ mod tests {
     #[test]
     fn search_empty_query_clears() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "a".into(),
-        });
+        s.apply(GridCommand::Search { query: "a".into() });
         assert!(!s.search.matches.is_empty());
         s.apply(GridCommand::Search {
             query: String::new(),
