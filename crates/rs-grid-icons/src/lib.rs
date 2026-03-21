@@ -37,8 +37,7 @@ pub fn all_flags(
 // ── Gender icons ─────────────────────────────────────
 
 /// Return the SVG data URI for a gender icon key
-/// (uppercase, e.g. `"MALE"`, `"FEMALE"`,
-/// `"NON-BINARY"`).
+/// (uppercase, e.g. `"MALE"`, `"FEMALE"`).
 pub fn gender_icon_uri(
     key: &str,
 ) -> Option<&'static str> {
@@ -111,9 +110,6 @@ mod tests {
     fn gender_known() {
         assert!(gender_icon_uri("MALE").is_some());
         assert!(gender_icon_uri("FEMALE").is_some());
-        assert!(
-            gender_icon_uri("NON-BINARY").is_some()
-        );
     }
 
     #[test]
@@ -131,7 +127,7 @@ mod tests {
 
     #[test]
     fn gender_count_check() {
-        assert_eq!(gender_icon_count(), 3);
+        assert_eq!(gender_icon_count(), 2);
     }
 
     #[test]
