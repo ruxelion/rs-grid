@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -n \"hit_col_resize_separator\" /d/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)"
+      "Bash(grep -n \"hit_col_resize_separator\" /d/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
+      "Bash(rustc --version)"
     ]
   }
 }
