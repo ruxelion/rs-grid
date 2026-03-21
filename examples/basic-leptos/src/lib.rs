@@ -73,8 +73,8 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
 
     let source =
         FnDataSource::new(row_count, move |row: u64, col_key: &str| {
-            if col_key.starts_with("col") {
-                return col_key[3..]
+            if let Some(suffix) = col_key.strip_prefix("col") {
+                return suffix
                     .parse::<u64>()
                     .ok()
                     .map(|n| format!("{row}x{n}"));
