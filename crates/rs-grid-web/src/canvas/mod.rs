@@ -77,8 +77,12 @@ struct Inner {
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// DOM `<input>` element used for inline cell editing.
     edit_input: RefCell<Option<HtmlInputElement>>,
+    /// Closures on the edit `<input>` (keydown, blur).
+    edit_closures: RefCell<Vec<Box<dyn Any>>>,
     /// DOM `<input>` element for the search bar (Ctrl+F).
     search_input: RefCell<Option<HtmlInputElement>>,
+    /// Closures on the search `<input>` (input, keydown).
+    search_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Text waiting to be placed on the clipboard by the next
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
@@ -202,7 +206,9 @@ impl GridCanvas {
             raf_scheduled: Cell::new(false),
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
+            edit_closures: RefCell::new(Vec::new()),
             search_input: RefCell::new(None),
+            search_closures: RefCell::new(Vec::new()),
             pending_clipboard: RefCell::new(None),
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
@@ -582,7 +588,11 @@ impl GridCanvas {
         // 4. Stop any running scroll timers.
         self.stop_scroll_repeat();
 
-        // 5. Drop all stored closures (invalidates their JS
+        // 5. Remove ephemeral overlays (edit / search).
+        self.remove_edit_input();
+        self.remove_search_input();
+
+        // 6. Drop all stored closures (invalidates their JS
         //    functions and breaks Rc<Inner> cycles).
         self.0.closures.borrow_mut().clear();
         self.0.scroll_closures.borrow_mut().clear();

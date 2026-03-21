@@ -234,8 +234,8 @@ impl GridCanvas {
                         16,
                     )
                     .expect("setInterval");
-                cb2.forget();
                 *gc.0.scroll_interval.borrow_mut() = Some(id);
+                gc.0.scroll_closures.borrow_mut().push(Box::new(cb2));
                 return;
             }
 
