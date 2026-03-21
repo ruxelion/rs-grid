@@ -106,7 +106,7 @@ dependencies = [
  "js-sys",
  "leptos",
  "rs-grid-core",
- "rs-grid-flags",
+ "rs-grid-icons",
  "rs-grid-leptos",
  "rs-grid-scene",
  "send_wrapper",
@@ -1206,7 +1206,7 @@ name = "rs-grid-core"
 version = "0.1.0"
 
 [[package]]
-name = "rs-grid-flags"
+name = "rs-grid-icons"
 version = "0.1.0"
 
 [[package]]

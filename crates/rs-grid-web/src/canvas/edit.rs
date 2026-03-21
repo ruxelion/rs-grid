@@ -61,14 +61,43 @@ impl GridCanvas {
             .dyn_into()
             .expect("cast");
 
-        let initial = self
-            .0
-            .state
-            .borrow()
-            .edit
-            .as_ref()
-            .map(|e| e.initial_value.clone())
-            .unwrap_or_default();
+        // For ImageText cells the raw value is
+        // "{data_uri} {label}". Show only the label in
+        // the input and restore the prefix on commit.
+        let (initial, img_prefix) = {
+            let state = self.0.state.borrow();
+            let raw = state
+                .edit
+                .as_ref()
+                .map(|e| e.initial_value.clone())
+                .unwrap_or_default();
+            let is_img_text = state
+                .edit
+                .as_ref()
+                .and_then(|e| {
+                    state.model.columns.iter().find(
+                        |c| c.key == e.col_key,
+                    )
+                })
+                .map(|c| {
+                    c.format
+                        .as_ref()
+                        .map(|f| f.is_image_text())
+                        .unwrap_or(false)
+                })
+                .unwrap_or(false);
+            if is_img_text {
+                if let Some(i) = raw.find(' ') {
+                    let prefix = raw[..=i].to_owned();
+                    let label = raw[i + 1..].to_owned();
+                    (label, prefix)
+                } else {
+                    (raw, String::new())
+                }
+            } else {
+                (raw, String::new())
+            }
+        };
         input.set_value(&initial);
 
         let style = input.style();
@@ -96,11 +125,13 @@ impl GridCanvas {
             let r = row;
             let ck = col_key.clone();
             let inp = input.clone();
+            let pfx: String = img_prefix.clone();
             let cb =
                 Closure::<dyn FnMut(_)>::new(
                     move |evt: KeyboardEvent| match evt.key().as_str() {
                         "Enter" => {
-                            let val = inp.value();
+                            let val =
+                                format!("{}{}", pfx, inp.value());
                             gc.dispatch(GridCommand::CommitEdit {
                                 row: r,
                                 col_key: ck.clone(),
@@ -133,10 +164,12 @@ impl GridCanvas {
             let r = row;
             let ck = col_key;
             let inp = input.clone();
+            let pfx = img_prefix;
             let cb =
                 Closure::<dyn FnMut(_)>::new(move |_: web_sys::FocusEvent| {
                     if gc.0.state.borrow().edit.is_some() {
-                        let val = inp.value();
+                        let val =
+                            format!("{}{}", pfx, inp.value());
                         gc.dispatch(GridCommand::CommitEdit {
                             row: r,
                             col_key: ck.clone(),

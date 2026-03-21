@@ -344,6 +344,9 @@ enum Gen {
     /// Country: picks from COUNTRIES tuples, returns
     /// "CC Name" for CountryFlag format.
     Country,
+    /// Gender: picks from GENDERS, returns
+    /// "{icon_uri} {label}" for ImageText format.
+    Gender,
 }
 
 /// Metadata for one extra column.
@@ -388,8 +391,8 @@ pub static EXTRA_COLUMNS: &[ExtraColDef] = &[
         Gen::Date(1960, 2000)),
     ec("hire_date", "Hire Date", 110.0, T,
         Gen::Date(2015, 2025)),
-    ec("gender", "Gender", 90.0, T,
-        Gen::Pick(GENDERS)),
+    ec("gender", "Gender", 130.0, IT,
+        Gen::Gender),
     ec("address", "Address", 200.0, T, Gen::Address),
     ec("city", "City", 130.0, T, Gen::Pick(CITIES)),
     ec("state", "State", 60.0, T,
@@ -636,9 +639,18 @@ fn generate_extra(
             let idx = hash_field(row, salt) as usize
                 % COUNTRIES.len();
             let (code, name) = COUNTRIES[idx];
-            let uri = rs_grid_flags::flag_data_uri(code)
+            let uri = rs_grid_icons::flag_data_uri(code)
                 .unwrap_or("");
             format!("{uri} {name}")
+        }
+        Gen::Gender => {
+            let label = pick(GENDERS, row, salt);
+            let key =
+                label.to_uppercase().replace(' ', "-");
+            let uri =
+                rs_grid_icons::gender_icon_uri(&key)
+                    .unwrap_or("");
+            format!("{uri} {label}")
         }
     })
 }
