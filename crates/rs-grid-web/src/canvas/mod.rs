@@ -8,7 +8,11 @@ pub mod fetcher;
 mod scroll;
 mod search;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    any::Any,
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use rs_grid_core::{
     commands::{CommandOutput, GridCommand},
@@ -58,6 +62,14 @@ struct Inner {
     _resize_observer: RefCell<Option<ResizeObserver>>,
     /// Stored references to document-level listeners so they can be removed on detach.
     doc_listeners: RefCell<Vec<(String, js_sys::Function)>>,
+    /// Stored references to canvas-level listeners for removal on detach.
+    canvas_listeners: RefCell<Vec<(String, js_sys::Function)>>,
+    /// Closures backing the event listeners — stored here to
+    /// prevent `forget()`-style leaks and to break the
+    /// `Rc<Inner>` cycle on `detach()`.
+    closures: RefCell<Vec<Box<dyn Any>>>,
+    /// Whether a render is already scheduled via rAF.
+    raf_scheduled: Cell<bool>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// DOM `<input>` element used for inline cell editing.
@@ -181,6 +193,9 @@ impl GridCanvas {
             _resize_closure: RefCell::new(None),
             _resize_observer: RefCell::new(None),
             doc_listeners: RefCell::new(Vec::new()),
+            canvas_listeners: RefCell::new(Vec::new()),
+            closures: RefCell::new(Vec::new()),
+            raf_scheduled: Cell::new(false),
             on_change: RefCell::new(None),
             edit_input: RefCell::new(None),
             search_input: RefCell::new(None),
@@ -195,12 +210,34 @@ impl GridCanvas {
         let gc = GridCanvas(inner);
         gc.attach_listeners();
         gc.attach_resize_observer();
-        gc.render();
+        gc.render_immediate();
         gc
     }
 
-    /// Render the current state immediately.
+    /// Schedule a render on the next animation frame.
+    ///
+    /// Multiple calls within the same frame are coalesced —
+    /// only one scene build + canvas draw happens per frame.
     pub fn render(&self) {
+        if self.0.raf_scheduled.get() {
+            return;
+        }
+        self.0.raf_scheduled.set(true);
+        let gc = self.clone();
+        // `once_into_js` transfers ownership to JS; the
+        // captured values are dropped after the callback
+        // fires — no leak.
+        let cb = Closure::once_into_js(move || {
+            gc.0.raf_scheduled.set(false);
+            gc.render_immediate();
+        });
+        let win = web_sys::window().expect("no window");
+        let _ = win.request_animation_frame(cb.unchecked_ref());
+    }
+
+    /// Render the current state synchronously (used by
+    /// `mount` and the rAF callback).
+    fn render_immediate(&self) {
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
         let frame = self.0.builder.borrow().build(&state, hint.as_ref());
@@ -510,18 +547,37 @@ impl GridCanvas {
         }
     }
 
-    /// Remove all document-level event listeners and disconnect the ResizeObserver.
+    /// Remove all event listeners, disconnect the
+    /// ResizeObserver, and drop stored closures.
     ///
-    /// Call this when the grid is unmounted to prevent listener accumulation.
+    /// Call this when the grid is unmounted to prevent
+    /// listener accumulation and break the `Rc` cycle.
     pub fn detach(&self) {
+        // 1. Remove document-level listeners.
         let doc = document();
         for (event, f) in self.0.doc_listeners.borrow().iter() {
             let _ = doc.remove_event_listener_with_callback(event, f);
         }
         self.0.doc_listeners.borrow_mut().clear();
+
+        // 2. Remove canvas-level listeners.
+        for (event, f) in self.0.canvas_listeners.borrow().iter() {
+            let _ = self
+                .0
+                .canvas
+                .remove_event_listener_with_callback(event, f);
+        }
+        self.0.canvas_listeners.borrow_mut().clear();
+
+        // 3. Disconnect ResizeObserver + drop its closure.
         if let Some(ro) = self.0._resize_observer.borrow_mut().take() {
             ro.disconnect();
         }
+        self.0._resize_closure.borrow_mut().take();
+
+        // 4. Drop all stored closures (invalidates their JS
+        //    functions and breaks Rc<Inner> cycles).
+        self.0.closures.borrow_mut().clear();
     }
 
     /// Update the theme in-place without remounting the grid.

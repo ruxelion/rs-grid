@@ -46,6 +46,7 @@ features = [
   "CssStyleDeclaration",
   "HtmlElement",
   "HtmlImageElement",
+  "AddEventListenerOptions",
   "Node",
   "HtmlAnchorElement",
   "HtmlInputElement",

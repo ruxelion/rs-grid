@@ -326,14 +326,17 @@ impl GridCanvas {
 
             gc.show_context_menu(evt.client_x(), evt.client_y());
         });
+        let f: js_sys::Function =
+            cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         self.0
             .canvas
-            .add_event_listener_with_callback(
-                "contextmenu",
-                cb.as_ref().unchecked_ref(),
-            )
+            .add_event_listener_with_callback("contextmenu", &f)
             .unwrap();
-        cb.forget();
+        self.0
+            .canvas_listeners
+            .borrow_mut()
+            .push(("contextmenu".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
     fn show_col_header_menu(&self, col_idx: usize, x: i32, y: i32) {
