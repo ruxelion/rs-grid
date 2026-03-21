@@ -144,6 +144,14 @@ impl GridCanvas {
             .style()
             .set_property("background-color", &theme.bg.to_css());
 
+        // Make the canvas focusable so document-level keydown /
+        // clipboard handlers can check whether *this* grid owns
+        // focus before intercepting the event.
+        canvas.set_attribute("tabindex", "0").expect("set tabindex");
+        // Remove the default focus outline — the grid draws its
+        // own selection indicators.
+        let _ = canvas.style().set_property("outline", "none");
+
         state.apply(GridCommand::Resize {
             width: css_w,
             height: css_h,
@@ -297,6 +305,45 @@ impl GridCanvas {
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
+
+    /// Returns `true` when this grid should handle keyboard /
+    /// clipboard events.  The grid "has focus" when the active
+    /// element is its canvas, its inline edit `<input>`, or its
+    /// search `<input>`.
+    fn has_focus(&self) -> bool {
+        use wasm_bindgen::JsCast;
+        let Some(active) = document().active_element() else {
+            return false;
+        };
+        // Compare via the underlying Element pointer.
+        let active_el: &web_sys::Element = &active;
+        if let Some(canvas_el) =
+            self.0.canvas.dyn_ref::<web_sys::Element>()
+        {
+            if active_el == canvas_el {
+                return true;
+            }
+        }
+        if let Some(ref el) = *self.0.edit_input.borrow() {
+            if let Some(input_el) =
+                el.dyn_ref::<web_sys::Element>()
+            {
+                if active_el == input_el {
+                    return true;
+                }
+            }
+        }
+        if let Some(ref el) = *self.0.search_input.borrow() {
+            if let Some(input_el) =
+                el.dyn_ref::<web_sys::Element>()
+            {
+                if active_el == input_el {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 
     fn scrollbar(&self) -> Option<ScrollbarGeom> {
         let s = self.0.state.borrow();

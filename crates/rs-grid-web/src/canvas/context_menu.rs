@@ -295,6 +295,7 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             evt.prevent_default();
+            let _ = gc.0.canvas.focus();
 
             let (cx, cy) = gc.canvas_xy(&evt);
 

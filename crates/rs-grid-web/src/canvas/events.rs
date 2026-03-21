@@ -152,6 +152,10 @@ impl GridCanvas {
     fn attach_mousedown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            // Claim focus so keydown / clipboard handlers know
+            // this grid is the active target.
+            let _ = gc.0.canvas.focus();
+
             // Right-click is handled by contextmenu event
             if evt.button() == 2 {
                 return;
@@ -405,8 +409,9 @@ impl GridCanvas {
                         }
                     };
 
+                    let current_x = gc.0.state.borrow().viewport.scroll_x;
                     gc.dispatch(GridCommand::ScrollTo {
-                        x: 0.0,
+                        x: current_x,
                         y: start_scroll + scroll_delta,
                     });
                 }
@@ -621,6 +626,10 @@ impl GridCanvas {
     fn attach_keydown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
+            // Only handle keys when this grid has focus.
+            if !gc.has_focus() {
+                return;
+            }
             // Ctrl+F always opens search, even during edit.
             if (evt.ctrl_key() || evt.meta_key()) && evt.key() == "f" {
                 evt.prevent_default();
@@ -687,6 +696,9 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
+                if !gc.has_focus() {
+                    return;
+                }
                 gc.on_copy_event(&evt);
             },
         );
@@ -706,6 +718,9 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
+                if !gc.has_focus() {
+                    return;
+                }
                 gc.on_cut_event(&evt);
             },
         );
@@ -725,6 +740,9 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
+                if !gc.has_focus() {
+                    return;
+                }
                 if !gc.0.state.borrow().selection.has_selection() {
                     return;
                 }
