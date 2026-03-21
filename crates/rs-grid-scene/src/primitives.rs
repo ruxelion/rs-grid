@@ -81,6 +81,29 @@ pub struct PolygonPrimitive {
     pub corner_radius: f64,
 }
 
+/// An image loaded from a URL.
+///
+/// The renderer resolves the URL to a loaded element,
+/// caches it, and draws it with object-fit: contain
+/// semantics. While loading, a placeholder is shown.
+#[derive(Debug, Clone)]
+pub struct ImagePrimitive {
+    /// Fully resolved URL of the image.
+    pub url: String,
+    /// Left edge in logical pixels.
+    pub x: f64,
+    /// Top edge in logical pixels.
+    pub y: f64,
+    /// Available width in logical pixels.
+    pub width: f64,
+    /// Available height in logical pixels.
+    pub height: f64,
+    /// Corner radius for rounded clipping (0 = sharp).
+    pub corner_radius: f64,
+    /// Optional clipping rectangle `[x, y, w, h]`.
+    pub clip: Option<[f64; 4]>,
+}
+
 /// Sum type over all renderable primitives.
 #[derive(Debug, Clone)]
 pub enum ScenePrimitive {
@@ -88,4 +111,5 @@ pub enum ScenePrimitive {
     Text(TextPrimitive),
     Line(LinePrimitive),
     Polygon(PolygonPrimitive),
+    Image(ImagePrimitive),
 }

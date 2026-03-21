@@ -59,6 +59,16 @@ pub enum CellFormat {
     },
     /// User-provided formatting callback.
     Custom(Rc<dyn Fn(&str) -> FormattedCell>),
+    /// Image: cell value is a URL rendered as an image.
+    Image {
+        /// Optional base URL prefix. Final URL = base_url + raw.
+        /// If `None`, raw value is the full URL.
+        base_url: Option<String>,
+        /// Corner radius in logical pixels (0 = sharp).
+        border_radius: f64,
+        /// Padding inside the cell around the image.
+        padding: f64,
+    },
 }
 
 impl Clone for CellFormat {
@@ -95,6 +105,15 @@ impl Clone for CellFormat {
                 false_label: false_label.clone(),
             },
             Self::Custom(f) => Self::Custom(Rc::clone(f)),
+            Self::Image {
+                base_url,
+                border_radius,
+                padding,
+            } => Self::Image {
+                base_url: base_url.clone(),
+                border_radius: *border_radius,
+                padding: *padding,
+            },
         }
     }
 }
@@ -137,6 +156,16 @@ impl std::fmt::Debug for CellFormat {
                 .field("false_label", false_label)
                 .finish(),
             Self::Custom(_) => f.debug_tuple("Custom").field(&"..").finish(),
+            Self::Image {
+                base_url,
+                border_radius,
+                padding,
+            } => f
+                .debug_struct("Image")
+                .field("base_url", base_url)
+                .field("border_radius", border_radius)
+                .field("padding", padding)
+                .finish(),
         }
     }
 }
@@ -235,6 +264,17 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
             }
         }
         CellFormat::Custom(cb) => cb(raw),
+        CellFormat::Image { .. } => FormattedCell {
+            text: raw.to_owned(),
+            ..Default::default()
+        },
+    }
+}
+
+impl CellFormat {
+    /// Returns `true` if this format renders an image.
+    pub fn is_image(&self) -> bool {
+        matches!(self, CellFormat::Image { .. })
     }
 }
 
@@ -564,5 +604,50 @@ mod tests {
         };
         let fc = format_cell("-1234.5", &fmt);
         assert_eq!(fc.text, "-1,234.50");
+    }
+
+    #[test]
+    fn format_image_returns_raw() {
+        let fmt = CellFormat::Image {
+            base_url: Some("https://example.com/".into()),
+            border_radius: 4.0,
+            padding: 2.0,
+        };
+        let fc = format_cell("photo.png", &fmt);
+        assert_eq!(fc.text, "photo.png");
+    }
+
+    #[test]
+    fn cell_format_is_image() {
+        let img = CellFormat::Image {
+            base_url: None,
+            border_radius: 0.0,
+            padding: 0.0,
+        };
+        assert!(img.is_image());
+        let num = CellFormat::Number {
+            decimal_places: 2,
+            thousands_sep: None,
+            decimal_sep: '.',
+        };
+        assert!(!num.is_image());
+    }
+
+    #[test]
+    fn image_format_clone() {
+        let fmt = CellFormat::Image {
+            base_url: Some("https://cdn.example.com/".into()),
+            border_radius: 8.0,
+            padding: 3.0,
+        };
+        let cloned = fmt.clone();
+        assert!(matches!(
+            cloned,
+            CellFormat::Image {
+                border_radius,
+                padding,
+                ..
+            } if border_radius == 8.0 && padding == 3.0
+        ));
     }
 }

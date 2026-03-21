@@ -45,10 +45,19 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
             });
             c
         },
+        {
+            let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
+            c.format = Some(CellFormat::Image {
+                base_url: Some("https://ui-avatars.com/api/?size=40&name=".into()),
+                border_radius: 16.0,
+                padding: 4.0,
+            });
+            c
+        },
     ];
 
     let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(7)).collect();
+        base.into_iter().take(col_count.min(8)).collect();
 
     for i in (columns.len() + 1)..=col_count {
         columns.push(ColumnDef::new(
@@ -77,6 +86,7 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
                     let base = 30000.0 + (row % 80) as f64 * 1000.0;
                     Some(format!("{base}"))
                 }
+                "avatar" => Some(format!("User+{row}")),
                 "active" => Some(
                     if row.is_multiple_of(5) {
                         "false"
