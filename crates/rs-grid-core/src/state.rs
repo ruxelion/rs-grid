@@ -1,7 +1,7 @@
 use crate::{
     commands::{CommandOutput, GridCommand},
     hit_test,
-    model::GridModel,
+    model::{DataSourceMode, GridModel},
     selection::{CellCoord, SelectionState},
     sort::{SortDir, SortState},
     viewport::ViewportState,
@@ -155,6 +155,10 @@ impl GridState {
         self.search.matches.clear();
         self.search.current = 0;
         if query.is_empty() {
+            return;
+        }
+        // Server-side mode: too much data to search locally.
+        if self.model.mode == DataSourceMode::ServerSide {
             return;
         }
         const MAX_MATCHES: usize = 10_000;
@@ -563,6 +567,17 @@ impl GridState {
             }
             GridCommand::ClearSearch => {
                 self.search = SearchState::default();
+                CommandOutput::None
+            }
+            GridCommand::NotifyPageLoaded => {
+                // No-op — triggers a re-render via dispatch.
+                CommandOutput::None
+            }
+            GridCommand::SetTotalRowCount(n) => {
+                // Update the underlying data source row count.
+                // For PageCacheDataSource this is done
+                // externally; here we just trigger re-render.
+                let _ = n;
                 CommandOutput::None
             }
             GridCommand::AutoFitColumn {

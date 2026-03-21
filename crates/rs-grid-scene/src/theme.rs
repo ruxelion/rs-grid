@@ -36,6 +36,10 @@ pub struct Theme {
     /// Background highlight for the current (focused) search match.
     pub search_current: Color,
 
+    // ── skeleton (async loading) ────────────────────────────────────────
+    /// Foreground colour of skeleton loading bars.
+    pub skeleton_fg: Color,
+
     // ── spacing ──────────────────────────────────────────────────────────────
     pub cell_padding: f64,
 
@@ -64,6 +68,7 @@ impl Theme {
             row_hover_bg: Color::rgba(0, 0, 0, 10),
             search_highlight: Color::rgba(255, 213, 0, 80),
             search_current: Color::rgba(255, 165, 0, 140),
+            skeleton_fg: Color::rgba(200, 200, 200, 100),
             font_size: 14.0,
             header_font_size: 12.0,
             header_font_bold: true,
@@ -90,6 +95,7 @@ impl Theme {
             row_hover_bg: Color::rgba(255, 255, 255, 10),
             search_highlight: Color::rgba(255, 213, 0, 80),
             search_current: Color::rgba(255, 165, 0, 140),
+            skeleton_fg: Color::rgba(60, 65, 90, 100),
             font_size: 14.0,
             header_font_size: 13.0,
             header_font_bold: true,

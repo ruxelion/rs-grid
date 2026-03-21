@@ -1,11 +1,41 @@
 use crate::row::RowRecord;
 
+/// Distinguishes "data not yet fetched" from "data fetched but absent".
+#[derive(Debug, Clone, PartialEq)]
+pub enum CellStatus {
+    /// Cell value is available.
+    Ready(String),
+    /// The page containing this row has not been fetched yet.
+    Loading,
+    /// The page is fetched but this cell has no value.
+    Absent,
+}
+
 pub trait DataSource: std::fmt::Debug {
     fn row_count(&self) -> u64;
     fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
     fn clone_box(&self) -> Box<dyn DataSource>;
     /// Write a cell value. Default is a no-op for read-only sources.
-    fn set_cell(&mut self, _row: u64, _col_key: &str, _value: String) {}
+    fn set_cell(
+        &mut self,
+        _row: u64,
+        _col_key: &str,
+        _value: String,
+    ) {
+    }
+    /// Return the loading status of a cell. The default maps
+    /// `None` to `Absent` (legacy behaviour for in-memory
+    /// sources).
+    fn cell_status(
+        &self,
+        row: u64,
+        col_key: &str,
+    ) -> CellStatus {
+        match self.get_cell(row, col_key) {
+            Some(v) => CellStatus::Ready(v),
+            None => CellStatus::Absent,
+        }
+    }
 }
 
 impl Clone for Box<dyn DataSource> {

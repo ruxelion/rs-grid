@@ -73,6 +73,12 @@ pub enum GridCommand {
     SearchPrev,
     /// Clear the search state.
     ClearSearch,
+    /// Notify the grid that a page of data has been loaded into the
+    /// cache. This is a no-op; it exists solely to trigger a re-render.
+    NotifyPageLoaded,
+    /// Update the total row count (used by async data sources after the
+    /// first server response).
+    SetTotalRowCount(u64),
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
         col_idx: usize,

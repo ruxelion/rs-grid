@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
+    datasource::CellStatus,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
     sort::SortDir,
     state::GridState,
@@ -219,20 +220,50 @@ impl SceneBuilder {
                     }));
                 }
 
-                // Cell text
-                if let Some(text) = model.get_cell(ri, &col.key) {
-                    if !text.is_empty() {
-                        frame.push(ScenePrimitive::Text(TextPrimitive {
-                            x: cx + t.cell_padding,
-                            y: mid_y,
-                            text,
-                            color: t.cell_text,
-                            font_size: t.font_size,
-                            bold: false,
-                            clip: Some([cx, ry, col.width, model.row_height]),
-                            align: TextAlign::Left,
-                        }));
+                // Cell text or skeleton
+                match model.cell_status(ri, &col.key) {
+                    CellStatus::Ready(text)
+                        if !text.is_empty() =>
+                    {
+                        frame.push(ScenePrimitive::Text(
+                            TextPrimitive {
+                                x: cx + t.cell_padding,
+                                y: mid_y,
+                                text,
+                                color: t.cell_text,
+                                font_size: t.font_size,
+                                bold: false,
+                                clip: Some([
+                                    cx,
+                                    ry,
+                                    col.width,
+                                    model.row_height,
+                                ]),
+                                align: TextAlign::Left,
+                            },
+                        ));
                     }
+                    CellStatus::Loading => {
+                        let bar_w = col.width * 0.6;
+                        let bar_h = t.font_size * 0.5;
+                        let bar_x = cx + t.cell_padding;
+                        let bar_y = ry
+                            + (model.row_height - bar_h)
+                                / 2.0;
+                        frame.push(ScenePrimitive::Rect(
+                            RectPrimitive {
+                                x: bar_x,
+                                y: bar_y,
+                                width: bar_w,
+                                height: bar_h,
+                                fill: t.skeleton_fg,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: bar_h / 2.0,
+                            },
+                        ));
+                    }
+                    _ => {}
                 }
             }
 
@@ -333,24 +364,60 @@ impl SceneBuilder {
                         ));
                     }
 
-                    if let Some(text) = model.get_cell(ri, &col.key) {
-                        if !text.is_empty() {
-                            frame.push(ScenePrimitive::Text(TextPrimitive {
-                                x: cx + t.cell_padding,
-                                y: mid_y,
-                                text,
-                                color: t.cell_text,
-                                font_size: t.font_size,
-                                bold: false,
-                                clip: Some([
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                ]),
-                                align: TextAlign::Left,
-                            }));
+                    match model.cell_status(ri, &col.key) {
+                        CellStatus::Ready(text)
+                            if !text.is_empty() =>
+                        {
+                            frame.push(
+                                ScenePrimitive::Text(
+                                    TextPrimitive {
+                                        x: cx
+                                            + t.cell_padding,
+                                        y: mid_y,
+                                        text,
+                                        color: t.cell_text,
+                                        font_size: t
+                                            .font_size,
+                                        bold: false,
+                                        clip: Some([
+                                            cx,
+                                            ry,
+                                            col.width,
+                                            model.row_height,
+                                        ]),
+                                        align:
+                                            TextAlign::Left,
+                                    },
+                                ),
+                            );
                         }
+                        CellStatus::Loading => {
+                            let bar_w = col.width * 0.6;
+                            let bar_h = t.font_size * 0.5;
+                            let bar_x =
+                                cx + t.cell_padding;
+                            let bar_y = ry
+                                + (model.row_height
+                                    - bar_h)
+                                    / 2.0;
+                            frame.push(
+                                ScenePrimitive::Rect(
+                                    RectPrimitive {
+                                        x: bar_x,
+                                        y: bar_y,
+                                        width: bar_w,
+                                        height: bar_h,
+                                        fill: t
+                                            .skeleton_fg,
+                                        stroke: None,
+                                        stroke_width: 0.0,
+                                        corner_radius:
+                                            bar_h / 2.0,
+                                    },
+                                ),
+                            );
+                        }
+                        _ => {}
                     }
                 }
             }

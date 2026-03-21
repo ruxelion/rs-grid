@@ -3,6 +3,7 @@ pub mod commands;
 pub mod datasource;
 pub mod hit_test;
 pub mod model;
+pub mod page_cache;
 pub mod row;
 pub mod scrollbar;
 pub mod selection;

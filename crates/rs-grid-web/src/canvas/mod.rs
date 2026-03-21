@@ -4,6 +4,7 @@ pub mod context_menu_config;
 mod dom_helpers;
 mod edit;
 mod events;
+pub mod fetcher;
 mod scroll;
 mod search;
 
@@ -11,10 +12,13 @@ use std::{cell::RefCell, rc::Rc};
 
 use rs_grid_core::{
     commands::{CommandOutput, GridCommand},
+    page_cache::PageCacheDataSource,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
     state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
+
+use fetcher::FetchConfig;
 use rs_grid_scene::{
     builder::{ColumnDragHint, SceneBuilder},
     Theme,
@@ -66,6 +70,10 @@ struct Inner {
     pending_clipboard: RefCell<Option<String>>,
     /// Context menu configuration (items + overrides).
     ctx_menu_config: RefCell<context_menu_config::ContextMenuConfig>,
+    /// Shared page cache for async data sources (None for client-side).
+    page_cache: RefCell<Option<PageCacheDataSource>>,
+    /// Async fetch configuration (None = no async fetching).
+    fetch_config: RefCell<Option<FetchConfig>>,
 }
 
 enum ActiveDrag {
@@ -172,6 +180,8 @@ impl GridCanvas {
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
             ),
+            page_cache: RefCell::new(None),
+            fetch_config: RefCell::new(None),
         });
 
         let gc = GridCanvas(inner);
@@ -191,17 +201,51 @@ impl GridCanvas {
     }
 
     /// Apply a command, redraw, and return the output.
-    fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+    fn dispatch_with_output(
+        &self,
+        cmd: GridCommand,
+    ) -> CommandOutput {
         let is_mutation = matches!(
             cmd,
-            GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
+            GridCommand::PasteAt { .. }
+                | GridCommand::CommitEdit { .. }
         );
+        let triggers_fetch = matches!(
+            cmd,
+            GridCommand::ScrollTo { .. }
+                | GridCommand::ScrollBy { .. }
+                | GridCommand::Resize { .. }
+                | GridCommand::NotifyPageLoaded
+                | GridCommand::ToggleSort { .. }
+                | GridCommand::SetColumnFilter { .. }
+                | GridCommand::ClearAllFilters
+        );
+        // In server-side mode, sort/filter changes
+        // invalidate the entire page cache.
+        let invalidates_cache = matches!(
+            cmd,
+            GridCommand::ToggleSort { .. }
+                | GridCommand::SetColumnFilter { .. }
+                | GridCommand::ClearAllFilters
+        );
+        if invalidates_cache {
+            if let Some(cache) =
+                self.0.page_cache.borrow().as_ref()
+            {
+                cache.clear();
+            }
+        }
         let out = self.0.state.borrow_mut().apply(cmd);
         self.render();
         if is_mutation {
-            if let Some(cb) = self.0.on_change.borrow().as_ref() {
+            if let Some(cb) =
+                self.0.on_change.borrow().as_ref()
+            {
                 cb();
             }
+        }
+        if triggers_fetch {
+            self.maybe_fetch_pages();
         }
         out
     }
@@ -472,6 +516,21 @@ impl GridCanvas {
     /// Remove all column filters.
     pub fn clear_filters(&self) {
         self.dispatch(GridCommand::ClearAllFilters);
+    }
+
+    /// Enable async page-based data fetching.
+    ///
+    /// Call this after `mount()` when the `GridModel` uses a
+    /// `PageCacheDataSource`. The fetch coordinator will
+    /// start loading pages immediately.
+    pub fn enable_async_fetch(
+        &self,
+        cache: PageCacheDataSource,
+        config: FetchConfig,
+    ) {
+        *self.0.page_cache.borrow_mut() = Some(cache);
+        *self.0.fetch_config.borrow_mut() = Some(config);
+        self.maybe_fetch_pages();
     }
 
     /// Replace the context menu configuration.
