@@ -2,10 +2,23 @@ use std::collections::HashMap;
 
 use crate::{
     column::{ColumnDef, ColumnOffsets},
-    datasource::{DataSource, VecDataSource},
+    datasource::{CellStatus, DataSource, VecDataSource},
     row::RowRecord,
     sort::SortDir,
 };
+
+/// Whether sort/filter are performed client-side or
+/// delegated to the server.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DataSourceMode {
+    /// All data is in memory. Sort/filter/search done locally.
+    #[default]
+    ClientSide,
+    /// Data comes from a remote server. Sort/filter are
+    /// delegated — client-side `apply_sort`/`apply_filter`
+    /// become no-ops.
+    ServerSide,
+}
 
 /// The data model: columns, a virtual data source, and sizing constants.
 #[derive(Debug, Clone)]
@@ -35,6 +48,9 @@ pub struct GridModel {
     /// Physical row indices that pass all active filters, stored in
     /// sort order.  Empty = no filter active (all rows visible).
     pub filtered_indices: Vec<u64>,
+    /// Whether data operations run client-side or are delegated
+    /// to a server.
+    pub mode: DataSourceMode,
 }
 
 impl GridModel {
@@ -73,6 +89,7 @@ impl GridModel {
             pinned_count: 0,
             filters: HashMap::new(),
             filtered_indices: Vec::new(),
+            mode: DataSourceMode::ClientSide,
         }
     }
 
@@ -114,6 +131,9 @@ impl GridModel {
     /// every filter (case-insensitive contains).  No-op for
     /// datasets larger than 1 000 000 rows.
     pub fn apply_filter(&mut self) {
+        if self.mode == DataSourceMode::ServerSide {
+            return;
+        }
         if self.filters.is_empty() {
             self.filtered_indices.clear();
             return;
@@ -155,6 +175,21 @@ impl GridModel {
         self.data.get_cell(physical, col_key)
     }
 
+    /// Return the loading status of a cell, checking patches first.
+    pub fn cell_status(
+        &self,
+        logical_row: u64,
+        col_key: &str,
+    ) -> CellStatus {
+        let physical = self.logical_to_physical(logical_row);
+        if let Some(v) =
+            self.patches.get(&(physical, col_key.to_owned()))
+        {
+            return CellStatus::Ready(v.clone());
+        }
+        self.data.cell_status(physical, col_key)
+    }
+
     /// Write a cell value into the patch layer (works for any datasource).
     /// Applies the sort mapping so callers always use logical row indices.
     pub fn set_cell(
@@ -171,6 +206,9 @@ impl GridModel {
     /// Tries numeric comparison first, falls back to lexicographic.
     /// No-op for datasources with more than 1 000 000 rows.
     pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) {
+        if self.mode == DataSourceMode::ServerSide {
+            return;
+        }
         const MAX_SORT_ROWS: u64 = 1_000_000;
         let n = self.data.row_count();
         if n > MAX_SORT_ROWS {

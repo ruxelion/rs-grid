@@ -103,6 +103,10 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-search-current",
             fallback.search_current,
         ),
+        skeleton_fg: color(
+            "--rs-grid-skeleton-fg",
+            fallback.skeleton_fg,
+        ),
     }
 }
 
