@@ -100,10 +100,8 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
             }
             fake_data::FormatHint::ImageText => {
                 Some(CellFormat::ImageText {
-                    base_url:
-                        "https://flagcdn.com/w40/"
-                            .into(),
-                    suffix: ".png".into(),
+                    base_url: String::new(),
+                    suffix: String::new(),
                     image_size: 20.0,
                     border_radius: 2.0,
                     gap: 6.0,

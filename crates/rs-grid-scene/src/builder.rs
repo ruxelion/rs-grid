@@ -1087,10 +1087,8 @@ impl SceneBuilder {
             (row_height - image_size) / 2.0;
         let img_x = cx + t.cell_padding;
         let img_y = ry + img_pad;
-        let url = format!(
-            "{base_url}{}{suffix}",
-            key.to_lowercase()
-        );
+        let url =
+            format!("{base_url}{key}{suffix}");
         frame.push(ScenePrimitive::Image(
             ImagePrimitive {
                 url,

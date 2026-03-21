@@ -5,6 +5,7 @@ members = [
   "crates/rs-grid-render-canvas",
   "crates/rs-grid-web",
   "crates/rs-grid-leptos",
+  "crates/rs-grid-flags",
   "examples/basic-leptos",
 ]
 resolver = "2"
