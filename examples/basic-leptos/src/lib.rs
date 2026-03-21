@@ -12,6 +12,8 @@ use send_wrapper::SendWrapper;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::js_sys;
 
+mod fake_data;
+
 fn build_model(row_count: u64, col_count: usize) -> GridModel {
     let base: Vec<ColumnDef> = vec![
         {
@@ -48,7 +50,9 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
         {
             let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
             c.format = Some(CellFormat::Image {
-                base_url: Some("https://ui-avatars.com/api/?size=40&name=".into()),
+                base_url: Some(
+                    "https://ui-avatars.com/api/?size=40&name=".into(),
+                ),
                 border_radius: 16.0,
                 padding: 4.0,
             });
@@ -69,37 +73,13 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
 
     let source =
         FnDataSource::new(row_count, move |row: u64, col_key: &str| {
-            match col_key {
-                "id" => Some(row.to_string()),
-                "name" => Some(format!("User {row}")),
-                "email" => Some(format!("user{row}@example.com")),
-                "role" => Some(
-                    if row.is_multiple_of(3) {
-                        "Admin"
-                    } else {
-                        "Member"
-                    }
-                    .to_owned(),
-                ),
-                "dept" => Some(format!("Dept {}", row % 20)),
-                "salary" => {
-                    let base = 30000.0 + (row % 80) as f64 * 1000.0;
-                    Some(format!("{base}"))
-                }
-                "avatar" => Some(format!("User+{row}")),
-                "active" => Some(
-                    if row.is_multiple_of(5) {
-                        "false"
-                    } else {
-                        "true"
-                    }
-                    .to_owned(),
-                ),
-                key if key.starts_with("col") => {
-                    key[3..].parse::<u64>().ok().map(|n| format!("{row}×{n}"))
-                }
-                _ => None,
+            if col_key.starts_with("col") {
+                return col_key[3..]
+                    .parse::<u64>()
+                    .ok()
+                    .map(|n| format!("{row}x{n}"));
             }
+            fake_data::fake_cell(row, col_key)
         });
 
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)

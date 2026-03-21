@@ -29,21 +29,24 @@ basic-leptos/
 └── dist/                 # Sortie compilée (ignorée par git)
 ```
 
-## Données virtuelles (`src/lib.rs`)
+## Données virtuelles (`src/lib.rs` + `src/fake_data.rs`)
 
 `build_model(row_count, col_count)` crée un `GridModel` backed par un
-`FnDataSource` — les données sont générées à la volée, rien n'est stocké en
-mémoire. Les colonnes disponibles sont :
+`FnDataSource` — les données sont générées à la volée via `fake_data::fake_cell()`,
+rien n'est stocké en mémoire. Un hash déterministe (splitmix64) assure que chaque
+ligne produit toujours les mêmes valeurs.
 
-| Clé | Exemple |
-|---|---|
-| `id` | `0`, `1`, `2`... |
-| `name` | `User 0`, `User 1`... |
-| `email` | `user0@example.com`... |
-| `role` | `Admin` (row % 3 == 0) ou `Member` |
-| `dept` | `Dept 0`..`Dept 19` (row % 20) |
-| `status` | `Inactive` (row % 5 == 0) ou `Active` |
-| `colN` | `{row}×{N}` pour les colonnes extra |
+| Clé | Exemple | Mécanisme |
+|---|---|---|
+| `id` | `0`, `1`, `2`... | row index |
+| `name` | `Alice Johnson`, `Miguel Torres`... | ~100 prénoms × ~120 noms, hash decorrelé |
+| `email` | `alice.johnson@example.com`... | dérivé du nom |
+| `role` | `Senior Software Engineer`, `CTO`... | ~20 titres avec fourchettes de salaire |
+| `dept` | `Engineering`, `Marketing`... | 12 départements |
+| `salary` | `142000`, `65000`... | fourchette liée au rôle |
+| `active` | `true`, `false` | ~85% actifs |
+| `avatar` | `Alice+Johnson` | prénom+nom → ui-avatars.com |
+| `colN` | `{row}x{N}` | colonnes extra (mode 100 colonnes) |
 
 Pour tester avec des données réelles (VecDataSource), utiliser `GridModel::new`
 à la place de `GridModel::with_data_source`.

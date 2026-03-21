@@ -3,9 +3,8 @@ use std::{cell::RefCell, collections::HashMap};
 use rs_grid_scene::{
     frame::SceneFrame,
     primitives::{
-        ImagePrimitive, LinePrimitive, PolygonPrimitive,
-        RectPrimitive, ScenePrimitive, TextAlign,
-        TextPrimitive,
+        ImagePrimitive, LinePrimitive, PolygonPrimitive, RectPrimitive,
+        ScenePrimitive, TextAlign, TextPrimitive,
     },
 };
 use wasm_bindgen::JsCast;
@@ -35,10 +34,7 @@ impl ImageCache {
 
     /// Look up an image by URL. Returns `None` if not
     /// cached. Bumps the entry to most-recent on hit.
-    fn get(
-        &mut self,
-        url: &str,
-    ) -> Option<&HtmlImageElement> {
+    fn get(&mut self, url: &str) -> Option<&HtmlImageElement> {
         if self.entries.contains_key(url) {
             self.touch(url);
             self.entries.get(url)
@@ -49,11 +45,7 @@ impl ImageCache {
 
     /// Insert a new entry and evict old loaded entries if
     /// the cache is over capacity.
-    fn insert(
-        &mut self,
-        url: String,
-        el: HtmlImageElement,
-    ) {
+    fn insert(&mut self, url: String, el: HtmlImageElement) {
         self.order.push(url.clone());
         self.entries.insert(url, el);
         self.evict();
@@ -69,9 +61,7 @@ impl ImageCache {
 
     /// Move a URL to the back (most recently used).
     fn touch(&mut self, url: &str) {
-        if let Some(pos) =
-            self.order.iter().position(|u| u == url)
-        {
+        if let Some(pos) = self.order.iter().position(|u| u == url) {
             self.order.remove(pos);
             self.order.push(url.to_owned());
         }
@@ -82,15 +72,11 @@ impl ImageCache {
     fn evict(&mut self) {
         while self.entries.len() > MAX_CACHED {
             // Find the oldest loaded entry to evict.
-            let evict_pos = self.order.iter().position(
-                |url| {
-                    self.entries
-                        .get(url)
-                        .is_some_and(|el| {
-                            el.natural_width() > 0
-                        })
-                },
-            );
+            let evict_pos = self.order.iter().position(|url| {
+                self.entries
+                    .get(url)
+                    .is_some_and(|el| el.natural_width() > 0)
+            });
             match evict_pos {
                 Some(pos) => {
                     let url = self.order.remove(pos);
@@ -127,33 +113,17 @@ impl CanvasRenderer {
 
         // Scale for device pixel ratio so all coordinates
         // are in CSS pixels.
-        ctx.scale(dpr, dpr)
-            .expect("canvas scale should not fail");
+        ctx.scale(dpr, dpr).expect("canvas scale should not fail");
 
-        ctx.clear_rect(
-            0.0,
-            0.0,
-            frame.viewport_width,
-            frame.viewport_height,
-        );
+        ctx.clear_rect(0.0, 0.0, frame.viewport_width, frame.viewport_height);
 
         for prim in &frame.primitives {
             match prim {
-                ScenePrimitive::Rect(r) => {
-                    self.draw_rect(r)
-                }
-                ScenePrimitive::Text(t) => {
-                    self.draw_text(t)
-                }
-                ScenePrimitive::Line(l) => {
-                    self.draw_line(l)
-                }
-                ScenePrimitive::Polygon(p) => {
-                    self.draw_polygon(p)
-                }
-                ScenePrimitive::Image(img) => {
-                    self.draw_image(img)
-                }
+                ScenePrimitive::Rect(r) => self.draw_rect(r),
+                ScenePrimitive::Text(t) => self.draw_text(t),
+                ScenePrimitive::Line(l) => self.draw_line(l),
+                ScenePrimitive::Polygon(p) => self.draw_polygon(p),
+                ScenePrimitive::Image(img) => self.draw_image(img),
             }
         }
 
@@ -163,29 +133,16 @@ impl CanvasRenderer {
     fn draw_rect(&self, r: &RectPrimitive) {
         let ctx = &self.ctx;
         if r.corner_radius > 0.0 {
-            let rad = r
-                .corner_radius
-                .min(r.width / 2.0)
-                .min(r.height / 2.0);
-            let (x, y, w, h) =
-                (r.x, r.y, r.width, r.height);
+            let rad = r.corner_radius.min(r.width / 2.0).min(r.height / 2.0);
+            let (x, y, w, h) = (r.x, r.y, r.width, r.height);
             ctx.begin_path();
             ctx.move_to(x + rad, y);
             ctx.line_to(x + w - rad, y);
-            ctx.arc_to(x + w, y, x + w, y + rad, rad)
-                .unwrap();
+            ctx.arc_to(x + w, y, x + w, y + rad, rad).unwrap();
             ctx.line_to(x + w, y + h - rad);
-            ctx.arc_to(
-                x + w,
-                y + h,
-                x + w - rad,
-                y + h,
-                rad,
-            )
-            .unwrap();
+            ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad).unwrap();
             ctx.line_to(x + rad, y + h);
-            ctx.arc_to(x, y + h, x, y + h - rad, rad)
-                .unwrap();
+            ctx.arc_to(x, y + h, x, y + h - rad, rad).unwrap();
             ctx.line_to(x, y + rad);
             ctx.arc_to(x, y, x + rad, y, rad).unwrap();
             ctx.close_path();
@@ -200,12 +157,7 @@ impl CanvasRenderer {
             ctx.save();
             ctx.set_stroke_style_str(&stroke.to_css());
             ctx.set_line_width(r.stroke_width);
-            ctx.stroke_rect(
-                r.x,
-                r.y,
-                r.width,
-                r.height,
-            );
+            ctx.stroke_rect(r.x, r.y, r.width, r.height);
             ctx.restore();
         }
     }
@@ -216,12 +168,7 @@ impl CanvasRenderer {
 
         if let Some([cx, cy, cw, ch]) = t.clip {
             ctx.begin_path();
-            ctx.rect(
-                cx.round(),
-                cy.round(),
-                cw.round(),
-                ch.round(),
-            );
+            ctx.rect(cx.round(), cy.round(), cw.round(), ch.round());
             ctx.clip();
         }
 
@@ -238,11 +185,7 @@ impl CanvasRenderer {
             TextAlign::Right => "right",
             TextAlign::Center => "center",
         });
-        let _ = ctx.fill_text(
-            &t.text,
-            t.x.round(),
-            t.y.round(),
-        );
+        let _ = ctx.fill_text(&t.text, t.x.round(), t.y.round());
 
         ctx.restore();
     }
@@ -270,19 +213,14 @@ impl CanvasRenderer {
 
                 let dx_in = prev[0] - curr[0];
                 let dy_in = prev[1] - curr[1];
-                let len_in = (dx_in * dx_in
-                    + dy_in * dy_in)
-                    .sqrt()
-                    .max(1e-9);
+                let len_in = (dx_in * dx_in + dy_in * dy_in).sqrt().max(1e-9);
                 let px = curr[0] + dx_in / len_in * r;
                 let py = curr[1] + dy_in / len_in * r;
 
                 let dx_out = next[0] - curr[0];
                 let dy_out = next[1] - curr[1];
-                let len_out = (dx_out * dx_out
-                    + dy_out * dy_out)
-                    .sqrt()
-                    .max(1e-9);
+                let len_out =
+                    (dx_out * dx_out + dy_out * dy_out).sqrt().max(1e-9);
                 let qx = curr[0] + dx_out / len_out * r;
                 let qy = curr[1] + dy_out / len_out * r;
 
@@ -291,10 +229,7 @@ impl CanvasRenderer {
                 } else {
                     ctx.line_to(px, py);
                 }
-                ctx.arc_to(
-                    curr[0], curr[1], qx, qy, r,
-                )
-                .unwrap();
+                ctx.arc_to(curr[0], curr[1], qx, qy, r).unwrap();
             }
         }
 
@@ -382,31 +317,22 @@ impl CanvasRenderer {
         let nat_h = el.natural_height() as f64;
 
         // object-fit: contain
-        let scale = (img.width / nat_w)
-            .min(img.height / nat_h);
+        let scale = (img.width / nat_w).min(img.height / nat_h);
         let draw_w = nat_w * scale;
         let draw_h = nat_h * scale;
-        let draw_x =
-            img.x + (img.width - draw_w) / 2.0;
-        let draw_y =
-            img.y + (img.height - draw_h) / 2.0;
+        let draw_x = img.x + (img.width - draw_w) / 2.0;
+        let draw_y = img.y + (img.height - draw_h) / 2.0;
 
         // Rounded corners
         if img.corner_radius > 0.0 {
-            let r = img
-                .corner_radius
-                .min(draw_w / 2.0)
-                .min(draw_h / 2.0);
-            self.rounded_rect_path(
-                ctx, draw_x, draw_y, draw_w, draw_h, r,
-            );
+            let r = img.corner_radius.min(draw_w / 2.0).min(draw_h / 2.0);
+            self.rounded_rect_path(ctx, draw_x, draw_y, draw_w, draw_h, r);
             ctx.clip();
         }
 
-        let _ = ctx
-            .draw_image_with_html_image_element_and_dw_and_dh(
-                el, draw_x, draw_y, draw_w, draw_h,
-            );
+        let _ = ctx.draw_image_with_html_image_element_and_dw_and_dh(
+            el, draw_x, draw_y, draw_w, draw_h,
+        );
     }
 
     fn draw_image_placeholder(
@@ -420,15 +346,11 @@ impl CanvasRenderer {
         let bar_y = img.y + (img.height - bar_h) / 2.0;
         ctx.set_fill_style_str("rgba(200,200,200,0.4)");
         let r = if img.corner_radius > 0.0 {
-            img.corner_radius
-                .min(bar_w / 2.0)
-                .min(bar_h / 2.0)
+            img.corner_radius.min(bar_w / 2.0).min(bar_h / 2.0)
         } else {
             3.0_f64.min(bar_w / 2.0).min(bar_h / 2.0)
         };
-        self.rounded_rect_path(
-            ctx, bar_x, bar_y, bar_w, bar_h, r,
-        );
+        self.rounded_rect_path(ctx, bar_x, bar_y, bar_w, bar_h, r);
         ctx.fill();
     }
 
@@ -448,8 +370,7 @@ impl CanvasRenderer {
         ctx.line_to(x + w - r, y);
         ctx.arc_to(x + w, y, x + w, y + r, r).unwrap();
         ctx.line_to(x + w, y + h - r);
-        ctx.arc_to(x + w, y + h, x + w - r, y + h, r)
-            .unwrap();
+        ctx.arc_to(x + w, y + h, x + w - r, y + h, r).unwrap();
         ctx.line_to(x + r, y + h);
         ctx.arc_to(x, y + h, x, y + h - r, r).unwrap();
         ctx.line_to(x, y + r);
