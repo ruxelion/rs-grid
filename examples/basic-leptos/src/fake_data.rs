@@ -200,7 +200,7 @@ const STATES_US: &[&str] = &[
 ];
 
 const GENDERS: &[&str] =
-    &["Male", "Female", "Non-binary"];
+    &["Male", "Female"];
 
 const TEAMS: &[&str] = &[
     "Alpha", "Beta", "Gamma", "Delta", "Epsilon",
