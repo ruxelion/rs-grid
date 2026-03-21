@@ -248,6 +248,22 @@ impl SceneBuilder {
                                     model.row_height,
                                 ]),
                             }));
+                        } else if let Some(CellFormat::ImageText {
+                            base_url,
+                            suffix,
+                            image_size,
+                            border_radius,
+                            gap,
+                        }) = &col.format
+                        {
+                            Self::emit_image_text(
+                                &mut frame, &raw, cx, ry,
+                                col.width,
+                                model.row_height,
+                                mid_y, t, base_url, suffix,
+                                *image_size, *border_radius,
+                                *gap,
+                            );
                         } else {
                             let (txt, align, bold, color) =
                                 if let Some(fmt) = &col.format {
@@ -426,7 +442,8 @@ impl SceneBuilder {
                                         x: cx + pad,
                                         y: ry + pad,
                                         width: col.width - pad * 2.0,
-                                        height: model.row_height - pad * 2.0,
+                                        height: model.row_height
+                                            - pad * 2.0,
                                         corner_radius: *border_radius,
                                         clip: Some([
                                             cx,
@@ -436,15 +453,36 @@ impl SceneBuilder {
                                         ]),
                                     },
                                 ));
+                            } else if let Some(
+                                CellFormat::ImageText {
+                                    base_url,
+                                    suffix,
+                                    image_size,
+                                    border_radius,
+                                    gap,
+                                },
+                            ) = &col.format
+                            {
+                                Self::emit_image_text(
+                                    &mut frame, &raw, cx, ry,
+                                    col.width,
+                                    model.row_height,
+                                    mid_y, t, base_url,
+                                    suffix, *image_size,
+                                    *border_radius, *gap,
+                                );
                             } else {
                                 let (txt, align, bold, color) =
                                     if let Some(fmt) = &col.format {
-                                        let fc = format_cell(&raw, fmt);
+                                        let fc =
+                                            format_cell(&raw, fmt);
                                         let a = match fc
                                             .align
                                             .unwrap_or_default()
                                         {
-                                            CellAlign::Left => TextAlign::Left,
+                                            CellAlign::Left => {
+                                                TextAlign::Left
+                                            }
                                             CellAlign::Right => {
                                                 TextAlign::Right
                                             }
@@ -456,7 +494,8 @@ impl SceneBuilder {
                                             .color
                                             .map(|c| {
                                                 Color::rgba(
-                                                    c[0], c[1], c[2], c[3],
+                                                    c[0], c[1], c[2],
+                                                    c[3],
                                                 )
                                             })
                                             .unwrap_or(t.cell_text);
@@ -471,10 +510,15 @@ impl SceneBuilder {
                                     };
                                 let x = match align {
                                     TextAlign::Right => {
-                                        cx + col.width - t.cell_padding
+                                        cx + col.width
+                                            - t.cell_padding
                                     }
-                                    TextAlign::Center => cx + col.width / 2.0,
-                                    TextAlign::Left => cx + t.cell_padding,
+                                    TextAlign::Center => {
+                                        cx + col.width / 2.0
+                                    }
+                                    TextAlign::Left => {
+                                        cx + t.cell_padding
+                                    }
                                 };
                                 frame.push(ScenePrimitive::Text(
                                     TextPrimitive {
@@ -1011,5 +1055,79 @@ impl SceneBuilder {
         }
 
         frame
+    }
+
+    /// Emit an image + text pair for `CellFormat::ImageText`.
+    ///
+    /// Raw value = `"KEY Label"`. Image URL is built from
+    /// `base_url + key.lowercase() + suffix`. The image is
+    /// rendered on the left, text on the right.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_image_text(
+        frame: &mut SceneFrame,
+        raw: &str,
+        cx: f64,
+        ry: f64,
+        col_width: f64,
+        row_height: f64,
+        mid_y: f64,
+        t: &Theme,
+        base_url: &str,
+        suffix: &str,
+        image_size: f64,
+        border_radius: f64,
+        gap: f64,
+    ) {
+        let (key, label) = raw
+            .split_once(' ')
+            .unwrap_or((raw, ""));
+
+        // Image — vertically centered in the cell.
+        let img_pad =
+            (row_height - image_size) / 2.0;
+        let img_x = cx + t.cell_padding;
+        let img_y = ry + img_pad;
+        let url = format!(
+            "{base_url}{}{suffix}",
+            key.to_lowercase()
+        );
+        frame.push(ScenePrimitive::Image(
+            ImagePrimitive {
+                url,
+                x: img_x,
+                y: img_y,
+                width: image_size,
+                height: image_size,
+                corner_radius: border_radius,
+                clip: Some([
+                    cx,
+                    ry,
+                    col_width,
+                    row_height,
+                ]),
+            },
+        ));
+
+        // Text — offset after the image.
+        if !label.is_empty() {
+            let text_x = img_x + image_size + gap;
+            frame.push(ScenePrimitive::Text(
+                TextPrimitive {
+                    x: text_x,
+                    y: mid_y,
+                    text: label.to_owned(),
+                    color: t.cell_text,
+                    font_size: t.font_size,
+                    bold: false,
+                    clip: Some([
+                        cx,
+                        ry,
+                        col_width,
+                        row_height,
+                    ]),
+                    align: TextAlign::Left,
+                },
+            ));
+        }
     }
 }

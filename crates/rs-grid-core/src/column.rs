@@ -69,6 +69,26 @@ pub enum CellFormat {
         /// Padding inside the cell around the image.
         padding: f64,
     },
+    /// Image + text side by side (like AG Grid's flag
+    /// cell renderer).
+    ///
+    /// Raw value = `"KEY Label"` — first token is the
+    /// image key (lowercased for the URL), rest is the
+    /// display text.
+    ///
+    /// Image URL = `{base_url}{key.lowercase()}{suffix}`.
+    ImageText {
+        /// URL prefix, e.g. `"https://flagcdn.com/w40/"`.
+        base_url: String,
+        /// URL suffix, e.g. `".png"`.
+        suffix: String,
+        /// Square image size in logical px.
+        image_size: f64,
+        /// Corner radius for the image.
+        border_radius: f64,
+        /// Gap between image and text.
+        gap: f64,
+    },
 }
 
 impl Clone for CellFormat {
@@ -113,6 +133,19 @@ impl Clone for CellFormat {
                 base_url: base_url.clone(),
                 border_radius: *border_radius,
                 padding: *padding,
+            },
+            Self::ImageText {
+                base_url,
+                suffix,
+                image_size,
+                border_radius,
+                gap,
+            } => Self::ImageText {
+                base_url: base_url.clone(),
+                suffix: suffix.clone(),
+                image_size: *image_size,
+                border_radius: *border_radius,
+                gap: *gap,
             },
         }
     }
@@ -165,6 +198,20 @@ impl std::fmt::Debug for CellFormat {
                 .field("base_url", base_url)
                 .field("border_radius", border_radius)
                 .field("padding", padding)
+                .finish(),
+            Self::ImageText {
+                base_url,
+                suffix,
+                image_size,
+                border_radius,
+                gap,
+            } => f
+                .debug_struct("ImageText")
+                .field("base_url", base_url)
+                .field("suffix", suffix)
+                .field("image_size", image_size)
+                .field("border_radius", border_radius)
+                .field("gap", gap)
                 .finish(),
         }
     }
@@ -268,13 +315,34 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
             text: raw.to_owned(),
             ..Default::default()
         },
+        CellFormat::ImageText { .. } => {
+            // Extract text after the first space (the
+            // image key). The scene builder handles the
+            // image primitive separately.
+            let text = raw
+                .find(' ')
+                .map(|i| raw[i + 1..].to_owned())
+                .unwrap_or_else(|| raw.to_owned());
+            FormattedCell {
+                text,
+                ..Default::default()
+            }
+        }
     }
 }
 
+
 impl CellFormat {
-    /// Returns `true` if this format renders an image.
+    /// Returns `true` if this format renders a full-cell
+    /// image.
     pub fn is_image(&self) -> bool {
         matches!(self, CellFormat::Image { .. })
+    }
+
+    /// Returns `true` if this format renders an image +
+    /// text side by side.
+    pub fn is_image_text(&self) -> bool {
+        matches!(self, CellFormat::ImageText { .. })
     }
 }
 
@@ -631,6 +699,32 @@ mod tests {
             decimal_sep: '.',
         };
         assert!(!num.is_image());
+    }
+
+    #[test]
+    fn format_image_text_extracts_label() {
+        let fmt = CellFormat::ImageText {
+            base_url: "https://cdn.example.com/".into(),
+            suffix: ".png".into(),
+            image_size: 20.0,
+            border_radius: 2.0,
+            gap: 6.0,
+        };
+        let fc = format_cell("FR France", &fmt);
+        assert_eq!(fc.text, "France");
+    }
+
+    #[test]
+    fn format_image_text_no_space_fallback() {
+        let fmt = CellFormat::ImageText {
+            base_url: String::new(),
+            suffix: String::new(),
+            image_size: 16.0,
+            border_radius: 0.0,
+            gap: 4.0,
+        };
+        let fc = format_cell("US", &fmt);
+        assert_eq!(fc.text, "US");
     }
 
     #[test]

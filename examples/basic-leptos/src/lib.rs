@@ -63,24 +63,62 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
     let mut columns: Vec<ColumnDef> =
         base.into_iter().take(col_count.min(8)).collect();
 
-    for i in (columns.len() + 1)..=col_count {
-        columns.push(ColumnDef::new(
-            format!("col{i}"),
-            format!("Col {i}"),
-            100.0,
-        ));
+    let extras_needed = col_count.saturating_sub(8);
+    for col in fake_data::EXTRA_COLUMNS
+        .iter()
+        .take(extras_needed)
+    {
+        let mut c =
+            ColumnDef::new(col.key, col.label, col.width);
+        c.format = match col.format_hint {
+            fake_data::FormatHint::Text => None,
+            fake_data::FormatHint::Integer => {
+                Some(CellFormat::Number {
+                    decimal_places: 0,
+                    thousands_sep: Some(' '),
+                    decimal_sep: '.',
+                })
+            }
+            fake_data::FormatHint::Currency => {
+                Some(CellFormat::Currency {
+                    symbol: "$".into(),
+                    decimal_places: 0,
+                    thousands_sep: Some(','),
+                    symbol_after: false,
+                })
+            }
+            fake_data::FormatHint::Percent => {
+                Some(CellFormat::Percent {
+                    decimal_places: 0,
+                })
+            }
+            fake_data::FormatHint::Boolean => {
+                Some(CellFormat::Boolean {
+                    true_label: "\u{2713}".into(),
+                    false_label: "\u{2717}".into(),
+                })
+            }
+            fake_data::FormatHint::ImageText => {
+                Some(CellFormat::ImageText {
+                    base_url:
+                        "https://flagcdn.com/w40/"
+                            .into(),
+                    suffix: ".png".into(),
+                    image_size: 20.0,
+                    border_radius: 2.0,
+                    gap: 6.0,
+                })
+            }
+        };
+        columns.push(c);
     }
 
-    let source =
-        FnDataSource::new(row_count, move |row: u64, col_key: &str| {
-            if let Some(suffix) = col_key.strip_prefix("col") {
-                return suffix
-                    .parse::<u64>()
-                    .ok()
-                    .map(|n| format!("{row}x{n}"));
-            }
+    let source = FnDataSource::new(
+        row_count,
+        move |row: u64, col_key: &str| {
             fake_data::fake_cell(row, col_key)
-        });
+        },
+    );
 
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
 }
