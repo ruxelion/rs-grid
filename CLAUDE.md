@@ -2,14 +2,21 @@
 
 ## Contexte global
 
-Ce dépôt s'inscrit dans une roadmap globale centralisée ici :
+Ce dépôt s'inscrit dans une roadmap globale centralisée dans le dépôt privé :
 https://github.com/bpodwinski/roadmap
 
-Avant toute proposition structurante, consulter dans le dépôt roadmap :
-- `AI_CONTEXT.md`
-- `docs/00-hub.md`
-- `docs/02-current-focus.md`
-- `docs/projects/rs-grid.md`
+Si le dossier local `roadmap/` est présent dans ce dépôt, il doit être utilisé
+comme source de vérité prioritaire.
+
+Avant toute proposition structurante, consulter en priorité :
+
+- `roadmap/AI_CONTEXT.md`
+- `roadmap/docs/00-hub.md`
+- `roadmap/docs/02-current-focus.md`
+- `roadmap/docs/projects/rs-grid.md`
+
+Si le dossier `roadmap/` n'est pas disponible localement, utiliser le dépôt
+GitHub privé comme référence.
 
 ## Position dans la roadmap
 
@@ -17,6 +24,7 @@ Avant toute proposition structurante, consulter dans le dépôt roadmap :
 absolue tant que `FDF` n'est pas stabilisé.
 
 Rôle de `rs-grid` dans l'ensemble :
+
 - moteur de data grid Rust/WASM haute performance
 - base UI réutilisable pour des outils futurs
 - socle potentiel pour un futur produit concurrent d'AG Grid
@@ -29,11 +37,12 @@ Rôle de `rs-grid` dans l'ensemble :
 - Éviter les développements business, SaaS ou expansion JS large tant que le
   cœur produit n'est pas suffisamment mature
 - Si une décision importante change le cap du projet, proposer une mise à jour
-  dans le dépôt `forge-roadmap`, notamment dans `docs/03-decisions.md`
+  dans le dépôt `roadmap`, notamment dans `docs/03-decisions.md`
 
 ## Priorités actuelles pour rs-grid
 
 À privilégier :
+
 - virtualisation viewport
 - rendu fluide
 - sélection
@@ -43,6 +52,7 @@ Rôle de `rs-grid` dans l'ensemble :
 - stabilité du core
 
 À éviter pour l'instant :
+
 - course à la feature contre AG Grid
 - dispersion sur des intégrations secondaires
 - complexification prématurée de l'API
@@ -54,14 +64,14 @@ Rôle de `rs-grid` dans l'ensemble :
 GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRenderer  ──►  <canvas>
 ```
 
-| Crate | Rôle |
-|---|---|
-| `rs-grid-core` | Logique headless : model, viewport, selection, hit-testing. **Aucune dépendance WASM.** |
-| `rs-grid-scene` | Convertit `GridState` en primitives renderer-agnostiques (`ScenePrimitive`) |
-| `rs-grid-render-canvas` | Backend Canvas2D via wasm-bindgen |
-| `rs-grid-web` | Intégration navigateur : events, DPR, boucle rAF, CSS theme |
-| `rs-grid-leptos` | Wrapper composant Leptos CSR (`<GridCanvas>`) |
-| `examples/basic-leptos` | Application de démonstration avec Trunk |
+| Crate                   | Rôle                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `rs-grid-core`          | Logique headless : model, viewport, selection, hit-testing. **Aucune dépendance WASM.** |
+| `rs-grid-scene`         | Convertit `GridState` en primitives renderer-agnostiques (`ScenePrimitive`)             |
+| `rs-grid-render-canvas` | Backend Canvas2D via wasm-bindgen                                                       |
+| `rs-grid-web`           | Intégration navigateur : events, DPR, boucle rAF, CSS theme                             |
+| `rs-grid-leptos`        | Wrapper composant Leptos CSR (`<GridCanvas>`)                                           |
+| `examples/basic-leptos` | Application de démonstration avec Trunk                                                 |
 
 La dépendance va dans un seul sens : `leptos → web → render-canvas → scene → core`.
 Ne jamais introduire de dépendance inverse.
@@ -110,6 +120,7 @@ trunk serve
 ## Modèle de données
 
 `GridState` est la structure centrale :
+
 - `model: GridModel` — colonnes + données
 - `viewport: ViewportState` — scroll_x, scroll_y, largeur, hauteur
 - `selection: SelectionState` — ancre + focus (cellule, ligne ou colonne)
@@ -140,6 +151,7 @@ cd e2e && npm run update-snapshots
 ```
 
 **Structure des tests** (`e2e/tests/grid.spec.ts`) :
+
 - `smoke` — page se charge, canvas visible, valeurs par défaut
 - `contrôles` — dropdowns lignes/colonnes
 - `interaction canvas` — clics, scroll, shift-clic (coordonnées viewport)
