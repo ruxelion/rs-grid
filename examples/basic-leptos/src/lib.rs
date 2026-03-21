@@ -125,13 +125,14 @@ fn fmt_rows(n: u64) -> &'static str {
     match n {
         1_000 => "1,000 rows",
         100_000 => "100,000 rows",
+        1_000_000 => "1,000,000 rows",
         _ => "rows",
     }
 }
 
 fn fmt_cols(n: usize) -> &'static str {
     match n {
-        10 => "10 columns",
+        20 => "20 columns",
         100 => "100 columns",
         _ => "columns",
     }
@@ -146,7 +147,7 @@ const LS_KEY: &str = "rs-grid-patches";
 #[component]
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
-    let col_count = RwSignal::new(10usize);
+    let col_count = RwSignal::new(20usize);
     let dark_mode = RwSignal::new(false);
 
     // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
@@ -206,6 +207,7 @@ fn App() -> impl IntoView {
                         >
                             <option value="1000"   selected=true>"1,000 rows"</option>
                             <option value="100000">"100,000 rows"</option>
+                            <option value="1000000">"1,000,000 rows"</option>
                         </select>
                     </div>
                     <div class="app-control">
@@ -215,11 +217,11 @@ fn App() -> impl IntoView {
                             on:change=move |e| {
                                 let v = event_target_value(&e)
                                     .parse::<usize>()
-                                    .unwrap_or(10);
+                                    .unwrap_or(20);
                                 col_count.set(v);
                             }
                         >
-                            <option value="10"  selected=true>"10 columns"</option>
+                            <option value="20"  selected=true>"20 columns"</option>
                             <option value="100">"100 columns"</option>
                         </select>
                     </div>
