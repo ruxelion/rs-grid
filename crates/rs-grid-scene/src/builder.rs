@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
-    column::{format_cell, CellAlign},
+    column::{format_cell, CellAlign, CellFormat},
     datasource::CellStatus,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
     sort::SortDir,
@@ -11,8 +11,8 @@ use rs_grid_core::{
 use crate::{
     frame::SceneFrame,
     primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
-        TextAlign, TextPrimitive,
+        Color, ImagePrimitive, LinePrimitive, PolygonPrimitive, RectPrimitive,
+        ScenePrimitive, TextAlign, TextPrimitive,
     },
     theme::Theme,
 };
@@ -220,41 +220,76 @@ impl SceneBuilder {
                     }));
                 }
 
-                // Cell text or skeleton
+                // Cell text, image, or skeleton
                 match model.cell_status(ri, &col.key) {
                     CellStatus::Ready(raw) if !raw.is_empty() => {
-                        let (txt, align, bold, color) = if let Some(fmt) =
-                            &col.format
+                        if let Some(CellFormat::Image {
+                            base_url,
+                            border_radius,
+                            padding,
+                        }) = &col.format
                         {
-                            let fc = format_cell(&raw, fmt);
-                            let a = match fc.align.unwrap_or_default() {
-                                CellAlign::Left => TextAlign::Left,
-                                CellAlign::Right => TextAlign::Right,
-                                CellAlign::Center => TextAlign::Center,
+                            let url = match base_url {
+                                Some(base) => format!("{base}{raw}"),
+                                None => raw,
                             };
-                            let c = fc
-                                .color
-                                .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
-                                .unwrap_or(t.cell_text);
-                            (fc.text, a, fc.bold, c)
+                            let pad = *padding;
+                            frame.push(ScenePrimitive::Image(ImagePrimitive {
+                                url,
+                                x: cx + pad,
+                                y: ry + pad,
+                                width: col.width - pad * 2.0,
+                                height: model.row_height - pad * 2.0,
+                                corner_radius: *border_radius,
+                                clip: Some([
+                                    cx,
+                                    ry,
+                                    col.width,
+                                    model.row_height,
+                                ]),
+                            }));
                         } else {
-                            (raw, TextAlign::Left, false, t.cell_text)
-                        };
-                        let x = match align {
-                            TextAlign::Right => cx + col.width - t.cell_padding,
-                            TextAlign::Center => cx + col.width / 2.0,
-                            TextAlign::Left => cx + t.cell_padding,
-                        };
-                        frame.push(ScenePrimitive::Text(TextPrimitive {
-                            x,
-                            y: mid_y,
-                            text: txt,
-                            color,
-                            font_size: t.font_size,
-                            bold,
-                            clip: Some([cx, ry, col.width, model.row_height]),
-                            align,
-                        }));
+                            let (txt, align, bold, color) =
+                                if let Some(fmt) = &col.format {
+                                    let fc = format_cell(&raw, fmt);
+                                    let a = match fc.align.unwrap_or_default() {
+                                        CellAlign::Left => TextAlign::Left,
+                                        CellAlign::Right => TextAlign::Right,
+                                        CellAlign::Center => TextAlign::Center,
+                                    };
+                                    let c = fc
+                                        .color
+                                        .map(|c| {
+                                            Color::rgba(c[0], c[1], c[2], c[3])
+                                        })
+                                        .unwrap_or(t.cell_text);
+                                    (fc.text, a, fc.bold, c)
+                                } else {
+                                    (raw, TextAlign::Left, false, t.cell_text)
+                                };
+                            let x = match align {
+                                TextAlign::Right => {
+                                    cx + col.width - t.cell_padding
+                                }
+                                TextAlign::Center => cx + col.width / 2.0,
+                                TextAlign::Left => cx + t.cell_padding,
+                            };
+                            frame.push(ScenePrimitive::Text(TextPrimitive {
+                                x,
+                                y: mid_y,
+                                text: txt,
+                                color,
+                                font_size: t.font_size,
+                                bold,
+                                clip: Some([
+                                    cx,
+                                    ry,
+                                    col.width,
+                                    model.row_height,
+                                ]),
+                                align,
+                            }));
+                        }
                     }
                     CellStatus::Loading => {
                         let bar_w = col.width * 0.6;
@@ -372,46 +407,93 @@ impl SceneBuilder {
 
                     match model.cell_status(ri, &col.key) {
                         CellStatus::Ready(raw) if !raw.is_empty() => {
-                            let (txt, align, bold, color) =
-                                if let Some(fmt) = &col.format {
-                                    let fc = format_cell(&raw, fmt);
-                                    let a = match fc.align.unwrap_or_default() {
-                                        CellAlign::Left => TextAlign::Left,
-                                        CellAlign::Right => TextAlign::Right,
-                                        CellAlign::Center => TextAlign::Center,
-                                    };
-                                    let c = fc
-                                        .color
-                                        .map(|c| {
-                                            Color::rgba(c[0], c[1], c[2], c[3])
-                                        })
-                                        .unwrap_or(t.cell_text);
-                                    (fc.text, a, fc.bold, c)
-                                } else {
-                                    (raw, TextAlign::Left, false, t.cell_text)
+                            if let Some(CellFormat::Image {
+                                base_url,
+                                border_radius,
+                                padding,
+                            }) = &col.format
+                            {
+                                let url = match base_url {
+                                    Some(base) => {
+                                        format!("{base}{raw}")
+                                    }
+                                    None => raw,
                                 };
-                            let x = match align {
-                                TextAlign::Right => {
-                                    cx + col.width - t.cell_padding
-                                }
-                                TextAlign::Center => cx + col.width / 2.0,
-                                TextAlign::Left => cx + t.cell_padding,
-                            };
-                            frame.push(ScenePrimitive::Text(TextPrimitive {
-                                x,
-                                y: mid_y,
-                                text: txt,
-                                color,
-                                font_size: t.font_size,
-                                bold,
-                                clip: Some([
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                ]),
-                                align,
-                            }));
+                                let pad = *padding;
+                                frame.push(ScenePrimitive::Image(
+                                    ImagePrimitive {
+                                        url,
+                                        x: cx + pad,
+                                        y: ry + pad,
+                                        width: col.width - pad * 2.0,
+                                        height: model.row_height - pad * 2.0,
+                                        corner_radius: *border_radius,
+                                        clip: Some([
+                                            cx,
+                                            ry,
+                                            col.width,
+                                            model.row_height,
+                                        ]),
+                                    },
+                                ));
+                            } else {
+                                let (txt, align, bold, color) =
+                                    if let Some(fmt) = &col.format {
+                                        let fc = format_cell(&raw, fmt);
+                                        let a = match fc
+                                            .align
+                                            .unwrap_or_default()
+                                        {
+                                            CellAlign::Left => TextAlign::Left,
+                                            CellAlign::Right => {
+                                                TextAlign::Right
+                                            }
+                                            CellAlign::Center => {
+                                                TextAlign::Center
+                                            }
+                                        };
+                                        let c = fc
+                                            .color
+                                            .map(|c| {
+                                                Color::rgba(
+                                                    c[0], c[1], c[2], c[3],
+                                                )
+                                            })
+                                            .unwrap_or(t.cell_text);
+                                        (fc.text, a, fc.bold, c)
+                                    } else {
+                                        (
+                                            raw,
+                                            TextAlign::Left,
+                                            false,
+                                            t.cell_text,
+                                        )
+                                    };
+                                let x = match align {
+                                    TextAlign::Right => {
+                                        cx + col.width - t.cell_padding
+                                    }
+                                    TextAlign::Center => cx + col.width / 2.0,
+                                    TextAlign::Left => cx + t.cell_padding,
+                                };
+                                frame.push(ScenePrimitive::Text(
+                                    TextPrimitive {
+                                        x,
+                                        y: mid_y,
+                                        text: txt,
+                                        color,
+                                        font_size: t.font_size,
+                                        bold,
+                                        clip: Some([
+                                            cx,
+                                            ry,
+                                            col.width,
+                                            model.row_height,
+                                        ]),
+                                        align,
+                                    },
+                                ));
+                            }
                         }
                         CellStatus::Loading => {
                             let bar_w = col.width * 0.6;

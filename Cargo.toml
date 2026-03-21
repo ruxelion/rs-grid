@@ -45,6 +45,7 @@ features = [
   "DataTransfer",
   "CssStyleDeclaration",
   "HtmlElement",
+  "HtmlImageElement",
   "Node",
   "HtmlAnchorElement",
   "HtmlInputElement",
