@@ -9,7 +9,10 @@
       "Bash(curl -L -o /tmp/flags.zip \"https://flagcdn.com/svg.zip\")",
       "Bash(unzip -o /tmp/flags.zip -d flags/)",
       "Bash(ls d:/Dev/rs-grid/crates/rs-grid-flags/flags/*.svg)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(trunk build:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
