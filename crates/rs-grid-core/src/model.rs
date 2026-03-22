@@ -51,6 +51,10 @@ pub struct GridModel {
     /// Whether data operations run client-side or are delegated
     /// to a server.
     pub mode: DataSourceMode,
+    /// Height of the horizontal scrollbar in logical pixels.
+    /// Used to reserve space at the bottom so the last row
+    /// is not obscured.
+    pub scrollbar_size: f64,
 }
 
 impl GridModel {
@@ -77,6 +81,8 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
+        let row_number_width =
+            Self::compute_row_number_width(data.row_count());
         Self {
             columns,
             data,
@@ -84,13 +90,28 @@ impl GridModel {
             header_height,
             column_offsets,
             patches: HashMap::new(),
-            row_number_width: 50.0,
+            row_number_width,
             sort_order: Vec::new(),
             pinned_count: 0,
             filters: HashMap::new(),
             filtered_indices: Vec::new(),
             mode: DataSourceMode::ClientSide,
+            scrollbar_size: 14.0,
         }
+    }
+
+    /// Compute gutter width based on the number of digits
+    /// in the largest row number.
+    /// Uses ~9px per digit + 24px padding (12px each side).
+    pub fn compute_row_number_width(row_count: u64) -> f64 {
+        let digits = if row_count == 0 {
+            1
+        } else {
+            (row_count as f64).log10().floor() as u32 + 1
+        };
+        let char_width = 9.0;
+        let padding = 24.0;
+        (digits as f64 * char_width + padding).max(40.0)
     }
 
     /// Translate a display row index to its physical (datasource) index.

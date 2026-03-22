@@ -30,16 +30,31 @@ pub fn hit_test(
     } else {
         vx_data + scroll_x // scrollable zone: add scroll
     };
-    let abs_y = vy + scroll_y;
-
-    // Header zone — not a data cell.
-    if abs_y < model.header_height {
+    // Header is sticky — always at vy 0..hh.
+    if vy < model.header_height {
         return None;
     }
 
-    // Row index.
-    let row_y = abs_y - model.header_height;
-    let row = (row_y / model.row_height) as u64;
+    // Row index — avoid large absolute coordinates to
+    // preserve f64 precision at extreme row counts.
+    // row = floor((vy - hh + scroll_y) / rh)
+    // When scroll_y >= hh, decompose to keep numbers small.
+    let hh = model.header_height;
+    let rh = model.row_height;
+    let row = if scroll_y >= hh {
+        let sy_content = scroll_y - hh;
+        let first_row =
+            (sy_content / rh) as u64;
+        // Use fmod to avoid subtracting two large f64s.
+        let frac = sy_content % rh;
+        // vy + frac is the inverse of the scene builder's
+        // row_vy(ri) = -frac + (ri - first_row) * rh.
+        let offset =
+            ((vy + frac) / rh) as u64;
+        first_row + offset
+    } else {
+        ((vy + scroll_y - hh) / rh) as u64
+    };
     if row >= model.display_row_count() {
         return None;
     }
@@ -90,13 +105,23 @@ pub fn hit_test_row_header(
         return None;
     }
 
-    let abs_y = vy + scroll_y;
-    if abs_y < model.header_height {
+    let hh = model.header_height;
+    let rh = model.row_height;
+    if vy < hh {
         return None;
     }
 
-    let row_y = abs_y - model.header_height;
-    let row = (row_y / model.row_height) as u64;
+    let row = if scroll_y >= hh {
+        let sy_content = scroll_y - hh;
+        let first_row =
+            (sy_content / rh) as u64;
+        let frac = sy_content % rh;
+        let offset =
+            ((vy + frac) / rh) as u64;
+        first_row + offset
+    } else {
+        ((vy + scroll_y - hh) / rh) as u64
+    };
     if row >= model.display_row_count() {
         return None;
     }

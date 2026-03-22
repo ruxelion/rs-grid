@@ -223,11 +223,14 @@ impl GridState {
             }
             GridCommand::ScrollTo { x, y } => {
                 let rnw = self.model.row_number_width;
+                let sb = self.model.scrollbar_size;
                 let max_x = (self.model.total_width()
                     - (self.viewport.width - rnw))
                     .max(0.0);
-                let max_y =
-                    (self.model.total_height() - self.viewport.height).max(0.0);
+                let max_y = (self.model.total_height()
+                    - self.viewport.height
+                    + sb)
+                    .max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
                 CommandOutput::None
@@ -236,11 +239,14 @@ impl GridState {
                 let x = self.viewport.scroll_x + dx;
                 let y = self.viewport.scroll_y + dy;
                 let rnw = self.model.row_number_width;
+                let sb = self.model.scrollbar_size;
                 let max_x = (self.model.total_width()
                     - (self.viewport.width - rnw))
                     .max(0.0);
-                let max_y =
-                    (self.model.total_height() - self.viewport.height).max(0.0);
+                let max_y = (self.model.total_height()
+                    - self.viewport.height
+                    + sb)
+                    .max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
                 self.viewport.scroll_y = y.clamp(0.0, max_y);
                 CommandOutput::None
@@ -714,12 +720,12 @@ mod tests {
         let rows = (0..100).map(|i| RowRecord::new(i)).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
-        // max_y = 2840
+        // max_y = 3040 - 200 + 14 (scrollbar) = 2854
         s.apply(GridCommand::ScrollTo {
             x: 0.0,
             y: 99_999.0,
         });
-        assert_eq!(s.viewport.scroll_y, 2840.0);
+        assert_eq!(s.viewport.scroll_y, 2854.0);
     }
 
     #[test]
