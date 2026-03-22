@@ -655,6 +655,67 @@ fn generate_extra(
     })
 }
 
+// ── dynamic columns (beyond the 92 hand-crafted ones) ─
+
+/// Templates cycled through for generated columns.
+const DYN_TEMPLATES: &[(
+    &str,
+    FormatHint,
+    Gen,
+)] = &[
+    ("Score", I, Gen::Int(0, 100)),
+    ("Amount", C, Gen::Int(100, 99_999)),
+    ("Rate", P, Gen::Int(1, 100)),
+    ("Enabled", B, Gen::Bool(50)),
+    ("Count", I, Gen::Int(0, 500)),
+    ("Value", C, Gen::Int(1_000, 999_999)),
+    ("Ratio", P, Gen::Int(5, 95)),
+    ("Flag", B, Gen::Bool(70)),
+    ("Qty", I, Gen::Int(1, 1_000)),
+    ("Total", C, Gen::Int(0, 50_000)),
+];
+
+/// Number of hand-crafted extra columns.
+pub const EXTRA_COUNT: usize = 92;
+
+/// Return column metadata for a dynamic column index
+/// (0-based, relative to the first dynamic column).
+pub fn dynamic_col_def(
+    dyn_idx: usize,
+) -> (String, String, f64, FormatHint) {
+    let tpl =
+        &DYN_TEMPLATES[dyn_idx % DYN_TEMPLATES.len()];
+    let n = dyn_idx + 1;
+    let key = format!("dyn_{n}");
+    let label = format!("{} {n}", tpl.0);
+    (key, label, 90.0, tpl.1)
+}
+
+/// Generate a value for a dynamic column.
+fn generate_dynamic(
+    row: u64,
+    dyn_idx: usize,
+) -> String {
+    let tpl =
+        &DYN_TEMPLATES[dyn_idx % DYN_TEMPLATES.len()];
+    let salt = 1000 + dyn_idx as u64;
+    match tpl.2 {
+        Gen::Int(lo, hi) => {
+            let range = (hi - lo + 1) as u64;
+            let val =
+                lo + (hash_field(row, salt) % range)
+                    as i64;
+            val.to_string()
+        }
+        Gen::Bool(pct) => {
+            let v = (hash_field(row, salt) % 100)
+                < pct as u64;
+            v.to_string()
+        }
+        _ => String::new(),
+    }
+}
+
 // ── public API ────────────────────────────────────────
 
 /// Return a fake cell value for the given row and
@@ -665,7 +726,6 @@ pub fn fake_cell(
     col_key: &str,
 ) -> Option<String> {
     match col_key {
-        "id" => Some(row.to_string()),
         "name" => {
             let first = pick(FIRST_NAMES, row, 1);
             let last = pick(LAST_NAMES, row, 2);
@@ -709,6 +769,17 @@ pub fn fake_cell(
             let active = (h % 100) >= 15;
             Some(active.to_string())
         }
-        _ => generate_extra(row, col_key),
+        _ => {
+            if let Some(s) = col_key.strip_prefix("dyn_")
+            {
+                if let Ok(n) = s.parse::<usize>() {
+                    return Some(generate_dynamic(
+                        row,
+                        n.saturating_sub(1),
+                    ));
+                }
+            }
+            generate_extra(row, col_key)
+        }
     }
 }

@@ -119,6 +119,37 @@ impl SceneBuilder {
         let sy = vp.scroll_y;
         let rnw = model.row_number_width; // row-number gutter width
 
+        // Compute viewport-y for a row without large absolute
+        // values.  row_top(ri) − sy  =  header + ri*rh − sy.
+        // When ri and sy are both huge the subtraction loses
+        // f64 precision.  Instead compute the offset from
+        // row_start whose viewport-y we derive from the small
+        // fractional remainder.
+        let rh = model.row_height;
+        let hh = model.header_height;
+        // sy_content = scroll_y that falls inside the data
+        // area (past the header).
+        let sy_content = (sy - hh).max(0.0);
+        // Use fmod to get the sub-row fractional offset
+        // without subtracting two large f64 values.
+        // visible_rows computes first_row = floor(sy_content / rh),
+        // and row_start = first_row - overscan.
+        // frac_first = sy_content mod rh (offset within
+        //              the first fully visible row).
+        let frac_first = sy_content % rh;
+        // row_start may include overscan rows before
+        // first_row, so adjust by the overscan distance.
+        let first_no_os = (sy_content / rh) as u64;
+        let os_rows = first_no_os.saturating_sub(row_start);
+        let frac = frac_first + os_rows as f64 * rh;
+        // ry of row_start in viewport coords:
+        let ry_base = (hh - sy).max(0.0) - frac;
+
+        let row_vy = |ri: u64| -> f64 {
+            ry_base
+                + (ri as f64 - row_start as f64) * rh
+        };
+
         // Helper: viewport x of the left edge of column `ci`.
         // Pinned columns are not shifted by scroll_x.
         let col_vx = |ci: usize| -> f64 {
@@ -145,7 +176,7 @@ impl SceneBuilder {
 
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
-            let ry = model.row_top(ri) - sy;
+            let ry = row_vy(ri);
 
             // Skip rows that are fully outside the clip zone (overscan may
             // produce rows above the header).
@@ -354,7 +385,7 @@ impl SceneBuilder {
             }));
 
             for ri in row_start..row_end {
-                let ry = model.row_top(ri) - sy;
+                let ry = row_vy(ri);
                 if ry + model.row_height < model.header_height || ry > vp.height
                 {
                     continue;
@@ -574,16 +605,16 @@ impl SceneBuilder {
         // ── selection outer border ───────────────────────────────────────────
         if let Some((tl, br)) = sel.range() {
             let x1 = col_vx(tl.col);
-            let y1 = model.row_top(tl.row) - sy;
+            let y1 = row_vy(tl.row);
             let x2 = col_vx(br.col) + model.columns[br.col].width;
-            let y2 = model.row_top(br.row) - sy + model.row_height;
+            let y2 = row_vy(br.row) + model.row_height;
 
             // top
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1,
-                y1: y1 + 0.5,
+                y1: y1 - 0.5,
                 x2,
-                y2: y1 + 0.5,
+                y2: y1 - 0.5,
                 color: t.selection_border,
                 width: 1.0,
             }));
@@ -748,7 +779,7 @@ impl SceneBuilder {
             }));
 
             for ri in row_start..row_end {
-                let ry = model.row_top(ri) - sy;
+                let ry = row_vy(ri);
                 if ry + model.row_height < model.header_height || ry > vp.height
                 {
                     continue;
@@ -781,6 +812,16 @@ impl SceneBuilder {
                     bold: false,
                     clip: Some([0.0, ry, rnw, model.row_height]),
                     align: TextAlign::Right,
+                }));
+
+                // Horizontal grid line inside gutter
+                frame.push(ScenePrimitive::Line(LinePrimitive {
+                    x1: 0.0,
+                    y1: ry + model.row_height - 0.5,
+                    x2: rnw,
+                    y2: ry + model.row_height - 0.5,
+                    color: t.grid_line,
+                    width: 1.0,
                 }));
             }
 

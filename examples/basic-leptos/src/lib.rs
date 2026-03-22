@@ -16,15 +16,6 @@ mod fake_data;
 
 fn build_model(row_count: u64, col_count: usize) -> GridModel {
     let base: Vec<ColumnDef> = vec![
-        {
-            let mut c = ColumnDef::new("id", "ID", 80.0);
-            c.format = Some(CellFormat::Number {
-                decimal_places: 0,
-                thousands_sep: Some(' '),
-                decimal_sep: '.',
-            });
-            c
-        },
         ColumnDef::new("name", "Name", 200.0),
         ColumnDef::new("email", "Email", 260.0),
         ColumnDef::new("role", "Role", 140.0),
@@ -61,9 +52,9 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
     ];
 
     let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(8)).collect();
+        base.into_iter().take(col_count.min(7)).collect();
 
-    let extras_needed = col_count.saturating_sub(8);
+    let extras_needed = col_count.saturating_sub(7);
     for col in fake_data::EXTRA_COLUMNS
         .iter()
         .take(extras_needed)
@@ -111,6 +102,45 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
         columns.push(c);
     }
 
+    // Dynamic columns beyond the 92 hand-crafted extras
+    let dynamic_needed =
+        col_count.saturating_sub(7 + fake_data::EXTRA_COUNT);
+    for i in 0..dynamic_needed {
+        let (key, label, width, hint) =
+            fake_data::dynamic_col_def(i);
+        let mut c = ColumnDef::new(&key, &label, width);
+        c.format = match hint {
+            fake_data::FormatHint::Integer => {
+                Some(CellFormat::Number {
+                    decimal_places: 0,
+                    thousands_sep: Some(' '),
+                    decimal_sep: '.',
+                })
+            }
+            fake_data::FormatHint::Currency => {
+                Some(CellFormat::Currency {
+                    symbol: "$".into(),
+                    decimal_places: 0,
+                    thousands_sep: Some(','),
+                    symbol_after: false,
+                })
+            }
+            fake_data::FormatHint::Percent => {
+                Some(CellFormat::Percent {
+                    decimal_places: 0,
+                })
+            }
+            fake_data::FormatHint::Boolean => {
+                Some(CellFormat::Boolean {
+                    true_label: "\u{2713}".into(),
+                    false_label: "\u{2717}".into(),
+                })
+            }
+            _ => None,
+        };
+        columns.push(c);
+    }
+
     let source = FnDataSource::new(
         row_count,
         move |row: u64, col_key: &str| {
@@ -123,9 +153,13 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
 
 fn fmt_rows(n: u64) -> &'static str {
     match n {
-        1_000 => "1,000 rows",
-        100_000 => "100,000 rows",
-        1_000_000 => "1,000,000 rows",
+        1_000 => "1 000 rows",
+        100_000 => "100 000 rows",
+        1_000_000 => "1 million rows",
+        100_000_000 => "100 million rows",
+        1_000_000_000 => "1 billion rows",
+        1_000_000_000_000 => "1 trillion rows",
+        1_000_000_000_000_000 => "1 quadrillion rows",
         _ => "rows",
     }
 }
@@ -134,6 +168,7 @@ fn fmt_cols(n: usize) -> &'static str {
     match n {
         20 => "20 columns",
         100 => "100 columns",
+        1000 => "1 000 columns",
         _ => "columns",
     }
 }
@@ -205,9 +240,13 @@ fn App() -> impl IntoView {
                                 row_count.set(v);
                             }
                         >
-                            <option value="1000"   selected=true>"1,000 rows"</option>
-                            <option value="100000">"100,000 rows"</option>
-                            <option value="1000000">"1,000,000 rows"</option>
+                            <option value="1000"   selected=true>"1 000 rows"</option>
+                            <option value="100000">"100 000 rows"</option>
+                            <option value="1000000">"1 million rows"</option>
+                            <option value="100000000">"100 million rows"</option>
+                            <option value="1000000000">"1 billion rows"</option>
+                            <option value="1000000000000">"1 trillion rows"</option>
+                            <option value="1000000000000000">"1 quadrillion rows"</option>
                         </select>
                     </div>
                     <div class="app-control">
@@ -223,6 +262,7 @@ fn App() -> impl IntoView {
                         >
                             <option value="20"  selected=true>"20 columns"</option>
                             <option value="100">"100 columns"</option>
+                            <option value="1000">"1 000 columns"</option>
                         </select>
                     </div>
 
