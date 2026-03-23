@@ -26,6 +26,8 @@ impl Default for ViewportState {
 }
 
 impl ViewportState {
+    /// Create a viewport with the given dimensions and
+    /// default scroll/overscan values.
     pub fn new(width: f64, height: f64) -> Self {
         Self {
             width,
