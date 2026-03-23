@@ -1,0 +1,16 @@
+[package]
+name = "basic-js"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rs-grid-core  = { path = "../../crates/rs-grid-core" }
+rs-grid-scene = { path = "../../crates/rs-grid-scene" }
+rs-grid-web   = { path = "../../crates/rs-grid-web" }
+rs-grid-icons = { path = "../../crates/rs-grid-icons" }
+wasm-bindgen  = { workspace = true }
+web-sys       = { workspace = true }
+console_error_panic_hook = { workspace = true }

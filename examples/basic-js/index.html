@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rs-grid &mdash; Vanilla JS</title>
+    <link rel="stylesheet" href="rs-grid-theme.css" />
+  </head>
+  <body>
+    <main class="app-layout">
+      <div class="app-page-header">
+        <h1 class="app-title">rs-grid basic example (vanilla JS)</h1>
+        <p class="app-subtitle">
+          Use the
+          <strong class="app-highlight" id="row-label">1 000 rows</strong>
+          &times;
+          <strong class="app-highlight" id="col-label">20 columns</strong>
+          virtual dataset below to test windowed rendering.
+        </p>
+        <div class="app-controls">
+          <div class="app-control">
+            <span class="app-control-label">Dataset size</span>
+            <select class="app-control-select" id="row-select">
+              <option value="1000" selected>1 000 rows</option>
+              <option value="100000">100 000 rows</option>
+              <option value="1000000">1 million rows</option>
+              <option value="100000000">100 million rows</option>
+              <option value="1000000000">1 billion rows</option>
+              <option value="1000000000000">1 trillion rows</option>
+              <option value="1000000000000000">1 quadrillion rows</option>
+            </select>
+          </div>
+          <div class="app-control">
+            <span class="app-control-label">Column count</span>
+            <select class="app-control-select" id="col-select">
+              <option value="20" selected>20 columns</option>
+              <option value="100">100 columns</option>
+              <option value="1000">1 000 columns</option>
+            </select>
+          </div>
+
+          <button class="app-btn" id="btn-export">Export</button>
+          <button class="app-btn" id="btn-import">Import</button>
+          <input type="file" accept=".tsv,.txt" id="file-input" style="display:none" />
+
+          <div class="app-control">
+            <span class="app-control-label">Pinned cols</span>
+            <select class="app-control-select" id="pinned-select">
+              <option value="0" selected>None</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+
+          <div class="app-control">
+            <span class="app-control-label">Filter Name</span>
+            <input
+              type="text"
+              class="app-control-select"
+              id="filter-input"
+              placeholder="type to filter&hellip;"
+            />
+          </div>
+
+          <label class="theme-toggle" title="Toggle dark mode">
+            <input type="checkbox" class="theme-toggle-input" id="dark-toggle" />
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+            <span class="theme-toggle-label" id="dark-label">Dark mode</span>
+          </label>
+        </div>
+      </div>
+      <div class="app-body">
+        <div class="app-grid-wrapper">
+          <canvas id="grid-canvas"></canvas>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
