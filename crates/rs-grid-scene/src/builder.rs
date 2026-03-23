@@ -99,6 +99,7 @@ impl SceneBuilder {
             model.columns.iter().map(|c| c.width).collect();
         let pinned_count = model.pinned_count;
         let pinned_width = model.pinned_width();
+
         // Scrollable columns — exclude pinned ones and account for
         // the narrower scrollable viewport band.
         let (col_start, col_end) = if pinned_count == 0 {
