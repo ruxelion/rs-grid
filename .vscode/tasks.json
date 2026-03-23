@@ -84,6 +84,22 @@
       "detail": "Build WASM + tests Playwright"
     },
     {
+      "label": "just: build-js",
+      "type": "shell",
+      "command": "just build-js",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "wasm-pack build (exemple vanilla JS)"
+    },
+    {
+      "label": "just: serve-js",
+      "type": "shell",
+      "command": "just serve-js",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Build + serve exemple vanilla JS (port 8081)"
+    },
+    {
       "label": "just: e2e-update-snapshots",
       "type": "shell",
       "command": "just e2e-update-snapshots",
