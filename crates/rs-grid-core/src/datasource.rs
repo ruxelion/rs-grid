@@ -11,9 +11,14 @@ pub enum CellStatus {
     Absent,
 }
 
+/// Trait abstraction over row data backends (in-memory,
+/// lazy, or server-side).
 pub trait DataSource: std::fmt::Debug {
+    /// Total number of rows in the data set.
     fn row_count(&self) -> u64;
+    /// Read a single cell value by physical row and column key.
     fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
+    /// Clone into a boxed trait object.
     fn clone_box(&self) -> Box<dyn DataSource>;
     /// Write a cell value. Default is a no-op for read-only sources.
     fn set_cell(&mut self, _row: u64, _col_key: &str, _value: String) {}
@@ -36,12 +41,15 @@ impl Clone for Box<dyn DataSource> {
 
 // ── VecDataSource ─────────────────────────────────────────────────────────────
 
+/// In-memory data source backed by a `Vec<RowRecord>`.
 #[derive(Debug, Clone)]
 pub struct VecDataSource {
+    /// Row records stored in insertion order.
     pub rows: Vec<RowRecord>,
 }
 
 impl VecDataSource {
+    /// Create a data source from the given rows.
     pub fn new(rows: Vec<RowRecord>) -> Self {
         Self { rows }
     }
@@ -69,12 +77,15 @@ impl DataSource for VecDataSource {
 
 // ── FnDataSource ──────────────────────────────────────────────────────────────
 
+/// Closure-based virtual data source for computed/lazy data.
 pub struct FnDataSource<F: Fn(u64, &str) -> Option<String>> {
     count: u64,
     f: F,
 }
 
 impl<F: Fn(u64, &str) -> Option<String>> FnDataSource<F> {
+    /// Create a virtual data source with `count` rows and
+    /// a closure that generates cell values on demand.
     pub fn new(count: u64, f: F) -> Self {
         Self { count, f }
     }

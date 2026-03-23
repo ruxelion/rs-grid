@@ -5,9 +5,12 @@ use std::rc::Rc;
 /// Horizontal alignment override for a formatted cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CellAlign {
+    /// Left-aligned (default).
     #[default]
     Left,
+    /// Centered.
     Center,
+    /// Right-aligned.
     Right,
 }
 
@@ -17,8 +20,11 @@ pub enum CellAlign {
 /// style overrides.
 #[derive(Debug, Clone, Default)]
 pub struct FormattedCell {
+    /// Display text after formatting.
     pub text: String,
+    /// Alignment override (`None` = column default).
     pub align: Option<CellAlign>,
+    /// Render in bold weight.
     pub bold: bool,
     /// RGBA colour override. `None` = use theme default.
     pub color: Option<[u8; 4]>,
@@ -35,6 +41,7 @@ pub struct FormattedCell {
 pub enum CellFormat {
     /// Numeric: 1234.5 → "1 234.50"
     Number {
+        /// Number of digits after the decimal point.
         decimal_places: u8,
         /// e.g. `Some(' ')` or `Some(',')`.
         thousands_sep: Option<char>,
@@ -42,11 +49,17 @@ pub enum CellFormat {
         decimal_sep: char,
     },
     /// Percentage: 0.75 → "75.00%"
-    Percent { decimal_places: u8 },
+    Percent {
+        /// Number of digits after the decimal point.
+        decimal_places: u8,
+    },
     /// Currency: 42.5 → "$42.50"
     Currency {
+        /// Currency symbol, e.g. `"$"` or `"€"`.
         symbol: String,
+        /// Number of digits after the decimal point.
         decimal_places: u8,
+        /// Thousands grouping character, e.g. `Some(',')`.
         thousands_sep: Option<char>,
         /// `true` → "42.50 €", `false` → "$42.50"
         symbol_after: bool,
@@ -54,7 +67,9 @@ pub enum CellFormat {
     /// Boolean: "true"/"1"/"yes" → true_label, else
     /// false_label.
     Boolean {
+        /// Text shown for truthy values.
         true_label: String,
+        /// Text shown for falsy values.
         false_label: String,
     },
     /// User-provided formatting callback.

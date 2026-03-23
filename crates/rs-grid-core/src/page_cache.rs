@@ -32,6 +32,8 @@ struct PageCacheInner {
 }
 
 impl PageCacheDataSource {
+    /// Create an empty cache for `total_rows` rows split into
+    /// pages of `page_size`.
     pub fn new(total_rows: u64, page_size: u64) -> Self {
         assert!(page_size > 0, "page_size must be > 0");
         Self {
@@ -46,18 +48,22 @@ impl PageCacheDataSource {
         }
     }
 
+    /// Number of rows per page.
     pub fn page_size(&self) -> u64 {
         self.inner.borrow().page_size
     }
 
+    /// Total row count as reported by the server.
     pub fn total_rows(&self) -> u64 {
         self.inner.borrow().total_rows
     }
 
+    /// Update the total row count (e.g. after a server response).
     pub fn set_total_rows(&self, n: u64) {
         self.inner.borrow_mut().total_rows = n;
     }
 
+    /// Set the LRU eviction limit for cached pages.
     pub fn set_max_cached_pages(&self, n: usize) {
         self.inner.borrow_mut().max_cached_pages = n;
     }
@@ -91,18 +97,22 @@ impl PageCacheDataSource {
         inner.access_order.clear();
     }
 
+    /// Return `true` if the page is present in the cache.
     pub fn is_page_loaded(&self, page_num: u64) -> bool {
         self.inner.borrow().pages.contains_key(&page_num)
     }
 
+    /// Return `true` if a fetch for the page is in flight.
     pub fn is_page_pending(&self, page_num: u64) -> bool {
         self.inner.borrow().pending.contains(&page_num)
     }
 
+    /// Mark a page as currently being fetched.
     pub fn mark_pending(&self, page_num: u64) {
         self.inner.borrow_mut().pending.insert(page_num);
     }
 
+    /// Remove the pending flag for a page (e.g. on fetch error).
     pub fn unmark_pending(&self, page_num: u64) {
         self.inner.borrow_mut().pending.remove(&page_num);
     }

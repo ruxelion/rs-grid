@@ -23,7 +23,9 @@ pub enum DataSourceMode {
 /// The data model: columns, a virtual data source, and sizing constants.
 #[derive(Debug, Clone)]
 pub struct GridModel {
+    /// Ordered column definitions.
     pub columns: Vec<ColumnDef>,
+    /// Backing row data provider.
     pub data: Box<dyn DataSource>,
     /// Height of every data row in logical pixels.
     pub row_height: f64,
