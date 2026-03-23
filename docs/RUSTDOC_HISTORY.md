@@ -71,3 +71,17 @@
   - Added `///` to `PageFetchResponse`, `PageFetchRequest`, `FetchConfig` fields
   - Added `///` to `examples/basic-leptos::main()`
 - **Validation**: pass
+
+## 2026-03-23T00:05:00Z
+
+- **Area**: `rs_grid_core::column`, `example-common` (lib, fake_data)
+- **Items documented**: 12
+- **Coverage**: 0 documentable items remaining (7 warnings left are build scripts + Leptos macro — not documentable)
+- **Summary**:
+  - Added `///` to `CellEditor::Select { options }` field in `rs-grid-core::column`
+  - Added `///` to `pub mod fake_data` in `example-common::lib`
+  - Added `///` to `GENDERS` constant in `example-common::fake_data`
+  - Added `///` to all 6 `FormatHint` variants (Text, Integer, Currency, Percent, Boolean, ImageText)
+  - Added `///` to 4 public fields of `ExtraColDef` (key, label, width, format_hint)
+- **Validation**: pass (cargo test, cargo clippy --workspace -- -D warnings: 0 errors)
+- **Note**: 7 `missing_docs` warnings remain in `build.rs` files (3) and `rs-grid-leptos` Leptos `#[component]` (1 crate + variants). None are documentable — build scripts don't support `///` and Leptos component macros generate their own item signatures.
