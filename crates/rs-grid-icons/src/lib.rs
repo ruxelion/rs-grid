@@ -29,8 +29,7 @@ pub fn flag_count() -> usize {
 }
 
 /// Iterator over all `(code, data_uri)` flag pairs.
-pub fn all_flags(
-) -> impl Iterator<Item = (&'static str, &'static str)> {
+pub fn all_flags() -> impl Iterator<Item = (&'static str, &'static str)> {
     FLAGS.iter().map(|&(k, v)| (k, v))
 }
 
@@ -38,9 +37,7 @@ pub fn all_flags(
 
 /// Return the SVG data URI for a gender icon key
 /// (uppercase, e.g. `"MALE"`, `"FEMALE"`).
-pub fn gender_icon_uri(
-    key: &str,
-) -> Option<&'static str> {
+pub fn gender_icon_uri(key: &str) -> Option<&'static str> {
     GENDERS
         .binary_search_by_key(&key, |(k, _)| k)
         .ok()
@@ -53,8 +50,8 @@ pub fn gender_icon_count() -> usize {
 }
 
 /// Iterator over all `(key, data_uri)` gender pairs.
-pub fn all_gender_icons(
-) -> impl Iterator<Item = (&'static str, &'static str)> {
+pub fn all_gender_icons() -> impl Iterator<Item = (&'static str, &'static str)>
+{
     GENDERS.iter().map(|&(k, v)| (k, v))
 }
 
@@ -80,9 +77,7 @@ mod tests {
     #[test]
     fn flag_data_uri_format() {
         let uri = flag_data_uri("FR").unwrap();
-        assert!(uri.starts_with(
-            "data:image/svg+xml;base64,"
-        ));
+        assert!(uri.starts_with("data:image/svg+xml;base64,"));
     }
 
     #[test]
@@ -92,15 +87,9 @@ mod tests {
 
     #[test]
     fn flags_sorted() {
-        let codes: Vec<&str> =
-            FLAGS.iter().map(|(k, _)| *k).collect();
+        let codes: Vec<&str> = FLAGS.iter().map(|(k, _)| *k).collect();
         for w in codes.windows(2) {
-            assert!(
-                w[0] < w[1],
-                "not sorted: {} >= {}",
-                w[0],
-                w[1]
-            );
+            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
         }
     }
 
@@ -120,9 +109,7 @@ mod tests {
     #[test]
     fn gender_data_uri_format() {
         let uri = gender_icon_uri("MALE").unwrap();
-        assert!(uri.starts_with(
-            "data:image/svg+xml;base64,"
-        ));
+        assert!(uri.starts_with("data:image/svg+xml;base64,"));
     }
 
     #[test]
@@ -132,15 +119,9 @@ mod tests {
 
     #[test]
     fn genders_sorted() {
-        let keys: Vec<&str> =
-            GENDERS.iter().map(|(k, _)| *k).collect();
+        let keys: Vec<&str> = GENDERS.iter().map(|(k, _)| *k).collect();
         for w in keys.windows(2) {
-            assert!(
-                w[0] < w[1],
-                "not sorted: {} >= {}",
-                w[0],
-                w[1]
-            );
+            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
         }
     }
 }

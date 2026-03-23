@@ -364,26 +364,20 @@ impl GridCanvas {
         };
         // Compare via the underlying Element pointer.
         let active_el: &web_sys::Element = &active;
-        if let Some(canvas_el) =
-            self.0.canvas.dyn_ref::<web_sys::Element>()
-        {
+        if let Some(canvas_el) = self.0.canvas.dyn_ref::<web_sys::Element>() {
             if active_el == canvas_el {
                 return true;
             }
         }
         if let Some(ref el) = *self.0.edit_input.borrow() {
-            if let Some(input_el) =
-                el.dyn_ref::<web_sys::Element>()
-            {
+            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
                 if active_el == input_el {
                     return true;
                 }
             }
         }
         if let Some(ref el) = *self.0.search_input.borrow() {
-            if let Some(input_el) =
-                el.dyn_ref::<web_sys::Element>()
-            {
+            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
                 if active_el == input_el {
                     return true;
                 }
@@ -572,10 +566,7 @@ impl GridCanvas {
 
         // 2. Remove canvas-level listeners.
         for (event, f) in self.0.canvas_listeners.borrow().iter() {
-            let _ = self
-                .0
-                .canvas
-                .remove_event_listener_with_callback(event, f);
+            let _ = self.0.canvas.remove_event_listener_with_callback(event, f);
         }
         self.0.canvas_listeners.borrow_mut().clear();
 
