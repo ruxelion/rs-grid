@@ -8,15 +8,25 @@ use crate::primitives::Color;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Theme {
     // ── palette ──────────────────────────────────────────────────────────────
+    /// Default cell background.
     pub bg: Color,
+    /// Column header background.
     pub header_bg: Color,
+    /// Column header text color.
     pub header_text: Color,
+    /// Default cell text color.
     pub cell_text: Color,
+    /// Grid line (cell border) color.
     pub grid_line: Color,
+    /// Bottom border below the header row.
     pub header_border: Color,
+    /// Fill color for the selection rectangle.
     pub selection_fill: Color,
+    /// Border color for the selection rectangle.
     pub selection_border: Color,
+    /// Scrollbar track background.
     pub scrollbar_track: Color,
+    /// Scrollbar thumb color.
     pub scrollbar_thumb: Color,
 
     /// Subtle background for odd data rows (0 = same as `bg`).
@@ -25,7 +35,9 @@ pub struct Theme {
     pub row_hover_bg: Color,
 
     // ── typography ───────────────────────────────────────────────────────────
+    /// Cell text font size in logical pixels.
     pub font_size: f64,
+    /// Header text font size in logical pixels.
     pub header_font_size: f64,
     /// Render column header labels with font-weight 600.
     pub header_font_bold: bool,
@@ -41,6 +53,7 @@ pub struct Theme {
     pub skeleton_fg: Color,
 
     // ── spacing ──────────────────────────────────────────────────────────────
+    /// Horizontal padding inside each cell in logical pixels.
     pub cell_padding: f64,
 
     // ── scrollbar ─────────────────────────────────────────────────────────────

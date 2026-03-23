@@ -40,3 +40,18 @@
   - Added `///` to all `GridCommand` struct-variant fields (ScrollTo, ScrollBy, Resize, MoveSelection, PasteAt, ResizeColumn, ToggleSort, SetPinnedColumnCount, SetColumnFilter, MoveColumn, StartEdit, CommitEdit, Search, AutoFitColumn)
   - Added `///` to `CommandOutput` enum and its 3 variants
 - **Validation**: pass
+
+## 2026-03-23T00:03:00Z
+
+- **Area**: `rs_grid_scene` (lib.rs, primitives, theme, frame, builder)
+- **Items documented**: 62
+- **Coverage**: 35 undocumented public items remaining (was 97); `rs_grid_core` and `rs_grid_scene` both at 0
+- **Summary**:
+  - Added `//!` crate-level doc and `///` to all 4 `pub mod` declarations
+  - Added `///` to `Color` fields/constructors, `RectPrimitive` fields, `TextAlign` variants
+  - Added `///` to `TextPrimitive`, `LinePrimitive`, `PolygonPrimitive` fields
+  - Added `///` to `ScenePrimitive` variants
+  - Added `///` to all 13 `Theme` fields without docs
+  - Added `///` to `SceneFrame` fields/methods
+  - Added `///` to `SceneBuilder` field/constructors
+- **Validation**: pass
