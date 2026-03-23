@@ -73,7 +73,7 @@
       "command": "just serve",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "trunk serve (port aléatoire 9000-9999)"
+      "detail": "trunk serve Leptos (port 9081)"
     },
     {
       "label": "just: e2e",
@@ -97,7 +97,7 @@
       "command": "just serve-js",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "Build + serve exemple vanilla JS (port 8081)"
+      "detail": "Build + serve exemple vanilla JS (port 9080)"
     },
     {
       "label": "just: e2e-update-snapshots",
