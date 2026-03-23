@@ -50,7 +50,9 @@
       "Bash(sed -n '640,645p' examples/example-common/src/fake_data.rs)",
       "Bash(sed -n '867,875p' examples/example-common/src/fake_data.rs)",
       "Bash(sed -n '902,906p' examples/example-common/src/fake_data.rs)",
-      "Bash(e:/Dev/rs-grid/docs/RUSTDOC_HISTORY.md:*)"
+      "Bash(e:/Dev/rs-grid/docs/RUSTDOC_HISTORY.md:*)",
+      "Bash(xargs wc:*)",
+      "Bash(ls e:/Dev/rs-grid/*.md e:/Dev/rs-grid/CHANGELOG*)"
     ]
   }
 }
