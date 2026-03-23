@@ -3,15 +3,15 @@
 
 /// Column definitions, offsets, and cell formatting.
 pub mod column;
+/// Command enum and output type for all grid mutations.
+pub mod commands;
+/// Trait abstraction for row data backends.
+pub mod datasource;
 /// Inline cell edit state snapshot.
 pub mod edit;
 /// Cell formatting: `CellFormat`, `CellAlign`, `FormattedCell`,
 /// and `format_cell`.
 pub mod format;
-/// Command enum and output type for all grid mutations.
-pub mod commands;
-/// Trait abstraction for row data backends.
-pub mod datasource;
 /// O(log n) hit-testing on cells, headers, and gutters.
 pub mod hit_test;
 /// Grid data model: columns, datasource, and sizing.
@@ -22,10 +22,10 @@ pub mod page_cache;
 pub mod row;
 /// Scrollbar geometry and drag state.
 pub mod scrollbar;
-/// Selection state: anchor, focus, and clipboard helpers.
-pub mod selection;
 /// Active search state and local text search logic.
 pub mod search;
+/// Selection state: anchor, focus, and clipboard helpers.
+pub mod selection;
 /// Sort direction and per-column sort state.
 pub mod sort;
 /// Central mutable grid state combining model, viewport,

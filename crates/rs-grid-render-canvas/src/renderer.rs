@@ -141,7 +141,8 @@ impl CanvasRenderer {
             ctx.line_to(x + w - rad, y);
             ctx.arc_to(x + w, y, x + w, y + rad, rad).expect("arc_to");
             ctx.line_to(x + w, y + h - rad);
-            ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad).expect("arc_to");
+            ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad)
+                .expect("arc_to");
             ctx.line_to(x + rad, y + h);
             ctx.arc_to(x, y + h, x, y + h - rad, rad).expect("arc_to");
             ctx.line_to(x, y + rad);
@@ -371,7 +372,8 @@ impl CanvasRenderer {
         ctx.line_to(x + w - r, y);
         ctx.arc_to(x + w, y, x + w, y + r, r).expect("arc_to");
         ctx.line_to(x + w, y + h - r);
-        ctx.arc_to(x + w, y + h, x + w - r, y + h, r).expect("arc_to");
+        ctx.arc_to(x + w, y + h, x + w - r, y + h, r)
+            .expect("arc_to");
         ctx.line_to(x + r, y + h);
         ctx.arc_to(x, y + h, x, y + h - r, r).expect("arc_to");
         ctx.line_to(x, y + r);

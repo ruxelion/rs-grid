@@ -30,8 +30,8 @@ use rs_grid_scene::{
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
-    HtmlCanvasElement, HtmlInputElement, MouseEvent, ResizeObserver,
-    HtmlElement,
+    HtmlCanvasElement, HtmlElement, HtmlInputElement, MouseEvent,
+    ResizeObserver,
 };
 
 use dom_helpers::document;

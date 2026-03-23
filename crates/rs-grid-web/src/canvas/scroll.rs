@@ -208,15 +208,10 @@ impl GridCanvas {
         let win = web_sys::window().expect("no window");
         let timeout_cb = Closure::<dyn FnMut()>::new(move || {
             let gc2 = gc.clone();
-            let interval_cb =
-                Closure::<dyn FnMut()>::new(move || {
-                    gc2.dispatch(GridCommand::ScrollBy {
-                        dx,
-                        dy,
-                    });
-                });
-            let win2 =
-                web_sys::window().expect("no window");
+            let interval_cb = Closure::<dyn FnMut()>::new(move || {
+                gc2.dispatch(GridCommand::ScrollBy { dx, dy });
+            });
+            let win2 = web_sys::window().expect("no window");
             let id = win2
                 .set_interval_with_callback_and_timeout_and_arguments_0(
                     interval_cb.as_ref().unchecked_ref(),
@@ -250,23 +245,15 @@ impl GridCanvas {
 
         // Phase 1: slow mini-easing (few steps, 100 ms).
         let gc1 = self.clone();
-        let slow_cb = Closure::<dyn FnMut()>::new(move || {
-            match axis {
-                ScrollAxis::Vertical {
-                    click_y,
-                    going_down,
-                } => gc1.do_track_scroll_step(
-                    click_y,
-                    going_down,
-                ),
-                ScrollAxis::Horizontal {
-                    click_x,
-                    going_right,
-                } => gc1.do_htrack_scroll_step(
-                    click_x,
-                    going_right,
-                ),
-            }
+        let slow_cb = Closure::<dyn FnMut()>::new(move || match axis {
+            ScrollAxis::Vertical {
+                click_y,
+                going_down,
+            } => gc1.do_track_scroll_step(click_y, going_down),
+            ScrollAxis::Horizontal {
+                click_x,
+                going_right,
+            } => gc1.do_htrack_scroll_step(click_x, going_right),
         });
         let slow_id = win
             .set_interval_with_callback_and_timeout_and_arguments_0(
@@ -275,57 +262,37 @@ impl GridCanvas {
             )
             .expect("setInterval");
         *self.0.scroll_interval.borrow_mut() = Some(slow_id);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(slow_cb));
+        self.0.scroll_closures.borrow_mut().push(Box::new(slow_cb));
 
         // Phase 2: after 350 ms, switch to full 60 fps.
         let gc2 = self.clone();
-        let switch_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                if let Some(id) =
-                    gc2.0.scroll_interval.borrow_mut().take()
-                {
-                    web_sys::window()
-                        .expect("no window")
-                        .clear_interval_with_handle(id);
-                }
-                let gc3 = gc2.clone();
-                let fast_cb =
-                    Closure::<dyn FnMut()>::new(move || {
-                        match axis {
-                            ScrollAxis::Vertical {
-                                click_y,
-                                going_down,
-                            } => gc3.do_track_scroll_step(
-                                click_y,
-                                going_down,
-                            ),
-                            ScrollAxis::Horizontal {
-                                click_x,
-                                going_right,
-                            } => gc3.do_htrack_scroll_step(
-                                click_x,
-                                going_right,
-                            ),
-                        }
-                    });
-                let win2 =
-                    web_sys::window().expect("no window");
-                let fast_id = win2
-                    .set_interval_with_callback_and_timeout_and_arguments_0(
-                        fast_cb.as_ref().unchecked_ref(),
-                        16,
-                    )
-                    .expect("setInterval");
-                *gc2.0.scroll_interval.borrow_mut() =
-                    Some(fast_id);
-                gc2.0
-                    .scroll_closures
-                    .borrow_mut()
-                    .push(Box::new(fast_cb));
+        let switch_cb = Closure::<dyn FnMut()>::new(move || {
+            if let Some(id) = gc2.0.scroll_interval.borrow_mut().take() {
+                web_sys::window()
+                    .expect("no window")
+                    .clear_interval_with_handle(id);
+            }
+            let gc3 = gc2.clone();
+            let fast_cb = Closure::<dyn FnMut()>::new(move || match axis {
+                ScrollAxis::Vertical {
+                    click_y,
+                    going_down,
+                } => gc3.do_track_scroll_step(click_y, going_down),
+                ScrollAxis::Horizontal {
+                    click_x,
+                    going_right,
+                } => gc3.do_htrack_scroll_step(click_x, going_right),
             });
+            let win2 = web_sys::window().expect("no window");
+            let fast_id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    fast_cb.as_ref().unchecked_ref(),
+                    16,
+                )
+                .expect("setInterval");
+            *gc2.0.scroll_interval.borrow_mut() = Some(fast_id);
+            gc2.0.scroll_closures.borrow_mut().push(Box::new(fast_cb));
+        });
         let tid = win
             .set_timeout_with_callback_and_timeout_and_arguments_0(
                 switch_cb.as_ref().unchecked_ref(),

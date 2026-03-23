@@ -45,7 +45,10 @@ impl GridCanvas {
         let _ = style.set_property("background", "#fff");
         let _ = style.set_property("box-shadow", "0 2px 8px rgba(0,0,0,.15)");
 
-        doc.body().expect("body").append_child(&input).expect("append search input");
+        doc.body()
+            .expect("body")
+            .append_child(&input)
+            .expect("append search input");
         let _ = input.focus();
 
         // Input → search on every keystroke

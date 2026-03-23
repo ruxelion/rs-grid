@@ -41,11 +41,8 @@ fn clamp_scroll(
 ) -> (f64, f64) {
     let rnw = model.row_number_width;
     let sb = model.scrollbar_size;
-    let max_x = (model.total_width()
-        - (vp.width - rnw - sb))
-        .max(0.0);
-    let max_y =
-        (model.total_height() - vp.height + sb).max(0.0);
+    let max_x = (model.total_width() - (vp.width - rnw - sb)).max(0.0);
+    let max_y = (model.total_height() - vp.height + sb).max(0.0);
     (x.clamp(0.0, max_x), y.clamp(0.0, max_y))
 }
 
@@ -183,12 +180,7 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::ScrollTo { x, y } => {
-                let (sx, sy) = clamp_scroll(
-                    x,
-                    y,
-                    &self.model,
-                    &self.viewport,
-                );
+                let (sx, sy) = clamp_scroll(x, y, &self.model, &self.viewport);
                 self.viewport.scroll_x = sx;
                 self.viewport.scroll_y = sy;
                 CommandOutput::None
@@ -535,10 +527,8 @@ impl GridState {
                     self.model.columns[col_idx].width =
                         max_w.max(MIN_COL_WIDTH);
                     self.model.rebuild_offsets();
-                    self.history.push(UndoEntry::ResizeColumn {
-                        col_idx,
-                        old_width,
-                    });
+                    self.history
+                        .push(UndoEntry::ResizeColumn { col_idx, old_width });
                 }
                 CommandOutput::None
             }
@@ -806,14 +796,8 @@ mod tests {
     fn paste_with_upward_selection() {
         let mut s = make_state();
         // Select row 3, then extend upward to row 1 (anchor=3, focus=1).
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 3,
-            col: 0,
-        }));
-        s.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 1,
-            col: 0,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 3, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 0 }));
         // Paste should fill rows 1..=3 (top-left of selection),
         // NOT rows 3..=5 (anchor).
         s.apply(GridCommand::PasteAt {

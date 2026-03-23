@@ -32,11 +32,9 @@ impl GridCanvas {
         let cx = if col_idx < model.pinned_count {
             off + model.row_number_width
         } else {
-            off - state.viewport.scroll_x
-                + model.row_number_width
+            off - state.viewport.scroll_x + model.row_number_width
         };
-        let cy =
-            model.row_top(row) - state.viewport.scroll_y;
+        let cy = model.row_top(row) - state.viewport.scroll_y;
         let w = model.columns[col_idx].width;
         let h = model.row_height;
         (cx, cy, w, h)
@@ -52,33 +50,19 @@ impl GridCanvas {
         h: f64,
     ) {
         let style = el.style();
-        let _ =
-            style.set_property("position", "fixed");
-        let _ = style
-            .set_property("left", &format!("{left}px"));
-        let _ = style
-            .set_property("top", &format!("{top}px"));
-        let _ = style
-            .set_property("width", &format!("{w}px"));
-        let _ = style
-            .set_property("height", &format!("{h}px"));
-        let _ =
-            style.set_property("z-index", "10000");
-        let _ = style.set_property(
-            "border",
-            "2px solid #2563eb",
-        );
+        let _ = style.set_property("position", "fixed");
+        let _ = style.set_property("left", &format!("{left}px"));
+        let _ = style.set_property("top", &format!("{top}px"));
+        let _ = style.set_property("width", &format!("{w}px"));
+        let _ = style.set_property("height", &format!("{h}px"));
+        let _ = style.set_property("z-index", "10000");
+        let _ = style.set_property("border", "2px solid #2563eb");
         let _ = style.set_property("outline", "none");
-        let _ =
-            style.set_property("padding", "0 4px");
+        let _ = style.set_property("padding", "0 4px");
         let _ = style.set_property("margin", "0");
-        let _ = style.set_property(
-            "box-sizing",
-            "border-box",
-        );
+        let _ = style.set_property("box-sizing", "border-box");
         let _ = style.set_property("font", "inherit");
-        let _ =
-            style.set_property("background", "#fff");
+        let _ = style.set_property("background", "#fff");
     }
 
     /// Create the appropriate DOM overlay for inline
@@ -98,21 +82,14 @@ impl GridCanvas {
 
         let col_idx = {
             let state = self.0.state.borrow();
-            match state
-                .model
-                .columns
-                .iter()
-                .position(|c| c.key == col_key)
-            {
+            match state.model.columns.iter().position(|c| c.key == col_key) {
                 Some(i) => i,
                 None => return,
             }
         };
 
-        let (cx, cy, w, h) =
-            self.cell_viewport_rect(row, col_idx);
-        let canvas_rect =
-            self.0.canvas.get_bounding_client_rect();
+        let (cx, cy, w, h) = self.cell_viewport_rect(row, col_idx);
+        let canvas_rect = self.0.canvas.get_bounding_client_rect();
         let geom = EditorGeom {
             left: canvas_rect.left() + cx,
             top: canvas_rect.top() + cy,
@@ -123,9 +100,7 @@ impl GridCanvas {
         // Read editor type and raw initial value.
         let (editor, raw_value) = {
             let state = self.0.state.borrow();
-            let editor = state.model.columns[col_idx]
-                .editor
-                .clone();
+            let editor = state.model.columns[col_idx].editor.clone();
             let raw = state
                 .edit
                 .as_ref()
@@ -135,19 +110,13 @@ impl GridCanvas {
         };
 
         match editor {
-            Some(CellEditor::Select {
-                ref options,
-            }) => {
+            Some(CellEditor::Select { ref options }) => {
                 self.show_select_editor(
-                    row, &col_key, options, geom,
-                    &raw_value,
+                    row, &col_key, options, geom, &raw_value,
                 );
             }
             _ => {
-                self.show_text_editor(
-                    row, &col_key, col_idx, geom,
-                    &raw_value,
-                );
+                self.show_text_editor(row, &col_key, col_idx, geom, &raw_value);
             }
         }
     }
@@ -198,50 +167,24 @@ impl GridCanvas {
             .expect("div")
             .dyn_into()
             .expect("cast");
-        let _ =
-            ctr.set_attribute("tabindex", "-1");
+        let _ = ctr.set_attribute("tabindex", "-1");
 
         let s = ctr.style();
-        let _ =
-            s.set_property("position", "fixed");
-        let _ = s.set_property(
-            "left",
-            &format!("{left}px"),
-        );
-        let _ = s.set_property(
-            "width",
-            &format!("{}px", w.max(220.0)),
-        );
-        let _ =
-            s.set_property("max-height", "240px");
-        let _ =
-            s.set_property("overflow-y", "auto");
+        let _ = s.set_property("position", "fixed");
+        let _ = s.set_property("left", &format!("{left}px"));
+        let _ = s.set_property("width", &format!("{}px", w.max(220.0)));
+        let _ = s.set_property("max-height", "240px");
+        let _ = s.set_property("overflow-y", "auto");
         let _ = s.set_property("z-index", "10000");
-        let _ = s.set_property(
-            "border",
-            &format!("2px solid {border_c}"),
-        );
-        let _ =
-            s.set_property("border-radius", "4px");
+        let _ = s.set_property("border", &format!("2px solid {border_c}"));
+        let _ = s.set_property("border-radius", "4px");
         let _ = s.set_property("background", &bg);
         let _ = s.set_property("color", &text_c);
-        let _ = s.set_property(
-            "font-size",
-            &format!("{fsz}px"),
-        );
-        let _ = s.set_property(
-            "font-family",
-            "inherit",
-        );
-        let _ = s.set_property(
-            "box-shadow",
-            "0 4px 12px rgba(0,0,0,.15)",
-        );
+        let _ = s.set_property("font-size", &format!("{fsz}px"));
+        let _ = s.set_property("font-family", "inherit");
+        let _ = s.set_property("box-shadow", "0 4px 12px rgba(0,0,0,.15)");
         let _ = s.set_property("outline", "none");
-        let _ = s.set_property(
-            "box-sizing",
-            "border-box",
-        );
+        let _ = s.set_property("box-sizing", "border-box");
         let _ = s.set_property("margin", "0");
         let _ = s.set_property("padding", "2px 0");
 
@@ -251,21 +194,14 @@ impl GridCanvas {
             .and_then(|v| v.as_f64())
             .unwrap_or(600.0);
         if win_h - (top + h) >= 120.0 {
-            let _ = s.set_property(
-                "top",
-                &format!("{}px", top + h),
-            );
+            let _ = s.set_property("top", &format!("{}px", top + h));
         } else {
-            let _ = s.set_property(
-                "bottom",
-                &format!("{}px", win_h - top),
-            );
+            let _ = s.set_property("bottom", &format!("{}px", win_h - top));
         }
 
         // ── option rows ───────────────────────────────
         let highlight = Rc::new(Cell::new(cur));
-        let mut opt_els: Vec<web_sys::HtmlElement> =
-            Vec::with_capacity(n);
+        let mut opt_els: Vec<web_sys::HtmlElement> = Vec::with_capacity(n);
 
         for (i, opt) in options.iter().enumerate() {
             let el: web_sys::HtmlElement = doc
@@ -273,32 +209,17 @@ impl GridCanvas {
                 .expect("div")
                 .dyn_into()
                 .expect("cast");
-            let _ = el.set_attribute(
-                "data-idx",
-                &i.to_string(),
-            );
+            let _ = el.set_attribute("data-idx", &i.to_string());
 
             let rs = el.style();
-            let _ =
-                rs.set_property("display", "flex");
-            let _ = rs.set_property(
-                "align-items",
-                "center",
-            );
-            let _ = rs
-                .set_property("padding", "4px 8px");
-            let _ = rs
-                .set_property("cursor", "pointer");
-            let _ = rs.set_property(
-                "white-space",
-                "nowrap",
-            );
+            let _ = rs.set_property("display", "flex");
+            let _ = rs.set_property("align-items", "center");
+            let _ = rs.set_property("padding", "4px 8px");
+            let _ = rs.set_property("cursor", "pointer");
+            let _ = rs.set_property("white-space", "nowrap");
 
             if i == cur {
-                let _ = rs.set_property(
-                    "background",
-                    &sel_c,
-                );
+                let _ = rs.set_property("background", &sel_c);
             }
 
             // Optional icon (e.g. flag SVG)
@@ -310,30 +231,16 @@ impl GridCanvas {
                     .expect("cast");
                 img.set_src(url);
                 let is = img.style();
-                let _ =
-                    is.set_property("width", "20px");
-                let _ = is.set_property(
-                    "height", "15px",
-                );
-                let _ = is.set_property(
-                    "border-radius",
-                    "2px",
-                );
-                let _ = is.set_property(
-                    "margin-right",
-                    "6px",
-                );
-                let _ = is.set_property(
-                    "flex-shrink",
-                    "0",
-                );
+                let _ = is.set_property("width", "20px");
+                let _ = is.set_property("height", "15px");
+                let _ = is.set_property("border-radius", "2px");
+                let _ = is.set_property("margin-right", "6px");
+                let _ = is.set_property("flex-shrink", "0");
                 let _ = el.append_child(&img);
             }
 
             // Label
-            let span = doc
-                .create_element("span")
-                .expect("span");
+            let span = doc.create_element("span").expect("span");
             span.set_text_content(Some(&opt.label));
             let _ = el.append_child(&span);
 
@@ -353,19 +260,14 @@ impl GridCanvas {
 
         // ── shared state for closures ─────────────────
         let opts_rc = Rc::new(opt_els);
-        let vals: Vec<String> = options
-            .iter()
-            .map(|o| o.value.clone())
-            .collect();
+        let vals: Vec<String> =
+            options.iter().map(|o| o.value.clone()).collect();
         let vals_rc = Rc::new(vals);
-        let labels: Vec<String> = options
-            .iter()
-            .map(|o| o.label.clone())
-            .collect();
+        let labels: Vec<String> =
+            options.iter().map(|o| o.label.clone()).collect();
         let labels_rc = Rc::new(labels);
         let sel_css = Rc::new(sel_c);
-        let ctr_rc: Rc<web_sys::HtmlElement> =
-            Rc::new(ctr.clone());
+        let ctr_rc: Rc<web_sys::HtmlElement> = Rc::new(ctr.clone());
 
         // ── mousedown → commit ────────────────────────
         {
@@ -376,21 +278,16 @@ impl GridCanvas {
             let cb = Closure::<dyn FnMut(_)>::new(
                 move |evt: web_sys::MouseEvent| {
                     evt.prevent_default();
-                    let idx =
-                        dd_idx_from_event(&evt);
+                    let idx = dd_idx_from_event(&evt);
                     let Some(idx) = idx else {
                         return;
                     };
-                    if let Some(val) = vals.get(idx)
-                    {
-                        gc.dispatch(
-                            GridCommand::CommitEdit {
-                                row: r,
-                                col_key: ck
-                                    .clone(),
-                                value: val.clone(),
-                            },
-                        );
+                    if let Some(val) = vals.get(idx) {
+                        gc.dispatch(GridCommand::CommitEdit {
+                            row: r,
+                            col_key: ck.clone(),
+                            value: val.clone(),
+                        });
                         gc.remove_edit_input();
                     }
                 },
@@ -400,10 +297,7 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref(),
             )
             .expect("mousedown");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         // ── mouseover → highlight ─────────────────────
@@ -413,16 +307,12 @@ impl GridCanvas {
             let sc = Rc::clone(&sel_css);
             let cb = Closure::<dyn FnMut(_)>::new(
                 move |evt: web_sys::MouseEvent| {
-                    let Some(idx) =
-                        dd_idx_from_event(&evt)
-                    else {
+                    let Some(idx) = dd_idx_from_event(&evt) else {
                         return;
                     };
                     let old = hl.get();
                     if old != idx {
-                        dd_set_highlight(
-                            &opts, old, idx, &sc,
-                        );
+                        dd_set_highlight(&opts, old, idx, &sc);
                         hl.set(idx);
                     }
                 },
@@ -432,10 +322,7 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref(),
             )
             .expect("mouseover");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         // ── keydown → navigate / commit / cancel ──────
@@ -450,147 +337,87 @@ impl GridCanvas {
             let sc = Rc::clone(&sel_css);
             let c = Rc::clone(&ctr_rc);
             let count = n;
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |evt: KeyboardEvent| {
-                    match evt.key().as_str() {
-                        "ArrowDown" => {
-                            evt.prevent_default();
-                            let old = hl.get();
-                            let nw =
-                                if old + 1 < count
-                                {
-                                    old + 1
-                                } else {
-                                    0
-                                };
-                            dd_set_highlight(
-                                &opts, old, nw,
-                                &sc,
-                            );
-                            hl.set(nw);
-                            dd_scroll_into_view(
-                                &c, &opts, nw,
-                            );
-                        }
-                        "ArrowUp" => {
-                            evt.prevent_default();
-                            let old = hl.get();
-                            let nw = if old > 0 {
-                                old - 1
-                            } else {
-                                count
-                                    .saturating_sub(
-                                        1,
-                                    )
-                            };
-                            dd_set_highlight(
-                                &opts, old, nw,
-                                &sc,
-                            );
-                            hl.set(nw);
-                            dd_scroll_into_view(
-                                &c, &opts, nw,
-                            );
-                        }
-                        "Enter" => {
-                            let idx = hl.get();
-                            if let Some(v) =
-                                vals.get(idx)
-                            {
-                                gc.dispatch(
-                                GridCommand::CommitEdit {
-                                    row: r,
-                                    col_key: ck
-                                        .clone(),
-                                    value: v
-                                        .clone(),
-                                },
-                                );
-                                gc
-                                .remove_edit_input(
-                                );
-                            }
-                        }
-                        "Escape" => {
-                            gc.dispatch(
-                            GridCommand::CancelEdit,
-                            );
+            let cb = Closure::<dyn FnMut(_)>::new(move |evt: KeyboardEvent| {
+                match evt.key().as_str() {
+                    "ArrowDown" => {
+                        evt.prevent_default();
+                        let old = hl.get();
+                        let nw = if old + 1 < count { old + 1 } else { 0 };
+                        dd_set_highlight(&opts, old, nw, &sc);
+                        hl.set(nw);
+                        dd_scroll_into_view(&c, &opts, nw);
+                    }
+                    "ArrowUp" => {
+                        evt.prevent_default();
+                        let old = hl.get();
+                        let nw = if old > 0 {
+                            old - 1
+                        } else {
+                            count.saturating_sub(1)
+                        };
+                        dd_set_highlight(&opts, old, nw, &sc);
+                        hl.set(nw);
+                        dd_scroll_into_view(&c, &opts, nw);
+                    }
+                    "Enter" => {
+                        let idx = hl.get();
+                        if let Some(v) = vals.get(idx) {
+                            gc.dispatch(GridCommand::CommitEdit {
+                                row: r,
+                                col_key: ck.clone(),
+                                value: v.clone(),
+                            });
                             gc.remove_edit_input();
                         }
-                        key if key.len() == 1 => {
-                            // Type-ahead search
-                            let ch =
-                                key.to_lowercase();
-                            let cur_i = hl.get();
-                            let found = lbls
-                                .iter()
-                                .enumerate()
-                                .skip(cur_i + 1)
-                                .chain(
-                                    lbls.iter()
-                                    .enumerate()
-                                    .take(cur_i + 1),
-                                )
-                                .find(|(_, l)| {
-                                    l.to_lowercase()
-                                    .starts_with(&ch)
-                                })
-                                .map(|(i, _)| i);
-                            if let Some(nw) = found
-                            {
-                                dd_set_highlight(
-                                    &opts, cur_i,
-                                    nw, &sc,
-                                );
-                                hl.set(nw);
-                                dd_scroll_into_view(
-                                    &c, &opts, nw,
-                                );
-                            }
-                        }
-                        _ => {}
                     }
-                },
-            );
+                    "Escape" => {
+                        gc.dispatch(GridCommand::CancelEdit);
+                        gc.remove_edit_input();
+                    }
+                    key if key.len() == 1 => {
+                        // Type-ahead search
+                        let ch = key.to_lowercase();
+                        let cur_i = hl.get();
+                        let found = lbls
+                            .iter()
+                            .enumerate()
+                            .skip(cur_i + 1)
+                            .chain(lbls.iter().enumerate().take(cur_i + 1))
+                            .find(|(_, l)| l.to_lowercase().starts_with(&ch))
+                            .map(|(i, _)| i);
+                        if let Some(nw) = found {
+                            dd_set_highlight(&opts, cur_i, nw, &sc);
+                            hl.set(nw);
+                            dd_scroll_into_view(&c, &opts, nw);
+                        }
+                    }
+                    _ => {}
+                }
+            });
             ctr.add_event_listener_with_callback(
                 "keydown",
                 cb.as_ref().unchecked_ref(),
             )
             .expect("keydown");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         // ── blur → cancel ─────────────────────────────
         {
             let gc = self.clone();
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |_: web_sys::FocusEvent| {
-                    if gc
-                        .0
-                        .state
-                        .borrow()
-                        .edit
-                        .is_some()
-                    {
-                        gc.dispatch(
-                            GridCommand::CancelEdit,
-                        );
+            let cb =
+                Closure::<dyn FnMut(_)>::new(move |_: web_sys::FocusEvent| {
+                    if gc.0.state.borrow().edit.is_some() {
+                        gc.dispatch(GridCommand::CancelEdit);
                         gc.remove_edit_input();
                     }
-                },
-            );
+                });
             ctr.add_event_listener_with_callback(
                 "blur",
                 cb.as_ref().unchecked_ref(),
             )
             .expect("blur");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         *self.0.edit_input.borrow_mut() = Some(ctr);
@@ -632,32 +459,21 @@ impl GridCanvas {
                 .map(|f| f.is_image_text())
                 .unwrap_or(false);
             if is_img_text {
-                if let Some(i) = raw_value.find(' ')
-                {
-                    let prefix =
-                        raw_value[..=i].to_owned();
-                    let label =
-                        raw_value[i + 1..].to_owned();
+                if let Some(i) = raw_value.find(' ') {
+                    let prefix = raw_value[..=i].to_owned();
+                    let label = raw_value[i + 1..].to_owned();
                     (label, prefix)
                 } else {
-                    (
-                        raw_value.to_owned(),
-                        String::new(),
-                    )
+                    (raw_value.to_owned(), String::new())
                 }
             } else {
-                (
-                    raw_value.to_owned(),
-                    String::new(),
-                )
+                (raw_value.to_owned(), String::new())
             }
         };
         input.set_value(&initial);
 
         self.apply_edit_style(
-            input
-                .dyn_ref::<web_sys::HtmlElement>()
-                .expect("cast"),
+            input.dyn_ref::<web_sys::HtmlElement>().expect("cast"),
             left,
             top,
             w,
@@ -680,45 +496,32 @@ impl GridCanvas {
             let ck = col_key_owned.clone();
             let inp = input.clone();
             let pfx: String = img_prefix.clone();
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |evt: KeyboardEvent| {
-                    match evt.key().as_str() {
+            let cb =
+                Closure::<dyn FnMut(_)>::new(
+                    move |evt: KeyboardEvent| match evt.key().as_str() {
                         "Enter" => {
-                            let val = format!(
-                                "{}{}",
-                                pfx,
-                                inp.value()
-                            );
-                            gc.dispatch(
-                            GridCommand::CommitEdit {
+                            let val = format!("{}{}", pfx, inp.value());
+                            gc.dispatch(GridCommand::CommitEdit {
                                 row: r,
-                                col_key: ck
-                                    .clone(),
+                                col_key: ck.clone(),
                                 value: val,
-                            },
-                            );
+                            });
                             gc.remove_edit_input();
                         }
                         "Escape" => {
-                            gc.dispatch(
-                            GridCommand::CancelEdit,
-                            );
+                            gc.dispatch(GridCommand::CancelEdit);
                             gc.remove_edit_input();
                         }
                         _ => {}
-                    }
-                },
-            );
+                    },
+                );
             input
                 .add_event_listener_with_callback(
                     "keydown",
                     cb.as_ref().unchecked_ref(),
                 )
                 .expect("keydown");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         // Blur → commit
@@ -728,57 +531,35 @@ impl GridCanvas {
             let ck = col_key_owned;
             let inp = input.clone();
             let pfx = img_prefix;
-            let cb = Closure::<dyn FnMut(_)>::new(
-                move |_: web_sys::FocusEvent| {
-                    if gc
-                        .0
-                        .state
-                        .borrow()
-                        .edit
-                        .is_some()
-                    {
-                        let val = format!(
-                            "{}{}",
-                            pfx,
-                            inp.value()
-                        );
-                        gc.dispatch(
-                            GridCommand::CommitEdit {
-                                row: r,
-                                col_key: ck
-                                    .clone(),
-                                value: val,
-                            },
-                        );
+            let cb =
+                Closure::<dyn FnMut(_)>::new(move |_: web_sys::FocusEvent| {
+                    if gc.0.state.borrow().edit.is_some() {
+                        let val = format!("{}{}", pfx, inp.value());
+                        gc.dispatch(GridCommand::CommitEdit {
+                            row: r,
+                            col_key: ck.clone(),
+                            value: val,
+                        });
                         gc.remove_edit_input();
                     }
-                },
-            );
+                });
             input
                 .add_event_listener_with_callback(
                     "blur",
                     cb.as_ref().unchecked_ref(),
                 )
                 .expect("blur");
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
-        *self.0.edit_input.borrow_mut() = Some(
-            input
-                .unchecked_into::<web_sys::HtmlElement>(
-                ),
-        );
+        *self.0.edit_input.borrow_mut() =
+            Some(input.unchecked_into::<web_sys::HtmlElement>());
     }
 
     /// Remove the inline edit overlay from the DOM
     /// and drop its closures.
     pub(super) fn remove_edit_input(&self) {
-        if let Some(el) =
-            self.0.edit_input.borrow_mut().take()
-        {
+        if let Some(el) = self.0.edit_input.borrow_mut().take() {
             el.remove();
         }
         self.0.edit_closures.borrow_mut().clear();
@@ -789,16 +570,11 @@ impl GridCanvas {
 
 /// Extract the `data-idx` of the closest option row
 /// from a mouse event target.
-fn dd_idx_from_event(
-    evt: &web_sys::MouseEvent,
-) -> Option<usize> {
+fn dd_idx_from_event(evt: &web_sys::MouseEvent) -> Option<usize> {
     let target = evt.target()?;
-    let el: web_sys::Element =
-        target.dyn_into().ok()?;
+    let el: web_sys::Element = target.dyn_into().ok()?;
     let row = el.closest("[data-idx]").ok()??;
-    row.get_attribute("data-idx")?
-        .parse::<usize>()
-        .ok()
+    row.get_attribute("data-idx")?.parse::<usize>().ok()
 }
 
 /// Update the highlight background on two option rows.
@@ -809,14 +585,10 @@ fn dd_set_highlight(
     sel_css: &str,
 ) {
     if let Some(el) = opts.get(old) {
-        let _ = el
-            .style()
-            .remove_property("background");
+        let _ = el.style().remove_property("background");
     }
     if let Some(el) = opts.get(new) {
-        let _ = el
-            .style()
-            .set_property("background", sel_css);
+        let _ = el.style().set_property("background", sel_css);
     }
 }
 

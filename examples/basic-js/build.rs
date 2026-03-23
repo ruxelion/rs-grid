@@ -2,8 +2,7 @@ fn main() {
     // Concatenate theme CSS files from example-common/themes/
     // into a single rs-grid-theme.css for the browser.
     let manifest = env!("CARGO_MANIFEST_DIR");
-    let themes_dir =
-        format!("{manifest}/../example-common/themes");
+    let themes_dir = format!("{manifest}/../example-common/themes");
     let dst = format!("{manifest}/rs-grid-theme.css");
 
     let parts = ["base", "light", "dark", "material", "material-dark"];
