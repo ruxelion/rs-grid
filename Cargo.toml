@@ -53,6 +53,8 @@ features = [
   "Node",
   "HtmlAnchorElement",
   "HtmlInputElement",
+  "HtmlSelectElement",
+  "HtmlOptionElement",
   "UiEvent",
   "FocusEvent",
   "FileList",

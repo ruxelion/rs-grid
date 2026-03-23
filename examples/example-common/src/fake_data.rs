@@ -324,7 +324,7 @@ const CITIES: &[&str] = &[
 
 /// (code, display_name) — codes are ISO 3166-1 alpha-2.
 /// Flag images come from `rs_grid_flags`.
-const COUNTRIES: &[(&str, &str)] = &[
+pub const COUNTRIES: &[(&str, &str)] = &[
     ("US", "United States"),
     ("GB", "United Kingdom"),
     ("FR", "France"),
