@@ -1,3 +1,5 @@
+//! Demo application showcasing rs-grid with Leptos CSR.
+
 use std::{cell::RefCell, rc::Rc};
 
 use leptos::prelude::*;
@@ -451,6 +453,7 @@ fn App() -> impl IntoView {
     }
 }
 
+/// WASM entry point — mount the Leptos app.
 #[wasm_bindgen(start)]
 pub fn main() {
     console_error_panic_hook::set_once();

@@ -6,15 +6,21 @@ use wasm_bindgen_futures::JsFuture;
 
 /// Server response for a single page of data.
 pub struct PageFetchResponse {
+    /// Rows returned for this page.
     pub rows: Vec<RowRecord>,
+    /// Server-reported total row count.
     pub total_rows: u64,
 }
 
 /// Parameters sent to the server for a page request.
 pub struct PageFetchRequest {
+    /// Zero-based page number to fetch.
     pub page_num: u64,
+    /// Number of rows per page.
     pub page_size: u64,
+    /// Active sort state (`None` = natural order).
     pub sort: Option<SortState>,
+    /// Active column filters (col_key to search text).
     pub filters: HashMap<String, String>,
 }
 
@@ -24,9 +30,12 @@ pub struct PageFetchRequest {
 /// - `build_url` turns a `PageFetchRequest` into a URL
 /// - `parse_response` converts a JSON `JsValue` into rows
 pub struct FetchConfig {
+    /// Build a URL from a page request.
     pub build_url: Box<dyn Fn(&PageFetchRequest) -> String>,
+    /// Parse a JSON response into rows and total count.
     pub parse_response:
         Box<dyn Fn(wasm_bindgen::JsValue) -> Result<PageFetchResponse, String>>,
+    /// Extra pages to prefetch around the visible range.
     pub buffer_pages: u64,
 }
 

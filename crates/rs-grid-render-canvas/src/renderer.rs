@@ -97,6 +97,7 @@ pub struct CanvasRenderer {
 }
 
 impl CanvasRenderer {
+    /// Wrap a Canvas2D context into a renderer.
     pub fn new(ctx: CanvasRenderingContext2d) -> Self {
         Self {
             ctx,
