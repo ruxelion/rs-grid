@@ -42,6 +42,7 @@ pub struct ColumnDragHint {
 pub struct SceneBuilder {
     /// Device pixel ratio — hardware property, not a theme property.
     pub dpr: f64,
+    /// Active visual theme.
     pub theme: Theme,
 }
 
@@ -55,6 +56,7 @@ impl Default for SceneBuilder {
 }
 
 impl SceneBuilder {
+    /// Create a builder with the given DPR and the default theme.
     pub fn new(dpr: f64) -> Self {
         Self {
             dpr,
@@ -62,6 +64,7 @@ impl SceneBuilder {
         }
     }
 
+    /// Create a builder with the given DPR and a custom theme.
     pub fn with_theme(dpr: f64, theme: Theme) -> Self {
         Self { dpr, theme }
     }
