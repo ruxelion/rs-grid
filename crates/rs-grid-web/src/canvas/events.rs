@@ -90,7 +90,7 @@ impl GridCanvas {
             .add_event_listener_with_callback_and_add_event_listener_options(
                 "wheel", &f, &opts,
             )
-            .unwrap();
+            .expect("add wheel listener");
         self.0
             .canvas_listeners
             .borrow_mut()
@@ -110,7 +110,7 @@ impl GridCanvas {
         self.0
             .canvas
             .add_event_listener_with_callback("mouseleave", &f)
-            .unwrap();
+            .expect("add mouseleave listener");
         self.0
             .canvas_listeners
             .borrow_mut()
@@ -156,7 +156,7 @@ impl GridCanvas {
         self.0
             .canvas
             .add_event_listener_with_callback("dblclick", &f)
-            .unwrap();
+            .expect("add dblclick listener");
         self.0
             .canvas_listeners
             .borrow_mut()
@@ -386,7 +386,7 @@ impl GridCanvas {
         self.0
             .canvas
             .add_event_listener_with_callback("mousedown", &f)
-            .unwrap();
+            .expect("add mousedown listener");
         self.0
             .canvas_listeners
             .borrow_mut()
@@ -576,7 +576,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("mousemove", &f)
-            .unwrap();
+            .expect("add mousemove listener");
         self.0
             .doc_listeners
             .borrow_mut()
@@ -638,7 +638,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("mouseup", &f)
-            .unwrap();
+            .expect("add mouseup listener");
         self.0
             .doc_listeners
             .borrow_mut()

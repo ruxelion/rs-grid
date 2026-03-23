@@ -127,10 +127,15 @@ pub enum GridCommand {
     /// Clear the search state.
     ClearSearch,
     /// Notify the grid that a page of data has been loaded into the
-    /// cache. This is a no-op; it exists solely to trigger a re-render.
+    /// cache. This is a no-op command — it exists solely to trigger a
+    /// re-render after the `PageCacheDataSource` has been mutated
+    /// externally. Has no effect on other data source types.
     NotifyPageLoaded,
-    /// Update the total row count (used by async data sources after the
-    /// first server response).
+    /// Update the total row count for an async data source.
+    ///
+    /// Intended for use with `PageCacheDataSource` after the first
+    /// server response returns the real row count. Has no effect on
+    /// `VecDataSource` or `FnDataSource`.
     SetTotalRowCount(u64),
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
