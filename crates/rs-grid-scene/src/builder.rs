@@ -706,14 +706,24 @@ impl SceneBuilder {
             // Up arrow ▲
             let mid_up = sb.up_btn_y + sb.arrow_h * 0.5;
             Self::emit_scrollbar_arrow(
-                frame, cx, mid_up, arrow_size, -1.0, true,
+                frame,
+                cx,
+                mid_up,
+                arrow_size,
+                -1.0,
+                true,
                 t.scrollbar_thumb,
             );
 
             // Down arrow ▼
             let mid_dn = sb.down_btn_y + sb.arrow_h * 0.5;
             Self::emit_scrollbar_arrow(
-                frame, cx, mid_dn, arrow_size, 1.0, true,
+                frame,
+                cx,
+                mid_dn,
+                arrow_size,
+                1.0,
+                true,
                 t.scrollbar_thumb,
             );
 
@@ -745,7 +755,11 @@ impl SceneBuilder {
 
         // ── horizontal scrollbar ─────────────────────────────────────────────
         // Reserve space for the vertical scrollbar width if it is visible.
-        let vsb_w = if vsb.is_some() { t.scrollbar_width } else { 0.0 };
+        let vsb_w = if vsb.is_some() {
+            t.scrollbar_width
+        } else {
+            0.0
+        };
 
         if let Some(hsb) = HScrollbarGeom::compute(
             vp.scroll_x,
@@ -777,14 +791,24 @@ impl SceneBuilder {
             // Left arrow ◀
             let mid_left = hsb.left_btn_x + hsb.arrow_w * 0.5;
             Self::emit_scrollbar_arrow(
-                frame, cy, mid_left, arrow_size, -1.0, false,
+                frame,
+                cy,
+                mid_left,
+                arrow_size,
+                -1.0,
+                false,
                 t.scrollbar_thumb,
             );
 
             // Right arrow ▶
             let mid_right = hsb.right_btn_x + hsb.arrow_w * 0.5;
             Self::emit_scrollbar_arrow(
-                frame, cy, mid_right, arrow_size, 1.0, false,
+                frame,
+                cy,
+                mid_right,
+                arrow_size,
+                1.0,
+                false,
                 t.scrollbar_thumb,
             );
 

@@ -45,7 +45,11 @@
       "Bash(grep -c \"^--$\" done)",
       "Bash(python3:*)",
       "Bash(grep -c \"\\\\.unwrap\\(\\)\" /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
-      "Bash(grep -v \":0$\")"
+      "Bash(grep -v \":0$\")",
+      "Bash(grep -v \"///\")",
+      "Bash(sed -n '640,645p' examples/example-common/src/fake_data.rs)",
+      "Bash(sed -n '867,875p' examples/example-common/src/fake_data.rs)",
+      "Bash(sed -n '902,906p' examples/example-common/src/fake_data.rs)"
     ]
   }
 }

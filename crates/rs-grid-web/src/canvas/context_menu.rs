@@ -166,7 +166,10 @@ fn make_menu_item(
 
         let item_out = item.clone();
         let cb_out = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-            item_out.style().set_property("background", "").expect("clear hover bg");
+            item_out
+                .style()
+                .set_property("background", "")
+                .expect("clear hover bg");
         });
         item.add_event_listener_with_callback(
             "mouseout",

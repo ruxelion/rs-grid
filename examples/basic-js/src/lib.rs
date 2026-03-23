@@ -30,10 +30,7 @@ impl JsGrid {
     ) -> JsGrid {
         console_error_panic_hook::set_once();
 
-        let model = build_model(
-            row_count as u64,
-            col_count as usize,
-        );
+        let model = build_model(row_count as u64, col_count as usize);
         let theme = theme_from_css_vars();
 
         let css_w = canvas.client_width() as f64;

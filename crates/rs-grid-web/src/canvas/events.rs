@@ -645,5 +645,4 @@ impl GridCanvas {
             .push(("mouseup".to_string(), f));
         self.0.closures.borrow_mut().push(Box::new(cb));
     }
-
 }

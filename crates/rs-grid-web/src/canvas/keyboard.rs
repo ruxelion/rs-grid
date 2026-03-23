@@ -78,17 +78,15 @@ impl GridCanvas {
 
     pub(super) fn attach_copy(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |evt: ClipboardEvent| {
-                // Always handle pending clipboard (context-menu
-                // copy via execCommand). Otherwise require focus.
-                let has_pending = gc.0.pending_clipboard.borrow().is_some();
-                if !has_pending && !gc.has_focus() {
-                    return;
-                }
-                gc.on_copy_event(&evt);
-            },
-        );
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: ClipboardEvent| {
+            // Always handle pending clipboard (context-menu
+            // copy via execCommand). Otherwise require focus.
+            let has_pending = gc.0.pending_clipboard.borrow().is_some();
+            if !has_pending && !gc.has_focus() {
+                return;
+            }
+            gc.on_copy_event(&evt);
+        });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
@@ -103,15 +101,13 @@ impl GridCanvas {
 
     pub(super) fn attach_cut(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |evt: ClipboardEvent| {
-                let has_pending = gc.0.pending_clipboard.borrow().is_some();
-                if !has_pending && !gc.has_focus() {
-                    return;
-                }
-                gc.on_cut_event(&evt);
-            },
-        );
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: ClipboardEvent| {
+            let has_pending = gc.0.pending_clipboard.borrow().is_some();
+            if !has_pending && !gc.has_focus() {
+                return;
+            }
+            gc.on_cut_event(&evt);
+        });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
@@ -126,22 +122,20 @@ impl GridCanvas {
 
     pub(super) fn attach_paste(&self) {
         let gc = self.clone();
-        let cb = Closure::<dyn FnMut(_)>::new(
-            move |evt: ClipboardEvent| {
-                if !gc.has_focus() {
-                    return;
+        let cb = Closure::<dyn FnMut(_)>::new(move |evt: ClipboardEvent| {
+            if !gc.has_focus() {
+                return;
+            }
+            if !gc.0.state.borrow().selection.has_selection() {
+                return;
+            }
+            if let Some(dt) = evt.clipboard_data() {
+                if let Ok(text) = dt.get_data("text/plain") {
+                    evt.prevent_default();
+                    gc.dispatch(GridCommand::PasteAt { text });
                 }
-                if !gc.0.state.borrow().selection.has_selection() {
-                    return;
-                }
-                if let Some(dt) = evt.clipboard_data() {
-                    if let Ok(text) = dt.get_data("text/plain") {
-                        evt.prevent_default();
-                        gc.dispatch(GridCommand::PasteAt { text });
-                    }
-                }
-            },
-        );
+            }
+        });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()

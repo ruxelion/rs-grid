@@ -152,7 +152,9 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
                     match chars.peek() {
                         None | Some('\t') | Some('\n') => break,
                         Some('\r') => break,
-                        _ => s.push(chars.next().expect("peek guarantees Some")),
+                        _ => {
+                            s.push(chars.next().expect("peek guarantees Some"))
+                        }
                     }
                 }
                 s
