@@ -39,7 +39,8 @@
       "Bash(git rebase:*)",
       "Bash(git stash:*)",
       "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-core)",
-      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-scene)"
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-scene)",
+      "WebFetch(domain:m3.material.io)"
     ]
   }
 }

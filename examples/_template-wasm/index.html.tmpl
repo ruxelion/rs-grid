@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rs-grid &mdash; {{TITLE}}</title>
+    <link rel="stylesheet" href="rs-grid-theme.css" />
+  </head>
+  <body>
+    <main class="app-layout">
+      <div class="app-page-header">
+        <h1 class="app-title">rs-grid &mdash; {{TITLE}}</h1>
+        <div class="app-controls">
+          <div class="app-control">
+            <span class="app-control-label">Dataset size</span>
+            <select class="app-control-select" id="row-select">
+              <option value="1000" selected>1 000 rows</option>
+              <option value="100000">100 000 rows</option>
+              <option value="1000000">1 million rows</option>
+            </select>
+          </div>
+          <div class="app-control">
+            <span class="app-control-label">Columns</span>
+            <select class="app-control-select" id="col-select">
+              <option value="20" selected>20</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+          <label class="theme-toggle" title="Toggle dark mode">
+            <input type="checkbox" class="theme-toggle-input" id="dark-toggle" />
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+            <span class="theme-toggle-label" id="dark-label">Dark mode</span>
+          </label>
+        </div>
+      </div>
+      <div class="app-body">
+        <div class="app-grid-wrapper">
+          <canvas id="grid-canvas" style="width:100%;height:100%;display:block"></canvas>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

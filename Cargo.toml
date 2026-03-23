@@ -6,6 +6,7 @@ members = [
   "crates/rs-grid-web",
   "crates/rs-grid-leptos",
   "crates/rs-grid-icons",
+  "examples/example-common",
   "examples/basic-leptos",
   "examples/basic-js",
 ]

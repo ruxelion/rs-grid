@@ -1,0 +1,32 @@
+import init, { JsGrid } from "./pkg/{{NAME}}.js";
+
+async function main() {
+  await init();
+
+  const canvas = document.getElementById("grid-canvas");
+  let rowCount = 1000;
+  let colCount = 20;
+  let grid = new JsGrid(canvas, rowCount, colCount);
+
+  document.getElementById("row-select").addEventListener("change", (e) => {
+    rowCount = Number(e.target.value);
+    grid.detach();
+    grid = new JsGrid(canvas, rowCount, colCount);
+  });
+
+  document.getElementById("col-select").addEventListener("change", (e) => {
+    colCount = Number(e.target.value);
+    grid.detach();
+    grid = new JsGrid(canvas, rowCount, colCount);
+  });
+
+  document.getElementById("dark-toggle").addEventListener("change", (e) => {
+    document.documentElement.classList.toggle("dark", e.target.checked);
+    document.getElementById("dark-label").textContent = e.target.checked
+      ? "Light mode"
+      : "Dark mode";
+    grid.set_theme_from_css();
+  });
+}
+
+main();

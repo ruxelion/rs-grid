@@ -63,13 +63,15 @@
             />
           </div>
 
-          <label class="theme-toggle" title="Toggle dark mode">
-            <input type="checkbox" class="theme-toggle-input" id="dark-toggle" />
-            <span class="theme-toggle-track">
-              <span class="theme-toggle-thumb"></span>
-            </span>
-            <span class="theme-toggle-label" id="dark-label">Dark mode</span>
-          </label>
+          <div class="app-control">
+            <span class="app-control-label">Theme</span>
+            <select class="app-control-select" id="theme-select">
+              <option value="" selected>Light</option>
+              <option value="dark">Dark</option>
+              <option value="material">Material 3</option>
+              <option value="material-dark">Material 3 Dark</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="app-body">
