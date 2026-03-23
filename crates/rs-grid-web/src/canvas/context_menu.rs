@@ -220,6 +220,22 @@ fn builtin_shortcut(action: BuiltinAction) -> &'static str {
 }
 
 // ── menu container ──────────────────────────────────────
+//
+// All closures below use `Closure::forget()` rather than
+// storing in `GridCanvas`'s closure Vec.  This is
+// intentional: the context menu is a self-contained DOM
+// subtree rooted at `#rs-grid-ctx-backdrop`.
+// `remove_ctx_menu()` removes that root element; JS GC then
+// releases the element, its children, and all attached event
+// listeners — including the forgotten closures.
+//
+// The alternative (explicit `removeEventListener` before
+// dropping) would require threading a `Vec<Closure>` through
+// every helper and calling it from `remove_ctx_menu()`.  The
+// complexity gain is not justified: each closure captures only
+// lightweight DOM handles or a ref-counted `GridCanvas` clone,
+// and the menu lifetime is bounded by the user's single
+// right-click gesture.
 
 fn create_menu_shell(
     x: i32,
@@ -245,6 +261,7 @@ fn create_menu_shell(
                 cb.as_ref().unchecked_ref(),
             )
             .unwrap();
+        // Intentional forget — see module comment above.
         cb.forget();
     }
     {

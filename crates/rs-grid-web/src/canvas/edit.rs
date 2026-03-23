@@ -11,6 +11,14 @@ use web_sys::{HtmlImageElement, HtmlInputElement, KeyboardEvent};
 use super::dom_helpers::document;
 use super::GridCanvas;
 
+/// Geometry of an inline cell editor (screen coordinates).
+struct EditorGeom {
+    left: f64,
+    top: f64,
+    width: f64,
+    height: f64,
+}
+
 impl GridCanvas {
     /// Viewport rectangle `(x, y, w, h)` of a cell.
     fn cell_viewport_rect(
@@ -105,8 +113,12 @@ impl GridCanvas {
             self.cell_viewport_rect(row, col_idx);
         let canvas_rect =
             self.0.canvas.get_bounding_client_rect();
-        let left = canvas_rect.left() + cx;
-        let top = canvas_rect.top() + cy;
+        let geom = EditorGeom {
+            left: canvas_rect.left() + cx,
+            top: canvas_rect.top() + cy,
+            width: w,
+            height: h,
+        };
 
         // Read editor type and raw initial value.
         let (editor, raw_value) = {
@@ -127,14 +139,14 @@ impl GridCanvas {
                 ref options,
             }) => {
                 self.show_select_editor(
-                    row, &col_key, options, left,
-                    top, w, h, &raw_value,
+                    row, &col_key, options, geom,
+                    &raw_value,
                 );
             }
             _ => {
                 self.show_text_editor(
-                    row, &col_key, col_idx, left,
-                    top, w, h, &raw_value,
+                    row, &col_key, col_idx, geom,
+                    &raw_value,
                 );
             }
         }
@@ -142,18 +154,20 @@ impl GridCanvas {
 
     /// Show a custom HTML dropdown editor with optional
     /// icons (e.g. flag SVGs).
-    #[allow(clippy::too_many_arguments)]
     fn show_select_editor(
         &self,
         row: u64,
         col_key: &str,
         options: &[SelectOption],
-        left: f64,
-        top: f64,
-        w: f64,
-        h: f64,
+        geom: EditorGeom,
         current_value: &str,
     ) {
+        let EditorGeom {
+            left,
+            top,
+            width: w,
+            height: h,
+        } = geom;
         let doc = document();
         let n = options.len();
         if n == 0 {
@@ -583,18 +597,20 @@ impl GridCanvas {
     }
 
     /// Show a text `<input>` editor (default).
-    #[allow(clippy::too_many_arguments)]
     fn show_text_editor(
         &self,
         row: u64,
         col_key: &str,
         col_idx: usize,
-        left: f64,
-        top: f64,
-        w: f64,
-        h: f64,
+        geom: EditorGeom,
         raw_value: &str,
     ) {
+        let EditorGeom {
+            left,
+            top,
+            width: w,
+            height: h,
+        } = geom;
         let doc = document();
         let input: HtmlInputElement = doc
             .create_element("input")
