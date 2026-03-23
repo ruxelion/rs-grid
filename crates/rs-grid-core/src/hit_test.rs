@@ -109,10 +109,12 @@ pub fn hit_test_row_header(
         return None;
     }
 
+    // Same precision-preserving decomposition as in hit_test():
+    // decompose scroll_y to avoid subtracting two large f64s.
     let row = if scroll_y >= hh {
         let sy_content = scroll_y - hh;
         let first_row = (sy_content / rh) as u64;
-        let frac = sy_content % rh;
+        let frac = sy_content % rh; // sub-row offset within first_row
         let offset = ((vy + frac) / rh) as u64;
         first_row + offset
     } else {
