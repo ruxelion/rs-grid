@@ -1,0 +1,75 @@
+---
+title: Context Menu
+description: Right-click context menu with built-in and custom actions.
+---
+
+## Overview
+
+Right-click on the grid to open a context menu. The menu supports built-in
+actions (copy, paste, pin) and custom items.
+
+## Configuration
+
+```rust
+pub struct ContextMenuConfig {
+    pub cell_items: Vec<ContextMenuItem>,
+    pub col_header_items: Vec<ContextMenuItem>,
+}
+```
+
+- `cell_items` — shown when right-clicking a data cell
+- `col_header_items` — shown when right-clicking a column header
+
+## Menu items
+
+```rust
+pub enum ContextMenuItem {
+    Builtin(BuiltinAction),
+    Separator,
+}
+```
+
+### Built-in actions
+
+| Action | Description |
+|--------|-------------|
+| `BuiltinAction::Cut` | Cut selection (Ctrl+X) |
+| `BuiltinAction::Copy` | Copy selection (Ctrl+C) |
+| `BuiltinAction::CopyWithHeaders` | Copy with column headers |
+| `BuiltinAction::Paste` | Paste at anchor (Ctrl+V) |
+| `BuiltinAction::PinColumn` | Pin column(s) up to this one |
+| `BuiltinAction::UnpinColumn` | Unpin all columns |
+
+### Separator
+
+`ContextMenuItem::Separator` renders a visual divider between groups of items.
+
+## Customization
+
+Built-in actions have builder methods for customizing:
+- `label` — display text
+- `icon` — icon URL
+- `shortcut` — keyboard shortcut hint text
+
+## Example
+
+```rust
+let menu = ContextMenuConfig {
+    cell_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::Copy),
+        ContextMenuItem::Builtin(BuiltinAction::CopyWithHeaders),
+        ContextMenuItem::Separator,
+        ContextMenuItem::Builtin(BuiltinAction::Cut),
+        ContextMenuItem::Builtin(BuiltinAction::Paste),
+    ],
+    col_header_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::PinColumn),
+        ContextMenuItem::Builtin(BuiltinAction::UnpinColumn),
+    ],
+};
+```
+
+## Rendering
+
+The context menu is rendered as a DOM overlay (not on the canvas), positioned
+at the right-click coordinates. It closes on click outside or Escape.

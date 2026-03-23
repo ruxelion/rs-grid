@@ -1,0 +1,111 @@
+---
+title: Columns
+description: Column definitions, resizing, moving, pinning, and auto-fit.
+---
+
+## ColumnDef
+
+Each column is defined by a `ColumnDef`:
+
+```rust
+pub struct ColumnDef {
+    pub key: String,              // unique identifier
+    pub label: String,            // header display text
+    pub width: f64,               // width in logical pixels
+    pub format: Option<CellFormat>,  // display format (Number, Currency, etc.)
+    pub editor: Option<CellEditor>, // editor type (Text, Select)
+}
+```
+
+### Creating columns
+
+```rust
+use rs_grid_core::column::ColumnDef;
+
+// Simple column
+let col = ColumnDef::new("name", "Name", 200.0);
+
+// Column with format
+let mut price = ColumnDef::new("price", "Price", 120.0);
+price.format = Some(CellFormat::Currency {
+    symbol: "$".into(),
+    decimal_places: 2,
+    thousands_sep: Some(','),
+    symbol_after: false,
+});
+
+// Column with editor
+let mut status = ColumnDef::new("status", "Status", 100.0);
+status.editor = Some(CellEditor::Select {
+    options: vec![
+        SelectOption { value: "active".into(), label: "Active".into(), icon: None },
+        SelectOption { value: "inactive".into(), label: "Inactive".into(), icon: None },
+    ],
+});
+```
+
+## Column offsets
+
+`ColumnOffsets` precomputes the left-edge x position of every column for
+O(1) lookup during rendering and O(log n) hit-testing:
+
+```rust
+pub struct ColumnOffsets {
+    pub offsets: Vec<f64>,    // offsets[i] = left edge of column i
+    pub total_width: f64,     // sum of all column widths
+}
+```
+
+Offsets are automatically recomputed when columns change (resize, move, etc.).
+
+## Resizing
+
+Drag the column separator to resize:
+
+```rust
+state.apply(GridCommand::ResizeColumn {
+    col_idx: 2,
+    new_width: 180.0,
+});
+```
+
+### Auto-fit to content
+
+Double-click the column separator to auto-fit:
+
+```rust
+state.apply(GridCommand::AutoFitColumn {
+    col_idx: 2,
+    char_width: 8.4,          // average char width from renderer
+    header_char_width: 8.4,   // header char width (may be bold)
+    cell_padding: 10.0,       // horizontal padding per cell
+});
+```
+
+The auto-fit scans all visible rows and the header to find the widest
+content, then sizes the column to fit.
+
+## Moving columns
+
+Drag-and-drop to reorder columns:
+
+```rust
+state.apply(GridCommand::MoveColumn {
+    from_idx: 3,
+    to_idx: 1,
+});
+```
+
+This physically reorders the `columns` vector and recomputes offsets.
+Column moves are recorded in the undo history.
+
+## Pinning columns
+
+Pin leading columns so they stay visible during horizontal scroll:
+
+```rust
+state.apply(GridCommand::SetPinnedColumnCount { count: 2 });
+```
+
+Pinned columns are rendered on top of the scrolling area with a solid
+background. The pinned width is `model.pinned_width()`.

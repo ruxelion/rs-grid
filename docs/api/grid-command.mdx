@@ -1,0 +1,113 @@
+---
+title: GridCommand API
+description: Complete reference for all GridCommand variants.
+---
+
+## Definition
+
+```rust
+pub enum GridCommand { /* 30 variants */ }
+```
+
+All mutations to `GridState` go through `state.apply(GridCommand)`.
+
+## All variants
+
+### Selection
+
+```rust
+SelectCell(CellCoord)
+ExtendSelection(CellCoord)
+ClearSelection
+MoveSelection { delta_row: i64, delta_col: i64, extend: bool }
+SelectRow(u64)
+ExtendRowSelection(u64)
+SelectCol(usize)
+ExtendColSelection(usize)
+```
+
+### Scrolling & Viewport
+
+```rust
+ScrollTo { x: f64, y: f64 }
+ScrollBy { dx: f64, dy: f64 }
+Resize { width: f64, height: f64 }
+```
+
+### Columns
+
+```rust
+ResizeColumn { col_idx: usize, new_width: f64 }
+AutoFitColumn { col_idx: usize, char_width: f64, header_char_width: f64, cell_padding: f64 }
+MoveColumn { from_idx: usize, to_idx: usize }
+SetPinnedColumnCount { count: usize }
+```
+
+### Sorting & Filtering
+
+```rust
+ToggleSort { col_key: String }
+SetColumnFilter { col_key: String, text: String }
+ClearAllFilters
+```
+
+### Editing
+
+```rust
+StartEdit { row: u64, col_key: String }
+CommitEdit { row: u64, col_key: String, value: String }
+CancelEdit
+```
+
+### Clipboard
+
+```rust
+CopySelection
+CutSelection
+PasteAt { text: String }
+```
+
+### Search
+
+```rust
+Search { query: String }
+SearchNext
+SearchPrev
+ClearSearch
+```
+
+### Undo / Redo
+
+```rust
+Undo
+Redo
+```
+
+### Data & Display
+
+```rust
+SetHoveredRow(Option<u64>)
+NotifyPageLoaded
+SetTotalRowCount(u64)
+```
+
+## CommandOutput
+
+```rust
+pub enum CommandOutput {
+    None,
+    CopyText(String),
+    CopyError(CopyError),
+}
+
+pub enum CopyError {
+    NoSelection,
+    TooManyRows,
+}
+```
+
+| Command | Output |
+|---------|--------|
+| `CopySelection` | `CopyText(tsv)` or `CopyError` |
+| `CutSelection` | `CopyText(tsv)` or `CopyError` |
+| All others | `None` |

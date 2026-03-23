@@ -1,0 +1,82 @@
+---
+title: Selection & Clipboard
+description: Copy, cut, and paste operations with TSV format.
+---
+
+## Selection model
+
+rs-grid uses an **anchor/focus** selection model (like spreadsheets):
+
+- **Anchor** — the cell where the selection started (click)
+- **Focus** — the cell where the selection ends (shift-click or arrow keys)
+
+The selected range is the rectangle between anchor and focus.
+
+For details on the base selection model, see [Selection](/concepts/selection).
+
+## Copy
+
+```rust
+let output = state.apply(GridCommand::CopySelection);
+if let CommandOutput::CopyText(tsv) = output {
+    // Write `tsv` to the system clipboard
+}
+```
+
+The selection is serialized as **TSV** (tab-separated values, RFC 4180):
+- Columns separated by `\t`
+- Rows separated by `\n`
+
+### Copy with headers
+
+Available as a built-in context menu action (`BuiltinAction::CopyWithHeaders`).
+Prepends a header row to the TSV output.
+
+## Cut
+
+```rust
+let output = state.apply(GridCommand::CutSelection);
+```
+
+Same as copy, but also clears the selected cells. The clearing is recorded
+in the undo history.
+
+## Paste
+
+```rust
+state.apply(GridCommand::PasteAt {
+    text: "Alice\t30\nBob\t25".into(),
+});
+```
+
+Pastes TSV text starting at the current selection anchor. Each tab-separated
+value is written to the corresponding cell. The paste is recorded as a
+batch undo entry.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Ctrl+C** | Copy selection |
+| **Ctrl+X** | Cut selection |
+| **Ctrl+V** | Paste at anchor |
+
+These are handled by the web layer (`rs-grid-web`) which listens to
+`copy`, `cut`, and `paste` DOM events.
+
+## Error handling
+
+```rust
+pub enum CopyError {
+    NoSelection,    // nothing selected
+    TooManyRows,    // selection exceeds MAX_COPY_ROWS
+}
+```
+
+If the selection is too large, `CopySelection` returns
+`CommandOutput::CopyError(CopyError::TooManyRows)` instead of the TSV text.
+
+## Context menu
+
+Right-click opens a context menu with clipboard actions. See
+[Context Menu](/features/context-menu) for customization options.

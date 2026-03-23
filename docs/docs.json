@@ -25,24 +25,84 @@
   "navigation": {
     "groups": [
       {
-        "group": "Overview",
-        "pages": ["index", "getting-started"]
+        "group": "Getting Started",
+        "pages": ["index", "getting-started", "installation"]
       },
       {
         "group": "Core Concepts",
         "pages": [
           "concepts/architecture",
+          "concepts/grid-state",
+          "concepts/data-model",
           "concepts/viewport",
           "concepts/selection"
         ]
       },
       {
-        "group": "Integrations",
-        "pages": ["integrations/leptos"]
+        "group": "Features",
+        "pages": [
+          "features/columns",
+          "features/rows",
+          "features/cell-formatting",
+          "features/editing",
+          "features/sorting",
+          "features/filtering",
+          "features/selection-clipboard",
+          "features/search",
+          "features/undo-redo",
+          "features/scrollbars",
+          "features/keyboard",
+          "features/context-menu",
+          "features/hit-testing"
+        ]
       },
       {
-        "group": "Deployment",
-        "pages": ["deployment/docker"]
+        "group": "Data Sources",
+        "pages": [
+          "data/overview",
+          "data/vec-datasource",
+          "data/fn-datasource",
+          "data/page-cache"
+        ]
+      },
+      {
+        "group": "Theming",
+        "pages": [
+          "theming/overview",
+          "theming/css-variables",
+          "theming/built-in-themes"
+        ]
+      },
+      {
+        "group": "Integrations",
+        "pages": [
+          "integrations/leptos",
+          "integrations/vanilla-js",
+          "integrations/custom-renderer"
+        ]
+      },
+      {
+        "group": "Scene Graph",
+        "pages": ["scene/primitives", "scene/scene-builder"]
+      },
+      {
+        "group": "Deployment & Development",
+        "pages": [
+          "deployment/docker",
+          "development/workspace",
+          "development/testing"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          "api/grid-state",
+          "api/grid-command",
+          "api/grid-model",
+          "api/column-def",
+          "api/theme",
+          "api/scene-primitive"
+        ]
       }
     ]
   },

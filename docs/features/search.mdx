@@ -1,0 +1,63 @@
+---
+title: Search
+description: Full-text cell search with Ctrl+F, match navigation, and highlights.
+---
+
+## Overview
+
+Press **Ctrl+F** to open the search bar. rs-grid searches all visible cells
+for the query (case-insensitive contains match) and highlights matching cells.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `Search { query }` | Run a search across all cells |
+| `SearchNext` | Jump to the next match |
+| `SearchPrev` | Jump to the previous match |
+| `ClearSearch` | Clear search state and highlights |
+
+### Example
+
+```rust
+state.apply(GridCommand::Search { query: "paris".into() });
+state.apply(GridCommand::SearchNext);  // focus next match
+state.apply(GridCommand::SearchPrev); // focus previous match
+state.apply(GridCommand::ClearSearch);
+```
+
+## SearchState
+
+```rust
+pub struct SearchState {
+    pub query: String,           // current search text
+    pub matches: Vec<CellCoord>, // all matching cells
+    pub current: usize,          // index of focused match
+}
+```
+
+## How it works
+
+`SearchState::run()` scans the grid:
+
+1. Iterates rows (up to **100,000** rows)
+2. For each row, checks every column
+3. Case-insensitive `contains` match on the cell value
+4. Collects up to **10,000** matches
+
+## Rendering
+
+The scene builder uses two theme colors for search results:
+
+| Theme field | CSS variable | Description |
+|-------------|-------------|-------------|
+| `search_highlight` | `--rs-grid-search-highlight` | Background for all matches |
+| `search_current` | `--rs-grid-search-current` | Background for the current (focused) match |
+
+## Limitations
+
+- **Client-side only** — in `ServerSide` mode, `Search` returns no results
+  (there's too much data to scan locally)
+- **Max 100,000 rows scanned** — to avoid stalling the main thread
+- **Max 10,000 matches** — additional matches are not collected
+- Search does not work on formatted output — it matches the raw cell value
