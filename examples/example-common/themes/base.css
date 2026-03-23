@@ -1,0 +1,162 @@
+/*
+ * rs-grid theme — base layout
+ *
+ * Shared reset and app shell styles used by all examples.
+ * Theme-specific overrides live in their own files (light.css, dark.css, …).
+ *
+ * Supported color formats : #rgb  #rrggbb  #rrggbbaa  rgb(r,g,b)  rgba(r,g,b,a)
+ * Supported size  formats : 13    13px
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: #f3f4f6;
+  font-family: system-ui, sans-serif;
+  transition: background 0.2s;
+}
+
+/* ── app layout ─────────────────────────────────────────────────────────────── */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 15px;
+}
+
+/* ── page header ────────────────────────────────────────────────────────────── */
+
+.app-page-header {
+  flex-shrink: 0;
+  margin-bottom: 15px;
+}
+
+.app-title {
+  font:
+    700 22px/1.2 system-ui,
+    sans-serif;
+  color: #111827;
+  margin-bottom: 8px;
+  transition: color 0.2s;
+}
+
+.app-subtitle {
+  font:
+    400 14px/1.5 system-ui,
+    sans-serif;
+  color: #6b7280;
+  margin-bottom: 18px;
+  transition: color 0.2s;
+}
+
+.app-highlight {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.app-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 12px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.app-control-label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.app-control-select {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  font:
+    500 13px/1 system-ui,
+    sans-serif;
+  padding: 5px 30px 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  min-width: 120px;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.app-control-select:hover {
+  border-color: #9ca3af;
+}
+
+.app-control-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ── export / import buttons ─────────────────────────────────────────────────── */
+
+.app-btn {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font: 600 13px/1 system-ui, sans-serif;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.app-btn:hover {
+  border-color: #9ca3af;
+}
+
+/* ── body ───────────────────────────────────────────────────────────────────── */
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.app-grid-wrapper {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e4ea;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}

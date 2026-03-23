@@ -121,8 +121,7 @@ pub fn GridCanvas(
             if first_run.replace(false) {
                 return; // mount already applied this theme
             }
-            if let Some(gc) = gc_for_theme.borrow().as_ref()
-            {
+            if let Some(gc) = gc_for_theme.borrow().as_ref() {
                 gc.set_theme(t);
             }
         });

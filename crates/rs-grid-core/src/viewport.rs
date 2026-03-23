@@ -3,7 +3,9 @@ use crate::column::ColumnOffsets;
 /// Current scroll position and canvas dimensions.
 #[derive(Debug, Clone)]
 pub struct ViewportState {
+    /// Horizontal scroll offset in logical pixels.
     pub scroll_x: f64,
+    /// Vertical scroll offset in logical pixels.
     pub scroll_y: f64,
     /// Canvas width in logical pixels.
     pub width: f64,
@@ -26,6 +28,8 @@ impl Default for ViewportState {
 }
 
 impl ViewportState {
+    /// Create a viewport with the given dimensions and
+    /// default scroll/overscan values.
     pub fn new(width: f64, height: f64) -> Self {
         Self {
             width,
@@ -67,15 +71,20 @@ impl ViewportState {
         let x_end = self.scroll_x + self.width;
 
         let col_count = offsets.offsets.len();
+        // first = index of the first column whose right edge enters
+        // the viewport; last = index of the first column that starts
+        // past the viewport's right edge (exclusive upper bound).
         let mut first = 0usize;
         let mut last = col_count;
 
         for (i, (&offset, &w)) in
             offsets.offsets.iter().zip(col_widths.iter()).enumerate()
         {
+            // Column ends before viewport starts → still fully hidden.
             if offset + w <= x_start {
                 first = i + 1;
             }
+            // Column starts past viewport end → everything after is hidden too.
             if offset >= x_end && last == col_count {
                 last = i;
                 break;
@@ -112,6 +121,8 @@ impl ViewportState {
             .zip(&col_widths[pinned_count..col_count])
             .enumerate()
         {
+            // enumerate() yields 0-based indices into the slice;
+            // add pinned_count to recover the absolute column index.
             let i = i + pinned_count;
             if offset + w <= x_start {
                 first = i + 1;

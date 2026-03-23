@@ -10,14 +10,14 @@ pub(super) fn document() -> web_sys::Document {
 
 pub(super) fn make_el(doc: &web_sys::Document, tag: &str) -> HtmlElement {
     doc.create_element(tag)
-        .unwrap()
+        .expect("create element")
         .dyn_into::<HtmlElement>()
-        .unwrap()
+        .expect("element is HtmlElement")
 }
 
 pub(super) fn set_styles(el: &HtmlElement, styles: &[(&str, &str)]) {
     let s = el.style();
     for (prop, val) in styles {
-        s.set_property(prop, val).unwrap();
+        s.set_property(prop, val).expect("set style property");
     }
 }

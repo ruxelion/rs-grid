@@ -1,0 +1,8 @@
+[package]
+name = "example-common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rs-grid-core  = { path = "../../crates/rs-grid-core" }
+rs-grid-icons = { path = "../../crates/rs-grid-icons" }

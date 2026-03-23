@@ -8,11 +8,26 @@ pub enum GridCommand {
     /// Extend the current selection to a new focus (shift-click).
     ExtendSelection(CellCoord),
     /// Scroll to an absolute position.
-    ScrollTo { x: f64, y: f64 },
+    ScrollTo {
+        /// Horizontal offset in logical pixels.
+        x: f64,
+        /// Vertical offset in logical pixels.
+        y: f64,
+    },
     /// Scroll by a delta (wheel event).
-    ScrollBy { dx: f64, dy: f64 },
+    ScrollBy {
+        /// Horizontal delta in logical pixels.
+        dx: f64,
+        /// Vertical delta in logical pixels.
+        dy: f64,
+    },
     /// Update canvas dimensions (resize).
-    Resize { width: f64, height: f64 },
+    Resize {
+        /// New canvas width in logical pixels.
+        width: f64,
+        /// New canvas height in logical pixels.
+        height: f64,
+    },
     /// Remove the current selection.
     ClearSelection,
     /// Copy the current selection to clipboard (returns TSV text).
@@ -21,12 +36,18 @@ pub enum GridCommand {
     CutSelection,
     /// Move or extend the selection by a row/col delta.
     MoveSelection {
+        /// Row offset (positive = down).
         delta_row: i64,
+        /// Column offset (positive = right).
         delta_col: i64,
+        /// If `true`, extend rather than move the selection.
         extend: bool,
     },
     /// Paste TSV text starting at the current selection anchor.
-    PasteAt { text: String },
+    PasteAt {
+        /// Tab-separated text (RFC 4180).
+        text: String,
+    },
     /// Select all cells in a row (click on row-number gutter).
     SelectRow(u64),
     /// Extend the current row selection to cover a new row (drag in gutter).
@@ -36,27 +57,56 @@ pub enum GridCommand {
     /// Extend the current column selection to cover a new column (drag in header).
     ExtendColSelection(usize),
     /// Set the width of a column (column resize drag).
-    ResizeColumn { col_idx: usize, new_width: f64 },
+    ResizeColumn {
+        /// Index of the column to resize.
+        col_idx: usize,
+        /// New width in logical pixels.
+        new_width: f64,
+    },
     /// Update the hovered row (mousemove / mouseleave).
     SetHoveredRow(Option<u64>),
     /// Cycle sort state for a column: None → Asc → Desc → None.
-    ToggleSort { col_key: String },
+    ToggleSort {
+        /// Column key to toggle.
+        col_key: String,
+    },
     /// Set the number of leading columns pinned (frozen) during
     /// horizontal scroll.
-    SetPinnedColumnCount { count: usize },
+    SetPinnedColumnCount {
+        /// Number of leading columns to pin.
+        count: usize,
+    },
     /// Set a text filter on a column (case-insensitive contains).
     /// Empty text clears the filter for that column.
-    SetColumnFilter { col_key: String, text: String },
+    SetColumnFilter {
+        /// Column key to filter.
+        col_key: String,
+        /// Filter text (empty = clear filter for this column).
+        text: String,
+    },
     /// Clear all column filters at once.
     ClearAllFilters,
     /// Move a column from one position to another (drag & drop).
-    MoveColumn { from_idx: usize, to_idx: usize },
+    MoveColumn {
+        /// Original column index.
+        from_idx: usize,
+        /// Destination column index.
+        to_idx: usize,
+    },
     /// Start editing a cell (double-click).
-    StartEdit { row: u64, col_key: String },
+    StartEdit {
+        /// Row index of the cell to edit.
+        row: u64,
+        /// Column key of the cell to edit.
+        col_key: String,
+    },
     /// Commit the current cell edit with a new value.
     CommitEdit {
+        /// Row index of the edited cell.
         row: u64,
+        /// Column key of the edited cell.
         col_key: String,
+        /// New cell value to commit.
         value: String,
     },
     /// Cancel the current cell edit.
@@ -66,7 +116,10 @@ pub enum GridCommand {
     /// Redo the last undone action.
     Redo,
     /// Search all visible cells for a query (case-insensitive).
-    Search { query: String },
+    Search {
+        /// Case-insensitive search text.
+        query: String,
+    },
     /// Jump to the next search match.
     SearchNext,
     /// Jump to the previous search match.
@@ -74,13 +127,19 @@ pub enum GridCommand {
     /// Clear the search state.
     ClearSearch,
     /// Notify the grid that a page of data has been loaded into the
-    /// cache. This is a no-op; it exists solely to trigger a re-render.
+    /// cache. This is a no-op command — it exists solely to trigger a
+    /// re-render after the `PageCacheDataSource` has been mutated
+    /// externally. Has no effect on other data source types.
     NotifyPageLoaded,
-    /// Update the total row count (used by async data sources after the
-    /// first server response).
+    /// Update the total row count for an async data source.
+    ///
+    /// Intended for use with `PageCacheDataSource` after the first
+    /// server response returns the real row count. Has no effect on
+    /// `VecDataSource` or `FnDataSource`.
     SetTotalRowCount(u64),
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
+        /// Index of the column to auto-fit.
         col_idx: usize,
         /// Average character width in logical pixels, provided by the
         /// renderer (derived from `font_size`).
@@ -92,9 +151,14 @@ pub enum GridCommand {
     },
 }
 
+/// Value returned by [`crate::state::GridState::apply`]
+/// after processing a command.
 #[derive(Debug, Clone)]
 pub enum CommandOutput {
+    /// Command produced no output.
     None,
+    /// TSV text ready for the clipboard.
     CopyText(String),
+    /// Copy/cut failed.
     CopyError(CopyError),
 }

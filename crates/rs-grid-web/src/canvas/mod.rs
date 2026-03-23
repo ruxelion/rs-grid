@@ -5,6 +5,7 @@ mod dom_helpers;
 mod edit;
 mod events;
 pub mod fetcher;
+mod keyboard;
 mod scroll;
 mod search;
 
@@ -29,7 +30,8 @@ use rs_grid_scene::{
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
-    HtmlCanvasElement, HtmlInputElement, MouseEvent, ResizeObserver,
+    HtmlCanvasElement, HtmlElement, HtmlInputElement, MouseEvent,
+    ResizeObserver,
 };
 
 use dom_helpers::document;
@@ -75,8 +77,8 @@ struct Inner {
     raf_scheduled: Cell<bool>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
-    /// DOM `<input>` element used for inline cell editing.
-    edit_input: RefCell<Option<HtmlInputElement>>,
+    /// DOM element used for inline cell editing (`<input>` or `<select>`).
+    edit_input: RefCell<Option<HtmlElement>>,
     /// Closures on the edit `<input>` (keydown, blur).
     edit_closures: RefCell<Vec<Box<dyn Any>>>,
     /// DOM `<input>` element for the search bar (Ctrl+F).
@@ -256,10 +258,14 @@ impl GridCanvas {
 
     /// Apply a command, redraw, and return the output.
     fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+        // Commands that write cell data — fire the on_change callback
+        // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
             cmd,
             GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
         );
+        // Commands that may expose new rows — trigger a page fetch in
+        // server-side pagination mode (PageCacheDataSource).
         let triggers_fetch = matches!(
             cmd,
             GridCommand::ScrollTo { .. }
@@ -329,6 +335,9 @@ impl GridCanvas {
     /// Deserialize TSV text produced by `export_patches` and apply it,
     /// replacing any existing patches. Triggers a redraw.
     pub fn import_patches(&self, data: &str) {
+        // Unescape in two passes: first stash literal `\\` as the
+        // NUL sentinel so `\\t` is not mistaken for a tab, then
+        // restore it at the end.
         let unescape = |s: &str| {
             s.replace("\\\\", "\x00")
                 .replace("\\t", "\t")
@@ -364,26 +373,20 @@ impl GridCanvas {
         };
         // Compare via the underlying Element pointer.
         let active_el: &web_sys::Element = &active;
-        if let Some(canvas_el) =
-            self.0.canvas.dyn_ref::<web_sys::Element>()
-        {
+        if let Some(canvas_el) = self.0.canvas.dyn_ref::<web_sys::Element>() {
             if active_el == canvas_el {
                 return true;
             }
         }
         if let Some(ref el) = *self.0.edit_input.borrow() {
-            if let Some(input_el) =
-                el.dyn_ref::<web_sys::Element>()
-            {
+            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
                 if active_el == input_el {
                     return true;
                 }
             }
         }
         if let Some(ref el) = *self.0.search_input.borrow() {
-            if let Some(input_el) =
-                el.dyn_ref::<web_sys::Element>()
-            {
+            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
                 if active_el == input_el {
                     return true;
                 }
@@ -572,10 +575,7 @@ impl GridCanvas {
 
         // 2. Remove canvas-level listeners.
         for (event, f) in self.0.canvas_listeners.borrow().iter() {
-            let _ = self
-                .0
-                .canvas
-                .remove_event_listener_with_callback(event, f);
+            let _ = self.0.canvas.remove_event_listener_with_callback(event, f);
         }
         self.0.canvas_listeners.borrow_mut().clear();
 
