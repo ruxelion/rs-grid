@@ -1,11 +1,14 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
-    column::{format_cell, CellAlign, CellFormat},
+    column::{format_cell, CellAlign, CellFormat, ColumnDef},
     datasource::CellStatus,
+    model::GridModel,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
+    selection::SelectionState,
     sort::SortDir,
     state::GridState,
+    viewport::ViewportState,
 };
 
 use crate::{
@@ -219,152 +222,22 @@ impl SceneBuilder {
             for ci in col_start..col_end {
                 let col = &model.columns[ci];
                 let cx = col_vx(ci);
-
-                // Selection fill (no border — outer border drawn below)
-                if sel.is_selected(ri, ci) {
-                    frame.push(ScenePrimitive::Rect(RectPrimitive {
-                        x: cx,
-                        y: ry,
-                        width: col.width,
-                        height: model.row_height,
-                        fill: t.selection_fill,
-                        stroke: None,
-                        stroke_width: 0.0,
-                        corner_radius: 0.0,
-                    }));
-                }
-
-                // Search highlight
-                if search_set.contains(&(ri, ci)) {
-                    let fill = if search_current == Some((ri, ci)) {
-                        t.search_current
-                    } else {
-                        t.search_highlight
-                    };
-                    frame.push(ScenePrimitive::Rect(RectPrimitive {
-                        x: cx,
-                        y: ry,
-                        width: col.width,
-                        height: model.row_height,
-                        fill,
-                        stroke: None,
-                        stroke_width: 0.0,
-                        corner_radius: 0.0,
-                    }));
-                }
-
-                // Cell text, image, or skeleton
-                match model.cell_status(ri, &col.key) {
-                    CellStatus::Ready(raw) if !raw.is_empty() => {
-                        if let Some(CellFormat::Image {
-                            base_url,
-                            border_radius,
-                            padding,
-                        }) = &col.format
-                        {
-                            let url = match base_url {
-                                Some(base) => format!("{base}{raw}"),
-                                None => raw,
-                            };
-                            let pad = *padding;
-                            frame.push(ScenePrimitive::Image(ImagePrimitive {
-                                url,
-                                x: cx + pad,
-                                y: ry + pad,
-                                width: col.width - pad * 2.0,
-                                height: model.row_height - pad * 2.0,
-                                corner_radius: *border_radius,
-                                clip: Some([
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                ]),
-                            }));
-                        } else if let Some(CellFormat::ImageText {
-                            base_url,
-                            suffix,
-                            image_size,
-                            border_radius,
-                            gap,
-                        }) = &col.format
-                        {
-                            Self::emit_image_text(
-                                &mut frame,
-                                &raw,
-                                cx,
-                                ry,
-                                col.width,
-                                model.row_height,
-                                mid_y,
-                                t,
-                                base_url,
-                                suffix,
-                                *image_size,
-                                *border_radius,
-                                *gap,
-                            );
-                        } else {
-                            let (txt, align, bold, color) =
-                                if let Some(fmt) = &col.format {
-                                    let fc = format_cell(&raw, fmt);
-                                    let a = match fc.align.unwrap_or_default() {
-                                        CellAlign::Left => TextAlign::Left,
-                                        CellAlign::Right => TextAlign::Right,
-                                        CellAlign::Center => TextAlign::Center,
-                                    };
-                                    let c = fc
-                                        .color
-                                        .map(|c| {
-                                            Color::rgba(c[0], c[1], c[2], c[3])
-                                        })
-                                        .unwrap_or(t.cell_text);
-                                    (fc.text, a, fc.bold, c)
-                                } else {
-                                    (raw, TextAlign::Left, false, t.cell_text)
-                                };
-                            let x = match align {
-                                TextAlign::Right => {
-                                    cx + col.width - t.cell_padding
-                                }
-                                TextAlign::Center => cx + col.width / 2.0,
-                                TextAlign::Left => cx + t.cell_padding,
-                            };
-                            frame.push(ScenePrimitive::Text(TextPrimitive {
-                                x,
-                                y: mid_y,
-                                text: txt,
-                                color,
-                                font_size: t.font_size,
-                                bold,
-                                clip: Some([
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                ]),
-                                align,
-                            }));
-                        }
-                    }
-                    CellStatus::Loading => {
-                        let bar_w = col.width * 0.6;
-                        let bar_h = t.font_size * 0.5;
-                        let bar_x = cx + t.cell_padding;
-                        let bar_y = ry + (model.row_height - bar_h) / 2.0;
-                        frame.push(ScenePrimitive::Rect(RectPrimitive {
-                            x: bar_x,
-                            y: bar_y,
-                            width: bar_w,
-                            height: bar_h,
-                            fill: t.skeleton_fg,
-                            stroke: None,
-                            stroke_width: 0.0,
-                            corner_radius: bar_h / 2.0,
-                        }));
-                    }
-                    _ => {}
-                }
+                let status = model.cell_status(ri, &col.key);
+                Self::emit_cell(
+                    &mut frame,
+                    col,
+                    ri,
+                    ci,
+                    cx,
+                    ry,
+                    mid_y,
+                    model.row_height,
+                    status,
+                    sel,
+                    &search_set,
+                    search_current,
+                    t,
+                );
             }
 
             // Horizontal grid line
@@ -429,169 +302,22 @@ impl SceneBuilder {
                 for ci in 0..pinned_count {
                     let col = &model.columns[ci];
                     let cx = col_vx(ci);
-
-                    if sel.is_selected(ri, ci) {
-                        frame.push(ScenePrimitive::Rect(RectPrimitive {
-                            x: cx,
-                            y: ry,
-                            width: col.width,
-                            height: model.row_height,
-                            fill: t.selection_fill,
-                            stroke: None,
-                            stroke_width: 0.0,
-                            corner_radius: 0.0,
-                        }));
-                    }
-
-                    if search_set.contains(&(ri, ci)) {
-                        let fill = if search_current == Some((ri, ci)) {
-                            t.search_current
-                        } else {
-                            t.search_highlight
-                        };
-                        frame.push(ScenePrimitive::Rect(RectPrimitive {
-                            x: cx,
-                            y: ry,
-                            width: col.width,
-                            height: model.row_height,
-                            fill,
-                            stroke: None,
-                            stroke_width: 0.0,
-                            corner_radius: 0.0,
-                        }));
-                    }
-
-                    match model.cell_status(ri, &col.key) {
-                        CellStatus::Ready(raw) if !raw.is_empty() => {
-                            if let Some(CellFormat::Image {
-                                base_url,
-                                border_radius,
-                                padding,
-                            }) = &col.format
-                            {
-                                let url = match base_url {
-                                    Some(base) => {
-                                        format!("{base}{raw}")
-                                    }
-                                    None => raw,
-                                };
-                                let pad = *padding;
-                                frame.push(ScenePrimitive::Image(
-                                    ImagePrimitive {
-                                        url,
-                                        x: cx + pad,
-                                        y: ry + pad,
-                                        width: col.width - pad * 2.0,
-                                        height: model.row_height - pad * 2.0,
-                                        corner_radius: *border_radius,
-                                        clip: Some([
-                                            cx,
-                                            ry,
-                                            col.width,
-                                            model.row_height,
-                                        ]),
-                                    },
-                                ));
-                            } else if let Some(CellFormat::ImageText {
-                                base_url,
-                                suffix,
-                                image_size,
-                                border_radius,
-                                gap,
-                            }) = &col.format
-                            {
-                                Self::emit_image_text(
-                                    &mut frame,
-                                    &raw,
-                                    cx,
-                                    ry,
-                                    col.width,
-                                    model.row_height,
-                                    mid_y,
-                                    t,
-                                    base_url,
-                                    suffix,
-                                    *image_size,
-                                    *border_radius,
-                                    *gap,
-                                );
-                            } else {
-                                let (txt, align, bold, color) =
-                                    if let Some(fmt) = &col.format {
-                                        let fc = format_cell(&raw, fmt);
-                                        let a = match fc
-                                            .align
-                                            .unwrap_or_default()
-                                        {
-                                            CellAlign::Left => TextAlign::Left,
-                                            CellAlign::Right => {
-                                                TextAlign::Right
-                                            }
-                                            CellAlign::Center => {
-                                                TextAlign::Center
-                                            }
-                                        };
-                                        let c = fc
-                                            .color
-                                            .map(|c| {
-                                                Color::rgba(
-                                                    c[0], c[1], c[2], c[3],
-                                                )
-                                            })
-                                            .unwrap_or(t.cell_text);
-                                        (fc.text, a, fc.bold, c)
-                                    } else {
-                                        (
-                                            raw,
-                                            TextAlign::Left,
-                                            false,
-                                            t.cell_text,
-                                        )
-                                    };
-                                let x = match align {
-                                    TextAlign::Right => {
-                                        cx + col.width - t.cell_padding
-                                    }
-                                    TextAlign::Center => cx + col.width / 2.0,
-                                    TextAlign::Left => cx + t.cell_padding,
-                                };
-                                frame.push(ScenePrimitive::Text(
-                                    TextPrimitive {
-                                        x,
-                                        y: mid_y,
-                                        text: txt,
-                                        color,
-                                        font_size: t.font_size,
-                                        bold,
-                                        clip: Some([
-                                            cx,
-                                            ry,
-                                            col.width,
-                                            model.row_height,
-                                        ]),
-                                        align,
-                                    },
-                                ));
-                            }
-                        }
-                        CellStatus::Loading => {
-                            let bar_w = col.width * 0.6;
-                            let bar_h = t.font_size * 0.5;
-                            let bar_x = cx + t.cell_padding;
-                            let bar_y = ry + (model.row_height - bar_h) / 2.0;
-                            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                                x: bar_x,
-                                y: bar_y,
-                                width: bar_w,
-                                height: bar_h,
-                                fill: t.skeleton_fg,
-                                stroke: None,
-                                stroke_width: 0.0,
-                                corner_radius: bar_h / 2.0,
-                            }));
-                        }
-                        _ => {}
-                    }
+                    let status = model.cell_status(ri, &col.key);
+                    Self::emit_cell(
+                        &mut frame,
+                        col,
+                        ri,
+                        ci,
+                        cx,
+                        ry,
+                        mid_y,
+                        model.row_height,
+                        status,
+                        sel,
+                        &search_set,
+                        search_current,
+                        t,
+                    );
                 }
             }
 
@@ -850,175 +576,8 @@ impl SceneBuilder {
             }));
         }
 
-        // ── vertical scrollbar ───────────────────────────────────────────────
-        if let Some(sb) = ScrollbarGeom::compute(
-            vp.scroll_y,
-            vp.width,
-            vp.height,
-            model.header_height,
-            model.total_height(),
-            t.scrollbar_width,
-        ) {
-            // ── arrow buttons background ──────────────────────────────────────
-            for btn_y in [sb.up_btn_y, sb.down_btn_y] {
-                frame.push(ScenePrimitive::Rect(RectPrimitive {
-                    x: sb.track_x,
-                    y: btn_y,
-                    width: sb.track_w,
-                    height: sb.arrow_h,
-                    fill: t.scrollbar_track,
-                    stroke: None,
-                    stroke_width: 0.0,
-                    corner_radius: 0.0,
-                }));
-            }
-
-            // ── arrow icons ───────────────────────────────────────────────────
-            let cx = sb.track_x + sb.track_w * 0.5;
-            let arrow_size = (sb.track_w * 0.45).max(3.0);
-
-            // Up arrow ▲
-            let mid_up = sb.up_btn_y + sb.arrow_h * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [cx, mid_up - arrow_size * 0.45],
-                    [cx + arrow_size, mid_up + arrow_size * 1.0],
-                    [cx - arrow_size, mid_up + arrow_size * 1.0],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
-
-            // Down arrow ▼
-            let mid_dn = sb.down_btn_y + sb.arrow_h * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [cx, mid_dn + arrow_size * 0.45],
-                    [cx + arrow_size, mid_dn - arrow_size * 1.0],
-                    [cx - arrow_size, mid_dn - arrow_size * 1.0],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
-
-            // ── track ─────────────────────────────────────────────────────────
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: sb.track_x,
-                y: sb.track_y,
-                width: sb.track_w,
-                height: sb.track_h,
-                fill: t.scrollbar_track,
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: 0.0,
-            }));
-
-            // ── thumb (inset 2px on each side) ────────────────────────────────
-            const INSET: f64 = 2.0;
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: sb.track_x + INSET,
-                y: sb.thumb_y + INSET,
-                width: (sb.track_w - INSET * 2.0).max(2.0),
-                height: (sb.thumb_h - INSET * 2.0).max(4.0),
-                fill: t.scrollbar_thumb,
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: t.scrollbar_radius,
-            }));
-        }
-
-        // ── horizontal scrollbar ─────────────────────────────────────────────
-        let vsb_w = if ScrollbarGeom::compute(
-            vp.scroll_y,
-            vp.width,
-            vp.height,
-            model.header_height,
-            model.total_height(),
-            t.scrollbar_width,
-        )
-        .is_some()
-        {
-            t.scrollbar_width
-        } else {
-            0.0
-        };
-
-        if let Some(hsb) = HScrollbarGeom::compute(
-            vp.scroll_x,
-            vp.width,
-            vp.height,
-            rnw,
-            model.total_width(),
-            vsb_w,
-            t.scrollbar_width,
-        ) {
-            // ── arrow buttons background ──────────────────────────────────────
-            for btn_x in [hsb.left_btn_x, hsb.right_btn_x] {
-                frame.push(ScenePrimitive::Rect(RectPrimitive {
-                    x: btn_x,
-                    y: hsb.track_y,
-                    width: hsb.arrow_w,
-                    height: hsb.track_h,
-                    fill: t.scrollbar_track,
-                    stroke: None,
-                    stroke_width: 0.0,
-                    corner_radius: 0.0,
-                }));
-            }
-
-            // ── arrow icons ───────────────────────────────────────────────────
-            let cy = hsb.track_y + hsb.track_h * 0.5;
-            let arrow_size = (hsb.track_h * 0.45).max(3.0);
-
-            // Left arrow ◀
-            let mid_left = hsb.left_btn_x + hsb.arrow_w * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [mid_left - arrow_size * 0.45, cy],
-                    [mid_left + arrow_size * 1.0, cy - arrow_size],
-                    [mid_left + arrow_size * 1.0, cy + arrow_size],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
-
-            // Right arrow ▶
-            let mid_right = hsb.right_btn_x + hsb.arrow_w * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [mid_right + arrow_size * 0.45, cy],
-                    [mid_right - arrow_size * 1.0, cy - arrow_size],
-                    [mid_right - arrow_size * 1.0, cy + arrow_size],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
-
-            // ── track ─────────────────────────────────────────────────────────
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: hsb.track_x,
-                y: hsb.track_y,
-                width: hsb.track_w,
-                height: hsb.track_h,
-                fill: t.scrollbar_track,
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: 0.0,
-            }));
-
-            // ── thumb (inset 2px on each side) ────────────────────────────────
-            const INSET: f64 = 2.0;
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: hsb.thumb_x + INSET,
-                y: hsb.track_y + INSET,
-                width: (hsb.thumb_w - INSET * 2.0).max(4.0),
-                height: (hsb.track_h - INSET * 2.0).max(2.0),
-                fill: t.scrollbar_thumb,
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: t.scrollbar_radius,
-            }));
-        }
+        // ── scrollbars ───────────────────────────────────────────────────────
+        Self::emit_scrollbars(&mut frame, vp, model, rnw, t);
 
         // ── column drag preview ────────────────────────────────
         if let Some(hint) = col_drag {
@@ -1100,6 +659,334 @@ impl SceneBuilder {
         }
 
         frame
+    }
+
+    /// Emit the vertical and horizontal scrollbar primitives.
+    ///
+    /// Computes `ScrollbarGeom` once and reuses it for both the
+    /// vertical render and the horizontal scrollbar's vsb_w
+    /// calculation, avoiding the double-compute present in the
+    /// original inlined code.
+    fn emit_scrollbars(
+        frame: &mut SceneFrame,
+        vp: &ViewportState,
+        model: &GridModel,
+        rnw: f64,
+        t: &Theme,
+    ) {
+        // ── vertical scrollbar ───────────────────────────────────────────────
+        let vsb = ScrollbarGeom::compute(
+            vp.scroll_y,
+            vp.width,
+            vp.height,
+            model.header_height,
+            model.total_height(),
+            t.scrollbar_width,
+        );
+
+        if let Some(sb) = &vsb {
+            // Arrow button backgrounds
+            for btn_y in [sb.up_btn_y, sb.down_btn_y] {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: sb.track_x,
+                    y: btn_y,
+                    width: sb.track_w,
+                    height: sb.arrow_h,
+                    fill: t.scrollbar_track,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
+            // Arrow icons
+            let cx = sb.track_x + sb.track_w * 0.5;
+            let arrow_size = (sb.track_w * 0.45).max(3.0);
+
+            // Up arrow ▲
+            let mid_up = sb.up_btn_y + sb.arrow_h * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [cx, mid_up - arrow_size * 0.45],
+                    [cx + arrow_size, mid_up + arrow_size * 1.0],
+                    [cx - arrow_size, mid_up + arrow_size * 1.0],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Down arrow ▼
+            let mid_dn = sb.down_btn_y + sb.arrow_h * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [cx, mid_dn + arrow_size * 0.45],
+                    [cx + arrow_size, mid_dn - arrow_size * 1.0],
+                    [cx - arrow_size, mid_dn - arrow_size * 1.0],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Track
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: sb.track_x,
+                y: sb.track_y,
+                width: sb.track_w,
+                height: sb.track_h,
+                fill: t.scrollbar_track,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+
+            // Thumb (inset 2px on each side)
+            const INSET: f64 = 2.0;
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: sb.track_x + INSET,
+                y: sb.thumb_y + INSET,
+                width: (sb.track_w - INSET * 2.0).max(2.0),
+                height: (sb.thumb_h - INSET * 2.0).max(4.0),
+                fill: t.scrollbar_thumb,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: t.scrollbar_radius,
+            }));
+        }
+
+        // ── horizontal scrollbar ─────────────────────────────────────────────
+        // Reserve space for the vertical scrollbar width if it is visible.
+        let vsb_w = if vsb.is_some() { t.scrollbar_width } else { 0.0 };
+
+        if let Some(hsb) = HScrollbarGeom::compute(
+            vp.scroll_x,
+            vp.width,
+            vp.height,
+            rnw,
+            model.total_width(),
+            vsb_w,
+            t.scrollbar_width,
+        ) {
+            // Arrow button backgrounds
+            for btn_x in [hsb.left_btn_x, hsb.right_btn_x] {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: btn_x,
+                    y: hsb.track_y,
+                    width: hsb.arrow_w,
+                    height: hsb.track_h,
+                    fill: t.scrollbar_track,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
+
+            // Arrow icons
+            let cy = hsb.track_y + hsb.track_h * 0.5;
+            let arrow_size = (hsb.track_h * 0.45).max(3.0);
+
+            // Left arrow ◀
+            let mid_left = hsb.left_btn_x + hsb.arrow_w * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [mid_left - arrow_size * 0.45, cy],
+                    [mid_left + arrow_size * 1.0, cy - arrow_size],
+                    [mid_left + arrow_size * 1.0, cy + arrow_size],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Right arrow ▶
+            let mid_right = hsb.right_btn_x + hsb.arrow_w * 0.5;
+            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                points: vec![
+                    [mid_right + arrow_size * 0.45, cy],
+                    [mid_right - arrow_size * 1.0, cy - arrow_size],
+                    [mid_right - arrow_size * 1.0, cy + arrow_size],
+                ],
+                fill: t.scrollbar_thumb,
+                corner_radius: arrow_size * 0.25,
+            }));
+
+            // Track
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: hsb.track_x,
+                y: hsb.track_y,
+                width: hsb.track_w,
+                height: hsb.track_h,
+                fill: t.scrollbar_track,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+
+            // Thumb (inset 2px on each side)
+            const INSET: f64 = 2.0;
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: hsb.thumb_x + INSET,
+                y: hsb.track_y + INSET,
+                width: (hsb.thumb_w - INSET * 2.0).max(4.0),
+                height: (hsb.track_h - INSET * 2.0).max(2.0),
+                fill: t.scrollbar_thumb,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: t.scrollbar_radius,
+            }));
+        }
+    }
+
+    /// Emit selection fill, search highlight, and cell content
+    /// (text, image, or skeleton) for a single cell.
+    ///
+    /// Shared by the scrollable-column and pinned-column render
+    /// loops to avoid duplicating ~150 lines of logic.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_cell(
+        frame: &mut SceneFrame,
+        col: &ColumnDef,
+        ri: u64,
+        ci: usize,
+        cx: f64,
+        ry: f64,
+        mid_y: f64,
+        row_height: f64,
+        cell_status: CellStatus,
+        sel: &SelectionState,
+        search_set: &HashSet<(u64, usize)>,
+        search_current: Option<(u64, usize)>,
+        t: &Theme,
+    ) {
+        // Selection fill (no border — outer border drawn below)
+        if sel.is_selected(ri, ci) {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill: t.selection_fill,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+        }
+
+        // Search highlight
+        if search_set.contains(&(ri, ci)) {
+            let fill = if search_current == Some((ri, ci)) {
+                t.search_current
+            } else {
+                t.search_highlight
+            };
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+            }));
+        }
+
+        // Cell text, image, or skeleton
+        match cell_status {
+            CellStatus::Ready(raw) if !raw.is_empty() => {
+                if let Some(CellFormat::Image {
+                    base_url,
+                    border_radius,
+                    padding,
+                }) = &col.format
+                {
+                    let url = match base_url {
+                        Some(base) => format!("{base}{raw}"),
+                        None => raw,
+                    };
+                    let pad = *padding;
+                    frame.push(ScenePrimitive::Image(ImagePrimitive {
+                        url,
+                        x: cx + pad,
+                        y: ry + pad,
+                        width: col.width - pad * 2.0,
+                        height: row_height - pad * 2.0,
+                        corner_radius: *border_radius,
+                        clip: Some([cx, ry, col.width, row_height]),
+                    }));
+                } else if let Some(CellFormat::ImageText {
+                    base_url,
+                    suffix,
+                    image_size,
+                    border_radius,
+                    gap,
+                }) = &col.format
+                {
+                    Self::emit_image_text(
+                        frame,
+                        &raw,
+                        cx,
+                        ry,
+                        col.width,
+                        row_height,
+                        mid_y,
+                        t,
+                        base_url,
+                        suffix,
+                        *image_size,
+                        *border_radius,
+                        *gap,
+                    );
+                } else {
+                    let (txt, align, bold, color) =
+                        if let Some(fmt) = &col.format {
+                            let fc = format_cell(&raw, fmt);
+                            let a = match fc.align.unwrap_or_default() {
+                                CellAlign::Left => TextAlign::Left,
+                                CellAlign::Right => TextAlign::Right,
+                                CellAlign::Center => TextAlign::Center,
+                            };
+                            let c = fc
+                                .color
+                                .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
+                                .unwrap_or(t.cell_text);
+                            (fc.text, a, fc.bold, c)
+                        } else {
+                            (raw, TextAlign::Left, false, t.cell_text)
+                        };
+                    let x = match align {
+                        TextAlign::Right => cx + col.width - t.cell_padding,
+                        TextAlign::Center => cx + col.width / 2.0,
+                        TextAlign::Left => cx + t.cell_padding,
+                    };
+                    frame.push(ScenePrimitive::Text(TextPrimitive {
+                        x,
+                        y: mid_y,
+                        text: txt,
+                        color,
+                        font_size: t.font_size,
+                        bold,
+                        clip: Some([cx, ry, col.width, row_height]),
+                        align,
+                    }));
+                }
+            }
+            CellStatus::Loading => {
+                let bar_w = col.width * 0.6;
+                let bar_h = t.font_size * 0.5;
+                let bar_x = cx + t.cell_padding;
+                let bar_y = ry + (row_height - bar_h) / 2.0;
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: bar_x,
+                    y: bar_y,
+                    width: bar_w,
+                    height: bar_h,
+                    fill: t.skeleton_fg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: bar_h / 2.0,
+                }));
+            }
+            _ => {}
+        }
     }
 
     /// Emit an image + text pair for `CellFormat::ImageText`.

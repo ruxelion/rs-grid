@@ -583,6 +583,7 @@ impl GridCanvas {
     }
 
     /// Show a text `<input>` editor (default).
+    #[allow(clippy::too_many_arguments)]
     fn show_text_editor(
         &self,
         row: u64,
