@@ -35,7 +35,10 @@
       "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check --workspace)",
       "Bash(cargo doc:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-core)"
     ]
   }
 }
