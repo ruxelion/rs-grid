@@ -145,10 +145,8 @@ impl SceneBuilder {
         // ry of row_start in viewport coords:
         let ry_base = (hh - sy).max(0.0) - frac;
 
-        let row_vy = |ri: u64| -> f64 {
-            ry_base
-                + (ri as f64 - row_start as f64) * rh
-        };
+        let row_vy =
+            |ri: u64| -> f64 { ry_base + (ri as f64 - row_start as f64) * rh };
 
         // Helper: viewport x of the left edge of column `ci`.
         // Pinned columns are not shifted by scroll_x.
@@ -288,11 +286,18 @@ impl SceneBuilder {
                         }) = &col.format
                         {
                             Self::emit_image_text(
-                                &mut frame, &raw, cx, ry,
+                                &mut frame,
+                                &raw,
+                                cx,
+                                ry,
                                 col.width,
                                 model.row_height,
-                                mid_y, t, base_url, suffix,
-                                *image_size, *border_radius,
+                                mid_y,
+                                t,
+                                base_url,
+                                suffix,
+                                *image_size,
+                                *border_radius,
                                 *gap,
                             );
                         } else {
@@ -473,8 +478,7 @@ impl SceneBuilder {
                                         x: cx + pad,
                                         y: ry + pad,
                                         width: col.width - pad * 2.0,
-                                        height: model.row_height
-                                            - pad * 2.0,
+                                        height: model.row_height - pad * 2.0,
                                         corner_radius: *border_radius,
                                         clip: Some([
                                             cx,
@@ -484,36 +488,38 @@ impl SceneBuilder {
                                         ]),
                                     },
                                 ));
-                            } else if let Some(
-                                CellFormat::ImageText {
-                                    base_url,
-                                    suffix,
-                                    image_size,
-                                    border_radius,
-                                    gap,
-                                },
-                            ) = &col.format
+                            } else if let Some(CellFormat::ImageText {
+                                base_url,
+                                suffix,
+                                image_size,
+                                border_radius,
+                                gap,
+                            }) = &col.format
                             {
                                 Self::emit_image_text(
-                                    &mut frame, &raw, cx, ry,
+                                    &mut frame,
+                                    &raw,
+                                    cx,
+                                    ry,
                                     col.width,
                                     model.row_height,
-                                    mid_y, t, base_url,
-                                    suffix, *image_size,
-                                    *border_radius, *gap,
+                                    mid_y,
+                                    t,
+                                    base_url,
+                                    suffix,
+                                    *image_size,
+                                    *border_radius,
+                                    *gap,
                                 );
                             } else {
                                 let (txt, align, bold, color) =
                                     if let Some(fmt) = &col.format {
-                                        let fc =
-                                            format_cell(&raw, fmt);
+                                        let fc = format_cell(&raw, fmt);
                                         let a = match fc
                                             .align
                                             .unwrap_or_default()
                                         {
-                                            CellAlign::Left => {
-                                                TextAlign::Left
-                                            }
+                                            CellAlign::Left => TextAlign::Left,
                                             CellAlign::Right => {
                                                 TextAlign::Right
                                             }
@@ -525,8 +531,7 @@ impl SceneBuilder {
                                             .color
                                             .map(|c| {
                                                 Color::rgba(
-                                                    c[0], c[1], c[2],
-                                                    c[3],
+                                                    c[0], c[1], c[2], c[3],
                                                 )
                                             })
                                             .unwrap_or(t.cell_text);
@@ -541,15 +546,10 @@ impl SceneBuilder {
                                     };
                                 let x = match align {
                                     TextAlign::Right => {
-                                        cx + col.width
-                                            - t.cell_padding
+                                        cx + col.width - t.cell_padding
                                     }
-                                    TextAlign::Center => {
-                                        cx + col.width / 2.0
-                                    }
-                                    TextAlign::Left => {
-                                        cx + t.cell_padding
-                                    }
+                                    TextAlign::Center => cx + col.width / 2.0,
+                                    TextAlign::Left => cx + t.cell_padding,
                                 };
                                 frame.push(ScenePrimitive::Text(
                                     TextPrimitive {
@@ -1119,54 +1119,36 @@ impl SceneBuilder {
         border_radius: f64,
         gap: f64,
     ) {
-        let (key, label) = raw
-            .split_once(' ')
-            .unwrap_or((raw, ""));
+        let (key, label) = raw.split_once(' ').unwrap_or((raw, ""));
 
         // Image — vertically centered in the cell.
-        let img_pad =
-            (row_height - image_size) / 2.0;
+        let img_pad = (row_height - image_size) / 2.0;
         let img_x = cx + t.cell_padding;
         let img_y = ry + img_pad;
-        let url =
-            format!("{base_url}{key}{suffix}");
-        frame.push(ScenePrimitive::Image(
-            ImagePrimitive {
-                url,
-                x: img_x,
-                y: img_y,
-                width: image_size,
-                height: image_size,
-                corner_radius: border_radius,
-                clip: Some([
-                    cx,
-                    ry,
-                    col_width,
-                    row_height,
-                ]),
-            },
-        ));
+        let url = format!("{base_url}{key}{suffix}");
+        frame.push(ScenePrimitive::Image(ImagePrimitive {
+            url,
+            x: img_x,
+            y: img_y,
+            width: image_size,
+            height: image_size,
+            corner_radius: border_radius,
+            clip: Some([cx, ry, col_width, row_height]),
+        }));
 
         // Text — offset after the image.
         if !label.is_empty() {
             let text_x = img_x + image_size + gap;
-            frame.push(ScenePrimitive::Text(
-                TextPrimitive {
-                    x: text_x,
-                    y: mid_y,
-                    text: label.to_owned(),
-                    color: t.cell_text,
-                    font_size: t.font_size,
-                    bold: false,
-                    clip: Some([
-                        cx,
-                        ry,
-                        col_width,
-                        row_height,
-                    ]),
-                    align: TextAlign::Left,
-                },
-            ));
+            frame.push(ScenePrimitive::Text(TextPrimitive {
+                x: text_x,
+                y: mid_y,
+                text: label.to_owned(),
+                color: t.cell_text,
+                font_size: t.font_size,
+                bold: false,
+                clip: Some([cx, ry, col_width, row_height]),
+                align: TextAlign::Left,
+            }));
         }
     }
 }

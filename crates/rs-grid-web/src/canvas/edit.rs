@@ -75,9 +75,7 @@ impl GridCanvas {
                 .edit
                 .as_ref()
                 .and_then(|e| {
-                    state.model.columns.iter().find(
-                        |c| c.key == e.col_key,
-                    )
+                    state.model.columns.iter().find(|c| c.key == e.col_key)
                 })
                 .map(|c| {
                     c.format
@@ -130,8 +128,7 @@ impl GridCanvas {
                 Closure::<dyn FnMut(_)>::new(
                     move |evt: KeyboardEvent| match evt.key().as_str() {
                         "Enter" => {
-                            let val =
-                                format!("{}{}", pfx, inp.value());
+                            let val = format!("{}{}", pfx, inp.value());
                             gc.dispatch(GridCommand::CommitEdit {
                                 row: r,
                                 col_key: ck.clone(),
@@ -152,10 +149,7 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         // Blur → commit
@@ -168,8 +162,7 @@ impl GridCanvas {
             let cb =
                 Closure::<dyn FnMut(_)>::new(move |_: web_sys::FocusEvent| {
                     if gc.0.state.borrow().edit.is_some() {
-                        let val =
-                            format!("{}{}", pfx, inp.value());
+                        let val = format!("{}{}", pfx, inp.value());
                         gc.dispatch(GridCommand::CommitEdit {
                             row: r,
                             col_key: ck.clone(),
@@ -184,10 +177,7 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            self.0
-                .edit_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
         *self.0.edit_input.borrow_mut() = Some(input);
@@ -196,9 +186,7 @@ impl GridCanvas {
     /// Remove the inline edit input from the DOM and
     /// drop its closures.
     pub(super) fn remove_edit_input(&self) {
-        if let Some(input) =
-            self.0.edit_input.borrow_mut().take()
-        {
+        if let Some(input) = self.0.edit_input.borrow_mut().take() {
             input.remove();
         }
         self.0.edit_closures.borrow_mut().clear();

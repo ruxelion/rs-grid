@@ -27,7 +27,15 @@
       "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-core/src --include=\"*.rs\")",
       "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-scene/src --include=\"*.rs\")",
       "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-*/src/*.rs)",
-      "Bash(node screenshot.mjs)"
+      "Bash(node screenshot.mjs)",
+      "Bash(mkdir -p ~/.claude/plugins/local/rust-doc/.claude-plugin)",
+      "Bash(mkdir -p ~/.claude/plugins/local/rust-doc/skills/rust-doc)",
+      "Bash(cat /c/Users/Admin/.claude/plugins/local/rust-doc/skills/*.md)",
+      "Bash(git checkout:*)",
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check --workspace)",
+      "Bash(cargo doc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

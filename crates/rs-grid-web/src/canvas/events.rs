@@ -716,8 +716,7 @@ impl GridCanvas {
             move |evt: web_sys::ClipboardEvent| {
                 // Always handle pending clipboard (context-menu
                 // copy via execCommand). Otherwise require focus.
-                let has_pending =
-                    gc.0.pending_clipboard.borrow().is_some();
+                let has_pending = gc.0.pending_clipboard.borrow().is_some();
                 if !has_pending && !gc.has_focus() {
                     return;
                 }
@@ -740,8 +739,7 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(
             move |evt: web_sys::ClipboardEvent| {
-                let has_pending =
-                    gc.0.pending_clipboard.borrow().is_some();
+                let has_pending = gc.0.pending_clipboard.borrow().is_some();
                 if !has_pending && !gc.has_focus() {
                     return;
                 }

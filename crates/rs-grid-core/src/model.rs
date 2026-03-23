@@ -81,8 +81,7 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
-        let row_number_width =
-            Self::compute_row_number_width(data.row_count());
+        let row_number_width = Self::compute_row_number_width(data.row_count());
         Self {
             columns,
             data,

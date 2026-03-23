@@ -55,98 +55,72 @@ fn build_model(row_count: u64, col_count: usize) -> GridModel {
         base.into_iter().take(col_count.min(7)).collect();
 
     let extras_needed = col_count.saturating_sub(7);
-    for col in fake_data::EXTRA_COLUMNS
-        .iter()
-        .take(extras_needed)
-    {
-        let mut c =
-            ColumnDef::new(col.key, col.label, col.width);
+    for col in fake_data::EXTRA_COLUMNS.iter().take(extras_needed) {
+        let mut c = ColumnDef::new(col.key, col.label, col.width);
         c.format = match col.format_hint {
             fake_data::FormatHint::Text => None,
-            fake_data::FormatHint::Integer => {
-                Some(CellFormat::Number {
-                    decimal_places: 0,
-                    thousands_sep: Some(' '),
-                    decimal_sep: '.',
-                })
-            }
-            fake_data::FormatHint::Currency => {
-                Some(CellFormat::Currency {
-                    symbol: "$".into(),
-                    decimal_places: 0,
-                    thousands_sep: Some(','),
-                    symbol_after: false,
-                })
-            }
+            fake_data::FormatHint::Integer => Some(CellFormat::Number {
+                decimal_places: 0,
+                thousands_sep: Some(' '),
+                decimal_sep: '.',
+            }),
+            fake_data::FormatHint::Currency => Some(CellFormat::Currency {
+                symbol: "$".into(),
+                decimal_places: 0,
+                thousands_sep: Some(','),
+                symbol_after: false,
+            }),
             fake_data::FormatHint::Percent => {
-                Some(CellFormat::Percent {
-                    decimal_places: 0,
-                })
+                Some(CellFormat::Percent { decimal_places: 0 })
             }
-            fake_data::FormatHint::Boolean => {
-                Some(CellFormat::Boolean {
-                    true_label: "\u{2713}".into(),
-                    false_label: "\u{2717}".into(),
-                })
-            }
-            fake_data::FormatHint::ImageText => {
-                Some(CellFormat::ImageText {
-                    base_url: String::new(),
-                    suffix: String::new(),
-                    image_size: 20.0,
-                    border_radius: 2.0,
-                    gap: 6.0,
-                })
-            }
+            fake_data::FormatHint::Boolean => Some(CellFormat::Boolean {
+                true_label: "\u{2713}".into(),
+                false_label: "\u{2717}".into(),
+            }),
+            fake_data::FormatHint::ImageText => Some(CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 20.0,
+                border_radius: 2.0,
+                gap: 6.0,
+            }),
         };
         columns.push(c);
     }
 
     // Dynamic columns beyond the 92 hand-crafted extras
-    let dynamic_needed =
-        col_count.saturating_sub(7 + fake_data::EXTRA_COUNT);
+    let dynamic_needed = col_count.saturating_sub(7 + fake_data::EXTRA_COUNT);
     for i in 0..dynamic_needed {
-        let (key, label, width, hint) =
-            fake_data::dynamic_col_def(i);
+        let (key, label, width, hint) = fake_data::dynamic_col_def(i);
         let mut c = ColumnDef::new(&key, &label, width);
         c.format = match hint {
-            fake_data::FormatHint::Integer => {
-                Some(CellFormat::Number {
-                    decimal_places: 0,
-                    thousands_sep: Some(' '),
-                    decimal_sep: '.',
-                })
-            }
-            fake_data::FormatHint::Currency => {
-                Some(CellFormat::Currency {
-                    symbol: "$".into(),
-                    decimal_places: 0,
-                    thousands_sep: Some(','),
-                    symbol_after: false,
-                })
-            }
+            fake_data::FormatHint::Integer => Some(CellFormat::Number {
+                decimal_places: 0,
+                thousands_sep: Some(' '),
+                decimal_sep: '.',
+            }),
+            fake_data::FormatHint::Currency => Some(CellFormat::Currency {
+                symbol: "$".into(),
+                decimal_places: 0,
+                thousands_sep: Some(','),
+                symbol_after: false,
+            }),
             fake_data::FormatHint::Percent => {
-                Some(CellFormat::Percent {
-                    decimal_places: 0,
-                })
+                Some(CellFormat::Percent { decimal_places: 0 })
             }
-            fake_data::FormatHint::Boolean => {
-                Some(CellFormat::Boolean {
-                    true_label: "\u{2713}".into(),
-                    false_label: "\u{2717}".into(),
-                })
-            }
+            fake_data::FormatHint::Boolean => Some(CellFormat::Boolean {
+                true_label: "\u{2713}".into(),
+                false_label: "\u{2717}".into(),
+            }),
             _ => None,
         };
         columns.push(c);
     }
 
-    let source = FnDataSource::new(
-        row_count,
-        move |row: u64, col_key: &str| {
+    let source =
+        FnDataSource::new(row_count, move |row: u64, col_key: &str| {
             fake_data::fake_cell(row, col_key)
-        },
-    );
+        });
 
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
 }

@@ -62,10 +62,7 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            self.0
-                .search_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
         // Keydown → Enter=next, Shift+Enter=prev, Escape=close
@@ -95,10 +92,7 @@ impl GridCanvas {
                     cb.as_ref().unchecked_ref(),
                 )
                 .unwrap();
-            self.0
-                .search_closures
-                .borrow_mut()
-                .push(Box::new(cb));
+            self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
         *self.0.search_input.borrow_mut() = Some(input);
@@ -107,9 +101,7 @@ impl GridCanvas {
     /// Remove the search bar from the DOM and drop its
     /// closures.
     pub(super) fn remove_search_input(&self) {
-        if let Some(input) =
-            self.0.search_input.borrow_mut().take()
-        {
+        if let Some(input) = self.0.search_input.borrow_mut().take() {
             input.remove();
         }
         self.0.search_closures.borrow_mut().clear();
