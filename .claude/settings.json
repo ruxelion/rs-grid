@@ -22,7 +22,13 @@
       "WebFetch(domain:financeflow-colorlib.pages.dev)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "WebFetch(domain:mintlify.com)",
+      "Edit(/.claude/skills/mintlify/**)",
+      "mcp__mintlify__search_mintlify"
+    ],
+    "additionalDirectories": [
+      "d:\\Dev\\rs-grid\\.claude\\skills\\mintlify"
     ]
   }
 }
