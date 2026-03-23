@@ -296,10 +296,13 @@ impl GridState {
             }
             GridCommand::PasteAt { text } => {
                 let sel_range = self.selection.range();
-                let origin = self
-                    .selection
-                    .anchor
-                    .clone()
+                // Use the top-left of the normalized selection so
+                // that paste always starts at the visual top-left,
+                // regardless of selection direction.
+                let origin = sel_range
+                    .as_ref()
+                    .map(|(tl, _)| tl.clone())
+                    .or_else(|| self.selection.anchor.clone())
                     .or_else(|| self.selection.focus.clone());
                 if let Some(orig) = origin {
                     let clip = crate::selection::parse_tsv(&text);
@@ -853,6 +856,30 @@ mod tests {
         });
         assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
         assert_eq!(s.model.get_cell(1, "b"), Some("Y".into()));
+    }
+
+    #[test]
+    fn paste_with_upward_selection() {
+        let mut s = make_state();
+        // Select row 3, then extend upward to row 1 (anchor=3, focus=1).
+        s.apply(GridCommand::SelectCell(CellCoord {
+            row: 3,
+            col: 0,
+        }));
+        s.apply(GridCommand::ExtendSelection(CellCoord {
+            row: 1,
+            col: 0,
+        }));
+        // Paste should fill rows 1..=3 (top-left of selection),
+        // NOT rows 3..=5 (anchor).
+        s.apply(GridCommand::PasteAt {
+            text: "X\nY\nZ\n".into(),
+        });
+        assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
+        assert_eq!(s.model.get_cell(2, "a"), Some("Y".into()));
+        assert_eq!(s.model.get_cell(3, "a"), Some("Z".into()));
+        // Row 0 untouched
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
     }
 
     // ── SetColumnFilter ──────────────────────────────────────────────────────
