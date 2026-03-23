@@ -55,3 +55,19 @@
   - Added `///` to `SceneFrame` fields/methods
   - Added `///` to `SceneBuilder` field/constructors
 - **Validation**: pass
+
+## 2026-03-23T00:04:00Z
+
+- **Area**: `rs_grid_render_canvas`, `rs_grid_web`, `rs_grid_leptos`, `examples/basic-leptos`
+- **Items documented**: 29
+- **Coverage**: 6 undocumented public items remaining (was 35)
+  - 2 build scripts (`build.rs`) — skipped per workflow rules
+  - 4 Leptos `#[component]` macro-generated items — cannot be documented directly
+- **Summary**:
+  - Added `//!` crate docs to `rs_grid_render_canvas`, `rs_grid_web`, `examples/basic-leptos`
+  - Added `///` to `CanvasRenderer::new()`, `pub mod renderer`
+  - Added `///` to all 6 `BuiltinAction` variants, `ContextMenuItem::action` field
+  - Added `///` to 7 `ContextMenuItem` convenience constructors
+  - Added `///` to `PageFetchResponse`, `PageFetchRequest`, `FetchConfig` fields
+  - Added `///` to `examples/basic-leptos::main()`
+- **Validation**: pass
