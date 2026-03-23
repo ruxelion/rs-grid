@@ -137,10 +137,10 @@ fn make_menu_item(
         ],
     );
     sc_el.set_text_content(Some(shortcut));
-    row.append_child(&icon_el).unwrap();
-    row.append_child(&label_el).unwrap();
-    row.append_child(&sc_el).unwrap();
-    item.append_child(&row).unwrap();
+    row.append_child(&icon_el).expect("append icon");
+    row.append_child(&label_el).expect("append label");
+    row.append_child(&sc_el).expect("append shortcut");
+    item.append_child(&row).expect("append row");
 
     let (color, cursor) = if enabled {
         (colors.text.as_str(), "pointer")
@@ -155,24 +155,27 @@ fn make_menu_item(
             item_over
                 .style()
                 .set_property("background", &hover)
-                .unwrap();
+                .expect("set hover bg");
         });
         item.add_event_listener_with_callback(
             "mouseover",
             cb_over.as_ref().unchecked_ref(),
         )
-        .unwrap();
+        .expect("add mouseover listener");
         cb_over.forget();
 
         let item_out = item.clone();
         let cb_out = Closure::<dyn FnMut(_)>::new(move |_: MouseEvent| {
-            item_out.style().set_property("background", "").unwrap();
+            item_out
+                .style()
+                .set_property("background", "")
+                .expect("clear hover bg");
         });
         item.add_event_listener_with_callback(
             "mouseout",
             cb_out.as_ref().unchecked_ref(),
         )
-        .unwrap();
+        .expect("add mouseout listener");
         cb_out.forget();
     }
     item
@@ -220,6 +223,22 @@ fn builtin_shortcut(action: BuiltinAction) -> &'static str {
 }
 
 // ── menu container ──────────────────────────────────────
+//
+// All closures below use `Closure::forget()` rather than
+// storing in `GridCanvas`'s closure Vec.  This is
+// intentional: the context menu is a self-contained DOM
+// subtree rooted at `#rs-grid-ctx-backdrop`.
+// `remove_ctx_menu()` removes that root element; JS GC then
+// releases the element, its children, and all attached event
+// listeners — including the forgotten closures.
+//
+// The alternative (explicit `removeEventListener` before
+// dropping) would require threading a `Vec<Closure>` through
+// every helper and calling it from `remove_ctx_menu()`.  The
+// complexity gain is not justified: each closure captures only
+// lightweight DOM handles or a ref-counted `GridCanvas` clone,
+// and the menu lifetime is bounded by the user's single
+// right-click gesture.
 
 fn create_menu_shell(
     x: i32,
@@ -244,7 +263,8 @@ fn create_menu_shell(
                 "click",
                 cb.as_ref().unchecked_ref(),
             )
-            .unwrap();
+            .expect("add backdrop click listener");
+        // Intentional forget — see module comment above.
         cb.forget();
     }
     {
@@ -257,7 +277,7 @@ fn create_menu_shell(
                 "contextmenu",
                 cb.as_ref().unchecked_ref(),
             )
-            .unwrap();
+            .expect("add backdrop contextmenu listener");
         cb.forget();
     }
 
@@ -282,8 +302,8 @@ fn create_menu_shell(
         ],
     );
 
-    body.append_child(&backdrop).unwrap();
-    body.append_child(&menu).unwrap();
+    body.append_child(&backdrop).expect("append backdrop");
+    body.append_child(&menu).expect("append menu");
 
     (backdrop, menu)
 }
@@ -331,7 +351,7 @@ impl GridCanvas {
         self.0
             .canvas
             .add_event_listener_with_callback("contextmenu", &f)
-            .unwrap();
+            .expect("add contextmenu listener");
         self.0
             .canvas_listeners
             .borrow_mut()
@@ -370,7 +390,7 @@ impl GridCanvas {
             match item_cfg {
                 ContextMenuItem::Separator => {
                     menu.append_child(&make_menu_separator(&doc, &colors))
-                        .unwrap();
+                        .expect("append separator");
                 }
                 ContextMenuItem::Builtin {
                     action,
@@ -403,7 +423,7 @@ impl GridCanvas {
 
                     let el = make_menu_item(&doc, ico, lbl, sc, true, &colors);
                     self.wire_builtin(&el, effective_action, col_idx);
-                    menu.append_child(&el).unwrap();
+                    menu.append_child(&el).expect("append menu item");
                 }
             }
         }
@@ -437,7 +457,7 @@ impl GridCanvas {
             match item_cfg {
                 ContextMenuItem::Separator => {
                     menu.append_child(&make_menu_separator(&doc, &colors))
-                        .unwrap();
+                        .expect("append separator");
                 }
                 ContextMenuItem::Builtin {
                     action,
@@ -463,7 +483,7 @@ impl GridCanvas {
                     if enabled {
                         self.wire_builtin(&el, action, 0);
                     }
-                    menu.append_child(&el).unwrap();
+                    menu.append_child(&el).expect("append menu item");
                 }
             }
         }
@@ -518,7 +538,7 @@ impl GridCanvas {
             "click",
             cb.as_ref().unchecked_ref(),
         )
-        .unwrap();
+        .expect("add click listener");
         cb.forget();
     }
 }

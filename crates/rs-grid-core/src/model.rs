@@ -21,9 +21,11 @@ pub enum DataSourceMode {
 }
 
 /// The data model: columns, a virtual data source, and sizing constants.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GridModel {
+    /// Ordered column definitions.
     pub columns: Vec<ColumnDef>,
+    /// Backing row data provider.
     pub data: Box<dyn DataSource>,
     /// Height of every data row in logical pixels.
     pub row_height: f64,
@@ -81,8 +83,7 @@ impl GridModel {
         header_height: f64,
     ) -> Self {
         let column_offsets = ColumnOffsets::compute(&columns);
-        let row_number_width =
-            Self::compute_row_number_width(data.row_count());
+        let row_number_width = Self::compute_row_number_width(data.row_count());
         Self {
             columns,
             data,

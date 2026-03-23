@@ -2,11 +2,17 @@
 /// execute from the context menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinAction {
+    /// Cut the selection to clipboard.
     Cut,
+    /// Copy the selection to clipboard.
     Copy,
+    /// Copy with column header labels.
     CopyWithHeaders,
+    /// Paste from clipboard.
     Paste,
+    /// Pin (freeze) the clicked column.
     PinColumn,
+    /// Unpin the clicked column.
     UnpinColumn,
 }
 
@@ -16,6 +22,7 @@ pub enum ContextMenuItem {
     /// A built-in action with optional label/icon/shortcut
     /// overrides.
     Builtin {
+        /// Which built-in action to trigger.
         action: BuiltinAction,
         /// Override the default label. `None` = built-in default.
         label: Option<String>,
@@ -31,6 +38,7 @@ pub enum ContextMenuItem {
 }
 
 impl ContextMenuItem {
+    /// Create a Cut item with default label/icon/shortcut.
     pub fn cut() -> Self {
         Self::Builtin {
             action: BuiltinAction::Cut,
@@ -40,6 +48,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create a Copy item with default label/icon/shortcut.
     pub fn copy() -> Self {
         Self::Builtin {
             action: BuiltinAction::Copy,
@@ -49,6 +58,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create a Copy With Headers item.
     pub fn copy_with_headers() -> Self {
         Self::Builtin {
             action: BuiltinAction::CopyWithHeaders,
@@ -58,6 +68,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create a Paste item with default label/icon/shortcut.
     pub fn paste() -> Self {
         Self::Builtin {
             action: BuiltinAction::Paste,
@@ -67,6 +78,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create a Pin Column item.
     pub fn pin_column() -> Self {
         Self::Builtin {
             action: BuiltinAction::PinColumn,
@@ -76,6 +88,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create an Unpin Column item.
     pub fn unpin_column() -> Self {
         Self::Builtin {
             action: BuiltinAction::UnpinColumn,
@@ -85,6 +98,7 @@ impl ContextMenuItem {
         }
     }
 
+    /// Create a visual separator line.
     pub fn separator() -> Self {
         Self::Separator
     }

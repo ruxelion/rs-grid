@@ -1,2 +1,5 @@
 target/
 examples/basic-leptos/dist/
+examples/basic-leptos/rs-grid-theme.css
+examples/basic-js/pkg/
+examples/basic-js/rs-grid-theme.css

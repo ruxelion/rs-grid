@@ -3,6 +3,13 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 
 use super::GridCanvas;
 
+/// Discriminates the two track-scroll axes.
+#[derive(Copy, Clone)]
+enum ScrollAxis {
+    Vertical { click_y: f64, going_down: bool },
+    Horizontal { click_x: f64, going_right: bool },
+}
+
 impl GridCanvas {
     // ── arrow-button auto-scroll ─────────────────────────────
 
@@ -10,43 +17,7 @@ impl GridCanvas {
     /// scroll on mousedown, then ~350 ms pause, then repeat
     /// every 60 ms.
     pub(super) fn start_scroll_repeat(&self, dy: f64) {
-        self.stop_scroll_repeat();
-        let gc = self.clone();
-        let win = web_sys::window().expect("no window");
-        let timeout_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                let gc2 = gc.clone();
-                let interval_cb =
-                    Closure::<dyn FnMut()>::new(move || {
-                        gc2.dispatch(GridCommand::ScrollBy {
-                            dx: 0.0,
-                            dy,
-                        });
-                    });
-                let win2 =
-                    web_sys::window().expect("no window");
-                let id = win2
-                    .set_interval_with_callback_and_timeout_and_arguments_0(
-                        interval_cb.as_ref().unchecked_ref(),
-                        60,
-                    )
-                    .expect("setInterval");
-                *gc.0.scroll_interval.borrow_mut() = Some(id);
-                gc.0.scroll_closures
-                    .borrow_mut()
-                    .push(Box::new(interval_cb));
-            });
-        let tid = win
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                timeout_cb.as_ref().unchecked_ref(),
-                350,
-            )
-            .expect("setTimeout");
-        *self.0.scroll_timeout.borrow_mut() = Some(tid);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(timeout_cb));
+        self.start_arrow_repeat(0.0, dy);
     }
 
     pub(super) fn pan_cursor() -> &'static str {
@@ -73,20 +44,15 @@ impl GridCanvas {
     pub(super) fn stop_pan(&self) {
         self.stop_scroll_repeat();
         *self.0.drag.borrow_mut() = None;
-        let _ =
-            self.0.canvas.style().set_property("cursor", "");
+        let _ = self.0.canvas.style().set_property("cursor", "");
     }
 
     pub(super) fn stop_scroll_repeat(&self) {
         let win = web_sys::window().expect("no window");
-        if let Some(id) =
-            self.0.scroll_timeout.borrow_mut().take()
-        {
+        if let Some(id) = self.0.scroll_timeout.borrow_mut().take() {
             win.clear_timeout_with_handle(id);
         }
-        if let Some(id) =
-            self.0.scroll_interval.borrow_mut().take()
-        {
+        if let Some(id) = self.0.scroll_interval.borrow_mut().take() {
             win.clear_interval_with_handle(id);
         }
         // Drop timer closures (breaks Rc cycle).
@@ -101,84 +67,14 @@ impl GridCanvas {
         click_y: f64,
         going_down: bool,
     ) {
-        self.stop_scroll_repeat();
-        let win = web_sys::window().expect("no window");
-
-        // Phase 1: slow mini-easing (few steps, 100 ms).
-        let gc1 = self.clone();
-        let slow_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                gc1.do_track_scroll_step(
-                    click_y,
-                    going_down,
-                );
-            });
-        let slow_id = win
-            .set_interval_with_callback_and_timeout_and_arguments_0(
-                slow_cb.as_ref().unchecked_ref(),
-                100,
-            )
-            .expect("setInterval");
-        *self.0.scroll_interval.borrow_mut() =
-            Some(slow_id);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(slow_cb));
-
-        // Phase 2: after 350 ms, switch to full 60 fps.
-        let gc2 = self.clone();
-        let switch_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                if let Some(id) =
-                    gc2.0.scroll_interval.borrow_mut().take()
-                {
-                    web_sys::window()
-                        .expect("no window")
-                        .clear_interval_with_handle(id);
-                }
-                let gc3 = gc2.clone();
-                let fast_cb =
-                    Closure::<dyn FnMut()>::new(move || {
-                        gc3.do_track_scroll_step(
-                            click_y,
-                            going_down,
-                        );
-                    });
-                let win2 =
-                    web_sys::window().expect("no window");
-                let fast_id = win2
-                    .set_interval_with_callback_and_timeout_and_arguments_0(
-                        fast_cb.as_ref().unchecked_ref(),
-                        16,
-                    )
-                    .expect("setInterval");
-                *gc2.0.scroll_interval.borrow_mut() =
-                    Some(fast_id);
-                gc2.0
-                    .scroll_closures
-                    .borrow_mut()
-                    .push(Box::new(fast_cb));
-            });
-        let tid = win
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                switch_cb.as_ref().unchecked_ref(),
-                350,
-            )
-            .expect("setTimeout");
-        *self.0.scroll_timeout.borrow_mut() = Some(tid);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(switch_cb));
+        self.start_track_repeat(ScrollAxis::Vertical {
+            click_y,
+            going_down,
+        });
     }
 
     /// Single easing step toward `click_y`.
-    fn do_track_scroll_step(
-        &self,
-        click_y: f64,
-        going_down: bool,
-    ) {
+    fn do_track_scroll_step(&self, click_y: f64, going_down: bool) {
         let Some(sb) = self.scrollbar() else {
             self.stop_scroll_repeat();
             return;
@@ -203,11 +99,9 @@ impl GridCanvas {
                 s.model.header_height,
             )
         };
-        let target = sb.track_click_scroll(
-            click_y, total_h, viewport_h, header_h,
-        );
-        let current =
-            self.0.state.borrow().viewport.scroll_y;
+        let target =
+            sb.track_click_scroll(click_y, total_h, viewport_h, header_h);
+        let current = self.0.state.borrow().viewport.scroll_y;
         let remaining = target - current;
 
         if remaining.abs() < 1.0 {
@@ -220,61 +114,18 @@ impl GridCanvas {
         } else {
             (remaining * 0.10).min(-1.0)
         };
-        self.dispatch(GridCommand::ScrollBy {
-            dx: 0.0,
-            dy: step,
-        });
+        self.dispatch(GridCommand::ScrollBy { dx: 0.0, dy: step });
     }
 
     // ── horizontal track scroll ──────────────────────────────
 
     /// Arrow-button auto-repeat for horizontal axis.
     pub(super) fn start_scroll_repeat_x(&self, dx: f64) {
-        self.stop_scroll_repeat();
-        let gc = self.clone();
-        let win = web_sys::window().expect("no window");
-        let timeout_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                let gc2 = gc.clone();
-                let interval_cb =
-                    Closure::<dyn FnMut()>::new(move || {
-                        gc2.dispatch(GridCommand::ScrollBy {
-                            dx,
-                            dy: 0.0,
-                        });
-                    });
-                let win2 =
-                    web_sys::window().expect("no window");
-                let id = win2
-                    .set_interval_with_callback_and_timeout_and_arguments_0(
-                        interval_cb.as_ref().unchecked_ref(),
-                        60,
-                    )
-                    .expect("setInterval");
-                *gc.0.scroll_interval.borrow_mut() = Some(id);
-                gc.0.scroll_closures
-                    .borrow_mut()
-                    .push(Box::new(interval_cb));
-            });
-        let tid = win
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                timeout_cb.as_ref().unchecked_ref(),
-                350,
-            )
-            .expect("setTimeout");
-        *self.0.scroll_timeout.borrow_mut() = Some(tid);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(timeout_cb));
+        self.start_arrow_repeat(dx, 0.0);
     }
 
     /// Single easing step toward `click_x`.
-    fn do_htrack_scroll_step(
-        &self,
-        click_x: f64,
-        going_right: bool,
-    ) {
+    fn do_htrack_scroll_step(&self, click_x: f64, going_right: bool) {
         let Some(sb) = self.hscrollbar() else {
             self.stop_scroll_repeat();
             return;
@@ -293,12 +144,7 @@ impl GridCanvas {
 
         let (total_w, viewport_w, gutter_w, vsb_w) = {
             let s = self.0.state.borrow();
-            let sb_w = self
-                .0
-                .builder
-                .borrow()
-                .theme
-                .scrollbar_width;
+            let sb_w = self.0.builder.borrow().theme.scrollbar_width;
             let vsb_w = if ScrollbarGeom::compute(
                 s.viewport.scroll_y,
                 s.viewport.width,
@@ -320,11 +166,9 @@ impl GridCanvas {
                 vsb_w,
             )
         };
-        let target = sb.track_click_scroll(
-            click_x, total_w, viewport_w, gutter_w, vsb_w,
-        );
-        let current =
-            self.0.state.borrow().viewport.scroll_x;
+        let target = sb
+            .track_click_scroll(click_x, total_w, viewport_w, gutter_w, vsb_w);
+        let current = self.0.state.borrow().viewport.scroll_x;
         let remaining = target - current;
 
         if remaining.abs() < 1.0 {
@@ -337,10 +181,7 @@ impl GridCanvas {
         } else {
             (remaining * 0.10).min(-1.0)
         };
-        self.dispatch(GridCommand::ScrollBy {
-            dx: step,
-            dy: 0.0,
-        });
+        self.dispatch(GridCommand::ScrollBy { dx: step, dy: 0.0 });
     }
 
     /// AG Grid-style three-phase track scroll for
@@ -350,65 +191,108 @@ impl GridCanvas {
         click_x: f64,
         going_right: bool,
     ) {
+        self.start_track_repeat(ScrollAxis::Horizontal {
+            click_x,
+            going_right,
+        });
+    }
+
+    // ── private helpers ──────────────────────────────────────
+
+    /// Shared timeout→interval logic for arrow-button
+    /// auto-repeat: fires the scroll command immediately, then
+    /// pauses 350 ms, then repeats every 60 ms.
+    fn start_arrow_repeat(&self, dx: f64, dy: f64) {
+        self.stop_scroll_repeat();
+        let gc = self.clone();
+        let win = web_sys::window().expect("no window");
+        let timeout_cb = Closure::<dyn FnMut()>::new(move || {
+            let gc2 = gc.clone();
+            let interval_cb = Closure::<dyn FnMut()>::new(move || {
+                gc2.dispatch(GridCommand::ScrollBy { dx, dy });
+            });
+            let win2 = web_sys::window().expect("no window");
+            let id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    interval_cb.as_ref().unchecked_ref(),
+                    60,
+                )
+                .expect("setInterval");
+            *gc.0.scroll_interval.borrow_mut() = Some(id);
+            gc.0.scroll_closures
+                .borrow_mut()
+                .push(Box::new(interval_cb));
+        });
+        let tid = win
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                timeout_cb.as_ref().unchecked_ref(),
+                350,
+            )
+            .expect("setTimeout");
+        *self.0.scroll_timeout.borrow_mut() = Some(tid);
+        self.0
+            .scroll_closures
+            .borrow_mut()
+            .push(Box::new(timeout_cb));
+    }
+
+    /// Shared two-phase easing for track-click auto-scroll:
+    /// slow interval (100 ms) for the first 350 ms, then
+    /// fast interval (16 ms) until the thumb reaches the target.
+    fn start_track_repeat(&self, axis: ScrollAxis) {
         self.stop_scroll_repeat();
         let win = web_sys::window().expect("no window");
 
-        // Phase 1: slow mini-easing at 100 ms.
+        // Phase 1: slow mini-easing (few steps, 100 ms).
         let gc1 = self.clone();
-        let slow_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                gc1.do_htrack_scroll_step(
-                    click_x,
-                    going_right,
-                );
-            });
+        let slow_cb = Closure::<dyn FnMut()>::new(move || match axis {
+            ScrollAxis::Vertical {
+                click_y,
+                going_down,
+            } => gc1.do_track_scroll_step(click_y, going_down),
+            ScrollAxis::Horizontal {
+                click_x,
+                going_right,
+            } => gc1.do_htrack_scroll_step(click_x, going_right),
+        });
         let slow_id = win
             .set_interval_with_callback_and_timeout_and_arguments_0(
                 slow_cb.as_ref().unchecked_ref(),
                 100,
             )
             .expect("setInterval");
-        *self.0.scroll_interval.borrow_mut() =
-            Some(slow_id);
-        self.0
-            .scroll_closures
-            .borrow_mut()
-            .push(Box::new(slow_cb));
+        *self.0.scroll_interval.borrow_mut() = Some(slow_id);
+        self.0.scroll_closures.borrow_mut().push(Box::new(slow_cb));
 
         // Phase 2: after 350 ms, switch to full 60 fps.
         let gc2 = self.clone();
-        let switch_cb =
-            Closure::<dyn FnMut()>::new(move || {
-                if let Some(id) =
-                    gc2.0.scroll_interval.borrow_mut().take()
-                {
-                    web_sys::window()
-                        .expect("no window")
-                        .clear_interval_with_handle(id);
-                }
-                let gc3 = gc2.clone();
-                let fast_cb =
-                    Closure::<dyn FnMut()>::new(move || {
-                        gc3.do_htrack_scroll_step(
-                            click_x,
-                            going_right,
-                        );
-                    });
-                let win2 =
-                    web_sys::window().expect("no window");
-                let fast_id = win2
-                    .set_interval_with_callback_and_timeout_and_arguments_0(
-                        fast_cb.as_ref().unchecked_ref(),
-                        16,
-                    )
-                    .expect("setInterval");
-                *gc2.0.scroll_interval.borrow_mut() =
-                    Some(fast_id);
-                gc2.0
-                    .scroll_closures
-                    .borrow_mut()
-                    .push(Box::new(fast_cb));
+        let switch_cb = Closure::<dyn FnMut()>::new(move || {
+            if let Some(id) = gc2.0.scroll_interval.borrow_mut().take() {
+                web_sys::window()
+                    .expect("no window")
+                    .clear_interval_with_handle(id);
+            }
+            let gc3 = gc2.clone();
+            let fast_cb = Closure::<dyn FnMut()>::new(move || match axis {
+                ScrollAxis::Vertical {
+                    click_y,
+                    going_down,
+                } => gc3.do_track_scroll_step(click_y, going_down),
+                ScrollAxis::Horizontal {
+                    click_x,
+                    going_right,
+                } => gc3.do_htrack_scroll_step(click_x, going_right),
             });
+            let win2 = web_sys::window().expect("no window");
+            let fast_id = win2
+                .set_interval_with_callback_and_timeout_and_arguments_0(
+                    fast_cb.as_ref().unchecked_ref(),
+                    16,
+                )
+                .expect("setInterval");
+            *gc2.0.scroll_interval.borrow_mut() = Some(fast_id);
+            gc2.0.scroll_closures.borrow_mut().push(Box::new(fast_cb));
+        });
         let tid = win
             .set_timeout_with_callback_and_timeout_and_arguments_0(
                 switch_cb.as_ref().unchecked_ref(),

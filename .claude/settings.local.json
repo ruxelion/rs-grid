@@ -27,7 +27,30 @@
       "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-core/src --include=\"*.rs\")",
       "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-scene/src --include=\"*.rs\")",
       "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-*/src/*.rs)",
-      "Bash(node screenshot.mjs)"
+      "Bash(node screenshot.mjs)",
+      "Bash(mkdir -p ~/.claude/plugins/local/rust-doc/.claude-plugin)",
+      "Bash(mkdir -p ~/.claude/plugins/local/rust-doc/skills/rust-doc)",
+      "Bash(cat /c/Users/Admin/.claude/plugins/local/rust-doc/skills/*.md)",
+      "Bash(git checkout:*)",
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check --workspace)",
+      "Bash(cargo doc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-core)",
+      "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-scene)",
+      "WebFetch(domain:m3.material.io)",
+      "Bash(grep -n \"^    pub fn\" /e/Dev/rs-grid/crates/rs-grid-core/src/*.rs)",
+      "Bash(grep -c \"^--$\" done)",
+      "Bash(python3:*)",
+      "Bash(grep -c \"\\\\.unwrap\\(\\)\" /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
+      "Bash(grep -v \":0$\")",
+      "Bash(grep -v \"///\")",
+      "Bash(sed -n '640,645p' examples/example-common/src/fake_data.rs)",
+      "Bash(sed -n '867,875p' examples/example-common/src/fake_data.rs)",
+      "Bash(sed -n '902,906p' examples/example-common/src/fake_data.rs)",
+      "Bash(e:/Dev/rs-grid/docs/RUSTDOC_HISTORY.md:*)"
     ]
   }
 }

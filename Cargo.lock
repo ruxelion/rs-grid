@@ -99,14 +99,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "basic-js"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "example-common",
+ "rs-grid-core",
+ "rs-grid-web",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "basic-leptos"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "example-common",
  "js-sys",
  "leptos",
- "rs-grid-core",
- "rs-grid-icons",
  "rs-grid-leptos",
  "rs-grid-scene",
  "send_wrapper",
@@ -371,6 +382,14 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
+]
+
+[[package]]
+name = "example-common"
+version = "0.1.0"
+dependencies = [
+ "rs-grid-core",
+ "rs-grid-icons",
 ]
 
 [[package]]

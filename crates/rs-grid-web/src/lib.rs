@@ -1,3 +1,6 @@
+//! Browser integration for rs-grid: DOM events, rAF loop,
+//! CSS theme, and clipboard handling.
+
 mod canvas;
 mod css_theme;
 

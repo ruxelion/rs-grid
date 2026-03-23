@@ -1,52 +1,23 @@
 use crate::{
     commands::{CommandOutput, GridCommand},
+    edit::EditCell,
     hit_test,
-    model::{DataSourceMode, GridModel},
+    model::GridModel,
+    search::SearchState,
     selection::{CellCoord, SelectionState},
     sort::{SortDir, SortState},
+    undo::{UndoEntry, UndoHistory},
     viewport::ViewportState,
 };
-
-/// Cell currently being edited inline.
-#[derive(Debug, Clone)]
-pub struct EditCell {
-    pub row: u64,
-    pub col_key: String,
-    pub initial_value: String,
-}
-
-/// A reversible action stored in the undo/redo stack.
-#[derive(Debug, Clone)]
-enum UndoEntry {
-    /// Restore a single cell to its previous value.
-    SetCell {
-        row: u64,
-        col_key: String,
-        old_value: Option<String>,
-    },
-    /// Restore multiple cells (batch paste/cut).
-    SetCells(Vec<(u64, String, Option<String>)>),
-    /// Restore a column width.
-    ResizeColumn { col_idx: usize, old_width: f64 },
-    /// Reverse a column move.
-    MoveColumn { from_idx: usize, to_idx: usize },
-}
-
-/// Active search state.
-#[derive(Debug, Clone, Default)]
-pub struct SearchState {
-    pub query: String,
-    pub matches: Vec<CellCoord>,
-    pub current: usize,
-}
-
-const MAX_UNDO: usize = 100;
 
 /// The complete mutable state of a grid instance.
 #[derive(Debug)]
 pub struct GridState {
+    /// Column definitions, data source, and sizing constants.
     pub model: GridModel,
+    /// Scroll position and canvas dimensions.
     pub viewport: ViewportState,
+    /// Anchor/focus selection and clipboard state.
     pub selection: SelectionState,
     /// Row index currently under the mouse cursor, for hover highlighting.
     pub hovered_row: Option<u64>,
@@ -56,11 +27,28 @@ pub struct GridState {
     pub edit: Option<EditCell>,
     /// Active search (empty query = inactive).
     pub search: SearchState,
-    undo_stack: Vec<UndoEntry>,
-    redo_stack: Vec<UndoEntry>,
+    /// Undo/redo history.
+    history: UndoHistory,
+}
+
+/// Clamp `(x, y)` scroll coordinates to the valid range
+/// for the given model and viewport.
+fn clamp_scroll(
+    x: f64,
+    y: f64,
+    model: &GridModel,
+    vp: &ViewportState,
+) -> (f64, f64) {
+    let rnw = model.row_number_width;
+    let sb = model.scrollbar_size;
+    let max_x = (model.total_width() - (vp.width - rnw - sb)).max(0.0);
+    let max_y = (model.total_height() - vp.height + sb).max(0.0);
+    (x.clamp(0.0, max_x), y.clamp(0.0, max_y))
 }
 
 impl GridState {
+    /// Create a grid state from a model and initial viewport
+    /// dimensions.
     pub fn new(
         model: GridModel,
         viewport_width: f64,
@@ -74,8 +62,7 @@ impl GridState {
             sort: None,
             edit: None,
             search: SearchState::default(),
-            undo_stack: Vec::new(),
-            redo_stack: Vec::new(),
+            history: UndoHistory::default(),
         }
     }
 
@@ -137,34 +124,7 @@ impl GridState {
     }
 
     fn run_search(&mut self, query: &str) {
-        self.search.query = query.to_string();
-        self.search.matches.clear();
-        self.search.current = 0;
-        if query.is_empty() {
-            return;
-        }
-        // Server-side mode: too much data to search locally.
-        if self.model.mode == DataSourceMode::ServerSide {
-            return;
-        }
-        const MAX_MATCHES: usize = 10_000;
-        const MAX_ROWS: u64 = 100_000;
-        let query_lower = query.to_ascii_lowercase();
-        let row_count = self.model.display_row_count().min(MAX_ROWS);
-        let col_count = self.model.columns.len();
-        for r in 0..row_count {
-            for ci in 0..col_count {
-                let key = &self.model.columns[ci].key;
-                if let Some(val) = self.model.get_cell(r, key) {
-                    if val.to_ascii_lowercase().contains(&query_lower) {
-                        self.search.matches.push(CellCoord { row: r, col: ci });
-                        if self.search.matches.len() >= MAX_MATCHES {
-                            return;
-                        }
-                    }
-                }
-            }
-        }
+        self.search = SearchState::run(&self.model, query);
     }
 
     fn scroll_to_search_match(&mut self) {
@@ -198,16 +158,14 @@ impl GridState {
                 }
             }
         }
-        self.viewport.scroll_x = self.viewport.scroll_x.max(0.0);
-        self.viewport.scroll_y = self.viewport.scroll_y.max(0.0);
-    }
-
-    fn push_undo(&mut self, entry: UndoEntry) {
-        if self.undo_stack.len() >= MAX_UNDO {
-            self.undo_stack.remove(0);
-        }
-        self.undo_stack.push(entry);
-        self.redo_stack.clear();
+        let (sx, sy) = clamp_scroll(
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+            &self.model,
+            &self.viewport,
+        );
+        self.viewport.scroll_x = sx;
+        self.viewport.scroll_y = sy;
     }
 
     /// Apply a command, mutating state in place.
@@ -222,33 +180,20 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::ScrollTo { x, y } => {
-                let rnw = self.model.row_number_width;
-                let sb = self.model.scrollbar_size;
-                let max_x = (self.model.total_width()
-                    - (self.viewport.width - rnw))
-                    .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
-                    + sb)
-                    .max(0.0);
-                self.viewport.scroll_x = x.clamp(0.0, max_x);
-                self.viewport.scroll_y = y.clamp(0.0, max_y);
+                let (sx, sy) = clamp_scroll(x, y, &self.model, &self.viewport);
+                self.viewport.scroll_x = sx;
+                self.viewport.scroll_y = sy;
                 CommandOutput::None
             }
             GridCommand::ScrollBy { dx, dy } => {
-                let x = self.viewport.scroll_x + dx;
-                let y = self.viewport.scroll_y + dy;
-                let rnw = self.model.row_number_width;
-                let sb = self.model.scrollbar_size;
-                let max_x = (self.model.total_width()
-                    - (self.viewport.width - rnw))
-                    .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
-                    + sb)
-                    .max(0.0);
-                self.viewport.scroll_x = x.clamp(0.0, max_x);
-                self.viewport.scroll_y = y.clamp(0.0, max_y);
+                let (sx, sy) = clamp_scroll(
+                    self.viewport.scroll_x + dx,
+                    self.viewport.scroll_y + dy,
+                    &self.model,
+                    &self.viewport,
+                );
+                self.viewport.scroll_x = sx;
+                self.viewport.scroll_y = sy;
                 CommandOutput::None
             }
             GridCommand::Resize { width, height } => {
@@ -281,16 +226,19 @@ impl GridState {
                             self.model.set_cell(r, key, String::new());
                         }
                     }
-                    self.push_undo(UndoEntry::SetCells(old_cells));
+                    self.history.push(UndoEntry::SetCells(old_cells));
                 }
                 result
             }
             GridCommand::PasteAt { text } => {
                 let sel_range = self.selection.range();
-                let origin = self
-                    .selection
-                    .anchor
-                    .clone()
+                // Use the top-left of the normalized selection so
+                // that paste always starts at the visual top-left,
+                // regardless of selection direction.
+                let origin = sel_range
+                    .as_ref()
+                    .map(|(tl, _)| tl.clone())
+                    .or_else(|| self.selection.anchor.clone())
                     .or_else(|| self.selection.focus.clone());
                 if let Some(orig) = origin {
                     let clip = crate::selection::parse_tsv(&text);
@@ -338,7 +286,7 @@ impl GridState {
                         }
                     }
                     if !old_cells.is_empty() {
-                        self.push_undo(UndoEntry::SetCells(old_cells));
+                        self.history.push(UndoEntry::SetCells(old_cells));
                     }
                     // Update selection to cover pasted area
                     let last_r =
@@ -459,7 +407,7 @@ impl GridState {
                     let col = self.model.columns.remove(from_idx);
                     self.model.columns.insert(to_idx, col);
                     self.model.rebuild_offsets();
-                    self.push_undo(UndoEntry::MoveColumn {
+                    self.history.push(UndoEntry::MoveColumn {
                         from_idx: to_idx,
                         to_idx: from_idx,
                     });
@@ -489,7 +437,7 @@ impl GridState {
                     let old_value = self.model.get_cell(row, &col_key);
                     self.model.set_cell(row, &col_key, value);
                     self.edit = None;
-                    self.push_undo(UndoEntry::SetCell {
+                    self.history.push(UndoEntry::SetCell {
                         row,
                         col_key,
                         old_value,
@@ -502,16 +450,16 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::Undo => {
-                if let Some(entry) = self.undo_stack.pop() {
+                if let Some(entry) = self.history.pop_undo() {
                     let redo = self.apply_undo_entry(&entry);
-                    self.redo_stack.push(redo);
+                    self.history.push_redo(redo);
                 }
                 CommandOutput::None
             }
             GridCommand::Redo => {
-                if let Some(entry) = self.redo_stack.pop() {
+                if let Some(entry) = self.history.pop_redo() {
                     let undo = self.apply_undo_entry(&entry);
-                    self.undo_stack.push(undo);
+                    self.history.push_undo_keep_redo(undo);
                 }
                 CommandOutput::None
             }
@@ -579,10 +527,8 @@ impl GridState {
                     self.model.columns[col_idx].width =
                         max_w.max(MIN_COL_WIDTH);
                     self.model.rebuild_offsets();
-                    self.push_undo(UndoEntry::ResizeColumn {
-                        col_idx,
-                        old_width,
-                    });
+                    self.history
+                        .push(UndoEntry::ResizeColumn { col_idx, old_width });
                 }
                 CommandOutput::None
             }
@@ -599,6 +545,9 @@ impl GridState {
                     .clone()
                     .or_else(|| self.selection.anchor.clone());
                 if let Some(b) = base {
+                    // Cast to i64 first so negative deltas don't
+                    // underflow the unsigned row/col indices, then
+                    // clamp to valid bounds before casting back.
                     let new_row = (b.row as i64 + delta_row)
                         .clamp(0, row_count.saturating_sub(1) as i64)
                         as u64;
@@ -844,6 +793,24 @@ mod tests {
         });
         assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
         assert_eq!(s.model.get_cell(1, "b"), Some("Y".into()));
+    }
+
+    #[test]
+    fn paste_with_upward_selection() {
+        let mut s = make_state();
+        // Select row 3, then extend upward to row 1 (anchor=3, focus=1).
+        s.apply(GridCommand::SelectCell(CellCoord { row: 3, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 0 }));
+        // Paste should fill rows 1..=3 (top-left of selection),
+        // NOT rows 3..=5 (anchor).
+        s.apply(GridCommand::PasteAt {
+            text: "X\nY\nZ\n".into(),
+        });
+        assert_eq!(s.model.get_cell(1, "a"), Some("X".into()));
+        assert_eq!(s.model.get_cell(2, "a"), Some("Y".into()));
+        assert_eq!(s.model.get_cell(3, "a"), Some("Z".into()));
+        // Row 0 untouched
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
     }
 
     // ── SetColumnFilter ──────────────────────────────────────────────────────

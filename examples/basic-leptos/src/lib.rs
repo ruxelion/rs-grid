@@ -1,155 +1,14 @@
+//! Demo application showcasing rs-grid with Leptos CSR.
+
 use std::{cell::RefCell, rc::Rc};
 
+use example_common::build_model;
 use leptos::prelude::*;
-use rs_grid_core::{
-    column::{CellFormat, ColumnDef},
-    datasource::FnDataSource,
-    model::GridModel,
-};
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, WebGridCanvas};
 use rs_grid_scene::Theme;
 use send_wrapper::SendWrapper;
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::js_sys;
-
-mod fake_data;
-
-fn build_model(row_count: u64, col_count: usize) -> GridModel {
-    let base: Vec<ColumnDef> = vec![
-        ColumnDef::new("name", "Name", 200.0),
-        ColumnDef::new("email", "Email", 260.0),
-        ColumnDef::new("role", "Role", 140.0),
-        ColumnDef::new("dept", "Department", 160.0),
-        {
-            let mut c = ColumnDef::new("salary", "Salary", 120.0);
-            c.format = Some(CellFormat::Currency {
-                symbol: "$".into(),
-                decimal_places: 2,
-                thousands_sep: Some(','),
-                symbol_after: false,
-            });
-            c
-        },
-        {
-            let mut c = ColumnDef::new("active", "Active", 80.0);
-            c.format = Some(CellFormat::Boolean {
-                true_label: "\u{2713}".into(),
-                false_label: "\u{2717}".into(),
-            });
-            c
-        },
-        {
-            let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
-            c.format = Some(CellFormat::Image {
-                base_url: Some(
-                    "https://ui-avatars.com/api/?size=40&name=".into(),
-                ),
-                border_radius: 16.0,
-                padding: 4.0,
-            });
-            c
-        },
-    ];
-
-    let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(7)).collect();
-
-    let extras_needed = col_count.saturating_sub(7);
-    for col in fake_data::EXTRA_COLUMNS
-        .iter()
-        .take(extras_needed)
-    {
-        let mut c =
-            ColumnDef::new(col.key, col.label, col.width);
-        c.format = match col.format_hint {
-            fake_data::FormatHint::Text => None,
-            fake_data::FormatHint::Integer => {
-                Some(CellFormat::Number {
-                    decimal_places: 0,
-                    thousands_sep: Some(' '),
-                    decimal_sep: '.',
-                })
-            }
-            fake_data::FormatHint::Currency => {
-                Some(CellFormat::Currency {
-                    symbol: "$".into(),
-                    decimal_places: 0,
-                    thousands_sep: Some(','),
-                    symbol_after: false,
-                })
-            }
-            fake_data::FormatHint::Percent => {
-                Some(CellFormat::Percent {
-                    decimal_places: 0,
-                })
-            }
-            fake_data::FormatHint::Boolean => {
-                Some(CellFormat::Boolean {
-                    true_label: "\u{2713}".into(),
-                    false_label: "\u{2717}".into(),
-                })
-            }
-            fake_data::FormatHint::ImageText => {
-                Some(CellFormat::ImageText {
-                    base_url: String::new(),
-                    suffix: String::new(),
-                    image_size: 20.0,
-                    border_radius: 2.0,
-                    gap: 6.0,
-                })
-            }
-        };
-        columns.push(c);
-    }
-
-    // Dynamic columns beyond the 92 hand-crafted extras
-    let dynamic_needed =
-        col_count.saturating_sub(7 + fake_data::EXTRA_COUNT);
-    for i in 0..dynamic_needed {
-        let (key, label, width, hint) =
-            fake_data::dynamic_col_def(i);
-        let mut c = ColumnDef::new(&key, &label, width);
-        c.format = match hint {
-            fake_data::FormatHint::Integer => {
-                Some(CellFormat::Number {
-                    decimal_places: 0,
-                    thousands_sep: Some(' '),
-                    decimal_sep: '.',
-                })
-            }
-            fake_data::FormatHint::Currency => {
-                Some(CellFormat::Currency {
-                    symbol: "$".into(),
-                    decimal_places: 0,
-                    thousands_sep: Some(','),
-                    symbol_after: false,
-                })
-            }
-            fake_data::FormatHint::Percent => {
-                Some(CellFormat::Percent {
-                    decimal_places: 0,
-                })
-            }
-            fake_data::FormatHint::Boolean => {
-                Some(CellFormat::Boolean {
-                    true_label: "\u{2713}".into(),
-                    false_label: "\u{2717}".into(),
-                })
-            }
-            _ => None,
-        };
-        columns.push(c);
-    }
-
-    let source = FnDataSource::new(
-        row_count,
-        move |row: u64, col_key: &str| {
-            fake_data::fake_cell(row, col_key)
-        },
-    );
-
-    GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
-}
 
 fn fmt_rows(n: u64) -> &'static str {
     match n {
@@ -183,7 +42,7 @@ const LS_KEY: &str = "rs-grid-patches";
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
-    let dark_mode = RwSignal::new(false);
+    let theme_class = RwSignal::new(String::new());
 
     // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
     // Wrapped in SendWrapper so the Rc can be captured in Leptos closures.
@@ -197,21 +56,17 @@ fn App() -> impl IntoView {
     let gc_for_filter = SendWrapper::new(gc_ref.clone());
 
     let theme_memo = Memo::<Theme>::new(move |_| {
-        let _ = dark_mode.get();
+        let _ = theme_class.get();
         theme_from_css_vars()
     });
 
     Effect::new(move |_| {
-        let dark = dark_mode.get();
+        let cls = theme_class.get();
         if let Some(root) = web_sys::window()
             .and_then(|w| w.document())
             .and_then(|d| d.document_element())
         {
-            if dark {
-                let _ = root.class_list().add_1("dark");
-            } else {
-                let _ = root.class_list().remove_1("dark");
-            }
+            root.set_class_name(&cls);
         }
     });
 
@@ -392,39 +247,21 @@ fn App() -> impl IntoView {
                         />
                     </div>
 
-                    // Dark-mode toggle switch
-                    <label class="theme-toggle" title="Toggle dark mode">
-                        <input
-                            type="checkbox"
-                            class="theme-toggle-input"
-                            prop:checked=move || dark_mode.get()
-                            on:change=move |_| {
-                                let new_dark = !dark_mode.get_untracked();
-                                if let Some(root) = web_sys::window()
-                                    .and_then(|w| w.document())
-                                    .and_then(|d| d.document_element())
-                                {
-                                    if new_dark {
-                                        let _ = root.class_list().add_1("dark");
-                                    } else {
-                                        let _ =
-                                            root.class_list().remove_1("dark");
-                                    }
-                                }
-                                dark_mode.set(new_dark);
+                    // Theme selector
+                    <div class="app-control">
+                        <span class="app-control-label">"Theme"</span>
+                        <select
+                            class="app-control-select"
+                            on:change=move |e| {
+                                theme_class.set(event_target_value(&e));
                             }
-                        />
-                        <span class="theme-toggle-track">
-                            <span class="theme-toggle-thumb"></span>
-                        </span>
-                        <span class="theme-toggle-label">
-                            {move || if dark_mode.get() {
-                                "Light mode"
-                            } else {
-                                "Dark mode"
-                            }}
-                        </span>
-                    </label>
+                        >
+                            <option value="" selected=true>"Light"</option>
+                            <option value="dark">"Dark"</option>
+                            <option value="material">"Material 3"</option>
+                            <option value="material-dark">"Material 3 Dark"</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="app-body">
@@ -477,6 +314,7 @@ fn App() -> impl IntoView {
     }
 }
 
+/// WASM entry point — mount the Leptos app.
 #[wasm_bindgen(start)]
 pub fn main() {
     console_error_panic_hook::set_once();
