@@ -1,8 +1,6 @@
 // Re-export formatting types so existing imports from
 // `rs_grid_core::column` keep working.
-pub use crate::format::{
-    CellAlign, CellFormat, FormattedCell, format_cell,
-};
+pub use crate::format::{format_cell, CellAlign, CellFormat, FormattedCell};
 
 // ── cell editor ────────────────────────────────────────────
 
@@ -28,7 +26,10 @@ pub enum CellEditor {
     /// Plain `<input type="text">`.
     Text,
     /// Dropdown with fixed options.
-    Select { options: Vec<SelectOption> },
+    Select {
+        /// Ordered list of choices shown in the dropdown.
+        options: Vec<SelectOption>,
+    },
 }
 
 // ── column definition ───────────────────────────────────
