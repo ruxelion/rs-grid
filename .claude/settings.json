@@ -25,7 +25,11 @@
       "Bash(claude mcp:*)",
       "WebFetch(domain:mintlify.com)",
       "Edit(/.claude/skills/mintlify/**)",
-      "mcp__mintlify__search_mintlify"
+      "mcp__mintlify__search_mintlify",
+      "Read(//d/Dev/rs-grid/$HOME/**)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''mcpServers'''',{}\\), indent=2\\)\\)\")",
+      "Read(//d/Dev/rs-grid/$APPDATA/Claude/**)",
+      "Read(//d/Dev/rs-grid/$HOME/.claude/projects/*/**)"
     ],
     "additionalDirectories": [
       "d:\\Dev\\rs-grid\\.claude\\skills\\mintlify"

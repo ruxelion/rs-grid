@@ -1,0 +1,81 @@
+---
+title: Theme API
+description: Complete reference for the Theme struct with all fields and defaults.
+---
+
+## Definition
+
+```rust
+pub struct Theme {
+    // Colors
+    pub bg: Color,
+    pub header_bg: Color,
+    pub header_text: Color,
+    pub cell_text: Color,
+    pub grid_line: Color,
+    pub header_border: Color,
+    pub selection_fill: Color,
+    pub selection_border: Color,
+    pub scrollbar_track: Color,
+    pub scrollbar_thumb: Color,
+    pub row_alt_bg: Color,
+    pub row_hover_bg: Color,
+    pub search_highlight: Color,
+    pub search_current: Color,
+    pub skeleton_fg: Color,
+
+    // Typography
+    pub font_size: f64,
+    pub header_font_size: f64,
+    pub header_font_bold: bool,
+
+    // Spacing
+    pub cell_padding: f64,
+    pub scrollbar_width: f64,
+    pub scrollbar_radius: f64,
+}
+```
+
+## All fields
+
+| Field | Type | Light default | Dark default |
+|-------|------|---------------|--------------|
+| `bg` | `Color` | `rgb(255,255,255)` | `rgb(26,27,38)` |
+| `header_bg` | `Color` | `rgb(248,249,250)` | `rgb(36,40,59)` |
+| `header_text` | `Color` | `rgb(24,29,31)` | `rgb(169,177,214)` |
+| `cell_text` | `Color` | `rgb(24,29,31)` | `rgb(192,202,245)` |
+| `grid_line` | `Color` | `rgb(224,224,224)` | `rgb(42,47,69)` |
+| `header_border` | `Color` | `rgb(186,191,199)` | `rgb(61,68,102)` |
+| `selection_fill` | `Color` | `rgba(31,119,220,46)` | `rgba(122,162,255,51)` |
+| `selection_border` | `Color` | `rgba(31,119,220,210)` | `rgba(122,162,255,204)` |
+| `scrollbar_track` | `Color` | `rgb(241,241,241)` | `rgb(31,35,53)` |
+| `scrollbar_thumb` | `Color` | `rgba(100,100,110,160)` | `rgba(169,177,214,102)` |
+| `row_alt_bg` | `Color` | `rgb(252,252,253)` | `rgb(30,32,48)` |
+| `row_hover_bg` | `Color` | `rgba(0,0,0,10)` | `rgba(255,255,255,10)` |
+| `search_highlight` | `Color` | `rgba(255,213,0,80)` | `rgba(255,213,0,80)` |
+| `search_current` | `Color` | `rgba(255,165,0,140)` | `rgba(255,165,0,140)` |
+| `skeleton_fg` | `Color` | `rgba(200,200,200,100)` | `rgba(60,65,90,100)` |
+| `font_size` | `f64` | `14.0` | `14.0` |
+| `header_font_size` | `f64` | `12.0` | `13.0` |
+| `header_font_bold` | `bool` | `true` | `true` |
+| `cell_padding` | `f64` | `10.0` | `10.0` |
+| `scrollbar_width` | `f64` | `14.0` | `14.0` |
+| `scrollbar_radius` | `f64` | `4.0` | `4.0` |
+
+## Constructors
+
+```rust
+Theme::light()   // AG Grid-inspired light palette
+Theme::dark()    // Tokyo Night-inspired dark palette
+Theme::default() // same as light()
+```
+
+## Extending a theme
+
+```rust
+let custom = Theme {
+    bg: Color::rgb(30, 30, 46),
+    cell_text: Color::rgb(205, 214, 244),
+    ..Theme::dark()
+};
+```

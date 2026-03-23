@@ -8,29 +8,42 @@ description: "High-performance Rust/WASM data grid engine for the browser."
 A headless data grid engine built with Rust and compiled to WebAssembly.
 Designed for millions of rows with smooth 60 fps rendering on Canvas2D.
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Getting Started" icon="rocket" href="/getting-started">
     Install rs-grid and render your first grid in minutes.
   </Card>
   <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
     Understand the unidirectional pipeline from state to canvas.
   </Card>
-  <Card title="Leptos Integration" icon="puzzle-piece" href="/integrations/leptos">
-    Drop-in component for Leptos CSR applications.
+  <Card title="Features" icon="table" href="/features/columns">
+    Columns, editing, sorting, filtering, clipboard, and more.
   </Card>
-  <Card title="Docker" icon="docker" href="/deployment/docker">
-    Build and deploy the documentation site with Docker.
+  <Card title="Theming" icon="palette" href="/theming/overview">
+    Customize colors, fonts, and spacing with CSS variables.
+  </Card>
+  <Card title="Data Sources" icon="database" href="/data/overview">
+    In-memory, virtual, or server-side paginated data.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/grid-state">
+    Full reference for GridState, GridCommand, and all types.
   </Card>
 </CardGroup>
 
 ## Key features
 
 - **Viewport virtualization** — only visible cells are rendered, regardless of dataset size
-- **O(log n) hit-testing** — precomputed column offsets for instant cell lookup
-- **Anchor/focus selection** — cell, row, and column selection with shift-extend
-- **Renderer-agnostic** — scene graph of primitives, swap the backend without touching core
-- **Leptos CSR** — ready-to-use `<GridCanvas>` component
-- **CSS theming** — colors read from CSS custom properties at mount time
+- **O(1) hit-testing** — precomputed column offsets and uniform row height
+- **Inline editing** — text input and select dropdown editors with undo/redo
+- **Sorting & filtering** — per-column sort and text filter, client or server-side
+- **Copy/cut/paste** — TSV clipboard with RFC 4180 support
+- **Ctrl+F search** — case-insensitive full-text search with highlights
+- **Column operations** — resize, move, pin, auto-fit
+- **3 data sources** — in-memory, virtual (closure-based), async page cache
+- **4 built-in themes** — light, dark, Material 3, Material 3 Dark
+- **Renderer-agnostic** — scene graph of primitives, swap the backend
+- **Custom scrollbars** — themed, cross-platform consistent
+- **Context menu** — built-in and customizable actions
+- **Leptos & vanilla JS** — use with Leptos CSR or plain JavaScript
 
 ## Architecture at a glance
 
