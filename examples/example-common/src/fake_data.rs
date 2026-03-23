@@ -382,6 +382,7 @@ const STATES_US: &[&str] = &[
     "OH", "AZ", "VA",
 ];
 
+/// Gender labels used to populate the gender select column.
 pub const GENDERS: &[&str] = &["Male", "Female"];
 
 const TEAMS: &[&str] = &[
@@ -569,11 +570,17 @@ const STREETS: &[&str] = &[
 /// How to format the column in the grid.
 #[derive(Clone, Copy)]
 pub enum FormatHint {
+    /// Plain text, no special formatting.
     Text,
+    /// Integer number without decimals.
     Integer,
+    /// Currency value with symbol.
     Currency,
+    /// Percentage value.
     Percent,
+    /// Boolean rendered as a checkmark/cross label.
     Boolean,
+    /// Text prefixed with an inline image (e.g. flag or icon).
     ImageText,
 }
 
@@ -606,9 +613,13 @@ enum Gen {
 
 /// Metadata for one extra column.
 pub struct ExtraColDef {
+    /// Unique column key used to look up cell values.
     pub key: &'static str,
+    /// Human-readable column header label.
     pub label: &'static str,
+    /// Default column width in logical pixels.
     pub width: f64,
+    /// Formatting hint for the column's cell renderer.
     pub format_hint: FormatHint,
     gen: Gen,
 }
