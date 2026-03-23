@@ -1,0 +1,69 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Installation" description="Getting started with rs-grid">
+  <h1>Getting started</h1>
+  <p class="lead">
+    Add rs-grid to a Leptos CSR project in a few steps. You'll need Rust,
+    wasm-pack or Trunk, and a Leptos project.
+  </p>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>Rust toolchain (stable, 2021 edition)</li>
+    <li><a href="https://trunkrs.dev" target="_blank" rel="noopener">Trunk</a> for building and serving</li>
+    <li>The <code>wasm32-unknown-unknown</code> target</li>
+  </ul>
+  <pre><code>rustup target add wasm32-unknown-unknown</code></pre>
+
+  <h2>Add the dependency</h2>
+  <p>
+    Add <code>rs-grid-leptos</code> to your <code>Cargo.toml</code>. While the
+    crate is not yet published to crates.io, reference it by path:
+  </p>
+  <pre><code>[dependencies]
+rs-grid-leptos = &#123; path = "../rs-grid-leptos" &#125;</code></pre>
+
+  <h2>Basic usage</h2>
+  <p>Import the component and mount it inside a Leptos view:</p>
+  <pre><code>use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -&gt; impl IntoView &#123;
+    view! &#123;
+        &lt;GridCanvas
+            rows=1_000_000
+            cols=50
+        /&gt;
+    &#125;
+&#125;</code></pre>
+
+  <h2>Run locally</h2>
+  <p>Start the development server from the example directory:</p>
+  <pre><code>cd examples/basic-leptos
+trunk serve</code></pre>
+  <p>Open <code>http://localhost:8080</code> in your browser.</p>
+
+  <h2>Build for production</h2>
+  <pre><code>cd examples/basic-leptos
+trunk build --release</code></pre>
+  <p>
+    The output goes into <code>dist/</code>. Serve it with any static file
+    server or use the provided Docker image.
+  </p>
+
+  <h2>Workspace commands</h2>
+  <table>
+    <thead>
+      <tr><th>Command</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>cargo check --workspace</code></td><td>Quick type-check of all crates</td></tr>
+      <tr><td><code>cargo test --workspace</code></td><td>Run all unit tests</td></tr>
+      <tr><td><code>cargo fmt --all</code></td><td>Format the entire workspace</td></tr>
+      <tr><td><code>cargo clippy --workspace -- -D warnings</code></td><td>Lint with warnings as errors</td></tr>
+    </tbody>
+  </table>
+</DocsLayout>

@@ -1,0 +1,77 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Overview" description="rs-grid documentation">
+  <h1>rs-grid</h1>
+  <p class="lead">
+    A high-performance, renderer-agnostic data grid engine built with Rust and
+    compiled to WebAssembly. Designed for millions of rows with smooth 60 fps
+    rendering on a Canvas2D surface.
+  </p>
+
+  <h2>What is rs-grid?</h2>
+  <p>
+    rs-grid is a headless data grid engine. It handles all the hard problems —
+    viewport virtualization, hit-testing, selection, scrolling — and delegates
+    rendering to a pluggable backend. The default backend uses the browser's
+    Canvas2D API via <code>wasm-bindgen</code>.
+  </p>
+  <p>
+    The library is split into focused crates so you can depend only on what you
+    need. The core logic has no WASM dependency and can be unit-tested natively
+    with <code>cargo test</code>.
+  </p>
+
+  <h2>Key features</h2>
+  <ul>
+    <li>Viewport virtualization — only visible cells are rendered</li>
+    <li>O(log n) hit-testing via precomputed column offsets</li>
+    <li>Cell, row and column selection with anchor/focus model</li>
+    <li>Renderer-agnostic scene graph (<code>ScenePrimitive</code>)</li>
+    <li>Leptos CSR component out of the box</li>
+    <li>CSS variable theming</li>
+  </ul>
+
+  <h2>Architecture at a glance</h2>
+  <p>Data flows in one direction through the pipeline:</p>
+  <pre><code>GridState → SceneBuilder → SceneFrame → CanvasRenderer → &lt;canvas&gt;</code></pre>
+  <p>
+    All mutations go through <code>GridState::apply(GridCommand)</code>. There
+    are no callbacks or two-way bindings.
+  </p>
+
+  <h2>Workspace crates</h2>
+  <table>
+    <thead>
+      <tr><th>Crate</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>rs-grid-core</code></td>
+        <td>Headless logic — model, viewport, selection, hit-testing. No WASM.</td>
+      </tr>
+      <tr>
+        <td><code>rs-grid-scene</code></td>
+        <td>Converts <code>GridState</code> to renderer-agnostic primitives.</td>
+      </tr>
+      <tr>
+        <td><code>rs-grid-render-canvas</code></td>
+        <td>Canvas2D renderer via wasm-bindgen.</td>
+      </tr>
+      <tr>
+        <td><code>rs-grid-web</code></td>
+        <td>Browser glue — events, DPR, requestAnimationFrame.</td>
+      </tr>
+      <tr>
+        <td><code>rs-grid-leptos</code></td>
+        <td>Leptos CSR component <code>&lt;GridCanvas&gt;</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Dependency direction:</strong> leptos → web → render-canvas → scene → core.
+    Never introduce a reverse dependency.
+  </div>
+</DocsLayout>

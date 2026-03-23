@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="rs-grid documentation — Getting started with the Rust/WASM data grid"><title>Docs — rs-grid</title><style>:root{--bg: #0d1117;--bg-surface: #161b22;--bg-surface-2: #21262d;--border: #30363d;--text: #e6edf3;--text-muted: #8b949e;--accent: #f78166;--accent-2: #79c0ff;--code-bg: #1f2937;--font-sans: system-ui, -apple-system, sans-serif;--font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace}*,*:before,*:after{box-sizing:border-box;margin:0;padding:0}html{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-size:16px;line-height:1.6}body{min-height:100vh;display:flex;flex-direction:column}a{color:var(--accent-2);text-decoration:none}a:hover{text-decoration:underline}code{font-family:var(--font-mono);font-size:.875em;background:var(--code-bg);padding:.125em .375em;border-radius:4px;color:var(--accent)}pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:1.25rem;overflow-x:auto;font-family:var(--font-mono);font-size:.875rem;line-height:1.7}pre code{background:none;padding:0;color:var(--text)}header{border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}nav{max-width:1100px;margin:0 auto;padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between}.logo{font-family:var(--font-mono);font-size:1.1rem;font-weight:600;text-decoration:none}.logo-rs{color:var(--accent)}.logo-grid{color:var(--text)}nav ul{list-style:none;display:flex;gap:2rem}nav ul a{color:var(--text-muted);font-size:.9rem;transition:color .15s}nav ul a:hover,nav ul a.active{color:var(--text);text-decoration:none}main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:3rem 1.5rem}footer{border-top:1px solid var(--border);padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.85rem}footer a{color:var(--text-muted)}footer a:hover{color:var(--text)}
+.docs-layout[data-astro-cid-44xb4kzv]{display:grid;grid-template-columns:220px 1fr;gap:3rem;align-items:start}aside[data-astro-cid-44xb4kzv]{position:sticky;top:80px;min-width:0}.sidebar-section[data-astro-cid-44xb4kzv]{margin-bottom:1.5rem}.sidebar-label[data-astro-cid-44xb4kzv]{display:block;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:.5rem}.sidebar[data-astro-cid-44xb4kzv] ul[data-astro-cid-44xb4kzv]{list-style:none}.sidebar[data-astro-cid-44xb4kzv] ul[data-astro-cid-44xb4kzv] a[data-astro-cid-44xb4kzv]{display:block;padding:.3rem .5rem;font-size:.875rem;color:var(--text-muted);border-radius:4px;transition:color .15s,background .15s;text-decoration:none}.sidebar[data-astro-cid-44xb4kzv] ul[data-astro-cid-44xb4kzv] a[data-astro-cid-44xb4kzv]:hover,.sidebar[data-astro-cid-44xb4kzv] ul[data-astro-cid-44xb4kzv] a[data-astro-cid-44xb4kzv].active{color:var(--text);background:var(--bg-surface)}.content[data-astro-cid-44xb4kzv]{min-width:0;overflow:hidden}.content[data-astro-cid-44xb4kzv] h1[data-astro-cid-44xb4kzv]{font-size:2rem!important;font-weight:700;font-family:var(--font-sans);letter-spacing:normal;line-height:1.3;margin-bottom:2.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.content[data-astro-cid-44xb4kzv] section[data-astro-cid-44xb4kzv]{margin-bottom:3rem}.content[data-astro-cid-44xb4kzv] h2[data-astro-cid-44xb4kzv]{font-size:1.25rem;font-weight:600;margin-bottom:1rem;color:var(--text)}.content[data-astro-cid-44xb4kzv] p[data-astro-cid-44xb4kzv]{color:var(--text-muted);margin-bottom:1rem;line-height:1.7}.content[data-astro-cid-44xb4kzv] pre[data-astro-cid-44xb4kzv]{margin-bottom:1rem}.content[data-astro-cid-44xb4kzv] ul[data-astro-cid-44xb4kzv],.content[data-astro-cid-44xb4kzv] ol[data-astro-cid-44xb4kzv]{color:var(--text-muted);padding-left:1.5rem;line-height:1.8;margin-bottom:1rem}.content[data-astro-cid-44xb4kzv] li[data-astro-cid-44xb4kzv] code[data-astro-cid-44xb4kzv]{font-size:.8rem}@media(max-width:768px){.docs-layout[data-astro-cid-44xb4kzv]{grid-template-columns:1fr}aside[data-astro-cid-44xb4kzv]{position:static}}
+</style></head> <body> <header> <nav> <a href="/" class="logo"> <span class="logo-rs">rs</span><span class="logo-grid">-grid</span> </a> <ul> <li> <a href="/">
+Home
+</a> </li> <li> <a href="/docs" class="active">
+Docs
+</a> </li> <li> <a href="https://github.com/bpodwinski/rs-grid" target="_blank" rel="noopener">
+GitHub ↗
+</a> </li> </ul> </nav> </header> <main>  <div class="docs-layout" data-astro-cid-44xb4kzv> <aside data-astro-cid-44xb4kzv> <nav class="sidebar" data-astro-cid-44xb4kzv> <div class="sidebar-section" data-astro-cid-44xb4kzv> <span class="sidebar-label" data-astro-cid-44xb4kzv>Getting started</span> <ul data-astro-cid-44xb4kzv> <li data-astro-cid-44xb4kzv><a href="#installation" class="active" data-astro-cid-44xb4kzv>Installation</a></li> <li data-astro-cid-44xb4kzv><a href="#basic-usage" data-astro-cid-44xb4kzv>Basic usage</a></li> <li data-astro-cid-44xb4kzv><a href="#leptos" data-astro-cid-44xb4kzv>Leptos integration</a></li> </ul> </div> <div class="sidebar-section" data-astro-cid-44xb4kzv> <span class="sidebar-label" data-astro-cid-44xb4kzv>Core concepts</span> <ul data-astro-cid-44xb4kzv> <li data-astro-cid-44xb4kzv><a href="#grid-state" data-astro-cid-44xb4kzv>GridState</a></li> <li data-astro-cid-44xb4kzv><a href="#commands" data-astro-cid-44xb4kzv>Commands</a></li> <li data-astro-cid-44xb4kzv><a href="#viewport" data-astro-cid-44xb4kzv>Viewport</a></li> <li data-astro-cid-44xb4kzv><a href="#selection" data-astro-cid-44xb4kzv>Selection</a></li> </ul> </div> <div class="sidebar-section" data-astro-cid-44xb4kzv> <span class="sidebar-label" data-astro-cid-44xb4kzv>Architecture</span> <ul data-astro-cid-44xb4kzv> <li data-astro-cid-44xb4kzv><a href="#crates" data-astro-cid-44xb4kzv>Crates</a></li> <li data-astro-cid-44xb4kzv><a href="#renderer" data-astro-cid-44xb4kzv>Adding a renderer</a></li> </ul> </div> </nav> </aside> <article class="content" data-astro-cid-44xb4kzv> <h1 data-astro-cid-44xb4kzv>Getting started</h1> <section id="installation" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Installation</h2> <p data-astro-cid-44xb4kzv>
+Add <code data-astro-cid-44xb4kzv>rs-grid-leptos</code> to your <code data-astro-cid-44xb4kzv>Cargo.toml</code>:
+</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>[dependencies]
+rs-grid-leptos = &#123; path = "../rs-grid-leptos" &#125;
+</code></pre> <p data-astro-cid-44xb4kzv>
+Build the WASM bundle with <a href="https://trunkrs.dev" target="_blank" rel="noopener" data-astro-cid-44xb4kzv>Trunk</a>:
+</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>cd examples/basic-leptos
+trunk serve
+</code></pre> </section> <section id="basic-usage" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Basic usage</h2> <p data-astro-cid-44xb4kzv>
+Use the <code data-astro-cid-44xb4kzv>&lt;GridCanvas&gt;</code> component in your Leptos app:
+</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>use rs_grid_leptos::GridCanvas;
+
+#[component]
+fn App() -&gt; impl IntoView &#123;
+    view! &#123;
+        &lt;GridCanvas
+            row_count=1_000_000
+            col_count=50
+        /&gt;
+    &#125;
+&#125;
+</code></pre> </section> <section id="leptos" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Leptos integration</h2> <p data-astro-cid-44xb4kzv>
+The <code data-astro-cid-44xb4kzv>rs-grid-leptos</code> crate provides a <code data-astro-cid-44xb4kzv>&lt;GridCanvas&gt;</code>
+component that wraps the full rendering pipeline. It reads the theme
+          from CSS variables defined in <code data-astro-cid-44xb4kzv>rs-grid-theme.css</code>.
+</p> <p data-astro-cid-44xb4kzv>Link the theme in your <code data-astro-cid-44xb4kzv>index.html</code>:</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>&lt;link rel="stylesheet" href="rs-grid-theme.css" /&gt;
+</code></pre> </section> <section id="grid-state" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>GridState</h2> <p data-astro-cid-44xb4kzv> <code data-astro-cid-44xb4kzv>GridState</code> is the central data structure. All mutations
+          go through <code data-astro-cid-44xb4kzv>GridState::apply(GridCommand)</code>.
+</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>pub struct GridState &#123;
+    pub model: GridModel,       // columns + data
+    pub viewport: ViewportState, // scroll_x, scroll_y, width, height
+    pub selection: SelectionState, // anchor + focus
+&#125;
+</code></pre> </section> <section id="commands" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Commands</h2> <p data-astro-cid-44xb4kzv>Mutations are expressed as commands:</p> <pre data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>grid.apply(GridCommand::ScrollTo &#123;
+    x: 0.0,
+    y: 500.0,
+&#125;);
+
+grid.apply(GridCommand::SelectCell &#123;
+    row: 42,
+    col: 3,
+&#125;);
+</code></pre> </section> <section id="viewport" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Viewport</h2> <p data-astro-cid-44xb4kzv>
+The viewport state tracks scroll position and visible area.
+          Virtualization ensures only visible cells are rendered.
+          Hit-testing is O(log n) via precomputed column offsets.
+</p> </section> <section id="selection" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Selection</h2> <p data-astro-cid-44xb4kzv>
+Selection supports cell, row, and column granularity.
+          Multi-range selection uses an anchor + focus model
+          compatible with shift-click and keyboard navigation.
+</p> </section> <section id="crates" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Crates</h2> <p data-astro-cid-44xb4kzv>The workspace is split into focused crates:</p> <ul data-astro-cid-44xb4kzv> <li data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>rs-grid-core</code> — headless logic, no WASM dependency</li> <li data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>rs-grid-scene</code> — converts GridState to scene primitives</li> <li data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>rs-grid-render-canvas</code> — Canvas2D renderer</li> <li data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>rs-grid-web</code> — browser glue (events, DPR, rAF)</li> <li data-astro-cid-44xb4kzv><code data-astro-cid-44xb4kzv>rs-grid-leptos</code> — Leptos component</li> </ul> <p data-astro-cid-44xb4kzv>
+Dependencies flow in one direction only:
+<code data-astro-cid-44xb4kzv>leptos → web → render-canvas → scene → core</code>.
+</p> </section> <section id="renderer" data-astro-cid-44xb4kzv> <h2 data-astro-cid-44xb4kzv>Adding a renderer</h2> <p data-astro-cid-44xb4kzv>To add a new rendering backend:</p> <ol data-astro-cid-44xb4kzv> <li data-astro-cid-44xb4kzv>Create a new crate depending on <code data-astro-cid-44xb4kzv>rs-grid-scene</code></li> <li data-astro-cid-44xb4kzv>Consume <code data-astro-cid-44xb4kzv>SceneFrame</code> and iterate over <code data-astro-cid-44xb4kzv>ScenePrimitive</code></li> <li data-astro-cid-44xb4kzv>Do not modify <code data-astro-cid-44xb4kzv>rs-grid-core</code> or <code data-astro-cid-44xb4kzv>rs-grid-scene</code></li> </ol> </section> </article> </div>  </main> <footer> <p>
+rs-grid — Rust/WASM data grid engine &middot;
+<a href="https://github.com/bpodwinski/rs-grid" target="_blank" rel="noopener">
+GitHub
+</a> </p> </footer></body></html>
