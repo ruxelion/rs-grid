@@ -5,6 +5,7 @@ mod dom_helpers;
 mod edit;
 mod events;
 pub mod fetcher;
+mod keyboard;
 mod scroll;
 mod search;
 
