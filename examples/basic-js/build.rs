@@ -1,6 +1,4 @@
 fn main() {
-    println!("cargo:rerun-if-changed=../../crates");
-
     // Copy the canonical theme CSS from example-common.
     let manifest = env!("CARGO_MANIFEST_DIR");
     let src =

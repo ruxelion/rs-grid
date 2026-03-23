@@ -83,13 +83,9 @@ async function main() {
     grid.set_filter("name", e.target.value);
   });
 
-  // ── Dark mode ─────────────────────────────────────
-  document.getElementById("dark-toggle").addEventListener("change", (e) => {
-    const dark = e.target.checked;
-    document.documentElement.classList.toggle("dark", dark);
-    document.getElementById("dark-label").textContent = dark
-      ? "Light mode"
-      : "Dark mode";
+  // ── Theme selector ───────────────────────────────
+  document.getElementById("theme-select").addEventListener("change", (e) => {
+    document.documentElement.className = e.target.value;
     grid.set_theme_from_css();
   });
 }

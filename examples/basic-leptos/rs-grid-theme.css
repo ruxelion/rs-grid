@@ -363,3 +363,211 @@ body {
 :root.dark .app-btn:hover {
   border-color: #555558;
 }
+
+/* ── Material Design 3 Light — <html class="material"> ─────────────────────── */
+/*                                                                              */
+/* M3 baseline palette — https://m3.material.io/styles/color/roles              */
+/*   Primary        #6750A4    On Surface         #1C1B1F                       */
+/*   Surface        #FFFBFE    On Surface Variant #49454E                       */
+/*   Surface Variant#E7E0EC    Outline            #79747E                       */
+/*   Outline Variant#CAC4D0    Primary Container  #EADDFF                       */
+/*                                                                              */
+/* Shape: Extra-small 4dp, Small 8dp, Medium 12dp, Large 16dp, XL 28dp         */
+/* Elevation 1: 0 1px 2px rgb(0 0 0/30%), 0 1px 3px 1px rgb(0 0 0/15%)        */
+/* Elevation 2: 0 1px 2px rgb(0 0 0/30%), 0 2px 6px 2px rgb(0 0 0/15%)        */
+/* Data table: header 56dp, row 52dp, cell padding 16dp                        */
+
+:root.material {
+  /* grid — mapped to M3 color roles */
+  --rs-grid-bg: #fffbfe;                                  /* Surface            */
+  --rs-grid-header-bg: #e7e0ec;                           /* Surface Variant    */
+  --rs-grid-header-text: #1c1b1f;                         /* On Surface         */
+  --rs-grid-cell-text: #1c1b1f;                           /* On Surface         */
+  --rs-grid-grid-line: #cac4d0;                           /* Outline Variant    */
+  --rs-grid-header-border: #79747e;                       /* Outline            */
+  --rs-grid-selection-fill: rgba(103, 80, 164, 0.14);    /* Primary @ 14%      */
+  --rs-grid-selection-border: rgba(103, 80, 164, 0.80);  /* Primary @ 80%      */
+  --rs-grid-scrollbar-track: #e7e0ec;                     /* Surface Variant    */
+  --rs-grid-scrollbar-thumb: rgba(73, 69, 79, 0.50);     /* On Surface Var @50%*/
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 8px;                        /* Full (pill)        */
+  --rs-grid-row-alt-bg: #f5eefa;                          /* Surface tint       */
+  --rs-grid-row-hover-bg: rgba(103, 80, 164, 0.08);      /* Primary @ 8%       */
+  --rs-grid-font-size: 14px;                              /* Body Medium        */
+  --rs-grid-header-font-size: 14px;                       /* Title Small        */
+  --rs-grid-header-font-bold: 1;                          /* Title = weight 500 */
+  --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
+
+  /* context menu — M3 Elevation 2 surface */
+  --rs-grid-ctx-bg: #fffbfe;                              /* Surface            */
+  --rs-grid-ctx-border: #cac4d0;                          /* Outline Variant    */
+  --rs-grid-ctx-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-ctx-text: #1c1b1f;                            /* On Surface         */
+  --rs-grid-ctx-text-disabled: #1c1b1f66;                 /* On Surface @ 40%   */
+  --rs-grid-ctx-hover-bg: #e7e0ec;                        /* Surface Variant    */
+  --rs-grid-ctx-separator: #cac4d0;                       /* Outline Variant    */
+}
+
+/* M3 app shell overrides */
+:root.material body {
+  background: #fffbfe;                                    /* Surface            */
+  font-family: "Roboto", system-ui, sans-serif;
+}
+
+:root.material .app-title {
+  color: #1c1b1f;                                         /* On Surface         */
+}
+
+:root.material .app-subtitle {
+  color: #49454e;                                         /* On Surface Variant */
+}
+
+:root.material .app-highlight {
+  color: #6750a4;                                         /* Primary            */
+}
+
+:root.material .app-control {
+  background: #e7e0ec;                                    /* Surface Variant    */
+  border-color: #cac4d0;                                  /* Outline Variant    */
+  border-radius: 12px;                                    /* Shape Medium       */
+}
+
+:root.material .app-control-label {
+  color: #49454e;                                         /* On Surface Variant */
+}
+
+:root.material .app-control-select {
+  background-color: #fffbfe;                              /* Surface            */
+  border-color: #79747e;                                  /* Outline            */
+  color: #1c1b1f;                                         /* On Surface         */
+  border-radius: 4px;                                     /* Shape Extra-small  */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2349454e'/%3E%3C/svg%3E");
+}
+
+:root.material .app-control-select:hover {
+  border-color: #1c1b1f;                                  /* On Surface (hover) */
+}
+
+:root.material .app-control-select:focus {
+  border-color: #6750a4;                                  /* Primary            */
+  box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.20);
+}
+
+:root.material .app-grid-wrapper {
+  background: #fffbfe;                                    /* Surface            */
+  border-color: #cac4d0;                                  /* Outline Variant    */
+  border-radius: 12px;                                    /* Shape Medium       */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+}
+
+:root.material .app-btn {
+  background: #eaddff;                                    /* Primary Container  */
+  border-color: transparent;
+  color: #21005d;                                         /* On Primary Cont.   */
+  border-radius: 20px;                                    /* Full               */
+  font-weight: 500;                                       /* Label Large        */
+}
+
+:root.material .app-btn:hover {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+}
+
+/* ── Material Design 3 Dark — <html class="material-dark"> ─────────────────── */
+/*                                                                              */
+/* M3 dark baseline palette                                                     */
+/*   Primary        #D0BCFF    On Surface         #E6E1E6                       */
+/*   Surface        #1C1B1F    On Surface Variant #CAC4D0                       */
+/*   Surface Variant#49454E    Outline            #938F99                       */
+/*   Outline Variant#49454E    Primary Container  #4F378B                       */
+
+:root.material-dark {
+  --rs-grid-bg: #1c1b1f;                                  /* Surface            */
+  --rs-grid-header-bg: #49454e;                           /* Surface Variant    */
+  --rs-grid-header-text: #e6e1e6;                         /* On Surface         */
+  --rs-grid-cell-text: #e6e1e6;                           /* On Surface         */
+  --rs-grid-grid-line: #49454e;                           /* Outline Variant    */
+  --rs-grid-header-border: #938f99;                       /* Outline            */
+  --rs-grid-selection-fill: rgba(208, 188, 255, 0.18);   /* Primary @ 18%      */
+  --rs-grid-selection-border: rgba(208, 188, 255, 0.80); /* Primary @ 80%      */
+  --rs-grid-scrollbar-track: #2b2930;                     /* Surface +1 tint    */
+  --rs-grid-scrollbar-thumb: rgba(202, 196, 208, 0.35);  /* On Surf Var @ 35%  */
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 8px;
+  --rs-grid-row-alt-bg: #211f26;                          /* Surface +1 tint    */
+  --rs-grid-row-hover-bg: rgba(208, 188, 255, 0.08);     /* Primary @ 8%       */
+  --rs-grid-font-size: 14px;                              /* Body Medium        */
+  --rs-grid-header-font-size: 14px;                       /* Title Small        */
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
+
+  /* context menu — M3 Elevation 2 dark */
+  --rs-grid-ctx-bg: #2b2930;
+  --rs-grid-ctx-border: #49454e;                          /* Outline Variant    */
+  --rs-grid-ctx-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-ctx-text: #e6e1e6;                            /* On Surface         */
+  --rs-grid-ctx-text-disabled: #e6e1e640;                 /* On Surface @ 25%   */
+  --rs-grid-ctx-hover-bg: #49454e;                        /* Surface Variant    */
+  --rs-grid-ctx-separator: #49454e;                       /* Outline Variant    */
+}
+
+:root.material-dark body {
+  background: #1c1b1f;                                    /* Surface            */
+  font-family: "Roboto", system-ui, sans-serif;
+}
+
+:root.material-dark .app-title {
+  color: #e6e1e6;                                         /* On Surface         */
+}
+
+:root.material-dark .app-subtitle {
+  color: #cac4d0;                                         /* On Surface Variant */
+}
+
+:root.material-dark .app-highlight {
+  color: #d0bcff;                                         /* Primary            */
+}
+
+:root.material-dark .app-control {
+  background: #2b2930;                                    /* Surface +1 tint    */
+  border-color: #49454e;                                  /* Outline Variant    */
+  border-radius: 12px;                                    /* Shape Medium       */
+}
+
+:root.material-dark .app-control-label {
+  color: #cac4d0;                                         /* On Surface Variant */
+}
+
+:root.material-dark .app-control-select {
+  background-color: #1c1b1f;                              /* Surface            */
+  border-color: #938f99;                                  /* Outline            */
+  color: #e6e1e6;                                         /* On Surface         */
+  border-radius: 4px;                                     /* Shape Extra-small  */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23cac4d0'/%3E%3C/svg%3E");
+}
+
+:root.material-dark .app-control-select:hover {
+  border-color: #e6e1e6;                                  /* On Surface (hover) */
+}
+
+:root.material-dark .app-control-select:focus {
+  border-color: #d0bcff;                                  /* Primary            */
+  box-shadow: 0 0 0 2px rgba(208, 188, 255, 0.20);
+}
+
+:root.material-dark .app-grid-wrapper {
+  background: #1c1b1f;                                    /* Surface            */
+  border-color: #49454e;                                  /* Outline Variant    */
+  border-radius: 12px;                                    /* Shape Medium       */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+}
+
+:root.material-dark .app-btn {
+  background: #4f378b;                                    /* Primary Container  */
+  border-color: transparent;
+  color: #eaddff;                                         /* On Primary Cont.   */
+  border-radius: 20px;                                    /* Full               */
+}
+
+:root.material-dark .app-btn:hover {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+}
