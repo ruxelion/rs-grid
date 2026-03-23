@@ -51,6 +51,14 @@ e2e:
     Push-Location examples/basic-leptos; trunk build; Pop-Location
     Push-Location e2e; npm test; Pop-Location
 
+# Build WASM pour l'exemple vanilla JS (wasm-pack)
+build-js:
+    wasm-pack build examples/basic-js --target web --out-dir pkg
+
+# Serveur de développement pour l'exemple vanilla JS (port 8081)
+serve-js: build-js
+    Push-Location examples/basic-js; python -m http.server 8081; Pop-Location
+
 # Regénérer les screenshots de référence
 e2e-update-snapshots:
     Push-Location examples/basic-leptos; trunk build; Pop-Location

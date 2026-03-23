@@ -1,2 +1,3 @@
 target/
 examples/basic-leptos/dist/
+examples/basic-js/pkg/
