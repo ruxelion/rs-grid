@@ -12,7 +12,17 @@
       "Bash(python3 -c \":*)",
       "Bash(trunk build:*)",
       "Bash(npx playwright:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Read(//c/Users/Nudimmud/.claude/**)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''mcpServers'''', {}\\), indent=2\\)\\)\")",
+      "WebFetch(domain:docs.astro.build)",
+      "Edit(/.claude/skills/publishing-astro-websites/**)",
+      "mcp__claude_ai_Astro_Docs__search_astro_docs",
+      "Bash(grep -A5 \"docs-layout\\\\|grid-template\\\\|aside\\\\[\" d:/Dev/rs-grid/site/dist/_astro/*.css)",
+      "WebFetch(domain:financeflow-colorlib.pages.dev)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(claude mcp:*)"
     ]
   }
 }
