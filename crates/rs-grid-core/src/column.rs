@@ -406,6 +406,33 @@ fn format_number(
     }
 }
 
+// ── cell editor ────────────────────────────────────────────
+
+/// A single option for the [`CellEditor::Select`] dropdown.
+#[derive(Debug, Clone)]
+pub struct SelectOption {
+    /// Value stored in the cell on commit.
+    pub value: String,
+    /// Display label shown in the dropdown.
+    pub label: String,
+    /// Optional icon URL (e.g. data URI) shown left of
+    /// the label.
+    pub icon: Option<String>,
+}
+
+/// Per-column editor override.
+///
+/// When a cell enters edit mode, the renderer reads this
+/// to decide which DOM widget to create.
+/// `None` on [`ColumnDef`] = default text `<input>`.
+#[derive(Debug, Clone)]
+pub enum CellEditor {
+    /// Plain `<input type="text">`.
+    Text,
+    /// Dropdown with fixed options.
+    Select { options: Vec<SelectOption> },
+}
+
 // ── column definition ───────────────────────────────────
 
 /// Definition of a single grid column.
@@ -419,6 +446,8 @@ pub struct ColumnDef {
     pub width: f64,
     /// Optional display format for cell values.
     pub format: Option<CellFormat>,
+    /// Optional editor override for inline editing.
+    pub editor: Option<CellEditor>,
 }
 
 impl ColumnDef {
@@ -434,6 +463,7 @@ impl ColumnDef {
             label: label.into(),
             width,
             format: None,
+            editor: None,
         }
     }
 }

@@ -30,6 +30,7 @@ use rs_grid_scene::{
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
     HtmlCanvasElement, HtmlInputElement, MouseEvent, ResizeObserver,
+    HtmlElement,
 };
 
 use dom_helpers::document;
@@ -75,8 +76,8 @@ struct Inner {
     raf_scheduled: Cell<bool>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
-    /// DOM `<input>` element used for inline cell editing.
-    edit_input: RefCell<Option<HtmlInputElement>>,
+    /// DOM element used for inline cell editing (`<input>` or `<select>`).
+    edit_input: RefCell<Option<HtmlElement>>,
     /// Closures on the edit `<input>` (keydown, blur).
     edit_closures: RefCell<Vec<Box<dyn Any>>>,
     /// DOM `<input>` element for the search bar (Ctrl+F).

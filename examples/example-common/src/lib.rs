@@ -7,7 +7,9 @@
 pub mod fake_data;
 
 use rs_grid_core::{
-    column::{CellFormat, ColumnDef},
+    column::{
+        CellEditor, CellFormat, ColumnDef, SelectOption,
+    },
     datasource::FnDataSource,
     model::GridModel,
 };
@@ -145,6 +147,36 @@ pub fn build_model(
             _ => None,
         };
         columns.push(c);
+    }
+
+    // Wire up a Select editor for the country column.
+    if let Some(col) =
+        columns.iter_mut().find(|c| c.key == "country")
+    {
+        let options: Vec<SelectOption> =
+            fake_data::COUNTRIES
+                .iter()
+                .map(|(code, name)| {
+                    let uri =
+                        rs_grid_icons::flag_data_uri(
+                            code,
+                        )
+                        .unwrap_or("");
+                    SelectOption {
+                        value: format!(
+                            "{uri} {name}"
+                        ),
+                        label: name.to_string(),
+                        icon:
+                            rs_grid_icons::flag_data_uri(
+                                code,
+                            )
+                            .map(|s| s.to_string()),
+                    }
+                })
+                .collect();
+        col.editor =
+            Some(CellEditor::Select { options });
     }
 
     let source = FnDataSource::new(

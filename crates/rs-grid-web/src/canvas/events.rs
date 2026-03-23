@@ -554,6 +554,11 @@ impl GridCanvas {
                 }
                 None => {
                     drop(drag);
+                    // Skip hover while an edit overlay is open
+                    // (e.g. the custom dropdown).
+                    if gc.0.edit_input.borrow().is_some() {
+                        return;
+                    }
                     let (x, y) = gc.canvas_xy(&evt);
                     if gc.hit_col_resize_separator(x, y).is_some() {
                         gc.set_cursor("col-resize");
