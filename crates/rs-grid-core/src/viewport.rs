@@ -3,7 +3,9 @@ use crate::column::ColumnOffsets;
 /// Current scroll position and canvas dimensions.
 #[derive(Debug, Clone)]
 pub struct ViewportState {
+    /// Horizontal scroll offset in logical pixels.
     pub scroll_x: f64,
+    /// Vertical scroll offset in logical pixels.
     pub scroll_y: f64,
     /// Canvas width in logical pixels.
     pub width: f64,

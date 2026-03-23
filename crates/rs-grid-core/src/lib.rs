@@ -1,3 +1,6 @@
+//! Headless grid logic: data model, viewport, selection,
+//! hit-testing, and command processing. No WASM dependency.
+
 /// Column definitions, offsets, and cell formatting.
 pub mod column;
 /// Command enum and output type for all grid mutations.

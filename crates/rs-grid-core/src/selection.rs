@@ -1,14 +1,18 @@
 /// A (row, col) address of a cell.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CellCoord {
+    /// Logical row index.
     pub row: u64,
+    /// Column index.
     pub col: usize,
 }
 
 /// Rectangular selection defined by an anchor and a focus cell.
 #[derive(Debug, Clone, Default)]
 pub struct SelectionState {
+    /// First cell of the selection (fixed end).
     pub anchor: Option<CellCoord>,
+    /// Last cell of the selection (moves on extend).
     pub focus: Option<CellCoord>,
 }
 
@@ -39,11 +43,13 @@ impl SelectionState {
         }
     }
 
+    /// Remove the current selection.
     pub fn clear(&mut self) {
         self.anchor = None;
         self.focus = None;
     }
 
+    /// Return `true` if at least one cell is selected.
     pub fn has_selection(&self) -> bool {
         self.anchor.is_some()
     }
@@ -180,12 +186,21 @@ pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
     rows
 }
 
+/// Maximum number of rows allowed in a single copy/TSV export.
 pub const MAX_COPY_ROWS: u64 = 10_000;
 
+/// Errors returned by [`SelectionState::to_tsv`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CopyError {
+    /// No cells are selected.
     NoSelection,
-    TooManyRows { actual: u64, max: u64 },
+    /// Selected range exceeds [`MAX_COPY_ROWS`].
+    TooManyRows {
+        /// Number of rows in the selection.
+        actual: u64,
+        /// Allowed maximum.
+        max: u64,
+    },
 }
 
 #[cfg(test)]
