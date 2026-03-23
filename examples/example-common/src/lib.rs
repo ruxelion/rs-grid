@@ -179,6 +179,39 @@ pub fn build_model(
             Some(CellEditor::Select { options });
     }
 
+    // Wire up a Select editor for the gender column.
+    if let Some(col) =
+        columns.iter_mut().find(|c| c.key == "gender")
+    {
+        let options: Vec<SelectOption> =
+            fake_data::GENDERS
+                .iter()
+                .map(|&label| {
+                    let key = label
+                        .to_uppercase()
+                        .replace(' ', "-");
+                    let uri =
+                        rs_grid_icons::gender_icon_uri(
+                            &key,
+                        )
+                        .unwrap_or("");
+                    SelectOption {
+                        value: format!(
+                            "{uri} {label}"
+                        ),
+                        label: label.to_string(),
+                        icon:
+                            rs_grid_icons::gender_icon_uri(
+                                &key,
+                            )
+                            .map(|s| s.to_string()),
+                    }
+                })
+                .collect();
+        col.editor =
+            Some(CellEditor::Select { options });
+    }
+
     let source = FnDataSource::new(
         row_count,
         move |row: u64, col_key: &str| {

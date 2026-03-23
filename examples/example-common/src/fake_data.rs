@@ -382,7 +382,7 @@ const STATES_US: &[&str] = &[
     "OH", "AZ", "VA",
 ];
 
-const GENDERS: &[&str] = &["Male", "Female"];
+pub const GENDERS: &[&str] = &["Male", "Female"];
 
 const TEAMS: &[&str] = &[
     "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta",
