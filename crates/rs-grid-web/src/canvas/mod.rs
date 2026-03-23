@@ -258,10 +258,14 @@ impl GridCanvas {
 
     /// Apply a command, redraw, and return the output.
     fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+        // Commands that write cell data — fire the on_change callback
+        // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
             cmd,
             GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
         );
+        // Commands that may expose new rows — trigger a page fetch in
+        // server-side pagination mode (PageCacheDataSource).
         let triggers_fetch = matches!(
             cmd,
             GridCommand::ScrollTo { .. }
@@ -331,6 +335,9 @@ impl GridCanvas {
     /// Deserialize TSV text produced by `export_patches` and apply it,
     /// replacing any existing patches. Triggers a redraw.
     pub fn import_patches(&self, data: &str) {
+        // Unescape in two passes: first stash literal `\\` as the
+        // NUL sentinel so `\\t` is not mistaken for a tab, then
+        // restore it at the end.
         let unescape = |s: &str| {
             s.replace("\\\\", "\x00")
                 .replace("\\t", "\t")
