@@ -18,24 +18,24 @@ Material 3 Dark).
 
 - `build_model()` — creates a `GridModel` backed by a deterministic fake
   data generator (`fake_data.rs`, ~950 lines of names, roles, departments…)
-- `rs-grid-theme.css` — canonical theme file with Light, Dark, Material 3
-  light, and Material 3 dark variants
+- `themes/` — individual CSS files for each theme (see below)
 
-Each example has a `build.rs` that copies the CSS from `example-common/` at
-compile time, so themes stay in sync.
+Each example has a `build.rs` that concatenates all CSS files from
+`example-common/themes/` into a single `rs-grid-theme.css` at compile
+time, so themes stay in sync across examples.
 
 ## Running an example
 
 ### Leptos (basic-leptos)
 
 ```sh
-just serve          # trunk serve on port 9080
+just serve          # trunk serve on port 9081
 ```
 
 ### Vanilla JS (basic-js)
 
 ```sh
-just serve-js       # wasm-pack build + http.server on port 8081
+just serve-js       # wasm-pack build + http.server on port 9080
 ```
 
 ### Any example by name
@@ -73,6 +73,20 @@ setting a CSS class on `<html>`:
 | `material` | Material Design 3 Light |
 | `material-dark` | Material Design 3 Dark |
 
-To add a new theme, add a `:root.my-theme { ... }` block in
-`example-common/rs-grid-theme.css` defining all `--rs-grid-*` variables,
-then add the option to each example's theme selector.
+Each theme lives in its own file under `example-common/themes/`:
+
+```
+themes/
+  base.css             # reset + app shell layout (shared by all themes)
+  light.css            # :root — default light palette
+  dark.css             # :root.dark — dark palette + app overrides
+  material.css         # :root.material — Material Design 3 Light
+  material-dark.css    # :root.material-dark — Material Design 3 Dark
+```
+
+To add a new theme:
+
+1. Create `example-common/themes/my-theme.css` with a `:root.my-theme`
+   block defining all `--rs-grid-*` variables plus app shell overrides
+2. Add `"my-theme"` to the `parts` array in each example's `build.rs`
+3. Add the option to each example's theme `<select>`

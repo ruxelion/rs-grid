@@ -38,9 +38,9 @@ ci: fmt lint test
 build-wasm:
     Push-Location examples/basic-leptos; trunk build; Pop-Location
 
-# Serveur de développement (port 9080, configuré dans Trunk.toml)
+# Serveur de développement Leptos (port 9081)
 serve:
-    Push-Location examples/basic-leptos; trunk serve --address 0.0.0.0; Pop-Location
+    Push-Location examples/basic-leptos; trunk serve --address 0.0.0.0 --port 9081; Pop-Location
 
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
@@ -55,9 +55,9 @@ e2e:
 build-js:
     wasm-pack build examples/basic-js --target web --out-dir pkg
 
-# Serveur de développement pour l'exemple vanilla JS (port 8081)
+# Serveur de développement vanilla JS (port 9080)
 serve-js: build-js
-    Push-Location examples/basic-js; python -m http.server 8081; Pop-Location
+    Push-Location examples/basic-js; python -m http.server 9080; Pop-Location
 
 # Scaffolder un nouvel exemple wasm-bindgen
 new-example name:
@@ -80,10 +80,10 @@ new-example name:
 build-example name:
     wasm-pack build examples/{{name}} --target web --out-dir pkg
 
-# Servir un exemple donné (port 8081)
+# Servir un exemple donné (port 9080)
 serve-example name:
     just build-example {{name}}
-    Push-Location examples/{{name}}; python -m http.server 8081; Pop-Location
+    Push-Location examples/{{name}}; python -m http.server 9080; Pop-Location
 
 # Regénérer les screenshots de référence
 e2e-update-snapshots:

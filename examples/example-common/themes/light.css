@@ -1,0 +1,30 @@
+/* ── light theme (default) ─────────────────────────────────────────────────── */
+:root {
+  --rs-grid-bg: #ffffff;
+  --rs-grid-header-bg: #f8f9fa;
+  --rs-grid-header-text: #181d1f;
+  --rs-grid-cell-text: #181d1f;
+  --rs-grid-grid-line: #e0e0e0;
+  --rs-grid-header-border: #e0e0e0;
+  --rs-grid-selection-fill: rgba(31, 119, 220, 0.18);
+  --rs-grid-selection-border: rgba(31, 119, 220, 0.82);
+  --rs-grid-scrollbar-track: #f1f1f1;
+  --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.63);
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 4px;
+  --rs-grid-row-alt-bg: #fcfcfd;
+  --rs-grid-row-hover-bg: rgba(31, 119, 220, 0.08);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
+
+  /* context menu */
+  --rs-grid-ctx-bg: #ffffff;
+  --rs-grid-ctx-border: #d1d5db;
+  --rs-grid-ctx-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --rs-grid-ctx-text: #111827;
+  --rs-grid-ctx-text-disabled: #9ca3af;
+  --rs-grid-ctx-hover-bg: #f3f4f6;
+  --rs-grid-ctx-separator: #e5e7eb;
+}
