@@ -21,7 +21,13 @@
       "Bash(ls e2e/node_modules/.bin/serve*)",
       "Bash(npm ls:*)",
       "Bash(find e2e/node_modules/serve -name *.js -maxdepth 2)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find /e/Dev/rs-grid -path */tests/*.rs -o -path */*/src/tests.rs)",
+      "Bash(find /e/Dev/rs-grid -name *.spec.ts -o -name *.test.ts)",
+      "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-core/src --include=\"*.rs\")",
+      "Bash(grep -r \"///\" /e/Dev/rs-grid/crates/rs-grid-scene/src --include=\"*.rs\")",
+      "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-*/src/*.rs)",
+      "Bash(node screenshot.mjs)"
     ]
   }
 }
