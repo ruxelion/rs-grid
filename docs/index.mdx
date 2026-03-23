@@ -1,0 +1,57 @@
+---
+title: "rs-grid"
+description: "High-performance Rust/WASM data grid engine for the browser."
+---
+
+# rs-grid
+
+A headless data grid engine built with Rust and compiled to WebAssembly.
+Designed for millions of rows with smooth 60 fps rendering on Canvas2D.
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/getting-started">
+    Install rs-grid and render your first grid in minutes.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    Understand the unidirectional pipeline from state to canvas.
+  </Card>
+  <Card title="Leptos Integration" icon="puzzle-piece" href="/integrations/leptos">
+    Drop-in component for Leptos CSR applications.
+  </Card>
+  <Card title="Docker" icon="docker" href="/deployment/docker">
+    Build and deploy the documentation site with Docker.
+  </Card>
+</CardGroup>
+
+## Key features
+
+- **Viewport virtualization** — only visible cells are rendered, regardless of dataset size
+- **O(log n) hit-testing** — precomputed column offsets for instant cell lookup
+- **Anchor/focus selection** — cell, row, and column selection with shift-extend
+- **Renderer-agnostic** — scene graph of primitives, swap the backend without touching core
+- **Leptos CSR** — ready-to-use `<GridCanvas>` component
+- **CSS theming** — colors read from CSS custom properties at mount time
+
+## Architecture at a glance
+
+```
+GridState → SceneBuilder → SceneFrame → CanvasRenderer → <canvas>
+```
+
+All mutations go through `GridState::apply(GridCommand)`. No callbacks, no
+two-way bindings. The pipeline is deterministic and easy to test.
+
+## Workspace crates
+
+| Crate | Role | WASM |
+|-------|------|------|
+| `rs-grid-core` | Headless logic — model, viewport, selection, hit-testing | No |
+| `rs-grid-scene` | Converts `GridState` to renderer-agnostic `ScenePrimitive` | No |
+| `rs-grid-render-canvas` | Canvas2D renderer via wasm-bindgen | Yes |
+| `rs-grid-web` | Browser glue — events, DPR, requestAnimationFrame | Yes |
+| `rs-grid-leptos` | Leptos CSR component `<GridCanvas>` | Yes |
+
+<Warning>
+  Dependencies flow in one direction: `leptos → web → render-canvas → scene → core`.
+  Never introduce a reverse dependency.
+</Warning>
