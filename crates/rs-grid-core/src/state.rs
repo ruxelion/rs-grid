@@ -31,6 +31,24 @@ pub struct GridState {
     history: UndoHistory,
 }
 
+/// Clamp `(x, y)` scroll coordinates to the valid range
+/// for the given model and viewport.
+fn clamp_scroll(
+    x: f64,
+    y: f64,
+    model: &GridModel,
+    vp: &ViewportState,
+) -> (f64, f64) {
+    let rnw = model.row_number_width;
+    let sb = model.scrollbar_size;
+    let max_x = (model.total_width()
+        - (vp.width - rnw - sb))
+        .max(0.0);
+    let max_y =
+        (model.total_height() - vp.height + sb).max(0.0);
+    (x.clamp(0.0, max_x), y.clamp(0.0, max_y))
+}
+
 impl GridState {
     /// Create a grid state from a model and initial viewport
     /// dimensions.
@@ -143,8 +161,14 @@ impl GridState {
                 }
             }
         }
-        self.viewport.scroll_x = self.viewport.scroll_x.max(0.0);
-        self.viewport.scroll_y = self.viewport.scroll_y.max(0.0);
+        let (sx, sy) = clamp_scroll(
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+            &self.model,
+            &self.viewport,
+        );
+        self.viewport.scroll_x = sx;
+        self.viewport.scroll_y = sy;
     }
 
     /// Apply a command, mutating state in place.
@@ -159,37 +183,25 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::ScrollTo { x, y } => {
-                let rnw = self.model.row_number_width;
-                let sb = self.model.scrollbar_size;
-                let max_x = (self.model.total_width()
-                    - (self.viewport.width - rnw - sb))
-                    .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
-                    + sb)
-                    .max(0.0);
-                self.viewport.scroll_x =
-                    x.clamp(0.0, max_x);
-                self.viewport.scroll_y =
-                    y.clamp(0.0, max_y);
+                let (sx, sy) = clamp_scroll(
+                    x,
+                    y,
+                    &self.model,
+                    &self.viewport,
+                );
+                self.viewport.scroll_x = sx;
+                self.viewport.scroll_y = sy;
                 CommandOutput::None
             }
             GridCommand::ScrollBy { dx, dy } => {
-                let x = self.viewport.scroll_x + dx;
-                let y = self.viewport.scroll_y + dy;
-                let rnw = self.model.row_number_width;
-                let sb = self.model.scrollbar_size;
-                let max_x = (self.model.total_width()
-                    - (self.viewport.width - rnw - sb))
-                    .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
-                    + sb)
-                    .max(0.0);
-                self.viewport.scroll_x =
-                    x.clamp(0.0, max_x);
-                self.viewport.scroll_y =
-                    y.clamp(0.0, max_y);
+                let (sx, sy) = clamp_scroll(
+                    self.viewport.scroll_x + dx,
+                    self.viewport.scroll_y + dy,
+                    &self.model,
+                    &self.viewport,
+                );
+                self.viewport.scroll_x = sx;
+                self.viewport.scroll_y = sy;
                 CommandOutput::None
             }
             GridCommand::Resize { width, height } => {

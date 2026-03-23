@@ -705,27 +705,17 @@ impl SceneBuilder {
 
             // Up arrow ▲
             let mid_up = sb.up_btn_y + sb.arrow_h * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [cx, mid_up - arrow_size * 0.45],
-                    [cx + arrow_size, mid_up + arrow_size * 1.0],
-                    [cx - arrow_size, mid_up + arrow_size * 1.0],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
+            Self::emit_scrollbar_arrow(
+                frame, cx, mid_up, arrow_size, -1.0, true,
+                t.scrollbar_thumb,
+            );
 
             // Down arrow ▼
             let mid_dn = sb.down_btn_y + sb.arrow_h * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [cx, mid_dn + arrow_size * 0.45],
-                    [cx + arrow_size, mid_dn - arrow_size * 1.0],
-                    [cx - arrow_size, mid_dn - arrow_size * 1.0],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
+            Self::emit_scrollbar_arrow(
+                frame, cx, mid_dn, arrow_size, 1.0, true,
+                t.scrollbar_thumb,
+            );
 
             // Track
             frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -786,27 +776,17 @@ impl SceneBuilder {
 
             // Left arrow ◀
             let mid_left = hsb.left_btn_x + hsb.arrow_w * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [mid_left - arrow_size * 0.45, cy],
-                    [mid_left + arrow_size * 1.0, cy - arrow_size],
-                    [mid_left + arrow_size * 1.0, cy + arrow_size],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
+            Self::emit_scrollbar_arrow(
+                frame, cy, mid_left, arrow_size, -1.0, false,
+                t.scrollbar_thumb,
+            );
 
             // Right arrow ▶
             let mid_right = hsb.right_btn_x + hsb.arrow_w * 0.5;
-            frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                points: vec![
-                    [mid_right + arrow_size * 0.45, cy],
-                    [mid_right - arrow_size * 1.0, cy - arrow_size],
-                    [mid_right - arrow_size * 1.0, cy + arrow_size],
-                ],
-                fill: t.scrollbar_thumb,
-                corner_radius: arrow_size * 0.25,
-            }));
+            Self::emit_scrollbar_arrow(
+                frame, cy, mid_right, arrow_size, 1.0, false,
+                t.scrollbar_thumb,
+            );
 
             // Track
             frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -833,6 +813,43 @@ impl SceneBuilder {
                 corner_radius: t.scrollbar_radius,
             }));
         }
+    }
+
+    /// Emit a single scrollbar arrow as a `PolygonPrimitive`.
+    ///
+    /// - `cross` — center coordinate on the perpendicular axis
+    ///   (x for vertical bars, y for horizontal bars).
+    /// - `mid`   — center of the button along its scroll axis.
+    /// - `size`  — half-size of the arrow triangle.
+    /// - `dir`   — `-1.0` = up/left, `+1.0` = down/right.
+    /// - `vertical` — `true` for vertical scrollbar arrows.
+    fn emit_scrollbar_arrow(
+        frame: &mut SceneFrame,
+        cross: f64,
+        mid: f64,
+        size: f64,
+        dir: f64,
+        vertical: bool,
+        fill: Color,
+    ) {
+        let points = if vertical {
+            vec![
+                [cross, mid + dir * size * 0.45],
+                [cross + size, mid - dir * size],
+                [cross - size, mid - dir * size],
+            ]
+        } else {
+            vec![
+                [mid + dir * size * 0.45, cross],
+                [mid - dir * size, cross - size],
+                [mid - dir * size, cross + size],
+            ]
+        };
+        frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+            points,
+            fill,
+            corner_radius: size * 0.25,
+        }));
     }
 
     /// Emit selection fill, search highlight, and cell content
