@@ -40,7 +40,12 @@
       "Bash(git stash:*)",
       "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-core)",
       "Bash(RUSTFLAGS=\"-W missing_docs\" cargo check -p rs-grid-scene)",
-      "WebFetch(domain:m3.material.io)"
+      "WebFetch(domain:m3.material.io)",
+      "Bash(grep -n \"^    pub fn\" /e/Dev/rs-grid/crates/rs-grid-core/src/*.rs)",
+      "Bash(grep -c \"^--$\" done)",
+      "Bash(python3:*)",
+      "Bash(grep -c \"\\\\.unwrap\\(\\)\" /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
+      "Bash(grep -v \":0$\")"
     ]
   }
 }

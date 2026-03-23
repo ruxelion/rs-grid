@@ -45,7 +45,7 @@ impl GridCanvas {
         let _ = style.set_property("background", "#fff");
         let _ = style.set_property("box-shadow", "0 2px 8px rgba(0,0,0,.15)");
 
-        doc.body().expect("body").append_child(&input).unwrap();
+        doc.body().expect("body").append_child(&input).expect("append search input");
         let _ = input.focus();
 
         // Input → search on every keystroke
@@ -61,7 +61,7 @@ impl GridCanvas {
                     "input",
                     cb.as_ref().unchecked_ref(),
                 )
-                .unwrap();
+                .expect("add input listener");
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -91,7 +91,7 @@ impl GridCanvas {
                     "keydown",
                     cb.as_ref().unchecked_ref(),
                 )
-                .unwrap();
+                .expect("add keydown listener");
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 

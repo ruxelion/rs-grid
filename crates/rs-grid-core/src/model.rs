@@ -21,7 +21,7 @@ pub enum DataSourceMode {
 }
 
 /// The data model: columns, a virtual data source, and sizing constants.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GridModel {
     /// Ordered column definitions.
     pub columns: Vec<ColumnDef>,

@@ -68,7 +68,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("keydown", &f)
-            .unwrap();
+            .expect("add keydown listener");
         self.0
             .doc_listeners
             .borrow_mut()
@@ -93,7 +93,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("copy", &f)
-            .unwrap();
+            .expect("add copy listener");
         self.0
             .doc_listeners
             .borrow_mut()
@@ -116,7 +116,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("cut", &f)
-            .unwrap();
+            .expect("add cut listener");
         self.0
             .doc_listeners
             .borrow_mut()
@@ -146,7 +146,7 @@ impl GridCanvas {
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
         document()
             .add_event_listener_with_callback("paste", &f)
-            .unwrap();
+            .expect("add paste listener");
         self.0
             .doc_listeners
             .borrow_mut()

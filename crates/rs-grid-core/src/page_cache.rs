@@ -169,8 +169,8 @@ impl DataSource for PageCacheDataSource {
         }
     }
 
-    fn clone_box(&self) -> Box<dyn DataSource> {
-        Box::new(self.clone())
+    fn clone_box(&self) -> Option<Box<dyn DataSource>> {
+        Some(Box::new(self.clone()))
     }
 }
 
