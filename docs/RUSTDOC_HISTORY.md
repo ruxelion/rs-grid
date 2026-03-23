@@ -30,3 +30,13 @@
   - Added `///` to `SortDir` variants, `SortState` fields
   - Added `///` to all `PageCacheDataSource` public methods
 - **Validation**: pass
+
+## 2026-03-23T00:02:00Z
+
+- **Area**: `rs_grid_core::commands`
+- **Items documented**: 29
+- **Coverage**: 97 undocumented public items remaining (was 126); `rs_grid_core` now at 0
+- **Summary**:
+  - Added `///` to all `GridCommand` struct-variant fields (ScrollTo, ScrollBy, Resize, MoveSelection, PasteAt, ResizeColumn, ToggleSort, SetPinnedColumnCount, SetColumnFilter, MoveColumn, StartEdit, CommitEdit, Search, AutoFitColumn)
+  - Added `///` to `CommandOutput` enum and its 3 variants
+- **Validation**: pass
