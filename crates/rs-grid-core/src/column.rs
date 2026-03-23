@@ -331,7 +331,6 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
     }
 }
 
-
 impl CellFormat {
     /// Returns `true` if this format renders a full-cell
     /// image.
@@ -408,6 +407,8 @@ pub struct ColumnDef {
 }
 
 impl ColumnDef {
+    /// Create a column with the given key, label, and width
+    /// (no format override).
     pub fn new(
         key: impl Into<String>,
         label: impl Into<String>,
@@ -427,10 +428,12 @@ impl ColumnDef {
 pub struct ColumnOffsets {
     /// `offsets[i]` is the x position of the left edge of column `i`.
     pub offsets: Vec<f64>,
+    /// Sum of all column widths (total content width).
     pub total_width: f64,
 }
 
 impl ColumnOffsets {
+    /// Build offsets from a slice of column definitions.
     pub fn compute(columns: &[ColumnDef]) -> Self {
         let mut offsets = Vec::with_capacity(columns.len());
         let mut x = 0.0_f64;

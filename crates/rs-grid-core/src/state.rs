@@ -10,8 +10,11 @@ use crate::{
 /// Cell currently being edited inline.
 #[derive(Debug, Clone)]
 pub struct EditCell {
+    /// Logical row index of the cell being edited.
     pub row: u64,
+    /// Column key of the cell being edited.
     pub col_key: String,
+    /// Cell value at the moment editing started.
     pub initial_value: String,
 }
 
@@ -35,8 +38,11 @@ enum UndoEntry {
 /// Active search state.
 #[derive(Debug, Clone, Default)]
 pub struct SearchState {
+    /// Current search text (empty = search inactive).
     pub query: String,
+    /// Cell coordinates matching the query.
     pub matches: Vec<CellCoord>,
+    /// Index into `matches` for the currently focused result.
     pub current: usize,
 }
 
@@ -45,8 +51,11 @@ const MAX_UNDO: usize = 100;
 /// The complete mutable state of a grid instance.
 #[derive(Debug)]
 pub struct GridState {
+    /// Column definitions, data source, and sizing constants.
     pub model: GridModel,
+    /// Scroll position and canvas dimensions.
     pub viewport: ViewportState,
+    /// Anchor/focus selection and clipboard state.
     pub selection: SelectionState,
     /// Row index currently under the mouse cursor, for hover highlighting.
     pub hovered_row: Option<u64>,
@@ -61,6 +70,8 @@ pub struct GridState {
 }
 
 impl GridState {
+    /// Create a grid state from a model and initial viewport
+    /// dimensions.
     pub fn new(
         model: GridModel,
         viewport_width: f64,
@@ -227,8 +238,7 @@ impl GridState {
                 let max_x = (self.model.total_width()
                     - (self.viewport.width - rnw))
                     .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
+                let max_y = (self.model.total_height() - self.viewport.height
                     + sb)
                     .max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
@@ -243,8 +253,7 @@ impl GridState {
                 let max_x = (self.model.total_width()
                     - (self.viewport.width - rnw))
                     .max(0.0);
-                let max_y = (self.model.total_height()
-                    - self.viewport.height
+                let max_y = (self.model.total_height() - self.viewport.height
                     + sb)
                     .max(0.0);
                 self.viewport.scroll_x = x.clamp(0.0, max_x);
