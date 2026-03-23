@@ -545,6 +545,9 @@ impl GridState {
                     .clone()
                     .or_else(|| self.selection.anchor.clone());
                 if let Some(b) = base {
+                    // Cast to i64 first so negative deltas don't
+                    // underflow the unsigned row/col indices, then
+                    // clamp to valid bounds before casting back.
                     let new_row = (b.row as i64 + delta_row)
                         .clamp(0, row_count.saturating_sub(1) as i64)
                         as u64;
