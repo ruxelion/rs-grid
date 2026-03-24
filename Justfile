@@ -89,11 +89,10 @@ e2e-update-snapshots:
 build-site-wasm:
     wasm-pack build examples\basic-js --target web --out-dir pkg
     if not exist "site\docs\public\wasm" mkdir "site\docs\public\wasm"
-    copy "examples\basic-js\pkg\basic_js.js" "site\docs\public\wasm\basic_js.js"
-    copy "examples\basic-js\pkg\basic_js_bg.wasm" "site\docs\public\wasm\basic_js_bg.wasm"
+    robocopy examples\basic-js\pkg site\docs\public\wasm basic_js.js basic_js_bg.wasm /IS /IT || exit 0
 
 # Serveur de développement RSPress (port 5173)
-site:
+site: build-site-wasm
     cd site && npx rspress dev --host 0.0.0.0
 
 # Build du site RSPress (avec démo WASM)

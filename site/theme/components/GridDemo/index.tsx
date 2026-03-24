@@ -85,6 +85,18 @@ export default function GridDemo({ t }: GridDemoProps) {
     };
   }, []);
 
+  // Re-apply theme when dark/light mode toggles
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      gridRef.current?.set_theme_from_css();
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // ResizeObserver for responsive canvas
   useEffect(() => {
     const wrapper = containerRef.current?.querySelector(

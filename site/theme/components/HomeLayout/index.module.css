@@ -11,6 +11,7 @@
   padding: calc(64px + 5rem) 0 5rem;
   overflow: hidden;
   text-align: center;
+  background: var(--rs-hero-overlay);
 }
 
 .heroBgVideo {
@@ -54,10 +55,10 @@
   gap: 0.5rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--rs-badge-text);
+  background: var(--rs-primary-light);
   backdrop-filter: var(--rs-blur);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid var(--rs-code-border);
   border-radius: 999px;
   padding: 0.35rem 1rem;
   margin-bottom: 2rem;
@@ -137,7 +138,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--rs-glass-bg);
   backdrop-filter: var(--rs-blur);
   color: var(--rs-text-muted);
   font-weight: 500;
@@ -151,7 +152,7 @@
 
 .btnOutline:hover {
   color: var(--rs-text);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--rs-border-strong);
   transform: translateY(-1px);
 }
 
@@ -160,7 +161,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--rs-glass-bg);
   backdrop-filter: var(--rs-blur);
   border: 1px solid var(--rs-border);
   border-radius: var(--rs-radius-lg);
@@ -352,16 +353,15 @@
 }
 
 .crateCardCode {
-  display: block;
+  display: inline-block;
   margin-bottom: 0.625rem;
   font-size: 0.8rem;
   font-family: var(--rs-font-mono);
-  background: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
+  background: var(--rs-primary-light);
+  color: var(--rs-code-text);
   padding: 0.15em 0.4em;
   border-radius: 4px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  display: inline-block;
+  border: 1px solid var(--rs-code-border);
 }
 
 .crateCardDesc {

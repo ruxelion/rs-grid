@@ -36,7 +36,10 @@
       "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavTitle/*.css)",
       "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavScreen/*.css)",
       "Bash(xargs grep:*)",
-      "Bash(find /e/Dev/rs-grid/site/doc_build -name *data* -type f)"
+      "Bash(find /e/Dev/rs-grid/site/doc_build -name *data* -type f)",
+      "Bash(wasm-pack build:*)",
+      "Bash(cp \"e:/Dev/rs-grid/examples/basic-js/pkg/basic_js.js\" \"e:/Dev/rs-grid/site/docs/public/wasm/\")",
+      "Bash(cp \"e:/Dev/rs-grid/examples/basic-js/pkg/basic_js_bg.wasm\" \"e:/Dev/rs-grid/site/docs/public/wasm/\")"
     ]
   }
 }
