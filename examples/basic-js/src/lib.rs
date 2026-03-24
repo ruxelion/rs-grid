@@ -8,7 +8,7 @@ use example_common::build_model;
 use rs_grid_core::state::GridState;
 use rs_grid_web::{theme_from_css_vars, GridCanvas};
 use wasm_bindgen::prelude::*;
-use web_sys::HtmlCanvasElement;
+use web_sys::{js_sys::Function, HtmlCanvasElement};
 
 /// Handle to a mounted rs-grid instance, usable from JS.
 #[wasm_bindgen]
@@ -71,6 +71,13 @@ impl JsGrid {
     /// Import cell patches from a TSV string.
     pub fn import_patches(&self, data: &str) {
         self.inner.import_patches(data);
+    }
+
+    /// Register a callback invoked on every cell edit.
+    pub fn set_on_change(&self, cb: Function) {
+        self.inner.set_on_change(move || {
+            let _ = cb.call0(&JsValue::NULL);
+        });
     }
 
     /// Detach event listeners and clean up.

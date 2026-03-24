@@ -96,6 +96,14 @@ serve-example name:
     just build-example {{name}}
     cd examples\{{name}} && python -m http.server 9080
 
+# Build WASM puis app React (port 9083)
+build-react: build-js
+    cd examples\basic-react && npm run build
+
+# Serveur de développement React (port 9083)
+serve-react: build-js
+    cd examples\basic-react && npm run dev
+
 # Regénérer les screenshots de référence
 e2e-update-snapshots:
     cd examples\basic-leptos && trunk build

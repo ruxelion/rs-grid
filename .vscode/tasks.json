@@ -116,6 +116,22 @@
       "detail": "trunk serve Yew (port 9082)"
     },
     {
+      "label": "just: build-react",
+      "type": "shell",
+      "command": "just build-react",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "wasm-pack build + npm run build (exemple React)"
+    },
+    {
+      "label": "just: serve-react",
+      "type": "shell",
+      "command": "just serve-react",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "trunk serve React (port 9083)"
+    },
+    {
       "label": "just: build-js",
       "type": "shell",
       "command": "just build-js",
