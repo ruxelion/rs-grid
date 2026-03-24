@@ -85,14 +85,10 @@ e2e-update-snapshots:
     cd examples\basic-leptos && trunk build
     cd e2e && npm run update-snapshots
 
-# Serveur de développement docs Mintlify (port 3000)
-docs:
-    cd docs && mintlify dev
-
-# Serveur de développement site Astro (port 4321)
+# Serveur de développement RSPress (port 5173)
 site:
-    cd site && npx astro dev --host 0.0.0.0
+    cd site && npx rspress dev --host 0.0.0.0
 
-# Build du site Astro
+# Build du site RSPress
 build-site:
     cd site && npm run build
