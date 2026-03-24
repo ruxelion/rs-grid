@@ -105,6 +105,30 @@
       "command": "just e2e-update-snapshots",
       "problemMatcher": [],
       "detail": "Regénérer screenshots de référence"
+    },
+    {
+      "label": "just: docs",
+      "type": "shell",
+      "command": "just docs",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Mintlify dev server (port 3000)"
+    },
+    {
+      "label": "just: site",
+      "type": "shell",
+      "command": "just site",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Astro dev server (port 4321)"
+    },
+    {
+      "label": "just: build-site",
+      "type": "shell",
+      "command": "just build-site",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Build site Astro"
     }
   ]
 }
