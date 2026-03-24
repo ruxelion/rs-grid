@@ -377,7 +377,10 @@ impl GridState {
                 };
                 match &new_sort {
                     Some(s) => self.model.apply_sort(&s.col_key, &s.dir),
-                    None => self.model.sort_order.clear(),
+                    None => {
+                        self.model.sort_order.clear();
+                        self.model.invalidate_sort_cache();
+                    }
                 }
                 self.sort = new_sort;
                 // Reapply filter with updated sort order.

@@ -20,6 +20,49 @@ pub enum DataSourceMode {
     ServerSide,
 }
 
+// ── Sort key cache ──────────────────────────────────
+
+/// Cached pre-extracted sort keys for a single column.
+/// Avoids re-running the O(n) `get_cell` pass when
+/// toggling between Asc and Desc on the same column.
+#[derive(Default)]
+enum SortKeyCache {
+    /// No cache (initial state or invalidated).
+    #[default]
+    None,
+    /// All values parsed as f64 — compact 8 B/row.
+    Numeric { col_key: String, keys: Vec<f64> },
+    /// Mixed numeric + string values.
+    Mixed { col_key: String, keys: Vec<MixedSortKey> },
+}
+
+impl std::fmt::Debug for SortKeyCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => write!(f, "SortKeyCache::None"),
+            Self::Numeric { col_key, keys } => write!(
+                f,
+                "SortKeyCache::Numeric({}, {} keys)",
+                col_key,
+                keys.len()
+            ),
+            Self::Mixed { col_key, keys } => write!(
+                f,
+                "SortKeyCache::Mixed({}, {} keys)",
+                col_key,
+                keys.len()
+            ),
+        }
+    }
+}
+
+/// A single sort key for mixed (numeric + string) columns.
+enum MixedSortKey {
+    Num(f64),
+    Str(String),
+    Empty,
+}
+
 /// The data model: columns, a virtual data source, and sizing constants.
 #[derive(Debug)]
 pub struct GridModel {
@@ -41,6 +84,10 @@ pub struct GridModel {
     /// Logical→physical row index mapping built by `apply_sort`.
     /// Empty = natural (unsorted) order.
     pub sort_order: Vec<u64>,
+    /// Cached sort keys from the last `apply_sort` call.
+    /// Re-used when toggling direction on the same column
+    /// to skip the expensive O(n) extraction pass.
+    sort_key_cache: SortKeyCache,
     /// Number of leading columns that remain fixed during horizontal scroll.
     /// 0 = no pinned columns (default).
     pub pinned_count: usize,
@@ -93,6 +140,7 @@ impl GridModel {
             patches: HashMap::new(),
             row_number_width,
             sort_order: Vec::new(),
+            sort_key_cache: SortKeyCache::None,
             pinned_count: 0,
             filters: HashMap::new(),
             filtered_indices: Vec::new(),
@@ -180,8 +228,10 @@ impl GridModel {
                 self.sort_order[i]
             };
             let passes = self.filters.iter().all(|(col_key, text)| {
-                let cell =
-                    self.data.get_cell(physical, col_key).unwrap_or_default();
+                let cell = self
+                    .data
+                    .get_cell_ref(physical, col_key)
+                    .unwrap_or_default();
                 cell.to_ascii_lowercase()
                     .contains(&text.to_ascii_lowercase())
             });
@@ -227,12 +277,17 @@ impl GridModel {
     /// for `col_key`.
     ///
     /// Pre-extracts all sort keys in a single O(n) pass, then
-    /// sorts the pre-parsed keys. Numeric columns use a fast
-    /// f64 comparison path; mixed/string columns fall back to
-    /// lexicographic order.
+    /// sorts the pre-parsed keys. **When toggling direction on
+    /// the same column, the cached keys are re-used — skipping
+    /// the expensive extraction entirely.**
     ///
-    /// No-op for server-side sources or datasets > 1 000 000
-    /// rows.
+    /// - **Numeric columns** use a compact `Vec<f64>` (8 B/row)
+    ///   with `f64::total_cmp` for cache-friendly, branchless
+    ///   comparison.
+    /// - **Mixed / string columns** fall back to a
+    ///   `Vec<MixedSortKey>` with lexicographic comparison.
+    ///
+    /// No-op for server-side sources or > 1 000 000 rows.
     pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) {
         if self.mode == DataSourceMode::ServerSide {
             return;
@@ -243,12 +298,48 @@ impl GridModel {
             return;
         }
 
-        // ── Key extraction (single O(n) pass) ────────────
-        enum SortKey {
-            Num(f64),
-            Str(String),
-            Empty,
+        // ── Cache hit? Re-sort without extraction ────────
+        let cache_hit = match &self.sort_key_cache {
+            SortKeyCache::Numeric { col_key: k, keys }
+                if k == col_key && keys.len() == n as usize =>
+            {
+                true
+            }
+            SortKeyCache::Mixed { col_key: k, keys }
+                if k == col_key && keys.len() == n as usize =>
+            {
+                true
+            }
+            _ => false,
+        };
+
+        if cache_hit {
+            let mut indices: Vec<u64> = (0..n).collect();
+            let rev = *dir == SortDir::Desc;
+            match &self.sort_key_cache {
+                SortKeyCache::Numeric { keys, .. } => {
+                    indices.sort_unstable_by(|&a, &b| {
+                        let cmp = keys[a as usize]
+                            .total_cmp(&keys[b as usize]);
+                        if rev { cmp.reverse() } else { cmp }
+                    });
+                }
+                SortKeyCache::Mixed { keys, .. } => {
+                    indices.sort_unstable_by(|&a, &b| {
+                        let cmp = cmp_mixed(
+                            &keys[a as usize],
+                            &keys[b as usize],
+                        );
+                        if rev { cmp.reverse() } else { cmp }
+                    });
+                }
+                SortKeyCache::None => unreachable!(),
+            }
+            self.sort_order = indices;
+            return;
         }
+
+        // ── Cache miss — extract keys ────────────────────
 
         // For ImageText columns the raw value is
         // "{data_uri} {label}" — sort on the label only.
@@ -257,88 +348,101 @@ impl GridModel {
             .iter()
             .find(|c| c.key == col_key)
             .and_then(|c| c.format.as_ref())
-            .map_or(false, |f| f.is_image_text());
+            .is_some_and(|f| f.is_image_text());
 
-        let mut keys: Vec<SortKey> =
-            Vec::with_capacity(n as usize);
+        // Phase 1: try all-numeric fast path.
+        // Compact Vec<f64> (8 B/row) — 8 MB at 1M rows.
+        let len = n as usize;
+        let mut fkeys: Vec<f64> = Vec::with_capacity(len);
         let mut all_numeric = true;
+
         for i in 0..n {
-            match self.data.get_cell(i, col_key) {
+            match self.data.get_cell_ref(i, col_key) {
                 Some(s) => {
-                    let val = if is_image_text {
+                    let src = if is_image_text {
                         s.find(' ')
-                            .map(|i| s[i + 1..].to_owned())
-                            .unwrap_or(s)
+                            .map(|p| &s[p + 1..])
+                            .unwrap_or(&s)
                     } else {
-                        s
+                        &s
                     };
-                    if let Ok(f) = val.parse::<f64>() {
-                        keys.push(SortKey::Num(f));
+                    if let Ok(f) = src.parse::<f64>() {
+                        fkeys.push(f);
                     } else {
                         all_numeric = false;
-                        keys.push(SortKey::Str(val));
+                        break;
                     }
                 }
                 None => {
-                    keys.push(SortKey::Empty);
+                    fkeys.push(f64::NAN);
                 }
             }
         }
 
-        // ── Sort on pre-extracted keys ───────────────────
-        let mut indices: Vec<u64> = (0..n).collect();
-        let rev = *dir == SortDir::Desc;
-
         if all_numeric {
+            let mut indices: Vec<u64> = (0..n).collect();
+            let rev = *dir == SortDir::Desc;
             indices.sort_unstable_by(|&a, &b| {
-                let fa = match &keys[a as usize] {
-                    SortKey::Num(f) => *f,
-                    _ => f64::NAN,
-                };
-                let fb = match &keys[b as usize] {
-                    SortKey::Num(f) => *f,
-                    _ => f64::NAN,
-                };
-                let cmp = fa
-                    .partial_cmp(&fb)
-                    .unwrap_or(std::cmp::Ordering::Equal);
+                let cmp =
+                    fkeys[a as usize].total_cmp(&fkeys[b as usize]);
                 if rev { cmp.reverse() } else { cmp }
             });
-        } else {
-            indices.sort_unstable_by(|&a, &b| {
-                let cmp = match (
-                    &keys[a as usize],
-                    &keys[b as usize],
-                ) {
-                    (SortKey::Num(fa), SortKey::Num(fb)) => {
-                        fa.partial_cmp(fb).unwrap_or(
-                            std::cmp::Ordering::Equal,
-                        )
-                    }
-                    (SortKey::Str(sa), SortKey::Str(sb)) => {
-                        sa.cmp(sb)
-                    }
-                    (SortKey::Num(_), _) => {
-                        std::cmp::Ordering::Less
-                    }
-                    (_, SortKey::Num(_)) => {
-                        std::cmp::Ordering::Greater
-                    }
-                    (SortKey::Empty, SortKey::Empty) => {
-                        std::cmp::Ordering::Equal
-                    }
-                    (SortKey::Empty, _) => {
-                        std::cmp::Ordering::Greater
-                    }
-                    (_, SortKey::Empty) => {
-                        std::cmp::Ordering::Less
-                    }
-                };
-                if rev { cmp.reverse() } else { cmp }
-            });
+            self.sort_order = indices;
+            self.sort_key_cache = SortKeyCache::Numeric {
+                col_key: col_key.to_owned(),
+                keys: fkeys,
+            };
+            return;
         }
 
+        // Phase 2: mixed / string fallback.
+        drop(fkeys);
+
+        let mut keys: Vec<MixedSortKey> =
+            Vec::with_capacity(len);
+        for i in 0..n {
+            match self.data.get_cell_ref(i, col_key) {
+                Some(s) => {
+                    let val = if is_image_text {
+                        s.find(' ')
+                            .map(|p| &s[p + 1..])
+                            .unwrap_or(&s)
+                    } else {
+                        &s
+                    };
+                    if let Ok(f) = val.parse::<f64>() {
+                        keys.push(MixedSortKey::Num(f));
+                    } else {
+                        keys.push(MixedSortKey::Str(
+                            val.to_owned(),
+                        ));
+                    }
+                }
+                None => {
+                    keys.push(MixedSortKey::Empty);
+                }
+            }
+        }
+
+        let mut indices: Vec<u64> = (0..n).collect();
+        let rev = *dir == SortDir::Desc;
+        indices.sort_unstable_by(|&a, &b| {
+            let cmp =
+                cmp_mixed(&keys[a as usize], &keys[b as usize]);
+            if rev { cmp.reverse() } else { cmp }
+        });
+
         self.sort_order = indices;
+        self.sort_key_cache = SortKeyCache::Mixed {
+            col_key: col_key.to_owned(),
+            keys,
+        };
+    }
+
+    /// Invalidate the sort key cache (e.g. after a cell
+    /// edit that may affect sort order).
+    pub fn invalidate_sort_cache(&mut self) {
+        self.sort_key_cache = SortKeyCache::None;
     }
 
     /// Total width of the pinned (frozen) columns in logical pixels.
@@ -372,6 +476,28 @@ impl GridModel {
     /// Rebuild column offsets after columns are mutated.
     pub fn rebuild_offsets(&mut self) {
         self.column_offsets = ColumnOffsets::compute(&self.columns);
+    }
+}
+
+/// Compare two mixed sort keys: numbers < strings < empty.
+fn cmp_mixed(
+    a: &MixedSortKey,
+    b: &MixedSortKey,
+) -> std::cmp::Ordering {
+    match (a, b) {
+        (MixedSortKey::Num(fa), MixedSortKey::Num(fb)) => {
+            fa.total_cmp(fb)
+        }
+        (MixedSortKey::Str(sa), MixedSortKey::Str(sb)) => {
+            sa.cmp(sb)
+        }
+        (MixedSortKey::Num(_), _) => std::cmp::Ordering::Less,
+        (_, MixedSortKey::Num(_)) => std::cmp::Ordering::Greater,
+        (MixedSortKey::Empty, MixedSortKey::Empty) => {
+            std::cmp::Ordering::Equal
+        }
+        (MixedSortKey::Empty, _) => std::cmp::Ordering::Greater,
+        (_, MixedSortKey::Empty) => std::cmp::Ordering::Less,
     }
 }
 
@@ -638,5 +764,81 @@ mod tests {
         m.sort_order.clear();
         assert_eq!(m.logical_to_physical(0), 0);
         assert_eq!(m.logical_to_physical(99), 99);
+    }
+
+    #[test]
+    fn sort_cache_reused_on_direction_toggle() {
+        let mut m = make_numeric_model(1000);
+
+        // First sort — populates cache
+        m.apply_sort("v", &SortDir::Asc);
+        let asc_first = m.sort_order[0];
+        let asc_last = m.sort_order[999];
+        assert!(matches!(
+            m.sort_key_cache,
+            SortKeyCache::Numeric { .. }
+        ));
+
+        // Toggle to Desc — should hit cache
+        m.apply_sort("v", &SortDir::Desc);
+        assert_eq!(m.sort_order[0], asc_last);
+        assert_eq!(m.sort_order[999], asc_first);
+
+        // Cache still present
+        assert!(matches!(
+            m.sort_key_cache,
+            SortKeyCache::Numeric { .. }
+        ));
+    }
+
+    #[test]
+    fn sort_cache_invalidated_on_clear() {
+        let mut m = make_numeric_model(100);
+        m.apply_sort("v", &SortDir::Asc);
+        assert!(!matches!(
+            m.sort_key_cache,
+            SortKeyCache::None
+        ));
+        m.invalidate_sort_cache();
+        assert!(matches!(
+            m.sort_key_cache,
+            SortKeyCache::None
+        ));
+    }
+
+    #[test]
+    fn sort_cache_replaced_on_different_column() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        let rows: Vec<RowRecord> = (0..100)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", (100 - i).to_string());
+                r.set("b", (i + 1).to_string());
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+
+        m.apply_sort("a", &SortDir::Asc);
+        if let SortKeyCache::Numeric { col_key, .. } =
+            &m.sort_key_cache
+        {
+            assert_eq!(col_key, "a");
+        } else {
+            panic!("expected Numeric cache for col a");
+        }
+
+        // Sort on different column replaces cache
+        m.apply_sort("b", &SortDir::Asc);
+        if let SortKeyCache::Numeric { col_key, .. } =
+            &m.sort_key_cache
+        {
+            assert_eq!(col_key, "b");
+        } else {
+            panic!("expected Numeric cache for col b");
+        }
     }
 }
