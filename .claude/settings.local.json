@@ -1,7 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls -lh e:/Dev/rs-grid/site/rsgrid-*.mp4)",
+      "Bash(ffprobe -v quiet -print_format json -show_format -show_streams e:/Dev/rs-grid/site/rsgrid-720.mp4)",
+      "Bash(ffprobe.exe -v quiet -print_format json -show_format -show_streams e:/Dev/rs-grid/site/rsgrid-720.mp4)",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"$PATH:/c/Users/Admin/AppData/Local/Microsoft/WinGet/Links\")",
+      "Bash(ffmpeg -i e:/Dev/rs-grid/site/rsgrid-720.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid-720.mp4 -y)",
+      "Bash(find /c/ffmpeg* -name ffmpeg.exe)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/Admin/AppData/Local/**)",
+      "Bash(cmd.exe /C \"where ffmpeg\")",
+      "Bash(cmd.exe /C \"where ffmpeg 2>&1\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-Command ffmpeg -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(ls /c/ffmpeg*/bin/ffmpeg.exe)",
+      "Read(//c/ProgramData/chocolatey/bin/**)",
+      "Read(//c//**)",
+      "Read(//c/Users/Admin/**)",
+      "Bash(FFMPEG=\"/c/Users/Admin/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1-full_build/bin/ffmpeg.exe\")",
+      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/rsgrid-720.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid-720.mp4 -y)",
+      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/rsgrid-1080.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid-1080.mp4 -y)",
+      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k-opt.mp4 -y)",
+      "Bash(ls -lh e:/Dev/rs-grid/site/public/rsgrid4k*.mp4)",
+      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k-original.mp4 -vf scale=2560:1440 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -y)"
     ]
   }
 }

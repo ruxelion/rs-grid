@@ -2,11 +2,13 @@
 interface Props {
   title?: string;
   description?: string;
+  fullBleed?: boolean;
 }
 
 const {
-  title = 'rs-grid',
-  description = 'High-performance Rust/WASM data grid engine for the web',
+  title = "rs-grid",
+  description = "High-performance Rust/WASM data grid engine for the web",
+  fullBleed = false,
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -18,7 +20,7 @@ const currentPath = Astro.url.pathname;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <title>{title === 'rs-grid' ? 'rs-grid' : `${title} — rs-grid`}</title>
+    <title>{title === "rs-grid" ? "rs-grid" : `${title} — rs-grid`}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -34,13 +36,13 @@ const currentPath = Astro.url.pathname;
         </a>
         <ul class="nav-links">
           <li>
-            <a href="/" class:list={[{ active: currentPath === '/' }]}>Home</a>
+            <a href="/" class:list={[{ active: currentPath === "/" }]}>Home</a>
           </li>
           <li>
             <a
               href="/docs"
-              class:list={[{ active: currentPath.startsWith('/docs') }]}
-            >Docs</a>
+              class:list={[{ active: currentPath.startsWith("/docs") }]}>Docs</a
+            >
           </li>
         </ul>
         <div class="nav-cta">
@@ -57,7 +59,7 @@ const currentPath = Astro.url.pathname;
       </nav>
     </header>
 
-    <main>
+    <main class:list={[{ "no-pad": fullBleed }]}>
       <slot />
     </main>
 
@@ -76,17 +78,31 @@ const currentPath = Astro.url.pathname;
                 <a
                   href="https://github.com/bpodwinski/rs-grid"
                   target="_blank"
-                  rel="noopener"
-                >GitHub</a>
+                  rel="noopener">GitHub</a
+                >
               </li>
             </ul>
           </div>
           <div>
             <h4>Stack</h4>
             <ul>
-              <li><a href="https://www.rust-lang.org" target="_blank" rel="noopener">Rust</a></li>
-              <li><a href="https://webassembly.org" target="_blank" rel="noopener">WebAssembly</a></li>
-              <li><a href="https://leptos.dev" target="_blank" rel="noopener">Leptos</a></li>
+              <li>
+                <a
+                  href="https://www.rust-lang.org"
+                  target="_blank"
+                  rel="noopener">Rust</a
+                >
+              </li>
+              <li>
+                <a href="https://webassembly.org" target="_blank" rel="noopener"
+                  >WebAssembly</a
+                >
+              </li>
+              <li>
+                <a href="https://leptos.dev" target="_blank" rel="noopener"
+                  >Leptos</a
+                >
+              </li>
             </ul>
           </div>
         </div>
@@ -98,9 +114,9 @@ const currentPath = Astro.url.pathname;
 
     <script>
       // Sticky header shadow on scroll
-      const header = document.getElementById('site-header');
-      window.addEventListener('scroll', () => {
-        header?.classList.toggle('scrolled', window.scrollY > 10);
+      const header = document.getElementById("site-header");
+      window.addEventListener("scroll", () => {
+        header?.classList.toggle("scrolled", window.scrollY > 10);
       });
     </script>
   </body>
@@ -124,15 +140,17 @@ const currentPath = Astro.url.pathname;
     --text-muted: #9ca3af;
     --text-subtle: #6b7280;
 
-    --font: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-mono: 'Cascadia Code', 'Fira Code', monospace;
+    --font: "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "Cascadia Code", "Fira Code", monospace;
 
     --radius: 12px;
     --radius-sm: 8px;
     --radius-lg: 16px;
   }
 
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -199,16 +217,18 @@ const currentPath = Astro.url.pathname;
     left: 0;
     right: 0;
     z-index: 100;
-    background: rgba(10, 15, 30, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(10, 15, 30, 0);
     border-bottom: 1px solid transparent;
-    transition: border-color 0.2s, background 0.2s;
+    transition:
+      transparent 0.2s,
+      background 0.2s;
   }
 
   #site-header.scrolled {
-    background: rgba(10, 15, 30, 0.92);
+    background: rgba(10, 15, 30, 0.7);
     border-bottom-color: var(--border);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   nav {
@@ -252,7 +272,9 @@ const currentPath = Astro.url.pathname;
     font-weight: 500;
     color: var(--text-muted);
     border-radius: var(--radius-sm);
-    transition: color 0.15s, background 0.15s;
+    transition:
+      color 0.15s,
+      background 0.15s;
     text-decoration: none;
   }
 
@@ -276,7 +298,9 @@ const currentPath = Astro.url.pathname;
     padding: 0.4rem 1rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-strong);
-    transition: color 0.15s, border-color 0.15s;
+    transition:
+      color 0.15s,
+      border-color 0.15s;
     text-decoration: none;
   }
 
@@ -292,7 +316,9 @@ const currentPath = Astro.url.pathname;
     background: var(--primary);
     padding: 0.4rem 1.125rem;
     border-radius: var(--radius-sm);
-    transition: background 0.15s, transform 0.1s;
+    transition:
+      background 0.15s,
+      transform 0.1s;
     text-decoration: none;
   }
 
@@ -305,6 +331,10 @@ const currentPath = Astro.url.pathname;
   main {
     flex: 1;
     padding-top: 64px;
+  }
+
+  main.no-pad {
+    padding-top: 0;
   }
 
   /* ── Footer ── */
