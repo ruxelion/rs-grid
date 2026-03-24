@@ -1,6 +1,7 @@
 use crate::{
     commands::{CommandOutput, GridCommand},
     edit::EditCell,
+    format::{format_cell, CellFormat},
     hit_test,
     model::GridModel,
     search::SearchState,
@@ -512,13 +513,44 @@ impl GridState {
                     let label = &self.model.columns[col_idx].label;
                     let header_w = label.len() as f64 * header_char_width
                         + cell_padding * 2.0;
+                    let col_format =
+                        self.model.columns[col_idx].format.clone();
                     let row_count =
                         self.model.display_row_count().min(MAX_SAMPLE_ROWS);
                     let mut max_w = header_w;
                     for r in 0..row_count {
                         if let Some(val) = self.model.get_cell(r, &col_key) {
-                            let w = val.len() as f64 * char_width
-                                + cell_padding * 2.0;
+                            let w = match &col_format {
+                                Some(CellFormat::Image { .. }) => {
+                                    self.model.row_height
+                                        + cell_padding * 2.0
+                                }
+                                Some(CellFormat::ImageText {
+                                    image_size,
+                                    gap,
+                                    ..
+                                }) => {
+                                    let label_len = val
+                                        .find(' ')
+                                        .map(|i| val[i + 1..].len())
+                                        .unwrap_or(val.len());
+                                    image_size
+                                        + gap
+                                        + label_len as f64 * char_width
+                                        + cell_padding * 2.0
+                                }
+                                Some(fmt) => {
+                                    let formatted =
+                                        format_cell(&val, fmt);
+                                    formatted.text.len() as f64
+                                        * char_width
+                                        + cell_padding * 2.0
+                                }
+                                None => {
+                                    val.len() as f64 * char_width
+                                        + cell_padding * 2.0
+                                }
+                            };
                             if w > max_w {
                                 max_w = w;
                             }
@@ -983,6 +1015,44 @@ mod tests {
             cell_padding: 10.0,
         });
         assert_eq!(s.model.columns[0].width, old_width);
+    }
+
+    #[test]
+    fn auto_fit_image_text_ignores_base64() {
+        let cols = vec![ColumnDef {
+            key: "country".into(),
+            label: "Country".into(),
+            width: 100.0,
+            format: Some(CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 20.0,
+                border_radius: 0.0,
+                gap: 6.0,
+            }),
+            editor: None,
+        }];
+        // base64-like key + short label
+        let mut row = RowRecord::new(0);
+        row.set(
+            "country",
+            "data:image/png;base64,AAAA France".to_string(),
+        );
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+        });
+        let w = s.model.columns[0].width;
+        // image_size(20) + gap(6) + "France".len(6)*8 + pad*2(20) = 94
+        let expected = 20.0 + 6.0 + 6.0 * 8.0 + 10.0 * 2.0;
+        assert!(
+            (w - expected).abs() < 0.01,
+            "expected {expected}, got {w}"
+        );
     }
 
     // ── Undo / Redo ────────────────────────────────────────────────────────
