@@ -3,9 +3,14 @@
 
 set shell := ["cmd.exe", "/C"]
 
+tls_cert := ".certs\\localhost+2.pem"
+tls_key  := ".certs\\localhost+2-key.pem"
+
 # Liste des recettes disponibles
 default:
     @just --list
+
+# ── Cargo ────────────────────────────────────────────────
 
 # Vérification rapide (tout le workspace)
 check:
@@ -15,7 +20,7 @@ check:
 build:
     cargo build -p rs-grid-core
 
-# Tests unitaires
+# Tests unitaires (tout le workspace)
 test:
     cargo test --workspace
 
@@ -34,46 +39,23 @@ lint:
 # fmt + lint + test
 ci: fmt lint test
 
-# Build WASM (exemple Leptos)
-build-wasm:
-    cd examples\basic-leptos && trunk build
+# ── TLS ──────────────────────────────────────────────────
 
-# Serveur de développement Leptos (port 9081)
-serve:
-    cd examples\basic-leptos && trunk serve --address 0.0.0.0 --port 9081
+# Générer les certificats locaux (mkcert requis)
+tls-setup:
+    if not exist ".certs" mkdir .certs
+    cd .certs && mkcert localhost 127.0.0.1 ::1
 
-# Build WASM (exemple Dioxus)
-build-dioxus:
-    cd examples\basic-dioxus && trunk build
+# ── Examples ─────────────────────────────────────────────
 
-# Serveur de développement Dioxus (port 9081)
-serve-dioxus:
-    cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9081
+# Build WASM d'un exemple (leptos|dioxus|yew|js|react)
+build-wasm name:
+    @just _build-{{name}}
 
-# Build WASM (exemple Yew)
-build-yew:
-    cd examples\basic-yew && trunk build
-
-# Serveur de développement Yew (port 9082)
-serve-yew:
-    cd examples\basic-yew && trunk serve --address 0.0.0.0 --port 9082
-
-# Installer les dépendances Playwright (une seule fois)
-e2e-install:
-    cd e2e && npm install && npx playwright install chromium
-
-# Lancer les tests e2e (build WASM + tests Playwright)
-e2e:
-    cd examples\basic-leptos && trunk build
-    cd e2e && npm test
-
-# Build WASM pour l'exemple vanilla JS (wasm-pack)
-build-js:
-    wasm-pack build examples\basic-js --target web --out-dir pkg
-
-# Serveur de développement vanilla JS (port 9080)
-serve-js: build-js
-    cd examples\basic-js && python -m http.server 9080
+# Serveur de dev d'un exemple (leptos|dioxus|yew|js|react)
+serve name:
+    @just _build-{{name}}
+    @just _serve-{{name}}
 
 # Scaffolder un nouvel exemple wasm-bindgen
 new-example name:
@@ -84,34 +66,71 @@ new-example name:
     @echo Next steps:
     @echo   1. Rename .tmpl files and replace placeholders
     @echo   2. Add "examples\{{name}}" to [workspace] members in Cargo.toml
-    @echo   3. just build-example {{name}}
-    @echo   4. just serve-example {{name}}
+    @echo   3. just build-wasm {{name}}
+    @echo   4. just serve {{name}}
 
-# Build WASM pour un exemple donné (wasm-pack)
-build-example name:
-    wasm-pack build examples\{{name}} --target web --out-dir pkg
+[private]
+_build-leptos:
+    cd examples\basic-leptos && trunk build
 
-# Servir un exemple donné (port 9080)
-serve-example name:
-    just build-example {{name}}
-    cd examples\{{name}} && python -m http.server 9080
+[private]
+_serve-leptos:
+    cd examples\basic-leptos && trunk serve --address 0.0.0.0 --port 9081 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
 
-# Build WASM puis app React (port 9083)
-build-react: build-js
+[private]
+_build-dioxus:
+    cd examples\basic-dioxus && trunk build
+
+[private]
+_serve-dioxus:
+    cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9082 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
+
+[private]
+_build-yew:
+    cd examples\basic-yew && trunk build
+
+[private]
+_serve-yew:
+    cd examples\basic-yew && trunk serve --address 0.0.0.0 --port 9083 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
+
+[private]
+_build-js:
+    wasm-pack build examples\basic-js --target web --out-dir pkg
+
+[private]
+_serve-js:
+    cd examples\basic-js && python -m http.server 9080
+
+[private]
+_build-react:
+    just _build-js
     cd examples\basic-react && npm run build
 
-# Serveur de développement React (port 9083)
-serve-react: build-js
+[private]
+_serve-react:
     cd examples\basic-react && npm run dev
+
+# ── E2E (Playwright) ─────────────────────────────────────
+
+# Installer les dépendances Playwright (une seule fois)
+e2e-install:
+    cd e2e && npm install && npx playwright install chromium
+
+# Lancer les tests e2e (build Leptos + Playwright)
+e2e:
+    just _build-leptos
+    cd e2e && npm test
 
 # Regénérer les screenshots de référence
 e2e-update-snapshots:
-    cd examples\basic-leptos && trunk build
+    just _build-leptos
     cd e2e && npm run update-snapshots
+
+# ── Site (RSPress) ───────────────────────────────────────
 
 # Build WASM demo et copie dans le site
 build-site-wasm:
-    wasm-pack build examples\basic-js --target web --out-dir pkg
+    just _build-js
     if not exist "site\docs\public\wasm" mkdir "site\docs\public\wasm"
     robocopy examples\basic-js\pkg site\docs\public\wasm basic_js.js basic_js_bg.wasm /IS /IT || exit 0
 

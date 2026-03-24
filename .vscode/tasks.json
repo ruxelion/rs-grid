@@ -62,18 +62,25 @@
     {
       "label": "just: build-wasm",
       "type": "shell",
-      "command": "just build-wasm",
+      "command": "just build-wasm ${input:example}",
       "group": "build",
       "problemMatcher": [],
-      "detail": "trunk build (exemple Leptos)"
+      "detail": "Build WASM d'un exemple"
     },
     {
       "label": "just: serve",
       "type": "shell",
-      "command": "just serve",
+      "command": "just serve ${input:example}",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "trunk serve Leptos (port 9081)"
+      "detail": "Serveur de dev d'un exemple"
+    },
+    {
+      "label": "just: e2e-install",
+      "type": "shell",
+      "command": "just e2e-install",
+      "problemMatcher": [],
+      "detail": "Installer Playwright + Chromium"
     },
     {
       "label": "just: e2e",
@@ -81,71 +88,7 @@
       "command": "just e2e",
       "group": "test",
       "problemMatcher": [],
-      "detail": "Build WASM + tests Playwright"
-    },
-    {
-      "label": "just: build-dioxus",
-      "type": "shell",
-      "command": "just build-dioxus",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "trunk build (exemple Dioxus)"
-    },
-    {
-      "label": "just: serve-dioxus",
-      "type": "shell",
-      "command": "just serve-dioxus",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "trunk serve Dioxus (port 9081)"
-    },
-    {
-      "label": "just: build-yew",
-      "type": "shell",
-      "command": "just build-yew",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "trunk build (exemple Yew)"
-    },
-    {
-      "label": "just: serve-yew",
-      "type": "shell",
-      "command": "just serve-yew",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "trunk serve Yew (port 9082)"
-    },
-    {
-      "label": "just: build-react",
-      "type": "shell",
-      "command": "just build-react",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "wasm-pack build + npm run build (exemple React)"
-    },
-    {
-      "label": "just: serve-react",
-      "type": "shell",
-      "command": "just serve-react",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "trunk serve React (port 9083)"
-    },
-    {
-      "label": "just: build-js",
-      "type": "shell",
-      "command": "just build-js",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "wasm-pack build (exemple vanilla JS)"
-    },
-    {
-      "label": "just: serve-js",
-      "type": "shell",
-      "command": "just serve-js",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "Build + serve exemple vanilla JS (port 9080)"
+      "detail": "Build Leptos + tests Playwright"
     },
     {
       "label": "just: e2e-update-snapshots",
@@ -155,12 +98,12 @@
       "detail": "Regénérer screenshots de référence"
     },
     {
-      "label": "just: docs",
+      "label": "just: build-site-wasm",
       "type": "shell",
-      "command": "just docs",
-      "isBackground": true,
+      "command": "just build-site-wasm",
+      "group": "build",
       "problemMatcher": [],
-      "detail": "Mintlify dev server (port 3000)"
+      "detail": "Build WASM demo + copie dans le site"
     },
     {
       "label": "just: site",
@@ -168,7 +111,7 @@
       "command": "just site",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "Astro dev server (port 4321)"
+      "detail": "RSPress dev server (port 5173)"
     },
     {
       "label": "just: build-site",
@@ -176,7 +119,16 @@
       "command": "just build-site",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build site Astro"
+      "detail": "Build site RSPress (avec démo WASM)"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "example",
+      "type": "pickString",
+      "description": "Exemple à lancer",
+      "options": ["leptos", "dioxus", "yew", "js", "react"],
+      "default": "leptos"
     }
   ]
 }

@@ -126,21 +126,35 @@ impl GridCanvas {
         }
     }
 
-    // ── clipboard write (execCommand fallback) ───────────
+    // ── clipboard write ──────────────────────────────────
 
-    /// Write text to the clipboard without requiring a
-    /// secure context.  Stores the text in
-    /// `pending_clipboard`, creates a temporary `<textarea>`
-    /// with a DOM selection, and fires
-    /// `document.execCommand("copy")`.  The synchronous
-    /// `copy` event handler picks up the pending text and
-    /// writes it via `clipboardData.setData`.
+    /// Write text to the clipboard.
     ///
-    /// Falls back to the async Clipboard API when
-    /// `execCommand` fails (e.g. the browser removed it).
+    /// Tries the async Clipboard API first (requires secure
+    /// context).  Falls back to `execCommand("copy")` via a
+    /// temporary `<textarea>` + the `pending_clipboard` slot
+    /// consumed by the document-level `copy` handler.
     fn write_clipboard(&self, text: String) {
-        *self.0.pending_clipboard.borrow_mut() = Some(text);
+        // Clipboard API available in secure contexts only.
+        let window = web_sys::window().expect("no window");
+        let nav = window.navigator();
+        let clipboard: wasm_bindgen::JsValue = nav.clipboard().into();
+        if !clipboard.is_undefined() {
+            let cb: web_sys::Clipboard = clipboard.unchecked_into();
+            let promise = cb.write_text(&text);
+            wasm_bindgen_futures::spawn_local(async move {
+                if let Err(e) =
+                    wasm_bindgen_futures::JsFuture::from(promise).await
+                {
+                    web_sys::console::warn_1(&e);
+                }
+            });
+            return;
+        }
 
+        // Fallback: execCommand("copy") for non-secure
+        // contexts (e.g. HTTP on LAN).
+        *self.0.pending_clipboard.borrow_mut() = Some(text);
         let doc = document();
         let html_doc: web_sys::HtmlDocument =
             doc.clone().dyn_into().expect("cast to HtmlDocument");
@@ -162,24 +176,7 @@ impl GridCanvas {
         ta.select();
         let _ = html_doc.exec_command("copy");
         ta.remove();
-        // Restore focus to the canvas after the temporary
-        // textarea stole it.
         let _ = self.0.canvas.focus();
-
-        // If execCommand didn't trigger copy (pending still
-        // set), fall back to async Clipboard API.
-        if let Some(text) = self.0.pending_clipboard.borrow_mut().take() {
-            let window = web_sys::window().expect("no window");
-            let clipboard = window.navigator().clipboard();
-            let promise = clipboard.write_text(&text);
-            wasm_bindgen_futures::spawn_local(async move {
-                if let Err(e) =
-                    wasm_bindgen_futures::JsFuture::from(promise).await
-                {
-                    web_sys::console::warn_1(&e);
-                }
-            });
-        }
     }
 
     fn warn_too_many(op: &str, actual: u64, max: u64) {

@@ -466,11 +466,16 @@ impl GridCanvas {
                     shortcut,
                 } => {
                     let action = *action;
+                    let secure = web_sys::window()
+                        .map(|w| w.is_secure_context())
+                        .unwrap_or(false);
                     let enabled = match action {
                         BuiltinAction::Cut
                         | BuiltinAction::Copy
-                        | BuiltinAction::CopyWithHeaders
-                        | BuiltinAction::Paste => has_selection,
+                        | BuiltinAction::CopyWithHeaders => has_selection,
+                        BuiltinAction::Paste => {
+                            has_selection && secure
+                        }
                         _ => true,
                     };
                     let lbl = label.as_deref().unwrap_or(builtin_label(action));
@@ -509,7 +514,8 @@ impl GridCanvas {
                         return;
                     }
                     let win = web_sys::window().expect("no window");
-                    let promise = win.navigator().clipboard().read_text();
+                    let promise =
+                        win.navigator().clipboard().read_text();
                     let gc2 = gc.clone();
                     wasm_bindgen_futures::spawn_local(async move {
                         match wasm_bindgen_futures::JsFuture::from(promise)
@@ -517,7 +523,9 @@ impl GridCanvas {
                         {
                             Ok(val) => {
                                 if let Some(text) = val.as_string() {
-                                    gc2.dispatch(GridCommand::PasteAt { text });
+                                    gc2.dispatch(GridCommand::PasteAt {
+                                        text,
+                                    });
                                 }
                             }
                             Err(e) => {
