@@ -43,7 +43,7 @@ ci: fmt lint test
 
 # Générer les certificats locaux (mkcert requis)
 tls-setup:
-    if not exist ".certs" mkdir .certs
+    mkdir .certs 2>nul || exit 0
     cd .certs && mkcert localhost 127.0.0.1 ::1
 
 # ── Examples ─────────────────────────────────────────────

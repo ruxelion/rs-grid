@@ -76,6 +76,13 @@
       "detail": "Serveur de dev d'un exemple"
     },
     {
+      "label": "just: tls-setup",
+      "type": "shell",
+      "command": "just tls-setup",
+      "problemMatcher": [],
+      "detail": "Générer les certificats TLS locaux (mkcert requis)"
+    },
+    {
       "label": "just: e2e-install",
       "type": "shell",
       "command": "just e2e-install",
