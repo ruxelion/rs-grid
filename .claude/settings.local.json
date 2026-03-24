@@ -39,7 +39,16 @@
       "Bash(find /e/Dev/rs-grid/site/doc_build -name *data* -type f)",
       "Bash(wasm-pack build:*)",
       "Bash(cp \"e:/Dev/rs-grid/examples/basic-js/pkg/basic_js.js\" \"e:/Dev/rs-grid/site/docs/public/wasm/\")",
-      "Bash(cp \"e:/Dev/rs-grid/examples/basic-js/pkg/basic_js_bg.wasm\" \"e:/Dev/rs-grid/site/docs/public/wasm/\")"
+      "Bash(cp \"e:/Dev/rs-grid/examples/basic-js/pkg/basic_js_bg.wasm\" \"e:/Dev/rs-grid/site/docs/public/wasm/\")",
+      "Bash(cargo search:*)",
+      "Bash(curl -s https://crates.io/api/v1/crates/dioxus/versions)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(v[''''num'''']\\) for v in data[''''versions''''][:10]]\")",
+      "Bash(cargo add:*)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(v[''''num'''']\\) for v in data[''''versions''''] if v[''''num''''].startswith\\(''''0.6''''\\)]\")",
+      "Bash(cargo check:*)",
+      "Bash(trunk build:*)",
+      "Bash(just build-dioxus:*)",
+      "Bash(strings e:/Dev/rs-grid/examples/basic-dioxus/dist/*.wasm)"
     ]
   }
 }
