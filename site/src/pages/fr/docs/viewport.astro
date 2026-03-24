@@ -1,0 +1,76 @@
+---
+import DocsLayout from '../../../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Viewport" description="Virtualisation du viewport dans rs-grid">
+  <h1>Viewport</h1>
+  <p class="lead">
+    Le viewport est la fenêtre sur les données de la grille. Seules les cellules
+    qui intersectent la zone visible sont passées au renderer, quel que soit le
+    nombre total de lignes ou colonnes.
+  </p>
+
+  <h2>ViewportState</h2>
+  <p>
+    <code>ViewportState</code> vit dans <code>GridState</code> et suit quatre valeurs :
+  </p>
+  <table>
+    <thead>
+      <tr><th>Champ</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>scroll_x</code></td><td><code>f64</code></td><td>Offset de scroll horizontal en pixels</td></tr>
+      <tr><td><code>scroll_y</code></td><td><code>f64</code></td><td>Offset de scroll vertical en pixels</td></tr>
+      <tr><td><code>width</code></td><td><code>f64</code></td><td>Largeur du canvas en pixels CSS</td></tr>
+      <tr><td><code>height</code></td><td><code>f64</code></td><td>Hauteur du canvas en pixels CSS</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Les valeurs sont en pixels CSS. Le renderer applique le ratio de pixels
+    (DPR) lors des appels de dessin.
+  </p>
+
+  <h2>Colonnes visibles</h2>
+  <p>
+    Les offsets de colonnes sont précalculés dans un tableau de sommes préfixées.
+    Avec <code>scroll_x</code> et <code>width</code>, la première et dernière
+    colonne visible sont trouvées par recherche binaire —
+    <strong>O(log n)</strong> quel que soit le nombre de colonnes.
+  </p>
+
+  <h2>Limites du nombre de lignes</h2>
+  <p>
+    Les index de lignes utilisent <code>u64</code>. La limite pratique avec des
+    offsets de scroll <code>f64</code> est ~9 × 10¹⁴ lignes avant dégradation
+    de la précision flottante.
+  </p>
+  <div class="callout">
+    <strong>Important :</strong> Les index de lignes sont toujours <code>u64</code>,
+    jamais <code>usize</code>. Sur wasm32, <code>usize</code> est 32 bits et ne
+    peut pas adresser tout l'espace de lignes.
+  </div>
+
+  <h2>Scrolling</h2>
+  <p>Envoyez une commande de scroll pour mettre à jour le viewport :</p>
+  <pre><code>grid_state.apply(GridCommand::ScrollTo &#123;
+    x: new_scroll_x,
+    y: new_scroll_y,
+&#125;);</code></pre>
+  <p>
+    La couche d'intégration web (<code>rs-grid-web</code>) traduit automatiquement
+    les événements wheel du navigateur en commandes de scroll.
+  </p>
+
+  <h2>Redimensionnement</h2>
+  <p>
+    Lorsque le canvas est redimensionné, mettez à jour les dimensions du viewport :
+  </p>
+  <pre><code>grid_state.apply(GridCommand::Resize &#123;
+    width: new_width,
+    height: new_height,
+&#125;);</code></pre>
+  <p>
+    Le composant Leptos observe un <code>ResizeObserver</code> et dispatch cette
+    commande automatiquement.
+  </p>
+</DocsLayout>

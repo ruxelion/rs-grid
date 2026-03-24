@@ -23,7 +23,9 @@
       "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/rsgrid-1080.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid-1080.mp4 -y)",
       "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k-opt.mp4 -y)",
       "Bash(ls -lh e:/Dev/rs-grid/site/public/rsgrid4k*.mp4)",
-      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k-original.mp4 -vf scale=2560:1440 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -y)"
+      "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k-original.mp4 -vf scale=2560:1440 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -y)",
+      "Bash(npx astro:*)",
+      "Bash(npx skills:*)"
     ]
   }
 }

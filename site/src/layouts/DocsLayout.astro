@@ -1,5 +1,6 @@
 ---
 import Base from './Base.astro';
+import { getLangFromUrl, t, localePath } from '../i18n/utils';
 
 interface Props {
   title?: string;
@@ -10,29 +11,30 @@ interface Props {
 const { title, description, frontmatter } = Astro.props;
 const pageTitle = frontmatter?.title ?? title;
 const pageDesc = frontmatter?.description ?? description;
+const lang = getLangFromUrl(Astro.url);
 const currentPath = Astro.url.pathname;
 
 const navGroups = [
   {
-    label: 'Getting started',
+    label: t(lang, 'docs.nav.gettingStarted'),
     items: [
-      { href: '/docs', label: 'Overview' },
-      { href: '/docs/getting-started', label: 'Installation' },
-      { href: '/docs/leptos', label: 'Leptos integration' },
+      { href: localePath(lang, '/docs'), label: t(lang, 'docs.nav.overview') },
+      { href: localePath(lang, '/docs/getting-started'), label: t(lang, 'docs.nav.installation') },
+      { href: localePath(lang, '/docs/leptos'), label: t(lang, 'docs.nav.leptos') },
     ],
   },
   {
-    label: 'Core concepts',
+    label: t(lang, 'docs.nav.coreConcepts'),
     items: [
-      { href: '/docs/architecture', label: 'Architecture' },
-      { href: '/docs/viewport', label: 'Viewport' },
-      { href: '/docs/selection', label: 'Selection' },
+      { href: localePath(lang, '/docs/architecture'), label: t(lang, 'docs.nav.architecture') },
+      { href: localePath(lang, '/docs/viewport'), label: t(lang, 'docs.nav.viewport') },
+      { href: localePath(lang, '/docs/selection'), label: t(lang, 'docs.nav.selection') },
     ],
   },
   {
-    label: 'Deployment',
+    label: t(lang, 'docs.nav.deployment'),
     items: [
-      { href: '/docs/docker', label: 'Docker' },
+      { href: localePath(lang, '/docs/docker'), label: t(lang, 'docs.nav.docker') },
     ],
   },
 ];

@@ -1,0 +1,632 @@
+---
+import type { Lang } from '../i18n/translations';
+import { t, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<!-- Hero -->
+<section class="hero">
+  <video class="hero-bg-video" autoplay loop muted playsinline>
+    <source src="/rsgrid4k.mp4" type="video/mp4" />
+  </video>
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      {t(lang, 'hero.badge')}
+    </div>
+
+    <h1>
+      {t(lang, 'hero.title1')}<br />
+      <span class="gradient-text">{t(lang, 'hero.title2')}</span>
+    </h1>
+
+    <p class="hero-sub">{t(lang, 'hero.sub')}</p>
+
+    <div class="hero-actions">
+      <a href={localePath(lang, '/docs')} class="btn-primary">
+        {t(lang, 'hero.cta')}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M3 8h10M9 4l4 4-4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+      </a>
+      <a
+        href="https://github.com/bpodwinski/rs-grid"
+        target="_blank"
+        rel="noopener"
+        class="btn-outline"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+          ></path>
+        </svg>
+        {t(lang, 'hero.github')}
+      </a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-value">10M+</span>
+        <span class="stat-label">{t(lang, 'hero.stat.rows')}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-value">60fps</span>
+        <span class="stat-label">{t(lang, 'hero.stat.fps')}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-value">O(log n)</span>
+        <span class="stat-label">{t(lang, 'hero.stat.hit')}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-value">5</span>
+        <span class="stat-label">{t(lang, 'hero.stat.crates')}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">{t(lang, 'features.tag')}</span>
+      <h2>{t(lang, 'features.title')}</h2>
+      <p>{t(lang, 'features.sub')}</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+          </svg>
+        </div>
+        <h3>{t(lang, 'features.viewport.title')}</h3>
+        <p>{t(lang, 'features.viewport.desc')}</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 8v4l3 3"></path>
+          </svg>
+        </div>
+        <h3>{t(lang, 'features.rust.title')}</h3>
+        <p>{t(lang, 'features.rust.desc')}</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect>
+          </svg>
+        </div>
+        <h3>{t(lang, 'features.renderer.title')}</h3>
+        <p>{t(lang, 'features.renderer.desc')}</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <h3>{t(lang, 'features.leptos.title')}</h3>
+        <p>{t(lang, 'features.leptos.desc')}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">{t(lang, 'arch.tag')}</span>
+      <h2>{t(lang, 'arch.title')}</h2>
+      <p>{t(lang, 'arch.sub')}</p>
+    </div>
+
+    <div class="arch-pipeline">
+      <div class="arch-step">
+        <div class="arch-step-name">GridState</div>
+        <div class="arch-step-desc">model · viewport · selection</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-step">
+        <div class="arch-step-name">SceneBuilder</div>
+        <div class="arch-step-desc">rs-grid-scene</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-step">
+        <div class="arch-step-name">SceneFrame</div>
+        <div class="arch-step-desc">primitives</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-step">
+        <div class="arch-step-name">CanvasRenderer</div>
+        <div class="arch-step-desc">rs-grid-render-canvas</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-step arch-step-output">
+        <div class="arch-step-name">&lt;canvas&gt;</div>
+        <div class="arch-step-desc">browser</div>
+      </div>
+    </div>
+
+    <div class="crates-grid">
+      <div class="crate-card">
+        <code>rs-grid-core</code>
+        <p>{t(lang, 'arch.core')}</p>
+      </div>
+      <div class="crate-card">
+        <code>rs-grid-scene</code>
+        <p>{t(lang, 'arch.scene')}</p>
+      </div>
+      <div class="crate-card">
+        <code>rs-grid-render-canvas</code>
+        <p>{t(lang, 'arch.render')}</p>
+      </div>
+      <div class="crate-card">
+        <code>rs-grid-web</code>
+        <p>{t(lang, 'arch.web')}</p>
+      </div>
+      <div class="crate-card">
+        <code>rs-grid-leptos</code>
+        <p>{t(lang, 'arch.leptos')}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container">
+    <div class="cta-box">
+      <div class="cta-glow"></div>
+      <h2>{t(lang, 'cta.title')}</h2>
+      <p>{t(lang, 'cta.sub')}</p>
+      <div class="cta-actions">
+        <a href={localePath(lang, '/docs')} class="btn-primary">{t(lang, 'cta.docs')}</a>
+        <a
+          href="https://github.com/bpodwinski/rs-grid"
+          target="_blank"
+          rel="noopener"
+          class="btn-outline">GitHub &nearr;</a
+        >
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .hero {
+    position: relative;
+    padding: 7rem 0 5rem;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(59, 130, 246, 0.18) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 999px;
+    padding: 0.35rem 1rem;
+    margin-bottom: 2rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3b82f6;
+    box-shadow: 0 0 6px #3b82f6;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #3b82f6 0%, #a78bfa 50%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 4rem;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition:
+      background 0.15s,
+      transform 0.1s,
+      box-shadow 0.15s;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    text-decoration: none;
+    transition:
+      color 0.15s,
+      border-color 0.15s,
+      transform 0.1s;
+  }
+
+  .btn-outline:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .hero-bg-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.18;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .hero .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-subtle);
+    margin-top: 0.15rem;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--border);
+  }
+
+  .section {
+    padding: 5rem 0;
+  }
+
+  .section-alt {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.03) 50%,
+      transparent 100%
+    );
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+  }
+
+  .section-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    margin-bottom: 0.875rem;
+  }
+
+  .section-header h2 {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  .section-header p {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+  }
+
+  .feature-card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+  }
+
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    margin-bottom: 1.25rem;
+  }
+
+  .feature-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-card p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  .arch-pipeline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .arch-step {
+    text-align: center;
+    padding: 0.75rem 1rem;
+    background: rgba(59, 130, 246, 0.07);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: var(--radius-sm);
+  }
+
+  .arch-step-output {
+    background: rgba(56, 189, 248, 0.07);
+    border-color: rgba(56, 189, 248, 0.25);
+  }
+
+  .arch-step-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+
+  .arch-step-desc {
+    font-size: 0.7rem;
+    color: var(--text-subtle);
+    margin-top: 0.2rem;
+  }
+
+  .arch-arrow {
+    color: var(--text-subtle);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .crates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .crate-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    transition: border-color 0.2s;
+  }
+
+  .crate-card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .crate-card code {
+    display: block;
+    margin-bottom: 0.625rem;
+    font-size: 0.8rem;
+  }
+
+  .crate-card p {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .cta-section {
+    padding-bottom: 3rem;
+  }
+
+  .cta-box {
+    position: relative;
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 300px;
+    background: radial-gradient(
+      ellipse,
+      rgba(59, 130, 246, 0.15) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .cta-box h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+
+  .cta-box p {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+</style>

@@ -1,4 +1,7 @@
 ---
+import { getLangFromUrl, t, localePath, switchLangPath } from '../i18n/utils';
+import { languages } from '../i18n/translations';
+
 interface Props {
   title?: string;
   description?: string;
@@ -11,11 +14,14 @@ const {
   fullBleed = false,
 } = Astro.props;
 
+const lang = getLangFromUrl(Astro.url);
 const currentPath = Astro.url.pathname;
+const switchPath = switchLangPath(Astro.url);
+const altLang = lang === 'en' ? 'fr' : 'en';
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,21 +37,22 @@ const currentPath = Astro.url.pathname;
   <body>
     <header id="site-header">
       <nav>
-        <a href="/" class="logo">
+        <a href={localePath(lang, '/')} class="logo">
           <span class="logo-accent">rs</span>-grid
         </a>
         <ul class="nav-links">
           <li>
-            <a href="/" class:list={[{ active: currentPath === "/" }]}>Home</a>
+            <a href={localePath(lang, '/')} class:list={[{ active: currentPath === localePath(lang, '/') }]}>{t(lang, 'nav.home')}</a>
           </li>
           <li>
             <a
-              href="/docs"
-              class:list={[{ active: currentPath.startsWith("/docs") }]}>Docs</a
+              href={localePath(lang, '/docs')}
+              class:list={[{ active: currentPath.startsWith(localePath(lang, '/docs')) }]}>{t(lang, 'nav.docs')}</a
             >
           </li>
         </ul>
         <div class="nav-cta">
+          <a href={switchPath} class="btn-lang">{languages[altLang]}</a>
           <a
             href="https://github.com/bpodwinski/rs-grid"
             target="_blank"
@@ -54,7 +61,7 @@ const currentPath = Astro.url.pathname;
           >
             GitHub ↗
           </a>
-          <a href="/docs" class="btn-primary-sm">Get started</a>
+          <a href={localePath(lang, '/docs')} class="btn-primary-sm">{t(lang, 'nav.getStarted')}</a>
         </div>
       </nav>
     </header>
@@ -67,13 +74,13 @@ const currentPath = Astro.url.pathname;
       <div class="footer-inner">
         <div class="footer-brand">
           <span class="logo-accent">rs</span>-grid
-          <p>High-performance Rust/WASM data grid engine.</p>
+          <p>{t(lang, 'footer.desc')}</p>
         </div>
         <div class="footer-links">
           <div>
-            <h4>Project</h4>
+            <h4>{t(lang, 'footer.project')}</h4>
             <ul>
-              <li><a href="/docs">Documentation</a></li>
+              <li><a href={localePath(lang, '/docs')}>{t(lang, 'footer.documentation')}</a></li>
               <li>
                 <a
                   href="https://github.com/bpodwinski/rs-grid"
@@ -84,7 +91,7 @@ const currentPath = Astro.url.pathname;
             </ul>
           </div>
           <div>
-            <h4>Stack</h4>
+            <h4>{t(lang, 'footer.stack')}</h4>
             <ul>
               <li>
                 <a
@@ -108,7 +115,7 @@ const currentPath = Astro.url.pathname;
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2025 rs-grid. Open source under MIT license.</p>
+        <p>{t(lang, 'footer.copyright')}</p>
       </div>
     </footer>
 
@@ -289,6 +296,22 @@ const currentPath = Astro.url.pathname;
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
+  }
+
+  .btn-lang {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-subtle);
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    transition: color 0.15s, border-color 0.15s;
+    text-decoration: none;
+  }
+
+  .btn-lang:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
   }
 
   .btn-outline-sm {
