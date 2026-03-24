@@ -17,7 +17,10 @@ pub use crate::format::{format_cell, CellAlign, CellFormat, FormattedCell};
 ///     v.parse::<u32>().map(|_| ()).map_err(|_| "not a number".into())
 /// })
 /// ```
-pub struct CellValidator(pub Rc<dyn Fn(&str) -> Result<(), String>>);
+/// Validation callback type alias.
+pub type ValidateFn = dyn Fn(&str) -> Result<(), String>;
+
+pub struct CellValidator(pub Rc<ValidateFn>);
 
 impl CellValidator {
     /// Create a new validator from a closure.

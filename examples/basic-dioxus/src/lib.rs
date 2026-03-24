@@ -86,7 +86,7 @@ fn remount(
 fn App() -> Element {
     let mut row_count = use_signal(|| 1_000u64);
     let mut col_count = use_signal(|| 20usize);
-    let mut theme_class = use_signal(|| String::new());
+    let mut theme_class = use_signal(String::new);
 
     // GridCanvas and HtmlCanvasElement are Rc-backed and not Send.
     // use_hook stores them in the component scope without Send requirements.

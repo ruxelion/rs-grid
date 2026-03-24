@@ -104,6 +104,7 @@ _serve-js:
 [private]
 _build-react:
     just _build-js
+    cd examples\basic-react && npm install
     cd examples\basic-react && npm run build
 
 [private]

@@ -223,9 +223,16 @@ impl GridModel {
         self.patches.insert((physical, col_key.into()), value);
     }
 
-    /// Build `sort_order` by sorting row indices by cell values for `col_key`.
-    /// Tries numeric comparison first, falls back to lexicographic.
-    /// No-op for datasources with more than 1 000 000 rows.
+    /// Build `sort_order` by sorting row indices by cell values
+    /// for `col_key`.
+    ///
+    /// Pre-extracts all sort keys in a single O(n) pass, then
+    /// sorts the pre-parsed keys. Numeric columns use a fast
+    /// f64 comparison path; mixed/string columns fall back to
+    /// lexicographic order.
+    ///
+    /// No-op for server-side sources or datasets > 1 000 000
+    /// rows.
     pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) {
         if self.mode == DataSourceMode::ServerSide {
             return;
@@ -235,22 +242,102 @@ impl GridModel {
         if n > MAX_SORT_ROWS {
             return;
         }
-        let mut indices: Vec<u64> = (0..n).collect();
-        indices.sort_by(|&a, &b| {
-            let va = self.data.get_cell(a, col_key).unwrap_or_default();
-            let vb = self.data.get_cell(b, col_key).unwrap_or_default();
-            let cmp = match (va.parse::<f64>(), vb.parse::<f64>()) {
-                (Ok(fa), Ok(fb)) => {
-                    fa.partial_cmp(&fb).unwrap_or(std::cmp::Ordering::Equal)
+
+        // ── Key extraction (single O(n) pass) ────────────
+        enum SortKey {
+            Num(f64),
+            Str(String),
+            Empty,
+        }
+
+        // For ImageText columns the raw value is
+        // "{data_uri} {label}" — sort on the label only.
+        let is_image_text = self
+            .columns
+            .iter()
+            .find(|c| c.key == col_key)
+            .and_then(|c| c.format.as_ref())
+            .map_or(false, |f| f.is_image_text());
+
+        let mut keys: Vec<SortKey> =
+            Vec::with_capacity(n as usize);
+        let mut all_numeric = true;
+        for i in 0..n {
+            match self.data.get_cell(i, col_key) {
+                Some(s) => {
+                    let val = if is_image_text {
+                        s.find(' ')
+                            .map(|i| s[i + 1..].to_owned())
+                            .unwrap_or(s)
+                    } else {
+                        s
+                    };
+                    if let Ok(f) = val.parse::<f64>() {
+                        keys.push(SortKey::Num(f));
+                    } else {
+                        all_numeric = false;
+                        keys.push(SortKey::Str(val));
+                    }
                 }
-                _ => va.cmp(&vb),
-            };
-            if *dir == SortDir::Desc {
-                cmp.reverse()
-            } else {
-                cmp
+                None => {
+                    keys.push(SortKey::Empty);
+                }
             }
-        });
+        }
+
+        // ── Sort on pre-extracted keys ───────────────────
+        let mut indices: Vec<u64> = (0..n).collect();
+        let rev = *dir == SortDir::Desc;
+
+        if all_numeric {
+            indices.sort_unstable_by(|&a, &b| {
+                let fa = match &keys[a as usize] {
+                    SortKey::Num(f) => *f,
+                    _ => f64::NAN,
+                };
+                let fb = match &keys[b as usize] {
+                    SortKey::Num(f) => *f,
+                    _ => f64::NAN,
+                };
+                let cmp = fa
+                    .partial_cmp(&fb)
+                    .unwrap_or(std::cmp::Ordering::Equal);
+                if rev { cmp.reverse() } else { cmp }
+            });
+        } else {
+            indices.sort_unstable_by(|&a, &b| {
+                let cmp = match (
+                    &keys[a as usize],
+                    &keys[b as usize],
+                ) {
+                    (SortKey::Num(fa), SortKey::Num(fb)) => {
+                        fa.partial_cmp(fb).unwrap_or(
+                            std::cmp::Ordering::Equal,
+                        )
+                    }
+                    (SortKey::Str(sa), SortKey::Str(sb)) => {
+                        sa.cmp(sb)
+                    }
+                    (SortKey::Num(_), _) => {
+                        std::cmp::Ordering::Less
+                    }
+                    (_, SortKey::Num(_)) => {
+                        std::cmp::Ordering::Greater
+                    }
+                    (SortKey::Empty, SortKey::Empty) => {
+                        std::cmp::Ordering::Equal
+                    }
+                    (SortKey::Empty, _) => {
+                        std::cmp::Ordering::Greater
+                    }
+                    (_, SortKey::Empty) => {
+                        std::cmp::Ordering::Less
+                    }
+                };
+                if rev { cmp.reverse() } else { cmp }
+            });
+        }
+
         self.sort_order = indices;
     }
 
@@ -401,5 +488,155 @@ mod tests {
         let mut m = make_model();
         m.pinned_count = 99;
         assert_eq!(m.pinned_width(), 250.0);
+    }
+
+    // ── Sort tests ───────────────────────────────────────
+
+    fn make_numeric_model(n: usize) -> GridModel {
+        let cols = vec![ColumnDef::new("v", "Value", 100.0)];
+        let rows: Vec<RowRecord> = (0..n)
+            .map(|i| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("v", (n - i).to_string());
+                r
+            })
+            .collect();
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn sort_numeric_asc() {
+        let mut m = make_numeric_model(1000);
+        m.apply_sort("v", &SortDir::Asc);
+        assert_eq!(m.sort_order.len(), 1000);
+        // Physical row (n-1) has value "1", should be first
+        assert_eq!(m.sort_order[0], 999);
+        // Physical row 0 has value "1000", should be last
+        assert_eq!(m.sort_order[999], 0);
+        // Verify full ordering
+        for w in m.sort_order.windows(2) {
+            let va: f64 = m
+                .data
+                .get_cell(w[0], "v")
+                .unwrap()
+                .parse()
+                .unwrap();
+            let vb: f64 = m
+                .data
+                .get_cell(w[1], "v")
+                .unwrap()
+                .parse()
+                .unwrap();
+            assert!(va <= vb);
+        }
+    }
+
+    #[test]
+    fn sort_numeric_desc() {
+        let mut m = make_numeric_model(1000);
+        m.apply_sort("v", &SortDir::Desc);
+        // Physical row 0 has value "1000", should be first
+        assert_eq!(m.sort_order[0], 0);
+        assert_eq!(m.sort_order[999], 999);
+    }
+
+    #[test]
+    fn sort_string_lexicographic() {
+        let cols = vec![ColumnDef::new("s", "S", 100.0)];
+        let values = ["banana", "apple", "cherry", "date"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("s", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("s", &SortDir::Asc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| {
+                m.data.get_cell(i, "s").unwrap()
+            })
+            .collect();
+        assert_eq!(
+            sorted,
+            vec!["apple", "banana", "cherry", "date"]
+        );
+    }
+
+    #[test]
+    fn sort_mixed_numeric_and_string() {
+        let cols = vec![ColumnDef::new("m", "M", 100.0)];
+        let values = ["banana", "3", "1", "apple", "2"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("m", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("m", &SortDir::Asc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| {
+                m.data.get_cell(i, "m").unwrap()
+            })
+            .collect();
+        // Numerics sort first (1, 2, 3), then strings
+        assert_eq!(
+            sorted,
+            vec!["1", "2", "3", "apple", "banana"]
+        );
+    }
+
+    #[test]
+    fn sort_with_empty_cells() {
+        let cols = vec![ColumnDef::new("e", "E", 100.0)];
+        let mut rows = Vec::new();
+        // Row 0: has value
+        let mut r = RowRecord::new(0);
+        r.set("e", "beta");
+        rows.push(r);
+        // Row 1: missing column "e"
+        rows.push(RowRecord::new(1));
+        // Row 2: has value
+        let mut r = RowRecord::new(2);
+        r.set("e", "alpha");
+        rows.push(r);
+
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("e", &SortDir::Asc);
+        let sorted: Vec<Option<String>> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "e"))
+            .collect();
+        // Non-empty first (alpha, beta), empty last
+        assert_eq!(
+            sorted,
+            vec![
+                Some("alpha".into()),
+                Some("beta".into()),
+                None
+            ]
+        );
+    }
+
+    #[test]
+    fn sort_clear_restores_natural_order() {
+        let mut m = make_numeric_model(100);
+        m.apply_sort("v", &SortDir::Asc);
+        assert!(!m.sort_order.is_empty());
+        m.sort_order.clear();
+        assert_eq!(m.logical_to_physical(0), 0);
+        assert_eq!(m.logical_to_physical(99), 99);
     }
 }

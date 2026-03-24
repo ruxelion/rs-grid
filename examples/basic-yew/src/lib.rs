@@ -46,7 +46,7 @@ fn App() -> Html {
     // ── Reactive state (drives re-renders) ────────────────────────────────
     let row_count = use_state(|| 1_000u64);
     let col_count = use_state(|| 20usize);
-    let theme_class = use_state(|| String::new());
+    let theme_class = use_state(String::new);
 
     // ── Non-reactive handles ──────────────────────────────────────────────
     // use_node_ref: Yew's built-in typed reference to a DOM element.
