@@ -8,7 +8,7 @@
 pub mod fake_data;
 
 use rs_grid_core::{
-    column::{CellEditor, CellFormat, ColumnDef, SelectOption},
+    column::{CellEditor, CellFormat, CellValidator, ColumnDef, SelectOption},
     datasource::FnDataSource,
     model::GridModel,
 };
@@ -29,6 +29,15 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
                 thousands_sep: Some(','),
                 symbol_after: false,
             });
+            c.validator = Some(CellValidator::new(|v| {
+                v.parse::<f64>()
+                    .ok()
+                    .filter(|&n| n >= 0.0)
+                    .map(|_| ())
+                    .ok_or_else(|| {
+                        "Salary must be a positive number".to_string()
+                    })
+            }));
             c
         },
         {

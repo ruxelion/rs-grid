@@ -77,14 +77,22 @@ struct Inner {
     raf_scheduled: Cell<bool>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
+    /// Optional callback fired when a validator rejects a cell edit.
+    /// Arguments: (row, col_key, error_message).
+    #[allow(clippy::type_complexity)]
+    on_validation_error: RefCell<Option<Box<dyn Fn(u64, &str, &str)>>>,
     /// DOM element used for inline cell editing (`<input>` or `<select>`).
     edit_input: RefCell<Option<HtmlElement>>,
     /// Closures on the edit `<input>` (keydown, blur).
     edit_closures: RefCell<Vec<Box<dyn Any>>>,
+    /// Event listener refs on the edit element, for explicit removal.
+    edit_listener_refs: RefCell<Vec<(String, js_sys::Function)>>,
     /// DOM `<input>` element for the search bar (Ctrl+F).
     search_input: RefCell<Option<HtmlInputElement>>,
     /// Closures on the search `<input>` (input, keydown).
     search_closures: RefCell<Vec<Box<dyn Any>>>,
+    /// Event listener refs on the search input, for explicit removal.
+    search_listener_refs: RefCell<Vec<(String, js_sys::Function)>>,
     /// Text waiting to be placed on the clipboard by the next
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
@@ -207,10 +215,13 @@ impl GridCanvas {
             scroll_closures: RefCell::new(Vec::new()),
             raf_scheduled: Cell::new(false),
             on_change: RefCell::new(None),
+            on_validation_error: RefCell::new(None),
             edit_input: RefCell::new(None),
             edit_closures: RefCell::new(Vec::new()),
+            edit_listener_refs: RefCell::new(Vec::new()),
             search_input: RefCell::new(None),
             search_closures: RefCell::new(Vec::new()),
+            search_listener_refs: RefCell::new(Vec::new()),
             pending_clipboard: RefCell::new(None),
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
@@ -258,6 +269,38 @@ impl GridCanvas {
 
     /// Apply a command, redraw, and return the output.
     fn dispatch_with_output(&self, cmd: GridCommand) -> CommandOutput {
+        // Run per-column validator before committing a cell edit.
+        if let GridCommand::CommitEdit {
+            row,
+            ref col_key,
+            ref value,
+        } = cmd
+        {
+            let validation_result = {
+                let state = self.0.state.borrow();
+                state
+                    .model
+                    .columns
+                    .iter()
+                    .find(|c| c.key == *col_key)
+                    .and_then(|c| c.validator.as_ref())
+                    .map(|v| v.validate(value))
+            };
+            if let Some(Err(msg)) = validation_result {
+                self.0
+                    .state
+                    .borrow_mut()
+                    .apply(GridCommand::CancelEdit);
+                self.render();
+                if let Some(cb) =
+                    self.0.on_validation_error.borrow().as_ref()
+                {
+                    cb(row, col_key, &msg);
+                }
+                return CommandOutput::None;
+            }
+        }
+
         // Commands that write cell data — fire the on_change callback
         // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
@@ -310,6 +353,15 @@ impl GridCanvas {
     /// Register a callback fired after every cell-data mutation (paste).
     pub fn set_on_change(&self, cb: impl Fn() + 'static) {
         *self.0.on_change.borrow_mut() = Some(Box::new(cb));
+    }
+
+    /// Register a callback fired when a per-column validator rejects an
+    /// edit. Arguments: `(row, col_key, error_message)`.
+    pub fn set_on_validation_error(
+        &self,
+        cb: impl Fn(u64, &str, &str) + 'static,
+    ) {
+        *self.0.on_validation_error.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Serialize the current patch layer as TSV text (one line per edited

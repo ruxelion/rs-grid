@@ -120,6 +120,11 @@ impl GridModel {
     /// When a filter is active `filtered_indices` already holds
     /// physical rows in sort order, so we index directly.
     /// Otherwise we fall back to `sort_order`.
+    /// Map a logical (display) row index to its physical (datasource) index.
+    ///
+    /// Accounts for active sort and filter. If `logical` is out of range
+    /// (e.g. the dataset was shrunk while a command was in flight), the
+    /// index is returned unchanged rather than panicking.
     pub fn logical_to_physical(&self, logical: u64) -> u64 {
         if !self.filtered_indices.is_empty() {
             return self

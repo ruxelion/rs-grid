@@ -12,6 +12,13 @@ use crate::{
 };
 
 /// The complete mutable state of a grid instance.
+///
+/// # Undo history
+///
+/// Cell edits, pastes, column resizes and column moves are recorded in an
+/// internal undo stack capped at **100 entries**. Once the cap is reached
+/// the oldest entry is evicted (FIFO). Selection and scroll changes are
+/// not undoable.
 #[derive(Debug)]
 pub struct GridState {
     /// Column definitions, data source, and sizing constants.
@@ -269,7 +276,7 @@ impl GridState {
 
                     let mut old_cells = Vec::new();
                     for dr in 0..target_rows {
-                        let r = orig.row + dr as u64;
+                        let r = orig.row.saturating_add(dr as u64);
                         if r >= row_count {
                             break;
                         }
@@ -1031,6 +1038,7 @@ mod tests {
                 gap: 6.0,
             }),
             editor: None,
+            validator: None,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);

@@ -7,7 +7,8 @@
       "Bash(powershell -Command \":*)",
       "Bash(mkcert --version)",
       "Bash(just tls-setup:*)",
-      "Bash(mkcert localhost:*)"
+      "Bash(mkcert localhost:*)",
+      "Bash(wc -l /d/Dev/rs-grid/site/docs/en/features/*.mdx)"
     ]
   }
 }

@@ -59,12 +59,12 @@ impl GridCanvas {
                 let query = inp.value();
                 gc.dispatch(GridCommand::Search { query });
             });
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             input
-                .add_event_listener_with_callback(
-                    "input",
-                    cb.as_ref().unchecked_ref(),
-                )
+                .add_event_listener_with_callback("input", &func)
                 .expect("add input listener");
+            self.0.search_listener_refs.borrow_mut().push(("input".into(), func));
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -89,21 +89,29 @@ impl GridCanvas {
                         _ => {}
                     },
                 );
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             input
-                .add_event_listener_with_callback(
-                    "keydown",
-                    cb.as_ref().unchecked_ref(),
-                )
+                .add_event_listener_with_callback("keydown", &func)
                 .expect("add keydown listener");
+            self.0.search_listener_refs.borrow_mut().push(("keydown".into(), func));
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
         *self.0.search_input.borrow_mut() = Some(input);
     }
 
-    /// Remove the search bar from the DOM and drop its
-    /// closures.
+    /// Remove the search bar from the DOM and drop its closures.
+    ///
+    /// Explicitly calls `removeEventListener` before removal to avoid
+    /// dangling Rust closure references on the JS side.
     pub(super) fn remove_search_input(&self) {
+        if let Some(input) = self.0.search_input.borrow().as_ref() {
+            for (event, func) in self.0.search_listener_refs.borrow().iter() {
+                let _ = input.remove_event_listener_with_callback(event, func);
+            }
+        }
+        self.0.search_listener_refs.borrow_mut().clear();
         if let Some(input) = self.0.search_input.borrow_mut().take() {
             input.remove();
         }
