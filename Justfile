@@ -85,10 +85,17 @@ e2e-update-snapshots:
     cd examples\basic-leptos && trunk build
     cd e2e && npm run update-snapshots
 
+# Build WASM demo et copie dans le site
+build-site-wasm:
+    wasm-pack build examples\basic-js --target web --out-dir pkg
+    if not exist "site\docs\public\wasm" mkdir "site\docs\public\wasm"
+    copy "examples\basic-js\pkg\basic_js.js" "site\docs\public\wasm\basic_js.js"
+    copy "examples\basic-js\pkg\basic_js_bg.wasm" "site\docs\public\wasm\basic_js_bg.wasm"
+
 # Serveur de développement RSPress (port 5173)
 site:
     cd site && npx rspress dev --host 0.0.0.0
 
-# Build du site RSPress
-build-site:
+# Build du site RSPress (avec démo WASM)
+build-site: build-site-wasm
     cd site && npm run build

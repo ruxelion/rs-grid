@@ -4,4 +4,5 @@ examples/basic-leptos/rs-grid-theme.css
 examples/basic-js/pkg/
 examples/basic-js/rs-grid-theme.css
 site/node_modules/
+site/docs/public/wasm/
 *-original.mp4
