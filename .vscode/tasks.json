@@ -100,6 +100,22 @@
       "detail": "trunk serve Dioxus (port 9081)"
     },
     {
+      "label": "just: build-yew",
+      "type": "shell",
+      "command": "just build-yew",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "trunk build (exemple Yew)"
+    },
+    {
+      "label": "just: serve-yew",
+      "type": "shell",
+      "command": "just serve-yew",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "trunk serve Yew (port 9082)"
+    },
+    {
       "label": "just: build-js",
       "type": "shell",
       "command": "just build-js",
