@@ -50,6 +50,14 @@ build-dioxus:
 serve-dioxus:
     cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9081
 
+# Build WASM (exemple Yew)
+build-yew:
+    cd examples\basic-yew && trunk build
+
+# Serveur de développement Yew (port 9082)
+serve-yew:
+    cd examples\basic-yew && trunk serve --address 0.0.0.0 --port 9082
+
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
     cd e2e && npm install && npx playwright install chromium
