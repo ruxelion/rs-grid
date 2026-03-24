@@ -1,0 +1,74 @@
+---
+title: API GridModel
+description: Référence complète de la struct GridModel.
+---
+
+## Définition
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Champs
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `columns` | `Vec<ColumnDef>` | — | Définitions de colonnes ordonnées |
+| `data` | `Box<dyn DataSource>` | — | Fournisseur de données sous-jacent |
+| `row_height` | `f64` | — | Hauteur des lignes de données (px logiques) |
+| `header_height` | `f64` | — | Hauteur de la ligne d'en-tête (px logiques) |
+| `column_offsets` | `ColumnOffsets` | calculé | Offsets de bord gauche précalculés |
+| `patches` | `HashMap<(u64, String), String>` | vide | Surcharges de valeurs de cellules |
+| `row_number_width` | `f64` | auto | Largeur du gutter (auto selon le nombre de lignes) |
+| `sort_order` | `Vec<u64>` | vide | Correspondance affichage → ligne physique |
+| `pinned_count` | `usize` | `0` | Nombre de colonnes épinglées en tête |
+| `filters` | `HashMap<String, String>` | vide | Filtres texte par colonne |
+| `filtered_indices` | `Vec<u64>` | vide | Indices physiques des lignes filtrées |
+| `mode` | `DataSourceMode` | `ClientSide` | Données côté client ou côté serveur |
+| `scrollbar_size` | `f64` | `14.0` | Espace réservé à la scrollbar |
+
+## Constructeurs
+
+```rust
+// Données en mémoire
+pub fn new(columns: Vec<ColumnDef>, rows: Vec<RowRecord>, row_height: f64, header_height: f64) -> Self
+
+// Source de données personnalisée
+pub fn with_data_source(columns: Vec<ColumnDef>, data: Box<dyn DataSource>, row_height: f64, header_height: f64) -> Self
+```
+
+## Méthodes
+
+| Méthode | Signature | Description |
+|---------|-----------|-------------|
+| `get_cell` | `(row: u64, col_key: &str) -> Option<String>` | Lire une cellule (patches d'abord, puis source de données) |
+| `set_cell` | `(row: u64, col_key: &str, value: String)` | Écrire une cellule dans la source de données |
+| `logical_to_physical` | `(logical: u64) -> u64` | Correspondance ligne affichée → ligne de données |
+| `display_row_count` | `() -> u64` | Nombre de lignes visibles (respecte les filtres) |
+| `total_width` | `() -> f64` | Somme des largeurs de colonnes |
+| `total_height` | `() -> f64` | `row_count × row_height + header_height` |
+| `pinned_width` | `() -> f64` | Largeur totale des colonnes épinglées |
+| `compute_row_number_width` | `(row_count: u64) -> f64` | Calcul auto de la largeur du gutter |
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // tri/filtre effectué localement (par défaut)
+    ServerSide,  // tri/filtre délégué au serveur
+}
+```

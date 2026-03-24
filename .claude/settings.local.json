@@ -34,7 +34,9 @@
       "Bash(grep -i \"\\\\.css\\\\|\\\\.tsx\\\\|\\\\.ts$\")",
       "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavHamburger/*.css)",
       "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavTitle/*.css)",
-      "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavScreen/*.css)"
+      "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavScreen/*.css)",
+      "Bash(xargs grep:*)",
+      "Bash(find /e/Dev/rs-grid/site/doc_build -name *data* -type f)"
     ]
   }
 }

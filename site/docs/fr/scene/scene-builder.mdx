@@ -1,0 +1,96 @@
+---
+title: Scene Builder
+description: Conversion de GridState en SceneFrame prêt au rendu.
+---
+
+## Aperçu
+
+`SceneBuilder` est le pont entre le modèle de données (`GridState`) et la
+couche de rendu. Il produit un `SceneFrame` — une liste immuable et ordonnée
+de primitives de dessin.
+
+## Utilisation
+
+```rust
+use rs_grid_scene::{SceneBuilder, Theme};
+
+let builder = SceneBuilder::new(dpr, theme);
+let frame = builder.build(&grid_state, column_drag_hint);
+```
+
+### Paramètres
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `dpr` | `f64` | Device pixel ratio (ex. 2.0 pour Retina) |
+| `theme` | `Theme` | Propriétés visuelles pour le rendu |
+| `grid_state` | `&GridState` | État actuel de la grille |
+| `column_drag_hint` | `Option<&ColumnDragHint>` | Retour visuel pendant le déplacement d'une colonne |
+
+## SceneFrame
+
+```rust
+pub struct SceneFrame {
+    primitives: Vec<ScenePrimitive>,
+}
+```
+
+`SceneFrame` est produit à neuf à chaque frame — il n'y a pas d'état
+mutable entre les frames. Cela rend le pipeline de rendu pur et prévisible.
+
+## Ordre de dessin
+
+Les primitives sont ordonnées de **l'arrière vers l'avant** :
+
+1. Remplissages d'arrière-plan (fonds de cellules, lignes alternées)
+2. Lignes de grille
+3. Texte et images des cellules
+4. Superpositions de sélection
+5. En-têtes (collants, dessinés par-dessus)
+6. Scrollbars (couche la plus haute)
+
+Le renderer les dessine dans l'ordre — les primitives ultérieures se
+superposent aux précédentes.
+
+## Ce que le builder calcule
+
+Pour chaque frame, le builder :
+
+1. Détermine les lignes visibles à partir de `ViewportState`
+2. Itère sur les colonnes visibles (colonnes épinglées en premier)
+3. Émet des primitives `Rect` pour les fonds de cellules
+4. Émet des primitives `Line` pour les lignes de grille
+5. Formate les valeurs de cellules via `CellFormat` et émet des primitives `Text`
+6. Émet des primitives `Image` pour les cellules au format image
+7. Dessine le surlignage de sélection (`Rect` avec remplissage semi-transparent)
+8. Dessine les surlignages de correspondance de recherche
+9. Dessine la superposition de survol de ligne
+10. Dessine la ligne d'en-tête collante
+11. Dessine les scrollbars (flèches, piste, curseur)
+12. Dessine le retour visuel de déplacement de colonne si actif
+
+## Coordonnées logiques
+
+Toutes les coordonnées dans `SceneFrame` sont en **pixels logiques**
+(pixels CSS). Le renderer est responsable d'appliquer le DPR :
+
+```
+canvas.width = viewport_width × dpr
+canvas.height = viewport_height × dpr
+context.scale(dpr, dpr)
+```
+
+## ColumnDragHint
+
+Lorsqu'un utilisateur déplace une colonne pour la réordonner, un
+`ColumnDragHint` fournit un retour visuel :
+
+```rust
+pub struct ColumnDragHint {
+    pub from_idx: usize,   // colonne en cours de déplacement
+    pub current_x: f64,    // position x actuelle de la souris
+}
+```
+
+Le builder affiche un fantôme semi-transparent de la colonne déplacée
+à la position actuelle de la souris.

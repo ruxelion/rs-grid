@@ -5,9 +5,28 @@
     "label": "gettingStarted"
   },
   {
+    "type": "file",
+    "name": "installation"
+  },
+  {
     "type": "dir",
     "name": "concepts",
     "label": "coreConcepts"
+  },
+  {
+    "type": "dir",
+    "name": "features",
+    "label": "features"
+  },
+  {
+    "type": "dir",
+    "name": "data",
+    "label": "dataSources"
+  },
+  {
+    "type": "dir",
+    "name": "theming",
+    "label": "theming"
   },
   {
     "type": "dir",
@@ -16,7 +35,21 @@
   },
   {
     "type": "dir",
+    "name": "scene",
+    "label": "sceneGraph"
+  },
+  {
+    "type": "dir",
     "name": "deployment",
     "label": "deploymentDev"
+  },
+  {
+    "type": "dir",
+    "name": "development"
+  },
+  {
+    "type": "dir",
+    "name": "api",
+    "label": "apiReference"
   }
 ]

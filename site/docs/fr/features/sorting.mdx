@@ -1,0 +1,74 @@
+---
+title: Tri
+description: Tri par colonne avec les états croissant, décroissant et aucun.
+---
+
+## Vue d'ensemble
+
+Cliquez sur un en-tête de colonne pour parcourir les états de tri :
+
+```
+None → Ascending → Descending → None
+```
+
+Une flèche indicatrice de tri est affichée dans l'en-tête de la colonne triée.
+
+## Commandes
+
+### Basculer le tri
+
+```rust
+state.apply(GridCommand::ToggleSort {
+    col_key: "price".into(),
+});
+```
+
+Chaque appel fait avancer le cycle. Une seule colonne peut être triée à la fois —
+basculer sur une autre colonne réinitialise la précédente.
+
+## SortState
+
+Lorsque le tri est actif, `GridState::sort` contient :
+
+```rust
+pub struct SortState {
+    pub col_key: String,   // colonne concernée
+    pub dir: SortDir,      // Asc ou Desc
+}
+
+pub enum SortDir {
+    Asc,
+    Desc,
+}
+```
+
+## Fonctionnement
+
+### Mode côté client (par défaut)
+
+`apply_sort()` construit un `sort_order: Vec<u64>` qui associe les indices
+d'affichage aux indices de lignes physiques. Le tri est **numérique en priorité** —
+si les deux valeurs peuvent être analysées comme `f64`, elles sont comparées
+numériquement ; sinon, la comparaison se fait par chaîne de caractères.
+
+:::warning
+Le tri côté client est conçu pour des jeux de données allant jusqu'à ~1 million de lignes.
+Pour des volumes plus importants, utilisez le mode côté serveur.
+:::
+
+### Mode côté serveur
+
+Lorsque `model.mode = DataSourceMode::ServerSide`, la commande `ToggleSort`
+met toujours à jour `GridState::sort` (pour que l'indicateur d'en-tête s'affiche
+correctement), mais `apply_sort()` est un no-op. Votre application doit :
+
+1. Lire `state.sort` pour connaître le tri actif
+2. Récupérer les données triées depuis le serveur
+3. Mettre à jour la source de données
+4. Envoyer `NotifyPageLoaded` pour déclencher un nouveau rendu
+
+## Interaction avec le filtrage
+
+Lorsque le tri et le filtrage sont actifs simultanément, `filtered_indices`
+contient les indices de lignes physiques dans l'ordre trié. Le tri est appliqué
+en premier, puis le filtrage opère sur le résultat trié.

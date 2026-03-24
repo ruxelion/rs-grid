@@ -1,0 +1,150 @@
+---
+title: Etat de la grille et commandes
+description: La machine a etats centrale et le modele de mutations par commandes.
+---
+
+## GridState
+
+`GridState` est la source unique de verite pour une instance de grille. Il regroupe
+tous les sous-etats dans une seule structure :
+
+```rust
+pub struct GridState {
+    pub model: GridModel,           // colonnes, donnees, dimensionnement
+    pub viewport: ViewportState,    // position de scroll, taille du canvas
+    pub selection: SelectionState,  // ancre/focus, presse-papiers
+    pub hovered_row: Option<u64>,   // ligne sous le curseur
+    pub sort: Option<SortState>,    // colonne de tri active + direction
+    pub edit: Option<EditCell>,     // cellule en cours d'edition
+    pub search: SearchState,        // requete de recherche active + resultats
+    history: UndoHistory,           // pile annuler/retablir (prive)
+}
+```
+
+### Creer un GridState
+
+```rust
+use rs_grid_core::{GridState, GridModel, column::ColumnDef};
+
+let columns = vec![
+    ColumnDef::new("name", "Name", 200.0),
+    ColumnDef::new("age", "Age", 100.0),
+];
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+let state = GridState::new(model, 800.0, 600.0);
+```
+
+## Mutations par commandes
+
+**Toutes les mutations passent par `GridState::apply(GridCommand)`.**
+Ne modifiez jamais les champs de `GridState` directement -- la methode `apply` garantit
+le maintien des invariants (clamping du scroll, enregistrement de l'historique,
+recalcul des index).
+
+```rust
+use rs_grid_core::commands::{GridCommand, CommandOutput};
+
+let output = state.apply(GridCommand::ScrollBy { dx: 0.0, dy: 100.0 });
+
+match output {
+    CommandOutput::None => { /* la plupart des commandes */ }
+    CommandOutput::CopyText(tsv) => { /* texte pour le presse-papiers */ }
+    CommandOutput::CopyError(err) => { /* echec du copier/couper */ }
+}
+```
+
+## Reference des GridCommand
+
+Toutes les commandes disponibles :
+
+### Selection
+
+| Commande | Description |
+|---------|-------------|
+| `SelectCell(CellCoord)` | Definir une selection mono-cellule |
+| `ExtendSelection(CellCoord)` | Etendre la selection vers un nouveau focus (shift-clic) |
+| `ClearSelection` | Supprimer la selection courante |
+| `MoveSelection { delta_row, delta_col, extend }` | Deplacer ou etendre la selection par delta |
+| `SelectRow(u64)` | Selectionner toutes les cellules d'une ligne |
+| `ExtendRowSelection(u64)` | Etendre la selection de lignes |
+| `SelectCol(usize)` | Selectionner toutes les cellules d'une colonne |
+| `ExtendColSelection(usize)` | Etendre la selection de colonnes |
+
+### Scroll et viewport
+
+| Commande | Description |
+|---------|-------------|
+| `ScrollTo { x, y }` | Scroller vers une position absolue |
+| `ScrollBy { dx, dy }` | Scroller d'un delta (evenement molette) |
+| `Resize { width, height }` | Mettre a jour les dimensions du canvas |
+
+### Colonnes
+
+| Commande | Description |
+|---------|-------------|
+| `ResizeColumn { col_idx, new_width }` | Definir la largeur d'une colonne |
+| `AutoFitColumn { col_idx, char_width, header_char_width, cell_padding }` | Ajuster automatiquement la colonne au contenu |
+| `MoveColumn { from_idx, to_idx }` | Reordonner par glisser-deposer |
+| `SetPinnedColumnCount { count }` | Epingler les premieres colonnes |
+
+### Tri et filtrage
+
+| Commande | Description |
+|---------|-------------|
+| `ToggleSort { col_key }` | Cycle : Aucun → Ascendant → Descendant → Aucun |
+| `SetColumnFilter { col_key, text }` | Definir un filtre texte par colonne |
+| `ClearAllFilters` | Supprimer tous les filtres actifs |
+
+### Edition
+
+| Commande | Description |
+|---------|-------------|
+| `StartEdit { row, col_key }` | Demarrer l'edition inline (double-clic) |
+| `CommitEdit { row, col_key, value }` | Enregistrer la modification |
+| `CancelEdit` | Annuler la modification |
+
+### Presse-papiers
+
+| Commande | Description |
+|---------|-------------|
+| `CopySelection` | Copier la selection en TSV → `CommandOutput::CopyText` |
+| `CutSelection` | Copier + effacer les cellules selectionnees |
+| `PasteAt { text }` | Coller du TSV a l'ancre de selection |
+
+### Recherche
+
+| Commande | Description |
+|---------|-------------|
+| `Search { query }` | Rechercher dans toutes les cellules visibles (insensible a la casse) |
+| `SearchNext` | Aller au resultat suivant |
+| `SearchPrev` | Aller au resultat precedent |
+| `ClearSearch` | Effacer l'etat de recherche |
+
+### Annuler / Retablir
+
+| Commande | Description |
+|---------|-------------|
+| `Undo` | Annuler la derniere action annulable |
+| `Redo` | Retablir la derniere action annulee |
+
+### Donnees et affichage
+
+| Commande | Description |
+|---------|-------------|
+| `SetHoveredRow(Option<u64>)` | Mettre a jour le surlignage au survol |
+| `NotifyPageLoaded` | Declencher un re-rendu apres un chargement asynchrone |
+| `SetTotalRowCount(u64)` | Mettre a jour le nombre de lignes pour les sources asynchrones |
+
+## CommandOutput
+
+`apply()` retourne un `CommandOutput` :
+
+```rust
+pub enum CommandOutput {
+    None,                   // la plupart des commandes
+    CopyText(String),       // texte TSV pour le presse-papiers
+    CopyError(CopyError),   // echec du copier/couper
+}
+```
+
+Seules `CopySelection` et `CutSelection` produisent une sortie non-`None`.

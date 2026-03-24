@@ -1,0 +1,77 @@
+---
+title: Vue d'ensemble du theming
+description: Fonctionnement du pipeline CSS vers Theme dans rs-grid.
+---
+
+## Pipeline
+
+```
+CSS variables (:root) → theme_from_css_vars() → Theme struct → SceneBuilder → canvas
+```
+
+1. Vous definissez des proprietes CSS personnalisees `--rs-grid-*` sur `:root`
+2. Au montage, `theme_from_css_vars()` les lit depuis le style calcule
+3. Les variables manquantes utilisent les valeurs par defaut de `Theme::light()`
+4. Le `Theme` est transmis au `SceneBuilder` qui l'utilise pour tout le rendu
+
+## Structure Theme
+
+La structure `Theme` contient toutes les proprietes visuelles :
+
+- **Couleurs** — arriere-plan, texte, bordures, selection, scrollbar, survol, recherche
+- **Typographie** — tailles de police, gras pour les en-tetes
+- **Espacement** — padding des cellules, largeur et rayon de la scrollbar
+
+Voir la [Reference des variables CSS](/theming/css-variables) pour la liste complete.
+
+## Deux facons de definir le theme
+
+### 1. Variables CSS (recommande)
+
+Ajoutez des variables a votre feuille de style :
+
+```css
+:root {
+  --rs-grid-bg: #1a1b26;
+  --rs-grid-cell-text: #c0caf5;
+}
+```
+
+### 2. Structure Theme programmatique
+
+Creez un `Theme` directement en Rust :
+
+```rust
+let theme = Theme {
+    bg: Color::rgb(26, 27, 38),
+    cell_text: Color::rgb(192, 202, 245),
+    ..Theme::dark()
+};
+```
+
+Avec Leptos, passez-le en tant que signal pour des mises a jour reactives :
+
+```rust
+let (theme, set_theme) = create_signal(Theme::dark());
+// Update theme dynamically
+set_theme.set(Theme::light());
+```
+
+## Quand les variables sont-elles lues ?
+
+Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
+relues a chaque frame. Pour changer le theme dynamiquement :
+
+- **Leptos** : utilisez un signal de theme
+- **Vanilla JS** : remontez la grille apres avoir modifie les variables CSS
+
+## Themes par defaut
+
+rs-grid est livre avec deux themes programmatiques par defaut :
+
+| Methode | Palette |
+|---------|---------|
+| `Theme::light()` | Palette claire inspiree d'AG Grid |
+| `Theme::dark()` | Palette sombre inspiree de Tokyo Night |
+
+Voir [Themes integres](/theming/built-in-themes) pour les details et les themes supplementaires.

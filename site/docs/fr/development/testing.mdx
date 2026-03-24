@@ -1,0 +1,86 @@
+---
+title: Tests
+description: Tests unitaires, tests end-to-end avec Playwright et régression visuelle.
+---
+
+## Tests unitaires
+
+Lancer tous les tests du workspace :
+
+```bash
+cargo test --workspace
+```
+
+Ou tester une crate spécifique :
+
+```bash
+cargo test -p rs-grid-core
+```
+
+### Ce qui est testé
+
+- Hit-testing (cellule, en-tête de colonne, en-tête de ligne)
+- Calcul des offsets de colonnes
+- Formatage des cellules (toutes les variantes de CellFormat)
+- Sources de données (VecDataSource, FnDataSource, PageCacheDataSource)
+- Modèle de sélection (ancre/focus, copier/coller TSV)
+- Recherche (correspondance de requête, limites)
+- Historique annuler/rétablir
+- Logique de tri et de filtrage
+
+## Tests end-to-end (Playwright)
+
+Les tests E2E vérifient le fonctionnement de la grille dans un vrai
+environnement navigateur.
+
+### Installation (une seule fois)
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+```
+
+### Lancer les tests
+
+```bash
+# Builder l'application d'abord
+cd examples/basic-leptos && trunk build
+
+# Puis lancer les tests
+cd e2e && npm test
+```
+
+### Structure des tests
+
+Les tests se trouvent dans `e2e/tests/grid.spec.ts` :
+
+| Suite | Tests |
+|-------|-------|
+| **Smoke** | La page se charge, le canvas est visible, valeurs par défaut |
+| **Contrôles** | Interactions avec les menus déroulants lignes/colonnes |
+| **Interaction canvas** | Clics, scroll, shift-clic avec coordonnées viewport |
+| **Régression visuelle** | Comparaison de captures d'écran (tolérance 2 %) |
+
+### Défis spécifiques au canvas
+
+La grille est rendue sur `<canvas>`, pas dans le DOM. Cela implique :
+- Pas de sélecteurs DOM pour les cellules de la grille
+- Les interactions utilisent des **coordonnées pixel fixes**
+- La régression visuelle compare les captures d'écran pixel par pixel
+
+:::warning
+  Si vous modifiez la mise en page (hauteur d'en-tête, hauteur de ligne,
+  largeur du gutter), mettez à jour les coordonnées dans `grid.spec.ts`.
+:::
+
+### Mettre à jour les captures de référence
+
+Après des modifications visuelles intentionnelles :
+
+```bash
+cd e2e && npm run update-snapshots
+```
+
+Cela régénère les captures d'écran de référence pour les tests de régression
+visuelle.
