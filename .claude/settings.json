@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scoop --version)",
+      "Bash(powershell -Command \"Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression\")",
+      "Bash(choco --version)",
+      "Bash(powershell -Command \":*)",
+      "Bash(mkcert --version)",
+      "Bash(just tls-setup:*)",
+      "Bash(mkcert localhost:*)"
+    ]
+  }
+}
