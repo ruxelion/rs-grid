@@ -1,0 +1,80 @@
+# Development Workflow
+
+## Workspace structure
+
+```
+rs-grid/
+├── crates/
+│   ├── rs-grid-core/          # Headless logic (no WASM dependency)
+│   ├── rs-grid-scene/         # Scene graph primitives
+│   ├── rs-grid-render-canvas/ # Canvas2D renderer
+│   ├── rs-grid-web/           # Browser integration
+│   └── rs-grid-leptos/        # Leptos component wrapper
+├── examples/
+│   ├── basic-leptos/          # Leptos demo app
+│   └── basic-js/              # Vanilla JS demo
+├── e2e/                       # Playwright end-to-end tests
+└── docs/                      # This documentation (Mintlify)
+```
+
+## Build commands
+
+### Check (fast feedback)
+
+```bash
+cargo check --workspace
+```
+
+### Build native (for tests)
+
+```bash
+cargo build -p rs-grid-core
+```
+
+### Unit tests
+
+```bash
+cargo test --workspace
+```
+
+### Format
+
+```bash
+cargo fmt --all
+```
+
+### Lint
+
+```bash
+cargo clippy --workspace -- -D warnings
+```
+
+### WASM build (Leptos example)
+
+```bash
+cd examples/basic-leptos
+trunk build
+```
+
+### Dev server
+
+```bash
+cd examples/basic-leptos
+trunk serve
+```
+
+## Code conventions
+
+- **Edition**: Rust 2021
+- **Max line width**: 80 characters (`rustfmt.toml`)
+- **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
+- **Comments**: wrapped at 80 chars
+- No `unwrap()` in production code — use `expect("reason")` or error propagation
+
+## Key invariants
+
+- `rs-grid-core` has **zero WASM dependencies** — must remain testable with `cargo test`
+- Row indices are `u64` (not `usize`) for WASM32 compatibility
+- All mutations go through `GridState::apply(GridCommand)`
+- Hit-testing must stay O(log n) — column offsets are precomputed
+- Dependency flow is one-directional: `leptos → web → render-canvas → scene → core`

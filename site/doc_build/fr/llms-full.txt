@@ -1,0 +1,605 @@
+---
+url: /fr/concepts/architecture.md
+---
+
+# Architecture
+
+## Pipeline
+
+Les donnees circulent dans une seule direction a travers un pipeline fixe :
+
+```
+GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRenderer  ──►  <canvas>
+```
+
+Chaque etape a une responsabilite unique. Rien ne circule en sens inverse.
+
+## GridState
+
+`GridState` est la structure centrale. Elle contient trois sous-etats :
+
+| Sous-etat   | Type             | Responsabilite                                |
+| ----------- | ---------------- | --------------------------------------------- |
+| `model`     | `GridModel`      | Definitions de colonnes et donnees des lignes |
+| `viewport`  | `ViewportState`  | `scroll_x`, `scroll_y`, largeur, hauteur      |
+| `selection` | `SelectionState` | Ancre et focus (cellule, ligne ou colonne)    |
+
+Toutes les mutations passent par `GridState::apply(GridCommand)`. La mutation
+directe des champs n'est pas exposee. Cela rend l'etat facile a capturer et
+a rejouer.
+
+## Commandes
+
+`GridCommand` est un enum de toutes les mutations possibles :
+
+```rust
+GridCommand::ScrollTo { x: f64, y: f64 }
+GridCommand::SelectCell { row: u64, col: usize }
+GridCommand::Resize { width: f64, height: f64 }
+GridCommand::ClearSelection
+```
+
+Les commandes sont peu couteuses a construire et peuvent etre mises en file
+d'attente. Le renderer appelle `apply` une fois par frame d'animation avec
+les commandes en attente.
+
+## SceneFrame
+
+`SceneBuilder::build(&grid_state)` retourne un `SceneFrame` — une liste
+plate de valeurs `ScenePrimitive` qui decrivent exactement ce qui doit
+apparaitre a l'ecran :
+
+- **`Rect`** — rectangle rempli (fond de cellule, surbrillance de selection)
+- **`Text`** — libelle de cellule avec police, couleur et limites de decoupage
+- **`Line`** — ligne de bordure de la grille
+
+La scene est agnostique du renderer. Vous pouvez implementer un nouveau
+backend (WebGL, SVG, terminal) en consommant `SceneFrame` sans toucher
+au core.
+
+## Graphe de dependances des crates
+
+```
+rs-grid-leptos
+  └── rs-grid-web
+       └── rs-grid-render-canvas
+            └── rs-grid-scene
+                 └── rs-grid-core
+```
+
+| Crate                   | Depend de     | WASM requis |
+| ----------------------- | ------------- | ----------- |
+| `rs-grid-core`          | —             | Non         |
+| `rs-grid-scene`         | core          | Non         |
+| `rs-grid-render-canvas` | scene         | Oui         |
+| `rs-grid-web`           | render-canvas | Oui         |
+| `rs-grid-leptos`        | web           | Oui         |
+
+## Ajouter un renderer
+
+1. **Creer un nouveau crate**
+
+   Ajoutez `rs-grid-scene` comme dependance.
+
+2. **Consommer SceneFrame**
+
+   Appelez `SceneBuilder::build(&grid_state)` pour obtenir un `SceneFrame`,
+   puis iterez sur `SceneFrame::primitives`.
+
+3. **Emettre les appels de dessin**
+
+   Mappez chaque `ScenePrimitive` (Rect, Text, Line) vers l'API de votre
+   backend.
+
+:::warning
+Ne modifiez pas `rs-grid-core` ni `rs-grid-scene` lors de l'ajout d'un
+renderer. Ces crates doivent rester libres de WASM et testables avec un
+simple `cargo test`.
+:::
+
+
+
+---
+url: /fr/concepts/selection.md
+---
+
+# Selection
+
+rs-grid utilise un modele de selection ancre/focus. L'ancre est le point de
+depart de la selection ; le focus est le point ou elle se termine
+actuellement. Le shift-clic etend la selection de l'ancre vers un nouveau
+focus.
+
+## SelectionState
+
+`SelectionState` suit deux positions :
+
+| Champ    | Description                                              |
+| -------- | -------------------------------------------------------- |
+| `anchor` | Origine de la selection (definie au mousedown)           |
+| `focus`  | Fin actuelle de la selection (mise a jour au shift-clic) |
+
+Chaque position peut faire reference a une **cellule**, une **ligne** ou
+une **colonne**. La granularite mixte (ancre sur une cellule, focus sur
+une ligne) n'est pas supportee.
+
+## Commandes
+
+```rust
+// Selectionner une cellule unique
+grid_state.apply(GridCommand::SelectCell { row: 0, col: 2 });
+
+// Etendre la selection (equivalent du shift-clic)
+grid_state.apply(GridCommand::ExtendSelection { row: 5, col: 2 });
+
+// Selectionner une ligne entiere
+grid_state.apply(GridCommand::SelectRow { row: 3 });
+
+// Selectionner une colonne entiere
+grid_state.apply(GridCommand::SelectColumn { col: 1 });
+
+// Effacer la selection
+grid_state.apply(GridCommand::ClearSelection);
+```
+
+## Hit-testing
+
+Etant donne une coordonnee pixel `(x, y)` relative au canvas, le
+hit-testing retourne la cellule sous le curseur :
+
+```rust
+let hit = grid_state.hit_test(x, y);
+// Retourne Option<HitResult> avec { row: u64, col: usize }
+```
+
+Le hit-testing utilise le meme tableau precalcule de decalages de colonnes
+que le viewport, offrant une performance **O(log n)**. Le hit-testing
+des lignes est O(1) avec une hauteur de ligne uniforme.
+
+:::warning
+N'introduisez jamais un parcours O(n) dans le chemin du hit-testing.
+La garantie O(log n) est un invariant fondamental.
+:::
+
+## Rendu de la selection
+
+`SceneBuilder` lit `SelectionState` et emet des entrees
+`ScenePrimitive::Rect` avec la couleur de surbrillance de selection pour
+chaque cellule selectionnee dans le viewport.
+
+:::tip
+Meme avec une selection de toute la grille (toutes les lignes x toutes les
+colonnes), seules les primitives des cellules visibles sont construites.
+La taille de la scene est limitee par le viewport, pas par la taille de
+la selection.
+:::
+
+
+
+---
+url: /fr/concepts/viewport.md
+---
+
+# Viewport
+
+Le viewport est la fenetre sur les donnees de la grille. Seules les cellules
+qui intersectent la zone visible sont transmises au renderer, quel que soit
+le nombre total de lignes ou de colonnes.
+
+## ViewportState
+
+`ViewportState` vit a l'interieur de `GridState` et suit quatre valeurs :
+
+| Champ      | Type  | Description                                 |
+| ---------- | ----- | ------------------------------------------- |
+| `scroll_x` | `f64` | Decalage horizontal du scroll en pixels CSS |
+| `scroll_y` | `f64` | Decalage vertical du scroll en pixels CSS   |
+| `width`    | `f64` | Largeur du canvas en pixels CSS             |
+| `height`   | `f64` | Hauteur du canvas en pixels CSS             |
+
+Les valeurs en pixels sont en pixels CSS. Le renderer applique le
+multiplicateur de ratio de pixels de l'appareil (DPR) lors des appels
+de dessin.
+
+## Colonnes visibles
+
+Les decalages de colonnes sont precalcules et stockes dans un tableau
+de sommes prefixees. A partir de `scroll_x` et `width`, la premiere et
+la derniere colonne visible sont trouvees par recherche binaire —
+**O(log n)** quel que soit le nombre de colonnes.
+
+La meme approche s'applique aux lignes en utilisant la hauteur de ligne
+et `scroll_y`.
+
+## Limites du nombre de lignes
+
+Les indices de lignes utilisent `u64`. La limite pratique avec des
+decalages de scroll en `f64` est d'environ 9 x 10^14 lignes avant que
+la precision en virgule flottante ne se degrade.
+
+:::note
+Les indices de lignes sont toujours en `u64`, jamais en `usize`. Sur
+wasm32, `usize` est 32 bits et ne peut pas adresser l'espace complet
+des lignes. Voir [row-count-limits](/row-count-limits.md) pour les
+details.
+:::
+
+## Defilement
+
+Envoyez une commande de scroll pour mettre a jour le viewport :
+
+```rust
+grid_state.apply(GridCommand::ScrollTo {
+    x: new_scroll_x,
+    y: new_scroll_y,
+});
+```
+
+La couche d'integration web (`rs-grid-web`) traduit automatiquement les
+evenements de molette du navigateur en commandes de scroll. Le DPR et
+l'arrondi des pixels sont geres en interne.
+
+## Redimensionnement
+
+Lorsque le canvas est redimensionne (redimensionnement de fenetre ou de
+conteneur), mettez a jour les dimensions du viewport :
+
+```rust
+grid_state.apply(GridCommand::Resize {
+    width: new_width,
+    height: new_height,
+});
+```
+
+Le composant Leptos observe un `ResizeObserver` et envoie cette commande
+automatiquement.
+
+
+
+---
+url: /fr/deployment/docker.md
+---
+
+# Docker
+
+Le site de documentation est empaquete sous forme d'image Docker multi-stage.
+L'etape de build compile le site avec Node, et l'etape de service utilise
+nginx pour servir la sortie statique.
+
+## Demarrage rapide
+
+Depuis la racine du depot :
+
+```bash
+docker compose up --build
+```
+
+Le site sera disponible sur `http://localhost:8080`.
+
+## docker-compose.yml
+
+```yaml title="docker-compose.yml"
+services:
+  site:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+```
+
+## Dockerfile
+
+Build multi-stage — Node compile, nginx sert :
+
+```dockerfile title="site/Dockerfile"
+# Etape 1 : Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Etape 2 : Servir
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+## nginx.conf
+
+```nginx title="site/nginx.conf"
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ $uri.html =404;
+    }
+
+    # Cache longue duree pour les assets haches
+    location /_astro/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    error_page 404 /404.html;
+}
+```
+
+## Build sans Compose
+
+```bash
+# Construire l'image
+docker build -t rs-grid-site ./site
+
+# Lancer le conteneur
+docker run -p 8080:80 rs-grid-site
+```
+
+## Deploiement en production
+
+Poussez l'image vers un registre et deployez avec l'orchestrateur de
+votre choix :
+
+```bash
+docker build -t registry.example.com/rs-grid-site:latest ./site
+docker push registry.example.com/rs-grid-site:latest
+```
+
+:::tip
+L'image finale est basee sur `nginx:alpine` et pese generalement environ
+25 Mo. Aucun runtime Node n'est inclus dans l'image de production.
+:::
+
+
+
+---
+url: /fr/getting-started.md
+---
+
+# Premiers pas
+
+## Prerequis
+
+- Toolchain Rust (stable, edition 2021)
+- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
+- La cible `wasm32-unknown-unknown`
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Ajouter la dependance
+
+Ajoutez `rs-grid-leptos` a votre `Cargo.toml`. Tant que le crate n'est pas
+encore publie sur crates.io, referencez-le par chemin :
+
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+
+## Utilisation de base
+
+Importez le composant et montez-le dans une vue Leptos :
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+## Lancer en local
+
+1. **Naviguez vers l'exemple**
+
+   ```bash
+   cd examples/basic-leptos
+   ```
+
+2. **Demarrez le serveur de developpement**
+
+   ```bash
+   trunk serve
+   ```
+
+3. **Ouvrez dans votre navigateur**
+
+   Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
+   affichant 1 million de lignes a 60 fps.
+
+## Compiler pour la production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
+fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
+fournie.
+
+## Commandes du workspace
+
+| Commande                                  | Description                                        |
+| ----------------------------------------- | -------------------------------------------------- |
+| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
+| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
+| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
+| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
+| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
+
+:::tip
+`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
+avec un simple `cargo test`, sans navigateur.
+:::
+
+
+
+---
+url: /fr/index.md
+---
+
+Open Source · Rust · WebAssembly# Le moteur de data grid
+conçu pour la performance
+
+Rendu virtualisé sur Canvas2D, compilé en WebAssembly depuis Rust. Gère des millions de lignes avec du hit-testing O(log n) et un scroll à 60 fps.
+
+[Commencer](/fr/getting-started)[Voir sur GitHub](https://github.com/bpodwinski/rs-grid)10M+lignes virtualisées60fpsrendu canvasO(log n)hit-testing5crates cibléesPourquoi rs-grid## Conçu pour les contraintes réelles
+
+La plupart des grilles peinent au-delà de 100k lignes. rs-grid est pensé dès le départ pour la virtualisation, la performance et la maintenabilité.
+
+### Viewport virtualisé
+
+Seules les cellules visibles sont rendues. La consommation mémoire reste constante quel que soit le nombre de lignes.
+
+### Cœur Rust sans copie
+
+rs-grid-core n'a aucune dépendance WASM. Logique Rust pure, testable nativement avec cargo test.
+
+### Renderer-agnostique
+
+Les primitives de scène sont découplées du rendu. Échangez Canvas2D contre WebGL ou tout autre backend sans toucher à la logique.
+
+### Intégration Leptos
+
+Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate.
+
+Architecture## Une direction, pas de surprises
+
+Un graphe de dépendances strictement unidirectionnel garde chaque crate focalisée et testable indépendamment.
+
+GridStatemodel · viewport · selection→SceneBuilderrs-grid-scene→SceneFrameprimitives→CanvasRendererrs-grid-render-canvas→<canvas>browser`rs-grid-core`Logique headless : model, viewport, sélection, hit-testing. Pas de WASM.
+
+`rs-grid-scene`Convertit GridState en liste de ScenePrimitive renderer-agnostiques.
+
+`rs-grid-render-canvas`Backend Canvas2D via wasm-bindgen. Dessine les primitives dans le DOM.
+
+`rs-grid-web`Glue navigateur : events, DPR, boucle rAF, parsing thème CSS.
+
+`rs-grid-leptos`Composant Leptos CSR encapsulant tout le pipeline.
+
+## Commencez à construire
+
+Open source, licence MIT. Contributions bienvenues.
+
+[Lire la doc](/fr/getting-started)[GitHub ↗](https://github.com/bpodwinski/rs-grid)
+
+
+---
+url: /fr/integrations/leptos.md
+---
+
+# Integration Leptos
+
+`rs-grid-leptos` fournit un composant `<GridCanvas>` pour les applications
+Leptos CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la
+gestion des evenements et le theming dans un seul composant.
+
+## API du composant
+
+```rust
+<GridCanvas
+    rows=1_000_000_u64
+    cols=50_usize
+    row_height=32.0_f64     // optionnel, defaut 32px
+    header_height=40.0_f64  // optionnel, defaut 40px
+/>
+```
+
+### Props
+
+| Prop            | Type    | Defaut | Description                                      |
+| --------------- | ------- | ------ | ------------------------------------------------ |
+| `rows`          | `u64`   | requis | Nombre total de lignes de donnees                |
+| `cols`          | `usize` | requis | Nombre total de colonnes                         |
+| `row_height`    | `f64`   | `32.0` | Hauteur de chaque ligne de donnees en pixels CSS |
+| `header_height` | `f64`   | `40.0` | Hauteur de la ligne d'en-tete des colonnes       |
+
+## Theming
+
+Le composant lit sa palette de couleurs a partir des proprietes CSS
+personnalisees au moment du montage via
+`rs-grid-web::theme_from_css_vars`. Definissez les variables dans votre
+feuille de style :
+
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+
+Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
+`index.html`.
+
+## Evenements
+
+Le composant Leptos attache des ecouteurs pointer et wheel au canvas :
+
+| Evenement navigateur  | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+
+Les evenements sont convertis en valeurs `GridCommand` et appliques a la
+prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
+d'evenements manuellement.
+
+## Exemple complet
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=500_000_u64
+                cols=20_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+:::tip
+Le fichier de theme de reference se trouve dans
+`examples/basic-leptos/rs-grid-theme.css`. Copiez-le comme point de depart
+pour votre propre theme.
+:::
+
+

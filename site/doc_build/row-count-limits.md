@@ -1,0 +1,75 @@
+# Row count limits — history
+
+## Summary
+
+| Version    | Index type | Coordinate type | Practical limit        | Reason                   |
+| ---------- | ---------- | --------------- | ---------------------- | ------------------------ |
+| v1 — f32   | `usize`    | `f32`           | \~300 000 rows         | `f32` precision          |
+| v2 — usize | `usize`    | `f64`           | \~4.3 billion (wasm32) | `usize` 32-bit on wasm32 |
+| v3 — u64   | `u64`      | `f64`           | \~9 x 10^14 rows       | `f64` scroll precision   |
+
+***
+
+## v1 — `f32` coordinates
+
+Render positions (canvas coordinates, `scroll_y`, `row_top`) were `f32`.
+
+`f32` has 23 mantissa bits, representing integers exactly up to **2^24 = 16,777,216**.
+
+Beyond that, the epsilon grows:
+
+| `scroll_y` (f32) | epsilon | rows (28 px/row) | result              |
+| ---------------- | ------- | ---------------- | ------------------- |
+| 8 x 10^6         | \~1 px  | \~285,000        | smooth scroll limit |
+| 4.7 x 10^8       | \~64 px | \~16.7 million   | major jumps         |
+
+**Practical limit v1: \~300,000 rows.**
+
+***
+
+## v2 — `usize` indices, `f64` coordinates
+
+Coordinates moved to `f64` (scroll precision is more than sufficient at this scale),
+but row indices remained `usize`.
+
+On **wasm32**, `usize` is 32-bit, so `usize::MAX = 4,294,967,295` (\~4.3 billion).
+This ceiling was the bottleneck, not floating-point precision.
+
+On x86-64, `usize` is 64-bit so there is no limit natively — but wasm32 code
+exceeded `usize::MAX` silently (overflow or panic depending on the build).
+
+**Practical limit v2: \~4.3 billion rows on wasm32.**
+
+***
+
+## v3 — `u64` indices, `f64` coordinates (2026-03-16)
+
+Row indices (`row_count`, `CellCoord.row`, `get_cell`, `row_top`,
+`visible_rows`) moved from `usize` to `u64`. Column indices remain
+`usize` (never more than a few hundred).
+
+The ceiling is no longer the index type but `scroll_y: f64` precision.
+`f64` has 52 mantissa bits, representing integers exactly up to **2^53**.
+
+| `scroll_y` (f64) | f64 epsilon    | rows (28 px/row) | result             |
+| ---------------- | -------------- | ---------------- | ------------------ |
+| 2.8 x 10^10      | \~6 x 10^-6 px | \~10^9           | perfect            |
+| 2.8 x 10^13      | \~0.006 px     | \~10^12          | OK                 |
+| 2.8 x 10^15      | \~0.6 px       | \~10^14          | perceptible jitter |
+| 2.8 x 10^16      | \~6 px         | \~10^15          | row jumps          |
+
+### Concrete test (2026-03-16, `row_height = 28`)
+
+| `count`                     | value              | result                  |
+| --------------------------- | ------------------ | ----------------------- |
+| `9_007_199_254_740_99_u64`  | \~9 x 10^14        | scroll and selection OK |
+| `9_007_199_254_740_992_u64` | 2^53 (\~9 x 10^15) | cells overlap           |
+
+**Recommended maximum limit: `9_007_199_254_740_99_u64`** (\~9 x 10^14 rows).
+
+***
+
+## Values in examples
+
+- `basic-web`: `10_000_000_000_u64` (10 billion — comfortable)
+- `basic-leptos`: `9_007_199_254_740_99_u64` (maximum tested limit)

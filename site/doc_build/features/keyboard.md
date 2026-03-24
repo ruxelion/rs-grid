@@ -1,0 +1,56 @@
+# Keyboard Navigation
+
+## Focus model
+
+The grid canvas must have DOM focus to receive keyboard events. Click on
+the canvas or use tab navigation to focus it.
+
+## Navigation shortcuts
+
+| Shortcut          | Action                             |
+| ----------------- | ---------------------------------- |
+| **Arrow keys**    | Move selection by one cell         |
+| **Shift + Arrow** | Extend selection in that direction |
+| **Enter**         | Start editing the selected cell    |
+| **Escape**        | Cancel edit or clear selection     |
+| **Ctrl+Z**        | Undo                               |
+| **Ctrl+Y**        | Redo                               |
+| **Ctrl+C**        | Copy selection                     |
+| **Ctrl+X**        | Cut selection                      |
+| **Ctrl+V**        | Paste at selection anchor          |
+| **Ctrl+F**        | Open search bar                    |
+
+## MoveSelection command
+
+Arrow key presses translate to `MoveSelection`:
+
+```rust
+state.apply(GridCommand::MoveSelection {
+    delta_row: -1,  // up
+    delta_col: 0,
+    extend: false,  // true with Shift held
+});
+```
+
+| Key   | delta\_row | delta\_col |
+| ----- | ---------- | ---------- |
+| Up    | -1         | 0          |
+| Down  | +1         | 0          |
+| Left  | 0          | -1         |
+| Right | 0          | +1         |
+
+When `extend` is `true`, the anchor stays fixed and only the focus moves,
+expanding the selected range.
+
+## Editing via keyboard
+
+1. **Enter** or **double-click** → `StartEdit`
+2. Type the new value
+3. **Enter** → `CommitEdit`
+4. **Escape** → `CancelEdit`
+
+## Event handling
+
+The web layer (`rs-grid-web`) listens to `keydown` events on the canvas
+and converts them to `GridCommand` values. The browser's default behavior
+is prevented for handled keys to avoid scrolling or other unwanted actions.

@@ -1,0 +1,55 @@
+# Undo & Redo
+
+## Overview
+
+rs-grid maintains an undo/redo history for reversible actions. Press
+**Ctrl+Z** to undo and **Ctrl+Y** to redo.
+
+## Commands
+
+```rust
+state.apply(GridCommand::Undo);
+state.apply(GridCommand::Redo);
+```
+
+## What is tracked
+
+| Action                         | Undo entry type                          |
+| ------------------------------ | ---------------------------------------- |
+| Cell edit (`CommitEdit`)       | `SetCell` — restores the previous value  |
+| Paste (`PasteAt`)              | `SetCells` — restores all affected cells |
+| Cut (`CutSelection`)           | `SetCells` — restores cleared cells      |
+| Column resize (`ResizeColumn`) | `ResizeColumn` — restores the old width  |
+| Column move (`MoveColumn`)     | `MoveColumn` — reverses from/to indices  |
+
+## History capacity
+
+The undo stack holds a maximum of **100 entries**. When the limit is reached,
+the oldest entry is removed (FIFO). Performing a new undoable action
+clears the entire redo stack.
+
+## How it works
+
+1. When an undoable command is applied, `GridState` pushes an `UndoEntry`
+   with the inverse operation
+2. `Undo` pops from the undo stack, applies the inverse, and pushes the
+   re-inverse onto the redo stack
+3. `Redo` pops from the redo stack, applies the entry, and pushes back
+   onto the undo stack
+
+```
+[Undo stack]  ←→  [Redo stack]
+   push ←── new action (clears redo)
+   pop  ──→ apply inverse ──→ push to redo
+             redo pop ──→ apply ──→ push to undo
+```
+
+## Actions NOT tracked
+
+These actions are not undoable:
+
+- Selection changes
+- Scrolling
+- Sorting / filtering
+- Search
+- Hover state

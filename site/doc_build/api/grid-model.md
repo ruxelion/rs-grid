@@ -1,0 +1,71 @@
+# GridModel API
+
+## Definition
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Fields
+
+| Field              | Type                             | Default      | Description                        |
+| ------------------ | -------------------------------- | ------------ | ---------------------------------- |
+| `columns`          | `Vec<ColumnDef>`                 | —            | Ordered column definitions         |
+| `data`             | `Box<dyn DataSource>`            | —            | Backing data provider              |
+| `row_height`       | `f64`                            | —            | Height of data rows (logical px)   |
+| `header_height`    | `f64`                            | —            | Height of header row (logical px)  |
+| `column_offsets`   | `ColumnOffsets`                  | computed     | Precomputed left-edge offsets      |
+| `patches`          | `HashMap<(u64, String), String>` | empty        | Cell value overrides               |
+| `row_number_width` | `f64`                            | auto         | Gutter width (auto from row count) |
+| `sort_order`       | `Vec<u64>`                       | empty        | Display→physical row mapping       |
+| `pinned_count`     | `usize`                          | `0`          | Number of pinned leading columns   |
+| `filters`          | `HashMap<String, String>`        | empty        | Per-column text filters            |
+| `filtered_indices` | `Vec<u64>`                       | empty        | Filtered physical row indices      |
+| `mode`             | `DataSourceMode`                 | `ClientSide` | Client or server-side data         |
+| `scrollbar_size`   | `f64`                            | `14.0`       | Scrollbar reserved space           |
+
+## Constructors
+
+```rust
+// In-memory data
+pub fn new(columns: Vec<ColumnDef>, rows: Vec<RowRecord>, row_height: f64, header_height: f64) -> Self
+
+// Custom data source
+pub fn with_data_source(columns: Vec<ColumnDef>, data: Box<dyn DataSource>, row_height: f64, header_height: f64) -> Self
+```
+
+## Methods
+
+| Method                     | Signature                                     | Description                                 |
+| -------------------------- | --------------------------------------------- | ------------------------------------------- |
+| `get_cell`                 | `(row: u64, col_key: &str) -> Option<String>` | Read cell (patches first, then data source) |
+| `set_cell`                 | `(row: u64, col_key: &str, value: String)`    | Write cell to data source                   |
+| `logical_to_physical`      | `(logical: u64) -> u64`                       | Map display row to data row                 |
+| `display_row_count`        | `() -> u64`                                   | Visible row count (respects filters)        |
+| `total_width`              | `() -> f64`                                   | Sum of column widths                        |
+| `total_height`             | `() -> f64`                                   | `row_count × row_height + header_height`    |
+| `pinned_width`             | `() -> f64`                                   | Total width of pinned columns               |
+| `compute_row_number_width` | `(row_count: u64) -> f64`                     | Auto-compute gutter width                   |
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // sort/filter done locally (default)
+    ServerSide,  // sort/filter delegated to server
+}
+```

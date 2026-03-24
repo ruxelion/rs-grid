@@ -1,0 +1,117 @@
+# Server-Side Data (PageCacheDataSource)
+
+## Overview
+
+`PageCacheDataSource` loads data from a remote server in pages, caching them
+in memory with LRU eviction. Cells that haven't been fetched yet render as
+skeleton loading placeholders.
+
+## Creating a page cache
+
+```rust
+use rs_grid_core::page_cache::PageCacheDataSource;
+
+let cache = PageCacheDataSource::new(
+    10_000, // total rows (initial estimate)
+    100,    // page size (rows per page)
+);
+cache.set_max_cached_pages(50); // default: 50
+
+let model = GridModel::with_data_source(
+    columns,
+    Box::new(cache.clone()),
+    32.0,
+    36.0,
+);
+model.mode = DataSourceMode::ServerSide;
+```
+
+## Page lifecycle
+
+```
+needed_pages() → mark_pending() → fetch → insert_page() → NotifyPageLoaded
+```
+
+1. **Detect needed pages** — call `cache.needed_pages(first_row, last_row)`
+   to find pages in the visible range that are neither loaded nor pending
+2. **Mark as pending** — `cache.mark_pending(page_num)` prevents duplicate fetches
+3. **Fetch data** — your application fetches the data from the server
+4. **Insert the page** — `cache.insert_page(page_num, rows)` stores the data
+5. **Notify the grid** — `state.apply(GridCommand::NotifyPageLoaded)` triggers re-render
+
+## FetchConfig (automatic fetching)
+
+`rs-grid-web` provides a built-in fetch coordinator via `FetchConfig`:
+
+```rust
+pub struct FetchConfig {
+    pub build_url: Box<dyn Fn(&PageFetchRequest) -> String>,
+    pub parse_response: Box<dyn Fn(JsValue) -> Result<PageFetchResponse, String>>,
+    pub buffer_pages: u64,  // prefetch ahead/behind
+}
+```
+
+### PageFetchRequest
+
+```rust
+pub struct PageFetchRequest {
+    pub page_num: u64,
+    pub page_size: u64,
+    pub sort: Option<SortState>,
+    pub filters: HashMap<String, String>,
+}
+```
+
+The fetcher automatically:
+
+- Checks which pages are needed for the current viewport
+- Prefetches `buffer_pages` pages ahead and behind
+- Spawns async `window.fetch()` calls
+- Parses JSON responses via your `parse_response` closure
+- Updates the cache and triggers `NotifyPageLoaded`
+
+## API reference
+
+| Method                              | Description                              |
+| ----------------------------------- | ---------------------------------------- |
+| `new(total_rows, page_size)`        | Create empty cache                       |
+| `page_size()`                       | Get rows per page                        |
+| `total_rows()`                      | Get current total row count              |
+| `set_total_rows(n)`                 | Update total (e.g. from server response) |
+| `set_max_cached_pages(n)`           | Set LRU eviction limit (default: 50)     |
+| `insert_page(page_num, rows)`       | Store a fetched page                     |
+| `clear()`                           | Invalidate all cached pages              |
+| `is_page_loaded(page_num)`          | Check if page is cached                  |
+| `is_page_pending(page_num)`         | Check if fetch is in-flight              |
+| `mark_pending(page_num)`            | Mark page as being fetched               |
+| `unmark_pending(page_num)`          | Remove pending flag (on error)           |
+| `needed_pages(first_row, last_row)` | Pages not loaded or pending in range     |
+
+## CellStatus
+
+`PageCacheDataSource` returns meaningful `CellStatus` values:
+
+| Status                     | When                         |
+| -------------------------- | ---------------------------- |
+| `CellStatus::Ready(value)` | Page loaded, cell has data   |
+| `CellStatus::Loading`      | Page not yet fetched         |
+| `CellStatus::Absent`       | Page loaded but cell missing |
+
+The renderer draws a skeleton animation for `Loading` cells.
+
+## LRU eviction
+
+When the cache exceeds `max_cached_pages`, the least-recently-accessed
+pages are evicted. Re-accessing a page moves it to the back of the
+eviction queue.
+
+## Invalidation on sort/filter change
+
+When sort or filter changes in server-side mode, call `cache.clear()` to
+invalidate all pages, then let the fetcher re-fetch with the new parameters.
+
+## Shared state
+
+`PageCacheDataSource` uses `Rc<RefCell<...>>` internally — cloning it
+creates a shared reference to the same cache. This is how the fetch
+coordinator and the grid model share the same data.

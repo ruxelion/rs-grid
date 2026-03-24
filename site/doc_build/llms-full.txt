@@ -1,0 +1,3991 @@
+---
+url: /api/column-def.md
+---
+
+# ColumnDef API
+
+## ColumnDef
+
+```rust
+pub struct ColumnDef {
+    pub key: String,
+    pub label: String,
+    pub width: f64,
+    pub format: Option<CellFormat>,
+    pub editor: Option<CellEditor>,
+}
+```
+
+| Field    | Type                 | Description                                    |
+| -------- | -------------------- | ---------------------------------------------- |
+| `key`    | `String`             | Unique identifier, used to look up cell values |
+| `label`  | `String`             | Display text in the column header              |
+| `width`  | `f64`                | Width in logical pixels                        |
+| `format` | `Option<CellFormat>` | Display format (`None` = raw text)             |
+| `editor` | `Option<CellEditor>` | Editor type (`None` = default text input)      |
+
+### Constructor
+
+```rust
+pub fn new(key: impl Into<String>, label: impl Into<String>, width: f64) -> Self
+```
+
+Creates a column with no format and no editor override.
+
+## CellFormat
+
+```rust
+pub enum CellFormat {
+    Number { decimal_places: u8, thousands_sep: Option<char>, decimal_sep: char },
+    Percent { decimal_places: u8 },
+    Currency { symbol: String, decimal_places: u8, thousands_sep: Option<char>, symbol_after: bool },
+    Boolean { true_label: String, false_label: String },
+    Custom(Rc<dyn Fn(&str) -> FormattedCell>),
+    Image { base_url: Option<String>, border_radius: f64, padding: f64 },
+    ImageText { base_url: String, suffix: String, image_size: f64, border_radius: f64, gap: f64 },
+}
+```
+
+### Methods
+
+| Method            | Returns | Description                  |
+| ----------------- | ------- | ---------------------------- |
+| `is_image()`      | `bool`  | True for `Image` variant     |
+| `is_image_text()` | `bool`  | True for `ImageText` variant |
+
+## FormattedCell
+
+```rust
+pub struct FormattedCell {
+    pub text: String,
+    pub align: Option<CellAlign>,
+    pub bold: bool,
+    pub color: Option<[u8; 4]>,  // RGBA
+}
+```
+
+## CellAlign
+
+```rust
+pub enum CellAlign {
+    Left,    // default
+    Center,
+    Right,
+}
+```
+
+## CellEditor
+
+```rust
+pub enum CellEditor {
+    Text,
+    Select { options: Vec<SelectOption> },
+}
+```
+
+## SelectOption
+
+```rust
+pub struct SelectOption {
+    pub value: String,
+    pub label: String,
+    pub icon: Option<String>,
+}
+```
+
+## ColumnOffsets
+
+```rust
+pub struct ColumnOffsets {
+    pub offsets: Vec<f64>,
+    pub total_width: f64,
+}
+```
+
+| Method                                      | Description                      |
+| ------------------------------------------- | -------------------------------- |
+| `compute(columns: &[ColumnDef])`            | Build offsets from column widths |
+| `hit_column(x: f64, columns: &[ColumnDef])` | Find column at x position        |
+
+
+
+---
+url: /api/grid-command.md
+---
+
+# GridCommand API
+
+## Definition
+
+```rust
+pub enum GridCommand { /* 30 variants */ }
+```
+
+All mutations to `GridState` go through `state.apply(GridCommand)`.
+
+## All variants
+
+### Selection
+
+```rust
+SelectCell(CellCoord)
+ExtendSelection(CellCoord)
+ClearSelection
+MoveSelection { delta_row: i64, delta_col: i64, extend: bool }
+SelectRow(u64)
+ExtendRowSelection(u64)
+SelectCol(usize)
+ExtendColSelection(usize)
+```
+
+### Scrolling & Viewport
+
+```rust
+ScrollTo { x: f64, y: f64 }
+ScrollBy { dx: f64, dy: f64 }
+Resize { width: f64, height: f64 }
+```
+
+### Columns
+
+```rust
+ResizeColumn { col_idx: usize, new_width: f64 }
+AutoFitColumn { col_idx: usize, char_width: f64, header_char_width: f64, cell_padding: f64 }
+MoveColumn { from_idx: usize, to_idx: usize }
+SetPinnedColumnCount { count: usize }
+```
+
+### Sorting & Filtering
+
+```rust
+ToggleSort { col_key: String }
+SetColumnFilter { col_key: String, text: String }
+ClearAllFilters
+```
+
+### Editing
+
+```rust
+StartEdit { row: u64, col_key: String }
+CommitEdit { row: u64, col_key: String, value: String }
+CancelEdit
+```
+
+### Clipboard
+
+```rust
+CopySelection
+CutSelection
+PasteAt { text: String }
+```
+
+### Search
+
+```rust
+Search { query: String }
+SearchNext
+SearchPrev
+ClearSearch
+```
+
+### Undo / Redo
+
+```rust
+Undo
+Redo
+```
+
+### Data & Display
+
+```rust
+SetHoveredRow(Option<u64>)
+NotifyPageLoaded
+SetTotalRowCount(u64)
+```
+
+## CommandOutput
+
+```rust
+pub enum CommandOutput {
+    None,
+    CopyText(String),
+    CopyError(CopyError),
+}
+
+pub enum CopyError {
+    NoSelection,
+    TooManyRows,
+}
+```
+
+| Command         | Output                         |
+| --------------- | ------------------------------ |
+| `CopySelection` | `CopyText(tsv)` or `CopyError` |
+| `CutSelection`  | `CopyText(tsv)` or `CopyError` |
+| All others      | `None`                         |
+
+
+
+---
+url: /api/grid-model.md
+---
+
+# GridModel API
+
+## Definition
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Fields
+
+| Field              | Type                             | Default      | Description                        |
+| ------------------ | -------------------------------- | ------------ | ---------------------------------- |
+| `columns`          | `Vec<ColumnDef>`                 | —            | Ordered column definitions         |
+| `data`             | `Box<dyn DataSource>`            | —            | Backing data provider              |
+| `row_height`       | `f64`                            | —            | Height of data rows (logical px)   |
+| `header_height`    | `f64`                            | —            | Height of header row (logical px)  |
+| `column_offsets`   | `ColumnOffsets`                  | computed     | Precomputed left-edge offsets      |
+| `patches`          | `HashMap<(u64, String), String>` | empty        | Cell value overrides               |
+| `row_number_width` | `f64`                            | auto         | Gutter width (auto from row count) |
+| `sort_order`       | `Vec<u64>`                       | empty        | Display→physical row mapping       |
+| `pinned_count`     | `usize`                          | `0`          | Number of pinned leading columns   |
+| `filters`          | `HashMap<String, String>`        | empty        | Per-column text filters            |
+| `filtered_indices` | `Vec<u64>`                       | empty        | Filtered physical row indices      |
+| `mode`             | `DataSourceMode`                 | `ClientSide` | Client or server-side data         |
+| `scrollbar_size`   | `f64`                            | `14.0`       | Scrollbar reserved space           |
+
+## Constructors
+
+```rust
+// In-memory data
+pub fn new(columns: Vec<ColumnDef>, rows: Vec<RowRecord>, row_height: f64, header_height: f64) -> Self
+
+// Custom data source
+pub fn with_data_source(columns: Vec<ColumnDef>, data: Box<dyn DataSource>, row_height: f64, header_height: f64) -> Self
+```
+
+## Methods
+
+| Method                     | Signature                                     | Description                                 |
+| -------------------------- | --------------------------------------------- | ------------------------------------------- |
+| `get_cell`                 | `(row: u64, col_key: &str) -> Option<String>` | Read cell (patches first, then data source) |
+| `set_cell`                 | `(row: u64, col_key: &str, value: String)`    | Write cell to data source                   |
+| `logical_to_physical`      | `(logical: u64) -> u64`                       | Map display row to data row                 |
+| `display_row_count`        | `() -> u64`                                   | Visible row count (respects filters)        |
+| `total_width`              | `() -> f64`                                   | Sum of column widths                        |
+| `total_height`             | `() -> f64`                                   | `row_count × row_height + header_height`    |
+| `pinned_width`             | `() -> f64`                                   | Total width of pinned columns               |
+| `compute_row_number_width` | `(row_count: u64) -> f64`                     | Auto-compute gutter width                   |
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // sort/filter done locally (default)
+    ServerSide,  // sort/filter delegated to server
+}
+```
+
+
+
+---
+url: /api/grid-state.md
+---
+
+# GridState API
+
+## Definition
+
+```rust
+pub struct GridState {
+    pub model: GridModel,
+    pub viewport: ViewportState,
+    pub selection: SelectionState,
+    pub hovered_row: Option<u64>,
+    pub sort: Option<SortState>,
+    pub edit: Option<EditCell>,
+    pub search: SearchState,
+    history: UndoHistory,  // private
+}
+```
+
+## Fields
+
+| Field         | Type                | Description                                                 |
+| ------------- | ------------------- | ----------------------------------------------------------- |
+| `model`       | `GridModel`         | Columns, data source, sizing, sort/filter state             |
+| `viewport`    | `ViewportState`     | Scroll position (`scroll_x`, `scroll_y`), canvas dimensions |
+| `selection`   | `SelectionState`    | Anchor/focus selection, clipboard buffer                    |
+| `hovered_row` | `Option<u64>`       | Row under the mouse cursor                                  |
+| `sort`        | `Option<SortState>` | Active sort column and direction                            |
+| `edit`        | `Option<EditCell>`  | Cell currently being edited                                 |
+| `search`      | `SearchState`       | Active search query, matches, current index                 |
+
+## Constructor
+
+```rust
+pub fn new(
+    model: GridModel,
+    viewport_width: f64,
+    viewport_height: f64,
+) -> Self
+```
+
+Creates a `GridState` with the given model and initial viewport dimensions.
+All other fields start at their defaults (no selection, no sort, no edit, etc.).
+
+## Methods
+
+### apply
+
+```rust
+pub fn apply(&mut self, cmd: GridCommand) -> CommandOutput
+```
+
+The **only** way to mutate `GridState`. Applies a command and returns output.
+
+See [GridCommand API](/api/grid-command.md) for all available commands.
+
+## Related types
+
+### SortState
+
+```rust
+pub struct SortState {
+    pub col_key: String,
+    pub dir: SortDir,
+}
+
+pub enum SortDir { Asc, Desc }
+```
+
+### EditCell
+
+```rust
+pub struct EditCell {
+    pub row: u64,
+    pub col_key: String,
+    pub original_value: Option<String>,
+}
+```
+
+### SearchState
+
+```rust
+pub struct SearchState {
+    pub query: String,
+    pub matches: Vec<CellCoord>,
+    pub current: usize,
+}
+```
+
+
+
+---
+url: /api/scene-primitive.md
+---
+
+# ScenePrimitive API
+
+## ScenePrimitive
+
+```rust
+pub enum ScenePrimitive {
+    Rect(RectPrimitive),
+    Text(TextPrimitive),
+    Line(LinePrimitive),
+    Polygon(PolygonPrimitive),
+    Image(ImagePrimitive),
+}
+```
+
+## RectPrimitive
+
+```rust
+pub struct RectPrimitive {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub fill: Color,
+    pub stroke: Option<Color>,
+    pub stroke_width: f64,
+    pub corner_radius: f64,
+}
+```
+
+## TextPrimitive
+
+```rust
+pub struct TextPrimitive {
+    pub x: f64,
+    pub y: f64,
+    pub text: String,
+    pub color: Color,
+    pub font_size: f64,
+    pub bold: bool,
+    pub clip: Option<[f64; 4]>,
+    pub align: TextAlign,
+}
+```
+
+## LinePrimitive
+
+```rust
+pub struct LinePrimitive {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub color: Color,
+    pub width: f64,
+}
+```
+
+## PolygonPrimitive
+
+```rust
+pub struct PolygonPrimitive {
+    pub points: Vec<[f64; 2]>,
+    pub fill: Color,
+    pub corner_radius: f64,
+}
+```
+
+## ImagePrimitive
+
+```rust
+pub struct ImagePrimitive {
+    pub url: String,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub corner_radius: f64,
+    pub clip: Option<[f64; 4]>,
+}
+```
+
+## Supporting types
+
+### Color
+
+```rust
+pub struct Color { pub r: u8, pub g: u8, pub b: u8, pub a: u8 }
+
+impl Color {
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self;
+    pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
+    pub fn to_css(self) -> String;  // "rgba(r,g,b,a)"
+}
+```
+
+### TextAlign
+
+```rust
+pub enum TextAlign {
+    Left,    // default
+    Center,
+    Right,
+}
+```
+
+### SceneFrame
+
+```rust
+pub struct SceneFrame {
+    primitives: Vec<ScenePrimitive>,
+}
+
+impl SceneFrame {
+    pub fn primitives(&self) -> &[ScenePrimitive];
+}
+```
+
+## SceneBuilder
+
+```rust
+pub struct SceneBuilder {
+    dpr: f64,
+    theme: Theme,
+}
+
+impl SceneBuilder {
+    pub fn new(dpr: f64, theme: Theme) -> Self;
+    pub fn build(&self, state: &GridState, drag: Option<&ColumnDragHint>) -> SceneFrame;
+}
+```
+
+
+
+---
+url: /api/theme.md
+---
+
+# Theme API
+
+## Definition
+
+```rust
+pub struct Theme {
+    // Colors
+    pub bg: Color,
+    pub header_bg: Color,
+    pub header_text: Color,
+    pub cell_text: Color,
+    pub grid_line: Color,
+    pub header_border: Color,
+    pub selection_fill: Color,
+    pub selection_border: Color,
+    pub scrollbar_track: Color,
+    pub scrollbar_thumb: Color,
+    pub row_alt_bg: Color,
+    pub row_hover_bg: Color,
+    pub search_highlight: Color,
+    pub search_current: Color,
+    pub skeleton_fg: Color,
+
+    // Typography
+    pub font_size: f64,
+    pub header_font_size: f64,
+    pub header_font_bold: bool,
+
+    // Spacing
+    pub cell_padding: f64,
+    pub scrollbar_width: f64,
+    pub scrollbar_radius: f64,
+}
+```
+
+## All fields
+
+| Field              | Type    | Light default           | Dark default            |
+| ------------------ | ------- | ----------------------- | ----------------------- |
+| `bg`               | `Color` | `rgb(255,255,255)`      | `rgb(26,27,38)`         |
+| `header_bg`        | `Color` | `rgb(248,249,250)`      | `rgb(36,40,59)`         |
+| `header_text`      | `Color` | `rgb(24,29,31)`         | `rgb(169,177,214)`      |
+| `cell_text`        | `Color` | `rgb(24,29,31)`         | `rgb(192,202,245)`      |
+| `grid_line`        | `Color` | `rgb(224,224,224)`      | `rgb(42,47,69)`         |
+| `header_border`    | `Color` | `rgb(186,191,199)`      | `rgb(61,68,102)`        |
+| `selection_fill`   | `Color` | `rgba(31,119,220,46)`   | `rgba(122,162,255,51)`  |
+| `selection_border` | `Color` | `rgba(31,119,220,210)`  | `rgba(122,162,255,204)` |
+| `scrollbar_track`  | `Color` | `rgb(241,241,241)`      | `rgb(31,35,53)`         |
+| `scrollbar_thumb`  | `Color` | `rgba(100,100,110,160)` | `rgba(169,177,214,102)` |
+| `row_alt_bg`       | `Color` | `rgb(252,252,253)`      | `rgb(30,32,48)`         |
+| `row_hover_bg`     | `Color` | `rgba(0,0,0,10)`        | `rgba(255,255,255,10)`  |
+| `search_highlight` | `Color` | `rgba(255,213,0,80)`    | `rgba(255,213,0,80)`    |
+| `search_current`   | `Color` | `rgba(255,165,0,140)`   | `rgba(255,165,0,140)`   |
+| `skeleton_fg`      | `Color` | `rgba(200,200,200,100)` | `rgba(60,65,90,100)`    |
+| `font_size`        | `f64`   | `14.0`                  | `14.0`                  |
+| `header_font_size` | `f64`   | `12.0`                  | `13.0`                  |
+| `header_font_bold` | `bool`  | `true`                  | `true`                  |
+| `cell_padding`     | `f64`   | `10.0`                  | `10.0`                  |
+| `scrollbar_width`  | `f64`   | `14.0`                  | `14.0`                  |
+| `scrollbar_radius` | `f64`   | `4.0`                   | `4.0`                   |
+
+## Constructors
+
+```rust
+Theme::light()   // AG Grid-inspired light palette
+Theme::dark()    // Tokyo Night-inspired dark palette
+Theme::default() // same as light()
+```
+
+## Extending a theme
+
+```rust
+let custom = Theme {
+    bg: Color::rgb(30, 30, 46),
+    cell_text: Color::rgb(205, 214, 244),
+    ..Theme::dark()
+};
+```
+
+
+
+---
+url: /concepts/architecture.md
+---
+
+# Architecture
+
+## Pipeline
+
+Data flows in one direction through a fixed pipeline:
+
+```
+GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRenderer  ──►  <canvas>
+```
+
+Each step has a single responsibility. Nothing flows backwards.
+
+## GridState
+
+`GridState` is the central structure. It holds three sub-states:
+
+| Sub-state   | Type             | Responsibility                          |
+| ----------- | ---------------- | --------------------------------------- |
+| `model`     | `GridModel`      | Column definitions and row data         |
+| `viewport`  | `ViewportState`  | `scroll_x`, `scroll_y`, width, height   |
+| `selection` | `SelectionState` | Anchor and focus (cell, row, or column) |
+
+All mutations go through `GridState::apply(GridCommand)`. Direct field
+mutation is not exposed. This makes the state easy to snapshot and replay.
+
+## Commands
+
+`GridCommand` is an enum of all possible mutations:
+
+```rust
+GridCommand::ScrollTo { x: f64, y: f64 }
+GridCommand::SelectCell { row: u64, col: usize }
+GridCommand::Resize { width: f64, height: f64 }
+GridCommand::ClearSelection
+```
+
+Commands are cheap to construct and can be queued. The renderer calls `apply`
+once per animation frame with any pending commands.
+
+## SceneFrame
+
+`SceneBuilder::build(&grid_state)` returns a `SceneFrame` — a flat list of
+`ScenePrimitive` values that describe exactly what should appear on screen:
+
+- **`Rect`** — filled rectangle (cell background, selection highlight)
+- **`Text`** — cell label with font, color, and clipping bounds
+- **`Line`** — grid border line
+
+The scene is renderer-agnostic. You can implement a new backend (WebGL, SVG,
+terminal) by consuming `SceneFrame` without touching core.
+
+## Crate dependency graph
+
+```
+rs-grid-leptos
+  └── rs-grid-web
+       └── rs-grid-render-canvas
+            └── rs-grid-scene
+                 └── rs-grid-core
+```
+
+| Crate                   | Depends on    | WASM required |
+| ----------------------- | ------------- | ------------- |
+| `rs-grid-core`          | —             | No            |
+| `rs-grid-scene`         | core          | No            |
+| `rs-grid-render-canvas` | scene         | Yes           |
+| `rs-grid-web`           | render-canvas | Yes           |
+| `rs-grid-leptos`        | web           | Yes           |
+
+## Adding a renderer
+
+1. **Create a new crate**
+
+   Add `rs-grid-scene` as a dependency.
+
+2. **Consume SceneFrame**
+
+   Call `SceneBuilder::build(&grid_state)` to get a `SceneFrame`, then
+   iterate over `SceneFrame::primitives`.
+
+3. **Issue draw calls**
+
+   Map each `ScenePrimitive` (Rect, Text, Line) to your backend's API.
+
+:::warning
+Do not modify `rs-grid-core` or `rs-grid-scene` when adding a renderer.
+These crates must remain WASM-free and testable with plain `cargo test`.
+:::
+
+
+
+---
+url: /concepts/data-model.md
+---
+
+# Data Model
+
+## GridModel
+
+`GridModel` holds everything about the grid's data and layout:
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Creating a model
+
+### In-memory data
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+```
+
+This wraps the `Vec<RowRecord>` in a `VecDataSource` internally.
+
+### Custom data source
+
+```rust
+let data: Box<dyn DataSource> = Box::new(my_source);
+let model = GridModel::with_data_source(columns, data, 32.0, 36.0);
+```
+
+## Patches layer
+
+Edited cell values are stored in `patches` — a `HashMap<(u64, String), String>`
+mapping `(row_index, col_key)` to the new value. Patches override the underlying
+data source, which means editing works even with read-only sources like
+`FnDataSource`.
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // sort/filter done locally (default)
+    ServerSide,  // sort/filter delegated to server
+}
+```
+
+In `ServerSide` mode, `apply_sort()` and `apply_filter()` become no-ops —
+the server is responsible for returning already-sorted/filtered data.
+
+## Logical-to-physical row mapping
+
+When sorting or filtering is active, the display order differs from the
+data source order:
+
+```
+Display row 0 → physical row 42  (via sort_order or filtered_indices)
+Display row 1 → physical row 7
+...
+```
+
+`model.logical_to_physical(logical_row)` resolves this mapping:
+
+1. If `filtered_indices` is non-empty → use it (already in sort order)
+2. Else if `sort_order` is non-empty → use it
+3. Else → identity (logical == physical)
+
+## Row number gutter
+
+The row number gutter width is auto-computed based on the digit count of
+the largest row number:
+
+```
+width = max(digits × 9px + 24px padding, 40px)
+```
+
+This ensures the gutter is always wide enough to display all row numbers
+without truncation.
+
+## Key methods
+
+| Method                                                       | Description                                   |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| `new(columns, rows, row_height, header_height)`              | Create with in-memory data                    |
+| `with_data_source(columns, data, row_height, header_height)` | Create with any `DataSource`                  |
+| `get_cell(row, col_key)`                                     | Read a cell (patches first, then data source) |
+| `set_cell(row, col_key, value)`                              | Write a cell to the data source               |
+| `logical_to_physical(logical)`                               | Map display row to data source row            |
+| `display_row_count()`                                        | Number of visible rows (respects filters)     |
+| `total_width()`                                              | Sum of all column widths                      |
+| `total_height()`                                             | `row_count × row_height + header_height`      |
+| `pinned_width()`                                             | Total width of pinned columns                 |
+
+
+
+---
+url: /concepts/grid-state.md
+---
+
+# Grid State & Commands
+
+## GridState
+
+`GridState` is the single source of truth for a grid instance. It combines all
+sub-states into one struct:
+
+```rust
+pub struct GridState {
+    pub model: GridModel,           // columns, data, sizing
+    pub viewport: ViewportState,    // scroll position, canvas size
+    pub selection: SelectionState,  // anchor/focus, clipboard
+    pub hovered_row: Option<u64>,   // row under cursor
+    pub sort: Option<SortState>,    // active sort column + direction
+    pub edit: Option<EditCell>,     // cell being edited
+    pub search: SearchState,        // active search query + matches
+    history: UndoHistory,           // undo/redo stack (private)
+}
+```
+
+### Creating a GridState
+
+```rust
+use rs_grid_core::{GridState, GridModel, column::ColumnDef};
+
+let columns = vec![
+    ColumnDef::new("name", "Name", 200.0),
+    ColumnDef::new("age", "Age", 100.0),
+];
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+let state = GridState::new(model, 800.0, 600.0);
+```
+
+## Command-driven mutations
+
+**All mutations go through `GridState::apply(GridCommand)`.**
+Never modify `GridState` fields directly — the `apply` method ensures
+invariants are maintained (scroll clamping, undo recording, index
+recomputation).
+
+```rust
+use rs_grid_core::commands::{GridCommand, CommandOutput};
+
+let output = state.apply(GridCommand::ScrollBy { dx: 0.0, dy: 100.0 });
+
+match output {
+    CommandOutput::None => { /* most commands */ }
+    CommandOutput::CopyText(tsv) => { /* clipboard text */ }
+    CommandOutput::CopyError(err) => { /* copy/cut failed */ }
+}
+```
+
+## GridCommand reference
+
+All available commands:
+
+### Selection
+
+| Command                                          | Description                                   |
+| ------------------------------------------------ | --------------------------------------------- |
+| `SelectCell(CellCoord)`                          | Set a single-cell selection                   |
+| `ExtendSelection(CellCoord)`                     | Extend selection to a new focus (shift-click) |
+| `ClearSelection`                                 | Remove the current selection                  |
+| `MoveSelection { delta_row, delta_col, extend }` | Move or extend selection by delta             |
+| `SelectRow(u64)`                                 | Select all cells in a row                     |
+| `ExtendRowSelection(u64)`                        | Extend row selection                          |
+| `SelectCol(usize)`                               | Select all cells in a column                  |
+| `ExtendColSelection(usize)`                      | Extend column selection                       |
+
+### Scrolling & Viewport
+
+| Command                    | Description                   |
+| -------------------------- | ----------------------------- |
+| `ScrollTo { x, y }`        | Scroll to absolute position   |
+| `ScrollBy { dx, dy }`      | Scroll by delta (wheel event) |
+| `Resize { width, height }` | Update canvas dimensions      |
+
+### Columns
+
+| Command                                                                  | Description                |
+| ------------------------------------------------------------------------ | -------------------------- |
+| `ResizeColumn { col_idx, new_width }`                                    | Set column width           |
+| `AutoFitColumn { col_idx, char_width, header_char_width, cell_padding }` | Auto-fit column to content |
+| `MoveColumn { from_idx, to_idx }`                                        | Drag-and-drop reorder      |
+| `SetPinnedColumnCount { count }`                                         | Pin leading columns        |
+
+### Sorting & Filtering
+
+| Command                             | Description                     |
+| ----------------------------------- | ------------------------------- |
+| `ToggleSort { col_key }`            | Cycle: None → Asc → Desc → None |
+| `SetColumnFilter { col_key, text }` | Set per-column text filter      |
+| `ClearAllFilters`                   | Remove all active filters       |
+
+### Editing
+
+| Command                              | Description                         |
+| ------------------------------------ | ----------------------------------- |
+| `StartEdit { row, col_key }`         | Begin inline editing (double-click) |
+| `CommitEdit { row, col_key, value }` | Save the edit                       |
+| `CancelEdit`                         | Discard the edit                    |
+
+### Clipboard
+
+| Command            | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `CopySelection`    | Copy selection as TSV → `CommandOutput::CopyText` |
+| `CutSelection`     | Copy + clear selected cells                       |
+| `PasteAt { text }` | Paste TSV at selection anchor                     |
+
+### Search
+
+| Command            | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `Search { query }` | Search all visible cells (case-insensitive) |
+| `SearchNext`       | Jump to next match                          |
+| `SearchPrev`       | Jump to previous match                      |
+| `ClearSearch`      | Clear search state                          |
+
+### Undo / Redo
+
+| Command | Description               |
+| ------- | ------------------------- |
+| `Undo`  | Undo last undoable action |
+| `Redo`  | Redo last undone action   |
+
+### Data & Display
+
+| Command                      | Description                             |
+| ---------------------------- | --------------------------------------- |
+| `SetHoveredRow(Option<u64>)` | Update hover highlight                  |
+| `NotifyPageLoaded`           | Trigger re-render after async data load |
+| `SetTotalRowCount(u64)`      | Update row count for async data sources |
+
+## CommandOutput
+
+`apply()` returns a `CommandOutput`:
+
+```rust
+pub enum CommandOutput {
+    None,                   // most commands
+    CopyText(String),       // TSV text for clipboard
+    CopyError(CopyError),   // copy/cut failed
+}
+```
+
+Only `CopySelection` and `CutSelection` produce non-`None` output.
+
+
+
+---
+url: /concepts/selection.md
+---
+
+# Selection
+
+rs-grid uses an anchor/focus selection model. The anchor is where the selection
+started; the focus is where it currently ends. Shift-click extends the
+selection from the anchor to a new focus.
+
+## SelectionState
+
+`SelectionState` tracks two positions:
+
+| Field    | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `anchor` | Origin of the selection (set on mousedown)            |
+| `focus`  | Current end of the selection (updated on shift-click) |
+
+Each position can refer to a **cell**, a **row**, or a **column**. Mixed
+granularity (anchor on a cell, focus on a row) is not supported.
+
+## Commands
+
+```rust
+// Select a single cell
+grid_state.apply(GridCommand::SelectCell { row: 0, col: 2 });
+
+// Extend selection (shift-click equivalent)
+grid_state.apply(GridCommand::ExtendSelection { row: 5, col: 2 });
+
+// Select an entire row
+grid_state.apply(GridCommand::SelectRow { row: 3 });
+
+// Select an entire column
+grid_state.apply(GridCommand::SelectColumn { col: 1 });
+
+// Clear selection
+grid_state.apply(GridCommand::ClearSelection);
+```
+
+## Hit-testing
+
+Given a pixel coordinate `(x, y)` relative to the canvas, hit-testing returns
+the cell under the cursor:
+
+```rust
+let hit = grid_state.hit_test(x, y);
+// Returns Option<HitResult> with { row: u64, col: usize }
+```
+
+Hit-testing uses the same precomputed column offset array as the viewport,
+giving **O(log n)** performance. Row hit-testing is O(1) with uniform row
+height.
+
+:::warning
+Never introduce an O(n) scan in the hit-testing path. The O(log n) guarantee
+is a core invariant.
+:::
+
+## Rendering the selection
+
+`SceneBuilder` reads `SelectionState` and emits `ScenePrimitive::Rect` entries
+with the selection highlight color for every selected cell in the viewport.
+
+:::tip
+Even with a full-grid selection (all rows x all columns), only the primitives
+for visible cells are built. The scene size is bounded by the viewport, not
+the selection size.
+:::
+
+
+
+---
+url: /concepts/viewport.md
+---
+
+# Viewport
+
+The viewport is the window into the grid data. Only cells that intersect the
+visible area are passed to the renderer, regardless of the total row or column
+count.
+
+## ViewportState
+
+`ViewportState` lives inside `GridState` and tracks four values:
+
+| Field      | Type  | Description                            |
+| ---------- | ----- | -------------------------------------- |
+| `scroll_x` | `f64` | Horizontal scroll offset in CSS pixels |
+| `scroll_y` | `f64` | Vertical scroll offset in CSS pixels   |
+| `width`    | `f64` | Canvas width in CSS pixels             |
+| `height`   | `f64` | Canvas height in CSS pixels            |
+
+Pixel values are in CSS pixels. The renderer applies the device pixel ratio
+(DPR) multiplier when issuing draw calls.
+
+## Visible columns
+
+Column offsets are precomputed and stored in a prefix-sum array. Given
+`scroll_x` and `width`, the first and last visible column are found with a
+binary search — **O(log n)** regardless of column count.
+
+The same approach applies to rows using the row height and `scroll_y`.
+
+## Row count limits
+
+Row indices use `u64`. The practical limit with `f64` scroll offsets is
+\~9 x 10^14 rows before floating-point precision degrades.
+
+:::note
+Row indices are always `u64`, never `usize`. On wasm32, `usize` is 32-bit
+and cannot address the full row space. See
+[row-count-limits](/row-count-limits.md)
+for details.
+:::
+
+## Scrolling
+
+Send a scroll command to update the viewport:
+
+```rust
+grid_state.apply(GridCommand::ScrollTo {
+    x: new_scroll_x,
+    y: new_scroll_y,
+});
+```
+
+The web integration layer (`rs-grid-web`) translates browser wheel events into
+scroll commands automatically. DPR and pixel rounding are handled internally.
+
+## Resize
+
+When the canvas is resized (window resize, container resize), update the
+viewport dimensions:
+
+```rust
+grid_state.apply(GridCommand::Resize {
+    width: new_width,
+    height: new_height,
+});
+```
+
+The Leptos component observes a `ResizeObserver` and dispatches this command
+automatically.
+
+
+
+---
+url: /data/fn-datasource.md
+---
+
+# Virtual Data (FnDataSource)
+
+## Overview
+
+`FnDataSource` generates cell values on demand via a closure. It uses O(1)
+memory regardless of the row count — ideal for computed data, demos, or
+very large datasets.
+
+## Creating
+
+```rust
+use rs_grid_core::datasource::FnDataSource;
+
+let data = FnDataSource::new(1_000_000, |row, col_key| {
+    match col_key {
+        "id" => Some(format!("{row}")),
+        "name" => Some(format!("User {row}")),
+        "value" => Some(format!("{:.2}", row as f64 * 1.23)),
+        _ => None,
+    }
+});
+
+let model = GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+);
+```
+
+## Properties
+
+| Property      | Value                                        |
+| ------------- | -------------------------------------------- |
+| Memory        | O(1) — no data stored                        |
+| Editable      | No — `set_cell()` is a no-op\*               |
+| Cloneable     | No — `clone_box()` returns `None`            |
+| `cell_status` | Always `Ready` or `Absent` (never `Loading`) |
+
+:::note
+\*Editing still works via the `patches` layer on `GridModel`. The patch
+overrides the closure result for that cell. See [Data Model](/concepts/data-model.md).
+:::
+
+## Sharing with Rc
+
+Since `FnDataSource` cannot be cloned, wrap the `GridModel` in `Rc` if
+you need to share it:
+
+```rust
+use std::rc::Rc;
+use std::cell::RefCell;
+
+let model = Rc::new(RefCell::new(GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+)));
+```
+
+## When to use
+
+- Very large datasets (millions or billions of rows)
+- Deterministic/computed data (hashes, formulas)
+- Demo and testing scenarios
+- When memory is constrained
+
+## When NOT to use
+
+- When you need mutable data without patches
+- When you need to clone the data source
+- Server-side data with async loading — use `PageCacheDataSource`
+
+
+
+---
+url: /data/overview.md
+---
+
+# Data Sources Overview
+
+## The DataSource trait
+
+All row data in rs-grid is accessed through the `DataSource` trait:
+
+```rust
+pub trait DataSource: Debug {
+    fn row_count(&self) -> u64;
+    fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
+    fn clone_box(&self) -> Option<Box<dyn DataSource>>;
+    fn set_cell(&mut self, row: u64, col_key: &str, value: String) { }
+    fn cell_status(&self, row: u64, col_key: &str) -> CellStatus { ... }
+}
+```
+
+This abstraction allows rs-grid to work with in-memory data, virtual
+(computed) data, or server-side paginated data through the same interface.
+
+## CellStatus
+
+```rust
+pub enum CellStatus {
+    Ready(String),  // value is available
+    Loading,        // page not yet fetched (async sources)
+    Absent,         // fetched but no value
+}
+```
+
+The renderer uses `CellStatus` to decide whether to draw the cell value,
+a skeleton loading placeholder, or nothing.
+
+## Built-in implementations
+
+| Source                                       | Memory   | Editable | Cloneable | Best for                     |
+| -------------------------------------------- | -------- | -------- | --------- | ---------------------------- |
+| [`VecDataSource`](/data/vec-datasource.md)   | O(n)     | Yes      | Yes       | Small to medium datasets     |
+| [`FnDataSource`](/data/fn-datasource.md)     | O(1)     | No\*     | No        | Virtual/computed data, demos |
+| [`PageCacheDataSource`](/data/page-cache.md) | O(pages) | No       | Yes       | Server-side paginated data   |
+
+:::note
+\*`FnDataSource` is read-only, but edits still work via the patches layer
+in `GridModel`. See [Data Model](/concepts/data-model.md) for details.
+:::
+
+## Client-side vs Server-side mode
+
+Set `model.mode` to control where sort/filter logic runs:
+
+```rust
+model.mode = DataSourceMode::ServerSide;
+```
+
+|           | ClientSide (default)             | ServerSide                     |
+| --------- | -------------------------------- | ------------------------------ |
+| Sort      | `apply_sort()` sorts locally     | No-op (server sorts)           |
+| Filter    | `apply_filter()` filters locally | No-op (server filters)         |
+| Search    | Scans local cells                | Scans local cells              |
+| Row count | `data.row_count()`               | Updated via `SetTotalRowCount` |
+
+In server-side mode, your application is responsible for:
+
+1. Listening to sort/filter changes
+2. Fetching new data from the server
+3. Updating the `PageCacheDataSource`
+4. Sending `NotifyPageLoaded` to trigger re-render
+
+
+
+---
+url: /data/page-cache.md
+---
+
+# Server-Side Data (PageCacheDataSource)
+
+## Overview
+
+`PageCacheDataSource` loads data from a remote server in pages, caching them
+in memory with LRU eviction. Cells that haven't been fetched yet render as
+skeleton loading placeholders.
+
+## Creating a page cache
+
+```rust
+use rs_grid_core::page_cache::PageCacheDataSource;
+
+let cache = PageCacheDataSource::new(
+    10_000, // total rows (initial estimate)
+    100,    // page size (rows per page)
+);
+cache.set_max_cached_pages(50); // default: 50
+
+let model = GridModel::with_data_source(
+    columns,
+    Box::new(cache.clone()),
+    32.0,
+    36.0,
+);
+model.mode = DataSourceMode::ServerSide;
+```
+
+## Page lifecycle
+
+```
+needed_pages() → mark_pending() → fetch → insert_page() → NotifyPageLoaded
+```
+
+1. **Detect needed pages** — call `cache.needed_pages(first_row, last_row)`
+   to find pages in the visible range that are neither loaded nor pending
+2. **Mark as pending** — `cache.mark_pending(page_num)` prevents duplicate fetches
+3. **Fetch data** — your application fetches the data from the server
+4. **Insert the page** — `cache.insert_page(page_num, rows)` stores the data
+5. **Notify the grid** — `state.apply(GridCommand::NotifyPageLoaded)` triggers re-render
+
+## FetchConfig (automatic fetching)
+
+`rs-grid-web` provides a built-in fetch coordinator via `FetchConfig`:
+
+```rust
+pub struct FetchConfig {
+    pub build_url: Box<dyn Fn(&PageFetchRequest) -> String>,
+    pub parse_response: Box<dyn Fn(JsValue) -> Result<PageFetchResponse, String>>,
+    pub buffer_pages: u64,  // prefetch ahead/behind
+}
+```
+
+### PageFetchRequest
+
+```rust
+pub struct PageFetchRequest {
+    pub page_num: u64,
+    pub page_size: u64,
+    pub sort: Option<SortState>,
+    pub filters: HashMap<String, String>,
+}
+```
+
+The fetcher automatically:
+
+- Checks which pages are needed for the current viewport
+- Prefetches `buffer_pages` pages ahead and behind
+- Spawns async `window.fetch()` calls
+- Parses JSON responses via your `parse_response` closure
+- Updates the cache and triggers `NotifyPageLoaded`
+
+## API reference
+
+| Method                              | Description                              |
+| ----------------------------------- | ---------------------------------------- |
+| `new(total_rows, page_size)`        | Create empty cache                       |
+| `page_size()`                       | Get rows per page                        |
+| `total_rows()`                      | Get current total row count              |
+| `set_total_rows(n)`                 | Update total (e.g. from server response) |
+| `set_max_cached_pages(n)`           | Set LRU eviction limit (default: 50)     |
+| `insert_page(page_num, rows)`       | Store a fetched page                     |
+| `clear()`                           | Invalidate all cached pages              |
+| `is_page_loaded(page_num)`          | Check if page is cached                  |
+| `is_page_pending(page_num)`         | Check if fetch is in-flight              |
+| `mark_pending(page_num)`            | Mark page as being fetched               |
+| `unmark_pending(page_num)`          | Remove pending flag (on error)           |
+| `needed_pages(first_row, last_row)` | Pages not loaded or pending in range     |
+
+## CellStatus
+
+`PageCacheDataSource` returns meaningful `CellStatus` values:
+
+| Status                     | When                         |
+| -------------------------- | ---------------------------- |
+| `CellStatus::Ready(value)` | Page loaded, cell has data   |
+| `CellStatus::Loading`      | Page not yet fetched         |
+| `CellStatus::Absent`       | Page loaded but cell missing |
+
+The renderer draws a skeleton animation for `Loading` cells.
+
+## LRU eviction
+
+When the cache exceeds `max_cached_pages`, the least-recently-accessed
+pages are evicted. Re-accessing a page moves it to the back of the
+eviction queue.
+
+## Invalidation on sort/filter change
+
+When sort or filter changes in server-side mode, call `cache.clear()` to
+invalidate all pages, then let the fetcher re-fetch with the new parameters.
+
+## Shared state
+
+`PageCacheDataSource` uses `Rc<RefCell<...>>` internally — cloning it
+creates a shared reference to the same cache. This is how the fetch
+coordinator and the grid model share the same data.
+
+
+
+---
+url: /data/vec-datasource.md
+---
+
+# In-Memory Data (VecDataSource)
+
+## Overview
+
+`VecDataSource` is the simplest data source — a `Vec<RowRecord>` stored
+entirely in memory.
+
+## Creating
+
+```rust
+use rs_grid_core::{datasource::VecDataSource, row::RowRecord};
+
+let rows: Vec<RowRecord> = (0..1000).map(|i| {
+    let mut r = RowRecord::new(i);
+    r.set("name", format!("User {i}"));
+    r.set("email", format!("user{i}@example.com"));
+    r
+}).collect();
+
+let data = VecDataSource::new(rows);
+```
+
+Or use the shorthand `GridModel::new()` which wraps a `Vec<RowRecord>`
+in a `VecDataSource` automatically:
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+```
+
+## Properties
+
+| Property      | Value                                             |
+| ------------- | ------------------------------------------------- |
+| Memory        | O(n) — all rows in memory                         |
+| Editable      | Yes — `set_cell()` modifies the underlying vector |
+| Cloneable     | Yes — deep clone of all rows                      |
+| `cell_status` | Always `Ready` or `Absent` (never `Loading`)      |
+
+## When to use
+
+- Datasets up to \~100,000 rows
+- Mutable data (direct editing without the patches layer)
+- When you need to clone the data source
+
+## When NOT to use
+
+- Very large datasets (millions of rows) — use `FnDataSource` instead
+- Server-side data — use `PageCacheDataSource`
+
+
+
+---
+url: /deployment/docker.md
+---
+
+# Docker
+
+The documentation site is packaged as a multi-stage Docker image. The build
+stage compiles the Astro site with Node, and the serve stage runs nginx to
+serve the static output.
+
+## Quick start
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+The site will be available at `http://localhost:8080`.
+
+## docker-compose.yml
+
+```yaml title="docker-compose.yml"
+services:
+  site:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+```
+
+## Dockerfile
+
+Multi-stage build — Node builds, nginx serves:
+
+```dockerfile title="site/Dockerfile"
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+## nginx.conf
+
+```nginx title="site/nginx.conf"
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ $uri.html =404;
+    }
+
+    # Long-cache for hashed Astro assets
+    location /_astro/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    error_page 404 /404.html;
+}
+```
+
+## Build without Compose
+
+```bash
+# Build the image
+docker build -t rs-grid-site ./site
+
+# Run the container
+docker run -p 8080:80 rs-grid-site
+```
+
+## Production deployment
+
+Push the image to a registry and deploy with your preferred orchestrator:
+
+```bash
+docker build -t registry.example.com/rs-grid-site:latest ./site
+docker push registry.example.com/rs-grid-site:latest
+```
+
+:::tip
+The final image is based on `nginx:alpine` and typically weighs around 25 MB.
+No Node runtime is included in the production image.
+:::
+
+
+
+---
+url: /development/testing.md
+---
+
+# Testing
+
+## Unit tests
+
+Run all workspace tests:
+
+```bash
+cargo test --workspace
+```
+
+Or test a specific crate:
+
+```bash
+cargo test -p rs-grid-core
+```
+
+### What's tested
+
+- Hit-testing (cell, column header, row header)
+- Column offsets computation
+- Cell formatting (all CellFormat variants)
+- Data sources (VecDataSource, FnDataSource, PageCacheDataSource)
+- Selection model (anchor/focus, copy/paste TSV)
+- Search (query matching, limits)
+- Undo/redo history
+- Sort and filter logic
+
+## End-to-end tests (Playwright)
+
+E2E tests verify the grid in a real browser environment.
+
+### Setup (one-time)
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+```
+
+### Run tests
+
+```bash
+# Build the app first
+cd examples/basic-leptos && trunk build
+
+# Then run tests
+cd e2e && npm test
+```
+
+### Test structure
+
+Tests are in `e2e/tests/grid.spec.ts`:
+
+| Suite                  | Tests                                                 |
+| ---------------------- | ----------------------------------------------------- |
+| **Smoke**              | Page loads, canvas visible, default values            |
+| **Controls**           | Row/column dropdown interactions                      |
+| **Canvas interaction** | Clicks, scroll, shift-click with viewport coordinates |
+| **Visual regression**  | Screenshot comparison (2% tolerance)                  |
+
+### Canvas-specific challenges
+
+The grid renders on `<canvas>`, not in the DOM. This means:
+
+- No DOM selectors for grid cells
+- Interactions use **fixed pixel coordinates**
+- Visual regression compares screenshots pixel-by-pixel
+
+:::warning
+If you change the layout (header height, row height, gutter width),
+update the coordinates in `grid.spec.ts`.
+:::
+
+### Update screenshots
+
+After intentional visual changes:
+
+```bash
+cd e2e && npm run update-snapshots
+```
+
+This regenerates the reference screenshots for visual regression tests.
+
+
+
+---
+url: /development/workspace.md
+---
+
+# Development Workflow
+
+## Workspace structure
+
+```
+rs-grid/
+├── crates/
+│   ├── rs-grid-core/          # Headless logic (no WASM dependency)
+│   ├── rs-grid-scene/         # Scene graph primitives
+│   ├── rs-grid-render-canvas/ # Canvas2D renderer
+│   ├── rs-grid-web/           # Browser integration
+│   └── rs-grid-leptos/        # Leptos component wrapper
+├── examples/
+│   ├── basic-leptos/          # Leptos demo app
+│   └── basic-js/              # Vanilla JS demo
+├── e2e/                       # Playwright end-to-end tests
+└── docs/                      # This documentation (Mintlify)
+```
+
+## Build commands
+
+### Check (fast feedback)
+
+```bash
+cargo check --workspace
+```
+
+### Build native (for tests)
+
+```bash
+cargo build -p rs-grid-core
+```
+
+### Unit tests
+
+```bash
+cargo test --workspace
+```
+
+### Format
+
+```bash
+cargo fmt --all
+```
+
+### Lint
+
+```bash
+cargo clippy --workspace -- -D warnings
+```
+
+### WASM build (Leptos example)
+
+```bash
+cd examples/basic-leptos
+trunk build
+```
+
+### Dev server
+
+```bash
+cd examples/basic-leptos
+trunk serve
+```
+
+## Code conventions
+
+- **Edition**: Rust 2021
+- **Max line width**: 80 characters (`rustfmt.toml`)
+- **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
+- **Comments**: wrapped at 80 chars
+- No `unwrap()` in production code — use `expect("reason")` or error propagation
+
+## Key invariants
+
+- `rs-grid-core` has **zero WASM dependencies** — must remain testable with `cargo test`
+- Row indices are `u64` (not `usize`) for WASM32 compatibility
+- All mutations go through `GridState::apply(GridCommand)`
+- Hit-testing must stay O(log n) — column offsets are precomputed
+- Dependency flow is one-directional: `leptos → web → render-canvas → scene → core`
+
+
+
+---
+url: /docs-overview.md
+---
+
+# rs-grid
+
+A headless data grid engine built with Rust and compiled to WebAssembly.
+Designed for millions of rows with smooth 60 fps rendering on Canvas2D.
+
+- [**Getting Started**](/getting-started.md) — Install rs-grid and render your first grid in minutes.
+- [**Architecture**](/concepts/architecture.md) — Understand the unidirectional pipeline from state to canvas.
+- [**Features**](/features/columns.md) — Columns, editing, sorting, filtering, clipboard, and more.
+- [**Theming**](/theming/overview.md) — Customize colors, fonts, and spacing with CSS variables.
+- [**Data Sources**](/data/overview.md) — In-memory, virtual, or server-side paginated data.
+- [**API Reference**](/api/grid-state.md) — Full reference for GridState, GridCommand, and all types.
+
+## Key features
+
+- **Viewport virtualization** — only visible cells are rendered, regardless of dataset size
+- **O(1) hit-testing** — precomputed column offsets and uniform row height
+- **Inline editing** — text input and select dropdown editors with undo/redo
+- **Sorting & filtering** — per-column sort and text filter, client or server-side
+- **Copy/cut/paste** — TSV clipboard with RFC 4180 support
+- **Ctrl+F search** — case-insensitive full-text search with highlights
+- **Column operations** — resize, move, pin, auto-fit
+- **3 data sources** — in-memory, virtual (closure-based), async page cache
+- **4 built-in themes** — light, dark, Material 3, Material 3 Dark
+- **Renderer-agnostic** — scene graph of primitives, swap the backend
+- **Custom scrollbars** — themed, cross-platform consistent
+- **Context menu** — built-in and customizable actions
+- **Leptos & vanilla JS** — use with Leptos CSR or plain JavaScript
+
+## Architecture at a glance
+
+```
+GridState → SceneBuilder → SceneFrame → CanvasRenderer → <canvas>
+```
+
+All mutations go through `GridState::apply(GridCommand)`. No callbacks, no
+two-way bindings. The pipeline is deterministic and easy to test.
+
+## Workspace crates
+
+| Crate                   | Role                                                       | WASM |
+| ----------------------- | ---------------------------------------------------------- | ---- |
+| `rs-grid-core`          | Headless logic — model, viewport, selection, hit-testing   | No   |
+| `rs-grid-scene`         | Converts `GridState` to renderer-agnostic `ScenePrimitive` | No   |
+| `rs-grid-render-canvas` | Canvas2D renderer via wasm-bindgen                         | Yes  |
+| `rs-grid-web`           | Browser glue — events, DPR, requestAnimationFrame          | Yes  |
+| `rs-grid-leptos`        | Leptos CSR component `<GridCanvas>`                        | Yes  |
+
+:::warning
+Dependencies flow in one direction: `leptos → web → render-canvas → scene → core`.
+Never introduce a reverse dependency.
+:::
+
+
+
+---
+url: /features/cell-formatting.md
+---
+
+# Cell Formatting
+
+## Overview
+
+`CellFormat` controls how raw cell values are displayed. It is purely visual —
+the underlying data is not modified. Set it on `ColumnDef::format`:
+
+```rust
+col.format = Some(CellFormat::Number {
+    decimal_places: 2,
+    thousands_sep: Some(' '),
+    decimal_sep: '.',
+});
+```
+
+## Format types
+
+### Number
+
+```rust
+CellFormat::Number {
+    decimal_places: u8,           // digits after decimal
+    thousands_sep: Option<char>,  // e.g. Some(' ') or Some(',')
+    decimal_sep: char,            // e.g. '.' or ','
+}
+```
+
+| Raw          | Format                                                          | Output       | Align |
+| ------------ | --------------------------------------------------------------- | ------------ | ----- |
+| `"1234.567"` | `decimal_places: 2, thousands_sep: Some(' '), decimal_sep: '.'` | `"1 234.57"` | Right |
+| `"1234.5"`   | `decimal_places: 2, thousands_sep: Some('.'), decimal_sep: ','` | `"1.234,50"` | Right |
+
+### Percent
+
+```rust
+CellFormat::Percent {
+    decimal_places: u8,
+}
+```
+
+Multiplies by 100 and appends `%`:
+
+| Raw      | Output     |
+| -------- | ---------- |
+| `"0.75"` | `"75.00%"` |
+
+### Currency
+
+```rust
+CellFormat::Currency {
+    symbol: String,               // e.g. "$" or "€"
+    decimal_places: u8,
+    thousands_sep: Option<char>,
+    symbol_after: bool,           // true → "42.50 €", false → "$42.50"
+}
+```
+
+| Raw        | symbol\_after | Output         |
+| ---------- | ------------- | -------------- |
+| `"42.5"`   | `false`       | `"$42.50"`     |
+| `"1234.5"` | `true`        | `"1 234.50 €"` |
+
+### Boolean
+
+```rust
+CellFormat::Boolean {
+    true_label: String,    // e.g. "✓" or "Yes"
+    false_label: String,   // e.g. "✗" or "No"
+}
+```
+
+Truthy values: `"true"`, `"1"`, `"yes"` (case-insensitive). Everything
+else is falsy. Displayed centered.
+
+### Image
+
+```rust
+CellFormat::Image {
+    base_url: Option<String>,  // URL prefix (None = raw is full URL)
+    border_radius: f64,        // corner radius in px
+    padding: f64,              // padding inside the cell
+}
+```
+
+Renders the cell value as an image. The final URL is `base_url + raw_value`.
+
+### ImageText
+
+```rust
+CellFormat::ImageText {
+    base_url: String,      // e.g. "https://flagcdn.com/w40/"
+    suffix: String,        // e.g. ".png"
+    image_size: f64,       // square image size in px
+    border_radius: f64,
+    gap: f64,              // gap between image and text
+}
+```
+
+Raw value format: `"KEY Label"` — first token is the image key (lowercased
+for the URL), rest is the display text.
+
+Example: `"FR France"` → image URL `https://flagcdn.com/w40/fr.png` + text `"France"`
+
+### Custom
+
+```rust
+CellFormat::Custom(Rc::new(|raw: &str| FormattedCell {
+    text: raw.to_uppercase(),
+    bold: true,
+    color: Some([255, 0, 0, 255]),  // red
+    ..Default::default()
+}))
+```
+
+Full control over text, alignment, bold, and color via a callback.
+
+## FormattedCell output
+
+All formats produce a `FormattedCell`:
+
+```rust
+pub struct FormattedCell {
+    pub text: String,
+    pub align: Option<CellAlign>,  // Left, Center, Right
+    pub bold: bool,
+    pub color: Option<[u8; 4]>,    // RGBA override
+}
+```
+
+## Fallback behavior
+
+If the raw value cannot be parsed (e.g. `"abc"` for a Number format), the
+raw value is displayed as-is with no formatting applied.
+
+
+
+---
+url: /features/columns.md
+---
+
+# Columns
+
+## ColumnDef
+
+Each column is defined by a `ColumnDef`:
+
+```rust
+pub struct ColumnDef {
+    pub key: String,              // unique identifier
+    pub label: String,            // header display text
+    pub width: f64,               // width in logical pixels
+    pub format: Option<CellFormat>,  // display format (Number, Currency, etc.)
+    pub editor: Option<CellEditor>, // editor type (Text, Select)
+}
+```
+
+### Creating columns
+
+```rust
+use rs_grid_core::column::ColumnDef;
+
+// Simple column
+let col = ColumnDef::new("name", "Name", 200.0);
+
+// Column with format
+let mut price = ColumnDef::new("price", "Price", 120.0);
+price.format = Some(CellFormat::Currency {
+    symbol: "$".into(),
+    decimal_places: 2,
+    thousands_sep: Some(','),
+    symbol_after: false,
+});
+
+// Column with editor
+let mut status = ColumnDef::new("status", "Status", 100.0);
+status.editor = Some(CellEditor::Select {
+    options: vec![
+        SelectOption { value: "active".into(), label: "Active".into(), icon: None },
+        SelectOption { value: "inactive".into(), label: "Inactive".into(), icon: None },
+    ],
+});
+```
+
+## Column offsets
+
+`ColumnOffsets` precomputes the left-edge x position of every column for
+O(1) lookup during rendering and O(log n) hit-testing:
+
+```rust
+pub struct ColumnOffsets {
+    pub offsets: Vec<f64>,    // offsets[i] = left edge of column i
+    pub total_width: f64,     // sum of all column widths
+}
+```
+
+Offsets are automatically recomputed when columns change (resize, move, etc.).
+
+## Resizing
+
+Drag the column separator to resize:
+
+```rust
+state.apply(GridCommand::ResizeColumn {
+    col_idx: 2,
+    new_width: 180.0,
+});
+```
+
+### Auto-fit to content
+
+Double-click the column separator to auto-fit:
+
+```rust
+state.apply(GridCommand::AutoFitColumn {
+    col_idx: 2,
+    char_width: 8.4,          // average char width from renderer
+    header_char_width: 8.4,   // header char width (may be bold)
+    cell_padding: 10.0,       // horizontal padding per cell
+});
+```
+
+The auto-fit scans all visible rows and the header to find the widest
+content, then sizes the column to fit.
+
+## Moving columns
+
+Drag-and-drop to reorder columns:
+
+```rust
+state.apply(GridCommand::MoveColumn {
+    from_idx: 3,
+    to_idx: 1,
+});
+```
+
+This physically reorders the `columns` vector and recomputes offsets.
+Column moves are recorded in the undo history.
+
+## Pinning columns
+
+Pin leading columns so they stay visible during horizontal scroll:
+
+```rust
+state.apply(GridCommand::SetPinnedColumnCount { count: 2 });
+```
+
+Pinned columns are rendered on top of the scrolling area with a solid
+background. The pinned width is `model.pinned_width()`.
+
+
+
+---
+url: /features/context-menu.md
+---
+
+# Context Menu
+
+## Overview
+
+Right-click on the grid to open a context menu. The menu supports built-in
+actions (copy, paste, pin) and custom items.
+
+## Configuration
+
+```rust
+pub struct ContextMenuConfig {
+    pub cell_items: Vec<ContextMenuItem>,
+    pub col_header_items: Vec<ContextMenuItem>,
+}
+```
+
+- `cell_items` — shown when right-clicking a data cell
+- `col_header_items` — shown when right-clicking a column header
+
+## Menu items
+
+```rust
+pub enum ContextMenuItem {
+    Builtin(BuiltinAction),
+    Separator,
+}
+```
+
+### Built-in actions
+
+| Action                           | Description                  |
+| -------------------------------- | ---------------------------- |
+| `BuiltinAction::Cut`             | Cut selection (Ctrl+X)       |
+| `BuiltinAction::Copy`            | Copy selection (Ctrl+C)      |
+| `BuiltinAction::CopyWithHeaders` | Copy with column headers     |
+| `BuiltinAction::Paste`           | Paste at anchor (Ctrl+V)     |
+| `BuiltinAction::PinColumn`       | Pin column(s) up to this one |
+| `BuiltinAction::UnpinColumn`     | Unpin all columns            |
+
+### Separator
+
+`ContextMenuItem::Separator` renders a visual divider between groups of items.
+
+## Customization
+
+Built-in actions have builder methods for customizing:
+
+- `label` — display text
+- `icon` — icon URL
+- `shortcut` — keyboard shortcut hint text
+
+## Example
+
+```rust
+let menu = ContextMenuConfig {
+    cell_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::Copy),
+        ContextMenuItem::Builtin(BuiltinAction::CopyWithHeaders),
+        ContextMenuItem::Separator,
+        ContextMenuItem::Builtin(BuiltinAction::Cut),
+        ContextMenuItem::Builtin(BuiltinAction::Paste),
+    ],
+    col_header_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::PinColumn),
+        ContextMenuItem::Builtin(BuiltinAction::UnpinColumn),
+    ],
+};
+```
+
+## Rendering
+
+The context menu is rendered as a DOM overlay (not on the canvas), positioned
+at the right-click coordinates. It closes on click outside or Escape.
+
+
+
+---
+url: /features/editing.md
+---
+
+# Editing
+
+## Overview
+
+rs-grid supports inline cell editing. Double-click a cell (or press Enter on
+a selected cell) to start editing. The web layer overlays a DOM input element
+over the canvas cell.
+
+## Editing lifecycle
+
+```
+StartEdit → user types → CommitEdit (Enter) or CancelEdit (Escape)
+```
+
+### Start editing
+
+```rust
+state.apply(GridCommand::StartEdit {
+    row: 5,
+    col_key: "name".into(),
+});
+```
+
+The grid stores the current cell value in an `EditCell` snapshot so it can
+be restored on cancel.
+
+### Commit
+
+```rust
+state.apply(GridCommand::CommitEdit {
+    row: 5,
+    col_key: "name".into(),
+    value: "New Value".into(),
+});
+```
+
+The new value is written to the data source (or the patches layer for
+read-only sources). The edit is recorded in the undo history.
+
+### Cancel
+
+```rust
+state.apply(GridCommand::CancelEdit);
+```
+
+Restores the original value. No undo entry is created.
+
+## Cell editors
+
+The editor type is controlled by `ColumnDef::editor`:
+
+### Text input (default)
+
+When `editor` is `None` or `Some(CellEditor::Text)`, a plain `<input type="text">`
+is shown:
+
+```rust
+col.editor = Some(CellEditor::Text);
+```
+
+### Select dropdown
+
+For fixed-choice columns, use `CellEditor::Select`:
+
+```rust
+col.editor = Some(CellEditor::Select {
+    options: vec![
+        SelectOption {
+            value: "active".into(),
+            label: "Active".into(),
+            icon: None,
+        },
+        SelectOption {
+            value: "inactive".into(),
+            label: "Inactive".into(),
+            icon: None,
+        },
+    ],
+});
+```
+
+Each `SelectOption` has:
+
+- `value` — stored in the cell on commit
+- `label` — displayed in the dropdown
+- `icon` — optional icon URL shown left of the label
+
+## Undo support
+
+Cell edits are automatically recorded in the undo history. Press **Ctrl+Z**
+to undo or **Ctrl+Y** to redo. See [Undo & Redo](/features/undo-redo.md) for details.
+
+## Editing with read-only data sources
+
+Even `FnDataSource` (which has no `set_cell`) supports editing — the new value
+is stored in `GridModel::patches`, which overrides the data source for that cell.
+
+
+
+---
+url: /features/filtering.md
+---
+
+# Filtering
+
+## Overview
+
+rs-grid supports per-column text filtering. Each filter does a case-insensitive
+"contains" match on the cell value.
+
+## Commands
+
+### Set a filter
+
+```rust
+state.apply(GridCommand::SetColumnFilter {
+    col_key: "name".into(),
+    text: "john".into(),
+});
+```
+
+Pass an empty string to clear the filter for that column:
+
+```rust
+state.apply(GridCommand::SetColumnFilter {
+    col_key: "name".into(),
+    text: "".into(),
+});
+```
+
+### Clear all filters
+
+```rust
+state.apply(GridCommand::ClearAllFilters);
+```
+
+## How it works
+
+### Client-side mode (default)
+
+When a filter is set, `apply_filter()` scans all rows and builds
+`filtered_indices: Vec<u64>` — the list of physical row indices that
+pass all active filters, stored in sort order.
+
+Multiple filters are AND-combined: a row must match all active column
+filters to be visible.
+
+`model.display_row_count()` returns the number of filtered rows (or
+the total count when no filter is active).
+
+:::warning
+Client-side filtering is designed for datasets up to \~1 million rows.
+For larger datasets, use server-side mode.
+:::
+
+### Server-side mode
+
+When `model.mode = DataSourceMode::ServerSide`, `apply_filter()` is a
+no-op. The filter state is still stored in `model.filters` for your
+application to read and forward to the server.
+
+## Filter state
+
+Active filters are stored in `model.filters: HashMap<String, String>`,
+mapping column keys to filter text. You can read this to build server
+queries:
+
+```rust
+for (col_key, text) in &state.model.filters {
+    println!("Filter on {}: {}", col_key, text);
+}
+```
+
+## Interaction with sorting
+
+Filtering respects the active sort order. When both are active,
+`filtered_indices` contains physical row indices in sorted order.
+
+
+
+---
+url: /features/hit-testing.md
+---
+
+# Hit-Testing
+
+## Overview
+
+Hit-testing converts a pointer position (in viewport coordinates) to the
+cell, column header, or row header under the cursor. It is the foundation
+for click selection, hover, editing, and context menus.
+
+## Functions
+
+### `hit_test(vx, vy, model, scroll_x, scroll_y) → Option<CellCoord>`
+
+Resolves a data cell from viewport coordinates:
+
+1. **Gutter check** — if `vx < row_number_width`, returns `None`
+2. **Header check** — if `vy < header_height`, returns `None`
+3. **Column lookup** — uses `ColumnOffsets` for O(1) lookup
+4. **Row lookup** — O(1) thanks to uniform row height
+
+Returns `None` if the pointer is below the last row or right of the last column.
+
+### `hit_test_col_header(vx, vy, model, scroll_x) → Option<usize>`
+
+Returns the column index when clicking a column header. Used for:
+
+- Sort toggle
+- Column selection
+- Column resize detection
+
+### `hit_test_row_header(vx, vy, model, scroll_y) → Option<u64>`
+
+Returns the row index when clicking the row number gutter. Used for:
+
+- Row selection
+- Row selection extension (drag)
+
+## Pinned columns
+
+Hit-testing accounts for pinned columns:
+
+```
+if vx_data < pinned_width:
+    abs_x = vx_data          // pinned: no scroll offset
+else:
+    abs_x = vx_data + scroll_x  // scrollable: add scroll
+```
+
+This ensures clicks on pinned columns resolve correctly regardless of
+horizontal scroll position.
+
+## Precision at extreme scroll positions
+
+For very large datasets (billions of rows), naive `(vy + scroll_y - header_height) / row_height`
+loses f64 precision because it subtracts two large numbers.
+
+The hit-testing code uses a **precision-preserving decomposition**:
+
+```rust
+let sy_content = scroll_y - header_height;
+let first_row = (sy_content / row_height) as u64;
+let frac = sy_content % row_height;  // sub-row offset
+let offset = ((vy + frac) / row_height) as u64;
+let row = first_row + offset;
+```
+
+This keeps intermediate values small, preserving precision even at row
+indices near the u64 limit.
+
+## Performance
+
+- Column lookup: O(1) via precomputed `ColumnOffsets`
+- Row lookup: O(1) with uniform row height
+- Total: O(1) per hit-test call
+
+:::warning
+Never introduce O(n) algorithms in the hit-testing path. The column
+offsets are precomputed once when columns change, not on every pointer event.
+:::
+
+
+
+---
+url: /features/keyboard.md
+---
+
+# Keyboard Navigation
+
+## Focus model
+
+The grid canvas must have DOM focus to receive keyboard events. Click on
+the canvas or use tab navigation to focus it.
+
+## Navigation shortcuts
+
+| Shortcut          | Action                             |
+| ----------------- | ---------------------------------- |
+| **Arrow keys**    | Move selection by one cell         |
+| **Shift + Arrow** | Extend selection in that direction |
+| **Enter**         | Start editing the selected cell    |
+| **Escape**        | Cancel edit or clear selection     |
+| **Ctrl+Z**        | Undo                               |
+| **Ctrl+Y**        | Redo                               |
+| **Ctrl+C**        | Copy selection                     |
+| **Ctrl+X**        | Cut selection                      |
+| **Ctrl+V**        | Paste at selection anchor          |
+| **Ctrl+F**        | Open search bar                    |
+
+## MoveSelection command
+
+Arrow key presses translate to `MoveSelection`:
+
+```rust
+state.apply(GridCommand::MoveSelection {
+    delta_row: -1,  // up
+    delta_col: 0,
+    extend: false,  // true with Shift held
+});
+```
+
+| Key   | delta\_row | delta\_col |
+| ----- | ---------- | ---------- |
+| Up    | -1         | 0          |
+| Down  | +1         | 0          |
+| Left  | 0          | -1         |
+| Right | 0          | +1         |
+
+When `extend` is `true`, the anchor stays fixed and only the focus moves,
+expanding the selected range.
+
+## Editing via keyboard
+
+1. **Enter** or **double-click** → `StartEdit`
+2. Type the new value
+3. **Enter** → `CommitEdit`
+4. **Escape** → `CancelEdit`
+
+## Event handling
+
+The web layer (`rs-grid-web`) listens to `keydown` events on the canvas
+and converts them to `GridCommand` values. The browser's default behavior
+is prevented for handled keys to avoid scrolling or other unwanted actions.
+
+
+
+---
+url: /features/rows.md
+---
+
+# Rows
+
+## RowRecord
+
+Each row is a `RowRecord` — a thin wrapper around a `HashMap<String, String>`
+with a numeric ID:
+
+```rust
+pub struct RowRecord {
+    pub id: u64,
+    fields: HashMap<String, String>,
+}
+
+let mut row = RowRecord::new(0);
+row.set("name", "Alice");
+row.set("age", "30");
+```
+
+## Row height
+
+All rows share the same height (`model.row_height`), set at creation time:
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+//                                        ^^^^
+//                                     row_height
+```
+
+Uniform row height enables O(1) row lookup: `row_index = floor((y - header_height) / row_height)`.
+
+## Row number gutter
+
+A sticky column on the left displays row numbers (1-based). The gutter width
+auto-adjusts based on digit count:
+
+```
+width = max(digits × 9px + 24px, 40px)
+```
+
+| Row count   | Digits | Width          |
+| ----------- | ------ | -------------- |
+| 1–9         | 1      | 40px (minimum) |
+| 10–99       | 2      | 42px           |
+| 1,000–9,999 | 4      | 60px           |
+| 1,000,000+  | 7+     | 87px+          |
+
+## Row hover
+
+`SetHoveredRow` highlights the row under the cursor:
+
+```rust
+state.apply(GridCommand::SetHoveredRow(Some(42)));
+state.apply(GridCommand::SetHoveredRow(None)); // mouse left the grid
+```
+
+The hover color is controlled by `--rs-grid-row-hover-bg` (default: semi-transparent overlay).
+
+## Alternating row backgrounds
+
+Odd rows use the `row_alt_bg` theme color for subtle zebra striping.
+Customize with `--rs-grid-row-alt-bg`.
+
+## Row count limits
+
+Row indices are `u64` (not `usize`), supporting up to \~9×10^14 rows
+with full f64 precision. On WASM32, `usize` is only 32 bits (4 GB),
+which is why row indices use `u64` throughout.
+
+:::warning
+Beyond \~9×10^14 rows, f64 precision degrades (consecutive integers
+become indistinguishable). The hit-testing code uses a precision-preserving
+decomposition to mitigate this at extreme scroll positions.
+:::
+
+
+
+---
+url: /features/scrollbars.md
+---
+
+# Scrollbars
+
+## Overview
+
+rs-grid renders its own scrollbars on the canvas instead of using native
+browser scrollbars. This ensures consistent appearance across platforms
+and integrates with the theme system.
+
+## Components
+
+Both vertical and horizontal scrollbars share the same structure:
+
+```
+┌──────────┐
+│  ▲ arrow │  ← up/left arrow button
+├──────────┤
+│          │
+│  track   │  ← clickable track area
+│          │
+│  ▓ thumb │  ← draggable thumb
+│          │
+├──────────┤
+│  ▼ arrow │  ← down/right arrow button
+└──────────┘
+```
+
+## Interactions
+
+| Action          | Effect                        |
+| --------------- | ----------------------------- |
+| **Drag thumb**  | Scroll proportionally         |
+| **Click track** | Page scroll in that direction |
+| **Click arrow** | Scroll by a fixed step        |
+| **Mouse wheel** | `ScrollBy { dx, dy }`         |
+
+## Geometry
+
+The scrollbar geometry is precomputed each frame:
+
+### Vertical (`ScrollbarGeom`)
+
+```rust
+pub struct ScrollbarGeom {
+    pub track_x: f64,     // left edge
+    pub track_w: f64,     // track width
+    pub up_btn_y: f64,    // up arrow top edge
+    pub down_btn_y: f64,  // down arrow top edge
+    pub arrow_h: f64,     // arrow button height (= track_w)
+    pub track_y: f64,     // scrollable area top
+    pub track_h: f64,     // scrollable area height
+    pub thumb_y: f64,     // thumb top edge
+    pub thumb_h: f64,     // thumb height
+}
+```
+
+### Horizontal (`HScrollbarGeom`)
+
+Same structure mirrored horizontally.
+
+## Visibility
+
+Scrollbars are only shown when content overflows the viewport:
+
+- Vertical: when `total_height > viewport_height`
+- Horizontal: when `total_width > viewport_width`
+
+The minimum thumb size is **24px** to ensure it remains grabbable.
+
+## Theming
+
+| CSS Variable                 | Description         | Default                  |
+| ---------------------------- | ------------------- | ------------------------ |
+| `--rs-grid-scrollbar-track`  | Track background    | `rgb(241,241,241)`       |
+| `--rs-grid-scrollbar-thumb`  | Thumb color         | `rgba(100,100,110,0.63)` |
+| `--rs-grid-scrollbar-width`  | Track width         | `14px`                   |
+| `--rs-grid-scrollbar-radius` | Thumb corner radius | `4px`                    |
+
+## Space reservation
+
+The scrollbar width is reserved in layout:
+
+- `model.scrollbar_size` (default: 14px) is subtracted from available
+  space to prevent content from being obscured
+
+
+
+---
+url: /features/search.md
+---
+
+# Search
+
+## Overview
+
+Press **Ctrl+F** to open the search bar. rs-grid searches all visible cells
+for the query (case-insensitive contains match) and highlights matching cells.
+
+## Commands
+
+| Command            | Description                       |
+| ------------------ | --------------------------------- |
+| `Search { query }` | Run a search across all cells     |
+| `SearchNext`       | Jump to the next match            |
+| `SearchPrev`       | Jump to the previous match        |
+| `ClearSearch`      | Clear search state and highlights |
+
+### Example
+
+```rust
+state.apply(GridCommand::Search { query: "paris".into() });
+state.apply(GridCommand::SearchNext);  // focus next match
+state.apply(GridCommand::SearchPrev); // focus previous match
+state.apply(GridCommand::ClearSearch);
+```
+
+## SearchState
+
+```rust
+pub struct SearchState {
+    pub query: String,           // current search text
+    pub matches: Vec<CellCoord>, // all matching cells
+    pub current: usize,          // index of focused match
+}
+```
+
+## How it works
+
+`SearchState::run()` scans the grid:
+
+1. Iterates rows (up to **100,000** rows)
+2. For each row, checks every column
+3. Case-insensitive `contains` match on the cell value
+4. Collects up to **10,000** matches
+
+## Rendering
+
+The scene builder uses two theme colors for search results:
+
+| Theme field        | CSS variable                 | Description                                |
+| ------------------ | ---------------------------- | ------------------------------------------ |
+| `search_highlight` | `--rs-grid-search-highlight` | Background for all matches                 |
+| `search_current`   | `--rs-grid-search-current`   | Background for the current (focused) match |
+
+## Limitations
+
+- **Client-side only** — in `ServerSide` mode, `Search` returns no results
+  (there's too much data to scan locally)
+- **Max 100,000 rows scanned** — to avoid stalling the main thread
+- **Max 10,000 matches** — additional matches are not collected
+- Search does not work on formatted output — it matches the raw cell value
+
+
+
+---
+url: /features/selection-clipboard.md
+---
+
+# Selection & Clipboard
+
+## Selection model
+
+rs-grid uses an **anchor/focus** selection model (like spreadsheets):
+
+- **Anchor** — the cell where the selection started (click)
+- **Focus** — the cell where the selection ends (shift-click or arrow keys)
+
+The selected range is the rectangle between anchor and focus.
+
+For details on the base selection model, see [Selection](/concepts/selection.md).
+
+## Copy
+
+```rust
+let output = state.apply(GridCommand::CopySelection);
+if let CommandOutput::CopyText(tsv) = output {
+    // Write `tsv` to the system clipboard
+}
+```
+
+The selection is serialized as **TSV** (tab-separated values, RFC 4180):
+
+- Columns separated by `\t`
+- Rows separated by `\n`
+
+### Copy with headers
+
+Available as a built-in context menu action (`BuiltinAction::CopyWithHeaders`).
+Prepends a header row to the TSV output.
+
+## Cut
+
+```rust
+let output = state.apply(GridCommand::CutSelection);
+```
+
+Same as copy, but also clears the selected cells. The clearing is recorded
+in the undo history.
+
+## Paste
+
+```rust
+state.apply(GridCommand::PasteAt {
+    text: "Alice\t30\nBob\t25".into(),
+});
+```
+
+Pastes TSV text starting at the current selection anchor. Each tab-separated
+value is written to the corresponding cell. The paste is recorded as a
+batch undo entry.
+
+## Keyboard shortcuts
+
+| Shortcut   | Action          |
+| ---------- | --------------- |
+| **Ctrl+C** | Copy selection  |
+| **Ctrl+X** | Cut selection   |
+| **Ctrl+V** | Paste at anchor |
+
+These are handled by the web layer (`rs-grid-web`) which listens to
+`copy`, `cut`, and `paste` DOM events.
+
+## Error handling
+
+```rust
+pub enum CopyError {
+    NoSelection,    // nothing selected
+    TooManyRows,    // selection exceeds MAX_COPY_ROWS
+}
+```
+
+If the selection is too large, `CopySelection` returns
+`CommandOutput::CopyError(CopyError::TooManyRows)` instead of the TSV text.
+
+## Context menu
+
+Right-click opens a context menu with clipboard actions. See
+[Context Menu](/features/context-menu.md) for customization options.
+
+
+
+---
+url: /features/sorting.md
+---
+
+# Sorting
+
+## Overview
+
+Click a column header to cycle through sort states:
+
+```
+None → Ascending → Descending → None
+```
+
+A sort indicator arrow is rendered in the header of the active sort column.
+
+## Commands
+
+### Toggle sort
+
+```rust
+state.apply(GridCommand::ToggleSort {
+    col_key: "price".into(),
+});
+```
+
+Each call advances the cycle. Only one column can be sorted at a time —
+toggling a different column resets the previous one.
+
+## SortState
+
+When sorting is active, `GridState::sort` contains:
+
+```rust
+pub struct SortState {
+    pub col_key: String,   // which column
+    pub dir: SortDir,      // Asc or Desc
+}
+
+pub enum SortDir {
+    Asc,
+    Desc,
+}
+```
+
+## How it works
+
+### Client-side mode (default)
+
+`apply_sort()` builds a `sort_order: Vec<u64>` that maps display indices
+to physical row indices. The sort is **numeric-first** — if both values
+parse as `f64`, they are compared numerically; otherwise they fall back to
+string comparison.
+
+:::warning
+Client-side sorting is designed for datasets up to \~1 million rows.
+For larger datasets, use server-side mode.
+:::
+
+### Server-side mode
+
+When `model.mode = DataSourceMode::ServerSide`, the `ToggleSort` command
+still updates `GridState::sort` (so the header indicator renders correctly),
+but `apply_sort()` is a no-op. Your application is responsible for:
+
+1. Reading `state.sort` to know the active sort
+2. Fetching sorted data from the server
+3. Updating the data source
+4. Sending `NotifyPageLoaded` to trigger re-render
+
+## Interaction with filtering
+
+When both sorting and filtering are active, `filtered_indices` holds the
+physical row indices in sorted order. The sort is applied first, then
+filtering operates on the sorted result.
+
+
+
+---
+url: /features/undo-redo.md
+---
+
+# Undo & Redo
+
+## Overview
+
+rs-grid maintains an undo/redo history for reversible actions. Press
+**Ctrl+Z** to undo and **Ctrl+Y** to redo.
+
+## Commands
+
+```rust
+state.apply(GridCommand::Undo);
+state.apply(GridCommand::Redo);
+```
+
+## What is tracked
+
+| Action                         | Undo entry type                          |
+| ------------------------------ | ---------------------------------------- |
+| Cell edit (`CommitEdit`)       | `SetCell` — restores the previous value  |
+| Paste (`PasteAt`)              | `SetCells` — restores all affected cells |
+| Cut (`CutSelection`)           | `SetCells` — restores cleared cells      |
+| Column resize (`ResizeColumn`) | `ResizeColumn` — restores the old width  |
+| Column move (`MoveColumn`)     | `MoveColumn` — reverses from/to indices  |
+
+## History capacity
+
+The undo stack holds a maximum of **100 entries**. When the limit is reached,
+the oldest entry is removed (FIFO). Performing a new undoable action
+clears the entire redo stack.
+
+## How it works
+
+1. When an undoable command is applied, `GridState` pushes an `UndoEntry`
+   with the inverse operation
+2. `Undo` pops from the undo stack, applies the inverse, and pushes the
+   re-inverse onto the redo stack
+3. `Redo` pops from the redo stack, applies the entry, and pushes back
+   onto the undo stack
+
+```
+[Undo stack]  ←→  [Redo stack]
+   push ←── new action (clears redo)
+   pop  ──→ apply inverse ──→ push to redo
+             redo pop ──→ apply ──→ push to undo
+```
+
+## Actions NOT tracked
+
+These actions are not undoable:
+
+- Selection changes
+- Scrolling
+- Sorting / filtering
+- Search
+- Hover state
+
+
+
+---
+url: /getting-started.md
+---
+
+# Getting Started
+
+## Prerequisites
+
+- Rust toolchain (stable, 2021 edition)
+- [Trunk](https://trunkrs.dev) for building and serving WASM apps
+- The `wasm32-unknown-unknown` target
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Add the dependency
+
+Add `rs-grid-leptos` to your `Cargo.toml`. While the crate is not yet on
+crates.io, reference it by path:
+
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+
+## Basic usage
+
+Import the component and mount it inside a Leptos view:
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+## Run locally
+
+1. **Navigate to the example**
+
+   ```bash
+   cd examples/basic-leptos
+   ```
+
+2. **Start the dev server**
+
+   ```bash
+   trunk serve
+   ```
+
+3. **Open in your browser**
+
+   Navigate to `http://localhost:8080`. You should see a grid rendering
+   1 million rows at 60 fps.
+
+## Build for production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+The output goes into `dist/`. Serve it with any static file server or use the
+provided [Docker image](/deployment/docker.md).
+
+## Workspace commands
+
+| Command                                   | Description                    |
+| ----------------------------------------- | ------------------------------ |
+| `cargo check --workspace`                 | Quick type-check of all crates |
+| `cargo test --workspace`                  | Run all unit tests             |
+| `cargo fmt --all`                         | Format the entire workspace    |
+| `cargo clippy --workspace -- -D warnings` | Lint with warnings as errors   |
+| `trunk serve` (in example dir)            | Dev server with hot reload     |
+
+:::tip
+`rs-grid-core` has no WASM dependency — its unit tests run with plain
+`cargo test`, no browser needed.
+:::
+
+
+
+---
+url: /index.md
+---
+
+Open Source · Rust · WebAssembly# The data grid engine
+built for performance
+
+Virtualized rendering on Canvas2D, compiled to WebAssembly from Rust. Handles millions of rows with O(log n) hit-testing and 60 fps scrolling.
+
+[Get started](/getting-started)[View on GitHub](https://github.com/bpodwinski/rs-grid)10M+rows virtualized60fpscanvas renderingO(log n)hit-testing5focused cratesWhy rs-grid## Built for the hard constraints
+
+Most grid libraries struggle past 100k rows. rs-grid is designed from the ground up for virtualization, performance, and long-term maintainability.
+
+### Virtualized viewport
+
+Only visible cells are rendered. Memory usage stays constant regardless of row count.
+
+### Zero-copy Rust core
+
+rs-grid-core has no WASM dependency. Pure Rust logic, fully testable natively with cargo test.
+
+### Renderer-agnostic
+
+Scene primitives are decoupled from rendering. Swap Canvas2D for WebGL or any future backend without touching core logic.
+
+### Leptos integration
+
+Drop-in <GridCanvas> component for Leptos CSR. CSS-variable theming, reactive props, zero boilerplate.
+
+Architecture## One direction, no surprises
+
+A strict unidirectional dependency graph keeps each crate focused and independently testable.
+
+GridStatemodel · viewport · selection→SceneBuilderrs-grid-scene→SceneFrameprimitives→CanvasRendererrs-grid-render-canvas→<canvas>browser`rs-grid-core`Headless logic: model, viewport, selection, hit-testing. No WASM dependency.
+
+`rs-grid-scene`Converts GridState to renderer-agnostic ScenePrimitive list.
+
+`rs-grid-render-canvas`Canvas2D backend via wasm-bindgen. Draws primitives to the DOM.
+
+`rs-grid-web`Browser glue: events, DPR, rAF loop, CSS theme parsing.
+
+`rs-grid-leptos`Leptos CSR component wrapping the full pipeline.
+
+## Start building today
+
+Open source, MIT license. Contributions welcome.
+
+[Read the docs](/getting-started)[GitHub ↗](https://github.com/bpodwinski/rs-grid)
+
+
+---
+url: /installation.md
+---
+
+# Installation
+
+## Prerequisites
+
+1. **Rust toolchain**
+
+   Install Rust via [rustup](https://rustup.rs/):
+
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
+
+2. **WASM target**
+
+   Add the WebAssembly compilation target:
+
+   ```bash
+   rustup target add wasm32-unknown-unknown
+   ```
+
+3. **Trunk (Leptos users)**
+
+   Install [Trunk](https://trunkrs.dev/) for building and serving Leptos apps:
+
+   ```bash
+   cargo install trunk
+   ```
+
+## Add rs-grid to your project
+
+### Leptos integration
+
+Add the required crates to your `Cargo.toml`:
+
+```toml
+[dependencies]
+rs-grid-core   = { path = "../crates/rs-grid-core" }
+rs-grid-scene  = { path = "../crates/rs-grid-scene" }
+rs-grid-web    = { path = "../crates/rs-grid-web" }
+rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
+```
+
+:::note
+rs-grid is not yet published on crates.io. Use local path dependencies
+or git dependencies for now.
+:::
+
+### Vanilla JS integration
+
+Build the WASM package with `wasm-pack`:
+
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+
+Then import the ES module in your HTML:
+
+```html
+<script type="module">
+  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  await init();
+  const grid = new JsGrid(canvas, 1000, 10);
+</script>
+```
+
+## Crate dependency graph
+
+The dependency flows in one direction — never introduce reverse dependencies:
+
+```
+rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+```
+
+| Crate                   | Role                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `rs-grid-core`          | Headless logic: model, viewport, selection, hit-testing. **No WASM dependency.** |
+| `rs-grid-scene`         | Converts `GridState` into renderer-agnostic `ScenePrimitive` values              |
+| `rs-grid-render-canvas` | Canvas2D backend via `wasm-bindgen`                                              |
+| `rs-grid-web`           | Browser integration: events, DPR, rAF loop, CSS theme                            |
+| `rs-grid-leptos`        | Leptos CSR wrapper component (`<GridCanvas>`)                                    |
+
+## Verify your setup
+
+```bash
+# Check the entire workspace compiles
+cargo check --workspace
+
+# Run unit tests
+cargo test --workspace
+
+# Build and serve the demo app
+cd examples/basic-leptos
+trunk serve
+```
+
+
+
+---
+url: /integrations/custom-renderer.md
+---
+
+# Custom Renderer
+
+## Overview
+
+rs-grid's architecture is **renderer-agnostic**. The scene layer produces
+a `SceneFrame` — a flat list of drawing primitives — that any rendering
+backend can consume. The built-in Canvas2D renderer is just one implementation.
+
+## Architecture
+
+```
+GridState → SceneBuilder → SceneFrame → [Your Renderer] → output
+```
+
+Your custom renderer only depends on `rs-grid-scene`. It does **not** need
+`rs-grid-core`, `rs-grid-web`, or `rs-grid-render-canvas`.
+
+## Steps
+
+### 1. Add the dependency
+
+```toml
+[dependencies]
+rs-grid-scene = { path = "../crates/rs-grid-scene" }
+```
+
+### 2. Build a SceneFrame
+
+```rust
+use rs_grid_scene::{SceneBuilder, Theme};
+
+let builder = SceneBuilder::new(device_pixel_ratio, theme);
+let frame = builder.build(&grid_state, None);
+```
+
+### 3. Iterate primitives
+
+```rust
+use rs_grid_scene::primitives::ScenePrimitive;
+
+for prim in frame.primitives() {
+    match prim {
+        ScenePrimitive::Rect(r) => {
+            // Draw filled rectangle at (r.x, r.y, r.width, r.height)
+            // with r.fill color, optional r.stroke, r.corner_radius
+        }
+        ScenePrimitive::Text(t) => {
+            // Draw t.text at (t.x, t.y) with t.color, t.font_size
+            // Apply t.clip if present, respect t.align
+        }
+        ScenePrimitive::Line(l) => {
+            // Draw line from (l.x1, l.y1) to (l.x2, l.y2)
+            // with l.color and l.width
+        }
+        ScenePrimitive::Polygon(p) => {
+            // Draw filled polygon with p.points, p.fill, p.corner_radius
+        }
+        ScenePrimitive::Image(img) => {
+            // Load and draw image from img.url at (img.x, img.y)
+            // with img.width, img.height, img.corner_radius
+        }
+    }
+}
+```
+
+## Coordinate system
+
+All coordinates are in **logical pixels** (CSS pixels). Your renderer must
+apply the device pixel ratio (DPR) scaling:
+
+```
+physical_pixel = logical_pixel × dpr
+```
+
+## Draw order
+
+Primitives in `SceneFrame` are ordered **back-to-front**. Draw them in
+sequence — later primitives should paint over earlier ones.
+
+## Rules
+
+- **Do not modify** `rs-grid-core` or `rs-grid-scene`
+- `SceneFrame` is **immutable** — produced fresh each frame
+- All state lives in `GridState`, not in your renderer
+
+
+
+---
+url: /integrations/leptos.md
+---
+
+# Leptos Integration
+
+`rs-grid-leptos` provides a `<GridCanvas>` component for Leptos CSR
+applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
+theming in a single component.
+
+## Component API
+
+```rust
+<GridCanvas
+    rows=1_000_000_u64
+    cols=50_usize
+    row_height=32.0_f64     // optional, default 32px
+    header_height=40.0_f64  // optional, default 40px
+/>
+```
+
+### Props
+
+| Prop            | Type    | Default  | Description                           |
+| --------------- | ------- | -------- | ------------------------------------- |
+| `rows`          | `u64`   | required | Total number of data rows             |
+| `cols`          | `usize` | required | Total number of columns               |
+| `row_height`    | `f64`   | `32.0`   | Height of each data row in CSS pixels |
+| `header_height` | `f64`   | `40.0`   | Height of the column header row       |
+
+## Theming
+
+The component reads its color palette from CSS custom properties at mount time
+via `rs-grid-web::theme_from_css_vars`. Define the variables in your
+stylesheet:
+
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+
+Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
+
+## Events
+
+The Leptos component attaches pointer and wheel listeners to the canvas:
+
+| Browser event         | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+
+Events are translated to `GridCommand` values and applied on the next animation
+frame. You do not need to manage the event loop manually.
+
+## Full example
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=500_000_u64
+                cols=20_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+:::tip
+The reference theme file is at `examples/basic-leptos/rs-grid-theme.css`.
+Copy it as a starting point for your own theme.
+:::
+
+
+
+---
+url: /integrations/vanilla-js.md
+---
+
+# Vanilla JS Integration
+
+## Overview
+
+rs-grid can be used without any framework via the `JsGrid` class exported
+by `rs-grid-web`. This requires building with `wasm-pack`.
+
+## Build
+
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+
+This produces an ES module in `pkg/`:
+
+- `rs_grid_web.js` — the JS glue
+- `rs_grid_web_bg.wasm` — the WASM binary
+
+## Usage
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    canvas { width: 100%; height: 600px; }
+  </style>
+</head>
+<body>
+  <canvas id="grid"></canvas>
+  <script type="module">
+    import init, { JsGrid } from './pkg/rs_grid_web.js';
+
+    await init();
+
+    const canvas = document.getElementById('grid');
+    const grid = new JsGrid(canvas, 1000, 10);
+    // Grid is now live with 1000 rows × 10 columns
+  </script>
+</body>
+</html>
+```
+
+## JsGrid API
+
+| Method                           | Description                          |
+| -------------------------------- | ------------------------------------ |
+| `new JsGrid(canvas, rows, cols)` | Mount a grid on a canvas element     |
+| `detach()`                       | Unmount and clean up event listeners |
+| `export_patches()`               | Export edited cell values as TSV     |
+| `import_patches(tsv)`            | Import TSV patches into the grid     |
+
+## Theming
+
+`JsGrid` reads CSS variables at mount time, just like the Leptos integration.
+Add `--rs-grid-*` variables to your stylesheet:
+
+```css
+:root {
+  --rs-grid-bg: #1e1e2e;
+  --rs-grid-cell-text: #cdd6f4;
+  /* ... */
+}
+```
+
+See [CSS Variables Reference](/theming/css-variables.md) for the full list.
+
+## Limitations
+
+- Column definitions use default labels (`Column 0`, `Column 1`, etc.)
+- Data is generated with a hash function (demo mode)
+- For full control over columns and data, use the Rust API directly
+
+:::note
+The vanilla JS API is a lightweight entry point for demos and simple
+use cases. For production applications with custom data sources and
+column definitions, use the [Leptos integration](/integrations/leptos.md)
+or build a custom integration on top of `rs-grid-web`.
+:::
+
+
+
+---
+url: /row-count-limits.md
+---
+
+# Row count limits — history
+
+## Summary
+
+| Version    | Index type | Coordinate type | Practical limit        | Reason                   |
+| ---------- | ---------- | --------------- | ---------------------- | ------------------------ |
+| v1 — f32   | `usize`    | `f32`           | \~300 000 rows         | `f32` precision          |
+| v2 — usize | `usize`    | `f64`           | \~4.3 billion (wasm32) | `usize` 32-bit on wasm32 |
+| v3 — u64   | `u64`      | `f64`           | \~9 x 10^14 rows       | `f64` scroll precision   |
+
+***
+
+## v1 — `f32` coordinates
+
+Render positions (canvas coordinates, `scroll_y`, `row_top`) were `f32`.
+
+`f32` has 23 mantissa bits, representing integers exactly up to **2^24 = 16,777,216**.
+
+Beyond that, the epsilon grows:
+
+| `scroll_y` (f32) | epsilon | rows (28 px/row) | result              |
+| ---------------- | ------- | ---------------- | ------------------- |
+| 8 x 10^6         | \~1 px  | \~285,000        | smooth scroll limit |
+| 4.7 x 10^8       | \~64 px | \~16.7 million   | major jumps         |
+
+**Practical limit v1: \~300,000 rows.**
+
+***
+
+## v2 — `usize` indices, `f64` coordinates
+
+Coordinates moved to `f64` (scroll precision is more than sufficient at this scale),
+but row indices remained `usize`.
+
+On **wasm32**, `usize` is 32-bit, so `usize::MAX = 4,294,967,295` (\~4.3 billion).
+This ceiling was the bottleneck, not floating-point precision.
+
+On x86-64, `usize` is 64-bit so there is no limit natively — but wasm32 code
+exceeded `usize::MAX` silently (overflow or panic depending on the build).
+
+**Practical limit v2: \~4.3 billion rows on wasm32.**
+
+***
+
+## v3 — `u64` indices, `f64` coordinates (2026-03-16)
+
+Row indices (`row_count`, `CellCoord.row`, `get_cell`, `row_top`,
+`visible_rows`) moved from `usize` to `u64`. Column indices remain
+`usize` (never more than a few hundred).
+
+The ceiling is no longer the index type but `scroll_y: f64` precision.
+`f64` has 52 mantissa bits, representing integers exactly up to **2^53**.
+
+| `scroll_y` (f64) | f64 epsilon    | rows (28 px/row) | result             |
+| ---------------- | -------------- | ---------------- | ------------------ |
+| 2.8 x 10^10      | \~6 x 10^-6 px | \~10^9           | perfect            |
+| 2.8 x 10^13      | \~0.006 px     | \~10^12          | OK                 |
+| 2.8 x 10^15      | \~0.6 px       | \~10^14          | perceptible jitter |
+| 2.8 x 10^16      | \~6 px         | \~10^15          | row jumps          |
+
+### Concrete test (2026-03-16, `row_height = 28`)
+
+| `count`                     | value              | result                  |
+| --------------------------- | ------------------ | ----------------------- |
+| `9_007_199_254_740_99_u64`  | \~9 x 10^14        | scroll and selection OK |
+| `9_007_199_254_740_992_u64` | 2^53 (\~9 x 10^15) | cells overlap           |
+
+**Recommended maximum limit: `9_007_199_254_740_99_u64`** (\~9 x 10^14 rows).
+
+***
+
+## Values in examples
+
+- `basic-web`: `10_000_000_000_u64` (10 billion — comfortable)
+- `basic-leptos`: `9_007_199_254_740_99_u64` (maximum tested limit)
+
+
+
+---
+url: /scene/primitives.md
+---
+
+# Scene Primitives
+
+## ScenePrimitive
+
+Every frame is a flat list of `ScenePrimitive` values. There are five variants:
+
+```rust
+pub enum ScenePrimitive {
+    Rect(RectPrimitive),
+    Text(TextPrimitive),
+    Line(LinePrimitive),
+    Polygon(PolygonPrimitive),
+    Image(ImagePrimitive),
+}
+```
+
+## RectPrimitive
+
+Filled rectangle with optional stroke and rounded corners.
+
+| Field           | Type            | Description                       |
+| --------------- | --------------- | --------------------------------- |
+| `x`             | `f64`           | Left edge (logical px)            |
+| `y`             | `f64`           | Top edge (logical px)             |
+| `width`         | `f64`           | Width (logical px)                |
+| `height`        | `f64`           | Height (logical px)               |
+| `fill`          | `Color`         | Fill color                        |
+| `stroke`        | `Option<Color>` | Stroke color (`None` = no stroke) |
+| `stroke_width`  | `f64`           | Stroke width (logical px)         |
+| `corner_radius` | `f64`           | Corner radius (0 = sharp)         |
+
+Used for: cell backgrounds, headers, selection rectangles, scrollbar elements.
+
+## TextPrimitive
+
+Clipped text run with alignment.
+
+| Field       | Type               | Description                      |
+| ----------- | ------------------ | -------------------------------- |
+| `x`         | `f64`              | Left edge (logical px)           |
+| `y`         | `f64`              | Baseline y position (logical px) |
+| `text`      | `String`           | Text content                     |
+| `color`     | `Color`            | Text color                       |
+| `font_size` | `f64`              | Font size (logical px)           |
+| `bold`      | `bool`             | Font weight 600                  |
+| `clip`      | `Option<[f64; 4]>` | Clipping rect `[x, y, w, h]`     |
+| `align`     | `TextAlign`        | Left, Center, or Right           |
+
+Used for: cell values, headers, row numbers, search highlights.
+
+## LinePrimitive
+
+Straight line segment.
+
+| Field      | Type    | Description             |
+| ---------- | ------- | ----------------------- |
+| `x1`, `y1` | `f64`   | Start point             |
+| `x2`, `y2` | `f64`   | End point               |
+| `color`    | `Color` | Line color              |
+| `width`    | `f64`   | Line width (logical px) |
+
+Used for: grid lines, header borders, separator lines.
+
+## PolygonPrimitive
+
+Filled convex polygon with optional rounded corners.
+
+| Field           | Type            | Description                |
+| --------------- | --------------- | -------------------------- |
+| `points`        | `Vec<[f64; 2]>` | Vertices as `[x, y]` pairs |
+| `fill`          | `Color`         | Fill color                 |
+| `corner_radius` | `f64`           | Corner radius (0 = sharp)  |
+
+Used for: sort indicator arrows, scrollbar arrow buttons.
+
+## ImagePrimitive
+
+Image loaded from a URL.
+
+| Field             | Type               | Description           |
+| ----------------- | ------------------ | --------------------- |
+| `url`             | `String`           | Image URL             |
+| `x`, `y`          | `f64`              | Position (logical px) |
+| `width`, `height` | `f64`              | Available space       |
+| `corner_radius`   | `f64`              | Rounded clipping      |
+| `clip`            | `Option<[f64; 4]>` | Clipping rect         |
+
+Used for: `CellFormat::Image` and `CellFormat::ImageText` cells.
+
+## Color
+
+```rust
+pub struct Color { pub r: u8, pub g: u8, pub b: u8, pub a: u8 }
+
+Color::rgb(255, 255, 255)      // opaque white
+Color::rgba(0, 0, 0, 128)      // 50% transparent black
+color.to_css()                  // "rgba(255,255,255,1.0000)"
+```
+
+
+
+---
+url: /scene/scene-builder.md
+---
+
+# Scene Builder
+
+## Overview
+
+`SceneBuilder` is the bridge between the data model (`GridState`) and the
+rendering layer. It produces a `SceneFrame` — an immutable, ordered list
+of drawing primitives.
+
+## Usage
+
+```rust
+use rs_grid_scene::{SceneBuilder, Theme};
+
+let builder = SceneBuilder::new(dpr, theme);
+let frame = builder.build(&grid_state, column_drag_hint);
+```
+
+### Parameters
+
+| Parameter          | Type                      | Description                              |
+| ------------------ | ------------------------- | ---------------------------------------- |
+| `dpr`              | `f64`                     | Device pixel ratio (e.g. 2.0 for Retina) |
+| `theme`            | `Theme`                   | Visual properties for rendering          |
+| `grid_state`       | `&GridState`              | Current grid state                       |
+| `column_drag_hint` | `Option<&ColumnDragHint>` | Visual feedback during column drag       |
+
+## SceneFrame
+
+```rust
+pub struct SceneFrame {
+    primitives: Vec<ScenePrimitive>,
+}
+```
+
+`SceneFrame` is produced fresh each frame — there is no mutable state
+between frames. This makes the rendering pipeline pure and predictable.
+
+## Draw order
+
+Primitives are ordered **back-to-front**:
+
+1. Background fills (cell backgrounds, alternating rows)
+2. Grid lines
+3. Cell text and images
+4. Selection overlays
+5. Headers (sticky, drawn on top)
+6. Scrollbars (topmost layer)
+
+The renderer draws them in sequence — later primitives paint over earlier ones.
+
+## What the builder computes
+
+For each frame, the builder:
+
+1. Determines visible rows from `ViewportState`
+2. Iterates visible columns (with pinned columns first)
+3. Emits `Rect` primitives for cell backgrounds
+4. Emits `Line` primitives for grid lines
+5. Formats cell values via `CellFormat` and emits `Text` primitives
+6. Emits `Image` primitives for image-format cells
+7. Draws selection highlight (`Rect` with semi-transparent fill)
+8. Draws search match highlights
+9. Draws hover row overlay
+10. Draws sticky header row
+11. Draws scrollbars (arrows, track, thumb)
+12. Draws column drag feedback if active
+
+## Logical coordinates
+
+All coordinates in `SceneFrame` are **logical pixels** (CSS pixels).
+The renderer is responsible for applying the DPR:
+
+```
+canvas.width = viewport_width × dpr
+canvas.height = viewport_height × dpr
+context.scale(dpr, dpr)
+```
+
+## ColumnDragHint
+
+When a user drags a column to reorder it, a `ColumnDragHint` provides
+visual feedback:
+
+```rust
+pub struct ColumnDragHint {
+    pub from_idx: usize,   // column being dragged
+    pub current_x: f64,    // current mouse x position
+}
+```
+
+The builder renders a semi-transparent ghost of the dragged column
+at the current mouse position.
+
+
+
+---
+url: /theming/built-in-themes.md
+---
+
+# Built-in Themes
+
+## Available themes
+
+### Light (default)
+
+AG Grid-inspired light palette with white background and subtle gray accents.
+
+```rust
+let theme = Theme::light();
+```
+
+| Property   | Value                      |
+| ---------- | -------------------------- |
+| Background | `#ffffff`                  |
+| Header bg  | `rgb(248, 249, 250)`       |
+| Text       | `rgb(24, 29, 31)`          |
+| Grid lines | `rgb(224, 224, 224)`       |
+| Selection  | `rgba(31, 119, 220, 0.18)` |
+| Font size  | 14px                       |
+
+### Dark
+
+Tokyo Night-inspired dark palette with deep blue tones.
+
+```rust
+let theme = Theme::dark();
+```
+
+| Property   | Value                      |
+| ---------- | -------------------------- |
+| Background | `rgb(26, 27, 38)`          |
+| Header bg  | `rgb(36, 40, 59)`          |
+| Text       | `rgb(192, 202, 245)`       |
+| Grid lines | `rgb(42, 47, 69)`          |
+| Selection  | `rgba(122, 162, 255, 0.2)` |
+| Font size  | 14px                       |
+
+### Material 3 themes
+
+The examples include Material 3 Light and Material 3 Dark themes via CSS
+files. These use the Material Design 3 color system.
+
+## Switching themes
+
+### Via CSS classes
+
+The example app switches themes by toggling a class on `<html>`:
+
+```css
+/* Default: light */
+:root {
+  --rs-grid-bg: #ffffff;
+  --rs-grid-cell-text: rgb(24, 29, 31);
+}
+
+/* Dark override */
+html.dark {
+  --rs-grid-bg: rgb(26, 27, 38);
+  --rs-grid-cell-text: rgb(192, 202, 245);
+}
+```
+
+### Via Leptos signals
+
+```rust
+let (theme, set_theme) = create_signal(Theme::light());
+
+// Toggle
+set_theme.update(|t| {
+    *t = if *t == Theme::light() {
+        Theme::dark()
+    } else {
+        Theme::light()
+    };
+});
+```
+
+## Creating a custom theme
+
+Start from a built-in theme and override specific fields:
+
+```rust
+let custom = Theme {
+    bg: Color::rgb(30, 30, 46),
+    header_bg: Color::rgb(49, 50, 68),
+    cell_text: Color::rgb(205, 214, 244),
+    selection_fill: Color::rgba(137, 180, 250, 51),
+    ..Theme::dark()  // inherit everything else
+};
+```
+
+Or define everything via CSS — see [CSS Variables Reference](/theming/css-variables.md).
+
+
+
+---
+url: /theming/css-variables.md
+---
+
+# CSS Variables Reference
+
+## How it works
+
+rs-grid reads CSS custom properties from `:root` at mount time via
+`theme_from_css_vars()`. Each variable maps to a field on the `Theme` struct.
+If a variable is absent or unparseable, the light theme default is used.
+
+## Supported color formats
+
+- `#rrggbb` / `#rrggbbaa`
+- `#rgb` / `#rgba`
+- `rgb(r, g, b)`
+- `rgba(r, g, b, a)` — `a` is a 0–1 float
+
+## Color variables
+
+| CSS Variable                 | Theme field        | Light default            | Dark default             | Description                |
+| ---------------------------- | ------------------ | ------------------------ | ------------------------ | -------------------------- |
+| `--rs-grid-bg`               | `bg`               | `#ffffff`                | `rgb(26,27,38)`          | Cell background            |
+| `--rs-grid-header-bg`        | `header_bg`        | `rgb(248,249,250)`       | `rgb(36,40,59)`          | Header background          |
+| `--rs-grid-header-text`      | `header_text`      | `rgb(24,29,31)`          | `rgb(169,177,214)`       | Header text color          |
+| `--rs-grid-cell-text`        | `cell_text`        | `rgb(24,29,31)`          | `rgb(192,202,245)`       | Cell text color            |
+| `--rs-grid-grid-line`        | `grid_line`        | `rgb(224,224,224)`       | `rgb(42,47,69)`          | Cell border color          |
+| `--rs-grid-header-border`    | `header_border`    | `rgb(186,191,199)`       | `rgb(61,68,102)`         | Header bottom border       |
+| `--rs-grid-selection-fill`   | `selection_fill`   | `rgba(31,119,220,0.18)`  | `rgba(122,162,255,0.2)`  | Selection rectangle fill   |
+| `--rs-grid-selection-border` | `selection_border` | `rgba(31,119,220,0.82)`  | `rgba(122,162,255,0.8)`  | Selection rectangle border |
+| `--rs-grid-scrollbar-track`  | `scrollbar_track`  | `rgb(241,241,241)`       | `rgb(31,35,53)`          | Scrollbar track background |
+| `--rs-grid-scrollbar-thumb`  | `scrollbar_thumb`  | `rgba(100,100,110,0.63)` | `rgba(169,177,214,0.4)`  | Scrollbar thumb color      |
+| `--rs-grid-row-alt-bg`       | `row_alt_bg`       | `rgb(252,252,253)`       | `rgb(30,32,48)`          | Alternating row background |
+| `--rs-grid-row-hover-bg`     | `row_hover_bg`     | `rgba(0,0,0,0.04)`       | `rgba(255,255,255,0.04)` | Row hover overlay          |
+| `--rs-grid-search-highlight` | `search_highlight` | `rgba(255,213,0,0.31)`   | `rgba(255,213,0,0.31)`   | Search match highlight     |
+| `--rs-grid-search-current`   | `search_current`   | `rgba(255,165,0,0.55)`   | `rgba(255,165,0,0.55)`   | Current search match       |
+| `--rs-grid-skeleton-fg`      | `skeleton_fg`      | `rgba(200,200,200,0.39)` | `rgba(60,65,90,0.39)`    | Skeleton loading bar color |
+
+## Size & typography variables
+
+| CSS Variable                 | Theme field        | Default | Type | Description                          |
+| ---------------------------- | ------------------ | ------- | ---- | ------------------------------------ |
+| `--rs-grid-font-size`        | `font_size`        | `14px`  | px   | Cell text font size                  |
+| `--rs-grid-header-font-size` | `header_font_size` | `12px`  | px   | Header text font size                |
+| `--rs-grid-header-font-bold` | `header_font_bold` | `true`  | bool | Header bold (`true`/`false`/`1`/`0`) |
+| `--rs-grid-cell-padding`     | `cell_padding`     | `10px`  | px   | Horizontal cell padding              |
+| `--rs-grid-scrollbar-width`  | `scrollbar_width`  | `14px`  | px   | Scrollbar track + thumb width        |
+| `--rs-grid-scrollbar-radius` | `scrollbar_radius` | `4px`   | px   | Scrollbar thumb corner radius        |
+
+## Example: custom dark theme
+
+```css
+:root {
+  --rs-grid-bg: #1e1e2e;
+  --rs-grid-header-bg: #313244;
+  --rs-grid-header-text: #cdd6f4;
+  --rs-grid-cell-text: #cdd6f4;
+  --rs-grid-grid-line: #45475a;
+  --rs-grid-header-border: #585b70;
+  --rs-grid-selection-fill: rgba(137, 180, 250, 0.2);
+  --rs-grid-selection-border: rgba(137, 180, 250, 0.8);
+  --rs-grid-scrollbar-track: #1e1e2e;
+  --rs-grid-scrollbar-thumb: rgba(166, 173, 200, 0.4);
+  --rs-grid-row-alt-bg: #181825;
+  --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.04);
+  --rs-grid-font-size: 13px;
+  --rs-grid-header-font-size: 12px;
+}
+```
+
+:::note
+CSS variables are read **once** at mount time. Changing them dynamically
+requires re-mounting the grid or passing an updated `Theme` struct
+programmatically via a Leptos signal.
+:::
+
+
+
+---
+url: /theming/overview.md
+---
+
+# Theming Overview
+
+## Pipeline
+
+```
+CSS variables (:root) → theme_from_css_vars() → Theme struct → SceneBuilder → canvas
+```
+
+1. You define `--rs-grid-*` CSS custom properties on `:root`
+2. At mount time, `theme_from_css_vars()` reads them from the computed style
+3. Missing variables fall back to `Theme::light()` defaults
+4. The `Theme` is passed to `SceneBuilder` which uses it for all rendering
+
+## Theme struct
+
+The `Theme` struct holds all visual properties:
+
+- **Colors** — background, text, borders, selection, scrollbar, hover, search
+- **Typography** — font sizes, header bold
+- **Spacing** — cell padding, scrollbar width and radius
+
+See [CSS Variables Reference](/theming/css-variables.md) for the complete list.
+
+## Two ways to set the theme
+
+### 1. CSS variables (recommended)
+
+Add variables to your stylesheet:
+
+```css
+:root {
+  --rs-grid-bg: #1a1b26;
+  --rs-grid-cell-text: #c0caf5;
+}
+```
+
+### 2. Programmatic Theme struct
+
+Create a `Theme` directly in Rust:
+
+```rust
+let theme = Theme {
+    bg: Color::rgb(26, 27, 38),
+    cell_text: Color::rgb(192, 202, 245),
+    ..Theme::dark()
+};
+```
+
+In Leptos, pass it as a signal for reactive updates:
+
+```rust
+let (theme, set_theme) = create_signal(Theme::dark());
+// Update theme dynamically
+set_theme.set(Theme::light());
+```
+
+## When are variables read?
+
+CSS variables are read **once** at mount time. They are not re-read on
+every frame. To change the theme dynamically:
+
+- **Leptos**: use a theme signal
+- **Vanilla JS**: re-mount the grid after changing CSS variables
+
+## Default themes
+
+rs-grid ships with two programmatic defaults:
+
+| Method           | Palette                           |
+| ---------------- | --------------------------------- |
+| `Theme::light()` | AG Grid-inspired light palette    |
+| `Theme::dark()`  | Tokyo Night-inspired dark palette |
+
+See [Built-in Themes](/theming/built-in-themes.md) for details and additional themes.
+
+

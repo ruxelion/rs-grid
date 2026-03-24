@@ -1,0 +1,98 @@
+---
+title: Editing
+description: Inline cell editing with text input and select dropdown editors.
+---
+
+## Overview
+
+rs-grid supports inline cell editing. Double-click a cell (or press Enter on
+a selected cell) to start editing. The web layer overlays a DOM input element
+over the canvas cell.
+
+## Editing lifecycle
+
+```
+StartEdit → user types → CommitEdit (Enter) or CancelEdit (Escape)
+```
+
+### Start editing
+
+```rust
+state.apply(GridCommand::StartEdit {
+    row: 5,
+    col_key: "name".into(),
+});
+```
+
+The grid stores the current cell value in an `EditCell` snapshot so it can
+be restored on cancel.
+
+### Commit
+
+```rust
+state.apply(GridCommand::CommitEdit {
+    row: 5,
+    col_key: "name".into(),
+    value: "New Value".into(),
+});
+```
+
+The new value is written to the data source (or the patches layer for
+read-only sources). The edit is recorded in the undo history.
+
+### Cancel
+
+```rust
+state.apply(GridCommand::CancelEdit);
+```
+
+Restores the original value. No undo entry is created.
+
+## Cell editors
+
+The editor type is controlled by `ColumnDef::editor`:
+
+### Text input (default)
+
+When `editor` is `None` or `Some(CellEditor::Text)`, a plain `<input type="text">`
+is shown:
+
+```rust
+col.editor = Some(CellEditor::Text);
+```
+
+### Select dropdown
+
+For fixed-choice columns, use `CellEditor::Select`:
+
+```rust
+col.editor = Some(CellEditor::Select {
+    options: vec![
+        SelectOption {
+            value: "active".into(),
+            label: "Active".into(),
+            icon: None,
+        },
+        SelectOption {
+            value: "inactive".into(),
+            label: "Inactive".into(),
+            icon: None,
+        },
+    ],
+});
+```
+
+Each `SelectOption` has:
+- `value` — stored in the cell on commit
+- `label` — displayed in the dropdown
+- `icon` — optional icon URL shown left of the label
+
+## Undo support
+
+Cell edits are automatically recorded in the undo history. Press **Ctrl+Z**
+to undo or **Ctrl+Y** to redo. See [Undo & Redo](/features/undo-redo) for details.
+
+## Editing with read-only data sources
+
+Even `FnDataSource` (which has no `set_cell`) supports editing — the new value
+is stored in `GridModel::patches`, which overrides the data source for that cell.

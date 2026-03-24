@@ -1,0 +1,147 @@
+# Grid State & Commands
+
+## GridState
+
+`GridState` is the single source of truth for a grid instance. It combines all
+sub-states into one struct:
+
+```rust
+pub struct GridState {
+    pub model: GridModel,           // columns, data, sizing
+    pub viewport: ViewportState,    // scroll position, canvas size
+    pub selection: SelectionState,  // anchor/focus, clipboard
+    pub hovered_row: Option<u64>,   // row under cursor
+    pub sort: Option<SortState>,    // active sort column + direction
+    pub edit: Option<EditCell>,     // cell being edited
+    pub search: SearchState,        // active search query + matches
+    history: UndoHistory,           // undo/redo stack (private)
+}
+```
+
+### Creating a GridState
+
+```rust
+use rs_grid_core::{GridState, GridModel, column::ColumnDef};
+
+let columns = vec![
+    ColumnDef::new("name", "Name", 200.0),
+    ColumnDef::new("age", "Age", 100.0),
+];
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+let state = GridState::new(model, 800.0, 600.0);
+```
+
+## Command-driven mutations
+
+**All mutations go through `GridState::apply(GridCommand)`.**
+Never modify `GridState` fields directly — the `apply` method ensures
+invariants are maintained (scroll clamping, undo recording, index
+recomputation).
+
+```rust
+use rs_grid_core::commands::{GridCommand, CommandOutput};
+
+let output = state.apply(GridCommand::ScrollBy { dx: 0.0, dy: 100.0 });
+
+match output {
+    CommandOutput::None => { /* most commands */ }
+    CommandOutput::CopyText(tsv) => { /* clipboard text */ }
+    CommandOutput::CopyError(err) => { /* copy/cut failed */ }
+}
+```
+
+## GridCommand reference
+
+All available commands:
+
+### Selection
+
+| Command                                          | Description                                   |
+| ------------------------------------------------ | --------------------------------------------- |
+| `SelectCell(CellCoord)`                          | Set a single-cell selection                   |
+| `ExtendSelection(CellCoord)`                     | Extend selection to a new focus (shift-click) |
+| `ClearSelection`                                 | Remove the current selection                  |
+| `MoveSelection { delta_row, delta_col, extend }` | Move or extend selection by delta             |
+| `SelectRow(u64)`                                 | Select all cells in a row                     |
+| `ExtendRowSelection(u64)`                        | Extend row selection                          |
+| `SelectCol(usize)`                               | Select all cells in a column                  |
+| `ExtendColSelection(usize)`                      | Extend column selection                       |
+
+### Scrolling & Viewport
+
+| Command                    | Description                   |
+| -------------------------- | ----------------------------- |
+| `ScrollTo { x, y }`        | Scroll to absolute position   |
+| `ScrollBy { dx, dy }`      | Scroll by delta (wheel event) |
+| `Resize { width, height }` | Update canvas dimensions      |
+
+### Columns
+
+| Command                                                                  | Description                |
+| ------------------------------------------------------------------------ | -------------------------- |
+| `ResizeColumn { col_idx, new_width }`                                    | Set column width           |
+| `AutoFitColumn { col_idx, char_width, header_char_width, cell_padding }` | Auto-fit column to content |
+| `MoveColumn { from_idx, to_idx }`                                        | Drag-and-drop reorder      |
+| `SetPinnedColumnCount { count }`                                         | Pin leading columns        |
+
+### Sorting & Filtering
+
+| Command                             | Description                     |
+| ----------------------------------- | ------------------------------- |
+| `ToggleSort { col_key }`            | Cycle: None → Asc → Desc → None |
+| `SetColumnFilter { col_key, text }` | Set per-column text filter      |
+| `ClearAllFilters`                   | Remove all active filters       |
+
+### Editing
+
+| Command                              | Description                         |
+| ------------------------------------ | ----------------------------------- |
+| `StartEdit { row, col_key }`         | Begin inline editing (double-click) |
+| `CommitEdit { row, col_key, value }` | Save the edit                       |
+| `CancelEdit`                         | Discard the edit                    |
+
+### Clipboard
+
+| Command            | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `CopySelection`    | Copy selection as TSV → `CommandOutput::CopyText` |
+| `CutSelection`     | Copy + clear selected cells                       |
+| `PasteAt { text }` | Paste TSV at selection anchor                     |
+
+### Search
+
+| Command            | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `Search { query }` | Search all visible cells (case-insensitive) |
+| `SearchNext`       | Jump to next match                          |
+| `SearchPrev`       | Jump to previous match                      |
+| `ClearSearch`      | Clear search state                          |
+
+### Undo / Redo
+
+| Command | Description               |
+| ------- | ------------------------- |
+| `Undo`  | Undo last undoable action |
+| `Redo`  | Redo last undone action   |
+
+### Data & Display
+
+| Command                      | Description                             |
+| ---------------------------- | --------------------------------------- |
+| `SetHoveredRow(Option<u64>)` | Update hover highlight                  |
+| `NotifyPageLoaded`           | Trigger re-render after async data load |
+| `SetTotalRowCount(u64)`      | Update row count for async data sources |
+
+## CommandOutput
+
+`apply()` returns a `CommandOutput`:
+
+```rust
+pub enum CommandOutput {
+    None,                   // most commands
+    CopyText(String),       // TSV text for clipboard
+    CopyError(CopyError),   // copy/cut failed
+}
+```
+
+Only `CopySelection` and `CutSelection` produce non-`None` output.

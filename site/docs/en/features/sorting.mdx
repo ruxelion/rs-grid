@@ -1,0 +1,74 @@
+---
+title: Sorting
+description: Column sorting with ascending, descending, and none states.
+---
+
+## Overview
+
+Click a column header to cycle through sort states:
+
+```
+None → Ascending → Descending → None
+```
+
+A sort indicator arrow is rendered in the header of the active sort column.
+
+## Commands
+
+### Toggle sort
+
+```rust
+state.apply(GridCommand::ToggleSort {
+    col_key: "price".into(),
+});
+```
+
+Each call advances the cycle. Only one column can be sorted at a time —
+toggling a different column resets the previous one.
+
+## SortState
+
+When sorting is active, `GridState::sort` contains:
+
+```rust
+pub struct SortState {
+    pub col_key: String,   // which column
+    pub dir: SortDir,      // Asc or Desc
+}
+
+pub enum SortDir {
+    Asc,
+    Desc,
+}
+```
+
+## How it works
+
+### Client-side mode (default)
+
+`apply_sort()` builds a `sort_order: Vec<u64>` that maps display indices
+to physical row indices. The sort is **numeric-first** — if both values
+parse as `f64`, they are compared numerically; otherwise they fall back to
+string comparison.
+
+:::warning
+Client-side sorting is designed for datasets up to ~1 million rows.
+For larger datasets, use server-side mode.
+:::
+
+### Server-side mode
+
+When `model.mode = DataSourceMode::ServerSide`, the `ToggleSort` command
+still updates `GridState::sort` (so the header indicator renders correctly),
+but `apply_sort()` is a no-op. Your application is responsible for:
+
+1. Reading `state.sort` to know the active sort
+2. Fetching sorted data from the server
+3. Updating the data source
+4. Sending `NotifyPageLoaded` to trigger re-render
+
+## Interaction with filtering
+
+When both sorting and filtering are active, `filtered_indices` holds the
+physical row indices in sorted order. The sort is applied first, then
+filtering operates on the sorted result.

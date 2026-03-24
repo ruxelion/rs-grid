@@ -1,0 +1,66 @@
+# Data Sources Overview
+
+## The DataSource trait
+
+All row data in rs-grid is accessed through the `DataSource` trait:
+
+```rust
+pub trait DataSource: Debug {
+    fn row_count(&self) -> u64;
+    fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
+    fn clone_box(&self) -> Option<Box<dyn DataSource>>;
+    fn set_cell(&mut self, row: u64, col_key: &str, value: String) { }
+    fn cell_status(&self, row: u64, col_key: &str) -> CellStatus { ... }
+}
+```
+
+This abstraction allows rs-grid to work with in-memory data, virtual
+(computed) data, or server-side paginated data through the same interface.
+
+## CellStatus
+
+```rust
+pub enum CellStatus {
+    Ready(String),  // value is available
+    Loading,        // page not yet fetched (async sources)
+    Absent,         // fetched but no value
+}
+```
+
+The renderer uses `CellStatus` to decide whether to draw the cell value,
+a skeleton loading placeholder, or nothing.
+
+## Built-in implementations
+
+| Source                                       | Memory   | Editable | Cloneable | Best for                     |
+| -------------------------------------------- | -------- | -------- | --------- | ---------------------------- |
+| [`VecDataSource`](/data/vec-datasource.md)   | O(n)     | Yes      | Yes       | Small to medium datasets     |
+| [`FnDataSource`](/data/fn-datasource.md)     | O(1)     | No\*     | No        | Virtual/computed data, demos |
+| [`PageCacheDataSource`](/data/page-cache.md) | O(pages) | No       | Yes       | Server-side paginated data   |
+
+:::note
+\*`FnDataSource` is read-only, but edits still work via the patches layer
+in `GridModel`. See [Data Model](/concepts/data-model.md) for details.
+:::
+
+## Client-side vs Server-side mode
+
+Set `model.mode` to control where sort/filter logic runs:
+
+```rust
+model.mode = DataSourceMode::ServerSide;
+```
+
+|           | ClientSide (default)             | ServerSide                     |
+| --------- | -------------------------------- | ------------------------------ |
+| Sort      | `apply_sort()` sorts locally     | No-op (server sorts)           |
+| Filter    | `apply_filter()` filters locally | No-op (server filters)         |
+| Search    | Scans local cells                | Scans local cells              |
+| Row count | `data.row_count()`               | Updated via `SetTotalRowCount` |
+
+In server-side mode, your application is responsible for:
+
+1. Listening to sort/filter changes
+2. Fetching new data from the server
+3. Updating the `PageCacheDataSource`
+4. Sending `NotifyPageLoaded` to trigger re-render

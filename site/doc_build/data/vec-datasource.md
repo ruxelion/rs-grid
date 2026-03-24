@@ -1,0 +1,48 @@
+# In-Memory Data (VecDataSource)
+
+## Overview
+
+`VecDataSource` is the simplest data source — a `Vec<RowRecord>` stored
+entirely in memory.
+
+## Creating
+
+```rust
+use rs_grid_core::{datasource::VecDataSource, row::RowRecord};
+
+let rows: Vec<RowRecord> = (0..1000).map(|i| {
+    let mut r = RowRecord::new(i);
+    r.set("name", format!("User {i}"));
+    r.set("email", format!("user{i}@example.com"));
+    r
+}).collect();
+
+let data = VecDataSource::new(rows);
+```
+
+Or use the shorthand `GridModel::new()` which wraps a `Vec<RowRecord>`
+in a `VecDataSource` automatically:
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+```
+
+## Properties
+
+| Property      | Value                                             |
+| ------------- | ------------------------------------------------- |
+| Memory        | O(n) — all rows in memory                         |
+| Editable      | Yes — `set_cell()` modifies the underlying vector |
+| Cloneable     | Yes — deep clone of all rows                      |
+| `cell_status` | Always `Ready` or `Absent` (never `Loading`)      |
+
+## When to use
+
+- Datasets up to \~100,000 rows
+- Mutable data (direct editing without the patches layer)
+- When you need to clone the data source
+
+## When NOT to use
+
+- Very large datasets (millions of rows) — use `FnDataSource` instead
+- Server-side data — use `PageCacheDataSource`

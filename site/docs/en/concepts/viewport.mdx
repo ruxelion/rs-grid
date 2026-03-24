@@ -1,0 +1,71 @@
+---
+title: "Viewport"
+description: "Viewport virtualization — only visible cells are rendered."
+---
+
+The viewport is the window into the grid data. Only cells that intersect the
+visible area are passed to the renderer, regardless of the total row or column
+count.
+
+## ViewportState
+
+`ViewportState` lives inside `GridState` and tracks four values:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `scroll_x` | `f64` | Horizontal scroll offset in CSS pixels |
+| `scroll_y` | `f64` | Vertical scroll offset in CSS pixels |
+| `width` | `f64` | Canvas width in CSS pixels |
+| `height` | `f64` | Canvas height in CSS pixels |
+
+Pixel values are in CSS pixels. The renderer applies the device pixel ratio
+(DPR) multiplier when issuing draw calls.
+
+## Visible columns
+
+Column offsets are precomputed and stored in a prefix-sum array. Given
+`scroll_x` and `width`, the first and last visible column are found with a
+binary search — **O(log n)** regardless of column count.
+
+The same approach applies to rows using the row height and `scroll_y`.
+
+## Row count limits
+
+Row indices use `u64`. The practical limit with `f64` scroll offsets is
+~9 x 10^14 rows before floating-point precision degrades.
+
+:::note
+Row indices are always `u64`, never `usize`. On wasm32, `usize` is 32-bit
+and cannot address the full row space. See
+[row-count-limits](/row-count-limits)
+for details.
+:::
+
+## Scrolling
+
+Send a scroll command to update the viewport:
+
+```rust
+grid_state.apply(GridCommand::ScrollTo {
+    x: new_scroll_x,
+    y: new_scroll_y,
+});
+```
+
+The web integration layer (`rs-grid-web`) translates browser wheel events into
+scroll commands automatically. DPR and pixel rounding are handled internally.
+
+## Resize
+
+When the canvas is resized (window resize, container resize), update the
+viewport dimensions:
+
+```rust
+grid_state.apply(GridCommand::Resize {
+    width: new_width,
+    height: new_height,
+});
+```
+
+The Leptos component observes a `ResizeObserver` and dispatches this command
+automatically.

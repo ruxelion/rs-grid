@@ -25,7 +25,11 @@
       "Bash(ls -lh e:/Dev/rs-grid/site/public/rsgrid4k*.mp4)",
       "Bash(\"$FFMPEG\" -i e:/Dev/rs-grid/site/public/rsgrid4k-original.mp4 -vf scale=2560:1440 -c:v libx264 -crf 32 -preset slow -an -movflags +faststart e:/Dev/rs-grid/site/public/rsgrid4k.mp4 -y)",
       "Bash(npx astro:*)",
-      "Bash(npx skills:*)"
+      "Bash(npx skills:*)",
+      "WebFetch(domain:rspress.rs)",
+      "Bash(npx rspress:*)",
+      "Bash(NODE_OPTIONS=\"--trace-warnings\" npx rspress build --verbose)",
+      "Bash(DEBUG=*)"
     ]
   }
 }

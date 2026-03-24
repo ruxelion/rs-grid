@@ -1,0 +1,104 @@
+# ColumnDef API
+
+## ColumnDef
+
+```rust
+pub struct ColumnDef {
+    pub key: String,
+    pub label: String,
+    pub width: f64,
+    pub format: Option<CellFormat>,
+    pub editor: Option<CellEditor>,
+}
+```
+
+| Field    | Type                 | Description                                    |
+| -------- | -------------------- | ---------------------------------------------- |
+| `key`    | `String`             | Unique identifier, used to look up cell values |
+| `label`  | `String`             | Display text in the column header              |
+| `width`  | `f64`                | Width in logical pixels                        |
+| `format` | `Option<CellFormat>` | Display format (`None` = raw text)             |
+| `editor` | `Option<CellEditor>` | Editor type (`None` = default text input)      |
+
+### Constructor
+
+```rust
+pub fn new(key: impl Into<String>, label: impl Into<String>, width: f64) -> Self
+```
+
+Creates a column with no format and no editor override.
+
+## CellFormat
+
+```rust
+pub enum CellFormat {
+    Number { decimal_places: u8, thousands_sep: Option<char>, decimal_sep: char },
+    Percent { decimal_places: u8 },
+    Currency { symbol: String, decimal_places: u8, thousands_sep: Option<char>, symbol_after: bool },
+    Boolean { true_label: String, false_label: String },
+    Custom(Rc<dyn Fn(&str) -> FormattedCell>),
+    Image { base_url: Option<String>, border_radius: f64, padding: f64 },
+    ImageText { base_url: String, suffix: String, image_size: f64, border_radius: f64, gap: f64 },
+}
+```
+
+### Methods
+
+| Method            | Returns | Description                  |
+| ----------------- | ------- | ---------------------------- |
+| `is_image()`      | `bool`  | True for `Image` variant     |
+| `is_image_text()` | `bool`  | True for `ImageText` variant |
+
+## FormattedCell
+
+```rust
+pub struct FormattedCell {
+    pub text: String,
+    pub align: Option<CellAlign>,
+    pub bold: bool,
+    pub color: Option<[u8; 4]>,  // RGBA
+}
+```
+
+## CellAlign
+
+```rust
+pub enum CellAlign {
+    Left,    // default
+    Center,
+    Right,
+}
+```
+
+## CellEditor
+
+```rust
+pub enum CellEditor {
+    Text,
+    Select { options: Vec<SelectOption> },
+}
+```
+
+## SelectOption
+
+```rust
+pub struct SelectOption {
+    pub value: String,
+    pub label: String,
+    pub icon: Option<String>,
+}
+```
+
+## ColumnOffsets
+
+```rust
+pub struct ColumnOffsets {
+    pub offsets: Vec<f64>,
+    pub total_width: f64,
+}
+```
+
+| Method                                      | Description                      |
+| ------------------------------------------- | -------------------------------- |
+| `compute(columns: &[ColumnDef])`            | Build offsets from column widths |
+| `hit_column(x: f64, columns: &[ColumnDef])` | Find column at x position        |

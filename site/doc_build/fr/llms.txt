@@ -1,0 +1,12 @@
+# rs-grid
+
+> High-performance Rust/WASM data grid engine for the web
+
+## Others
+
+- [Architecture](/fr/concepts/architecture.md): Pipeline unidirectionnel de GridState au canvas.
+- [Selection](/fr/concepts/selection.md): Modele de selection ancre/focus pour les cellules, lignes et colonnes.
+- [Viewport](/fr/concepts/viewport.md): Virtualisation du viewport — seules les cellules visibles sont rendues.
+- [Docker](/fr/deployment/docker.md): Compiler et deployer le site de documentation avec Docker.
+- [Premiers pas](/fr/getting-started.md): Installez rs-grid et affichez votre premier data grid.
+- [Integration Leptos](/fr/integrations/leptos.md): Composant GridCanvas pret a l'emploi pour les applications Leptos CSR.

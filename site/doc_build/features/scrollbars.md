@@ -1,0 +1,83 @@
+# Scrollbars
+
+## Overview
+
+rs-grid renders its own scrollbars on the canvas instead of using native
+browser scrollbars. This ensures consistent appearance across platforms
+and integrates with the theme system.
+
+## Components
+
+Both vertical and horizontal scrollbars share the same structure:
+
+```
+┌──────────┐
+│  ▲ arrow │  ← up/left arrow button
+├──────────┤
+│          │
+│  track   │  ← clickable track area
+│          │
+│  ▓ thumb │  ← draggable thumb
+│          │
+├──────────┤
+│  ▼ arrow │  ← down/right arrow button
+└──────────┘
+```
+
+## Interactions
+
+| Action          | Effect                        |
+| --------------- | ----------------------------- |
+| **Drag thumb**  | Scroll proportionally         |
+| **Click track** | Page scroll in that direction |
+| **Click arrow** | Scroll by a fixed step        |
+| **Mouse wheel** | `ScrollBy { dx, dy }`         |
+
+## Geometry
+
+The scrollbar geometry is precomputed each frame:
+
+### Vertical (`ScrollbarGeom`)
+
+```rust
+pub struct ScrollbarGeom {
+    pub track_x: f64,     // left edge
+    pub track_w: f64,     // track width
+    pub up_btn_y: f64,    // up arrow top edge
+    pub down_btn_y: f64,  // down arrow top edge
+    pub arrow_h: f64,     // arrow button height (= track_w)
+    pub track_y: f64,     // scrollable area top
+    pub track_h: f64,     // scrollable area height
+    pub thumb_y: f64,     // thumb top edge
+    pub thumb_h: f64,     // thumb height
+}
+```
+
+### Horizontal (`HScrollbarGeom`)
+
+Same structure mirrored horizontally.
+
+## Visibility
+
+Scrollbars are only shown when content overflows the viewport:
+
+- Vertical: when `total_height > viewport_height`
+- Horizontal: when `total_width > viewport_width`
+
+The minimum thumb size is **24px** to ensure it remains grabbable.
+
+## Theming
+
+| CSS Variable                 | Description         | Default                  |
+| ---------------------------- | ------------------- | ------------------------ |
+| `--rs-grid-scrollbar-track`  | Track background    | `rgb(241,241,241)`       |
+| `--rs-grid-scrollbar-thumb`  | Thumb color         | `rgba(100,100,110,0.63)` |
+| `--rs-grid-scrollbar-width`  | Track width         | `14px`                   |
+| `--rs-grid-scrollbar-radius` | Thumb corner radius | `4px`                    |
+
+## Space reservation
+
+The scrollbar width is reserved in layout:
+
+- `model.scrollbar_size` (default: 14px) is subtracted from available
+  space to prevent content from being obscured

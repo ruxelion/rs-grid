@@ -1,0 +1,66 @@
+# Selection
+
+rs-grid uses an anchor/focus selection model. The anchor is where the selection
+started; the focus is where it currently ends. Shift-click extends the
+selection from the anchor to a new focus.
+
+## SelectionState
+
+`SelectionState` tracks two positions:
+
+| Field    | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `anchor` | Origin of the selection (set on mousedown)            |
+| `focus`  | Current end of the selection (updated on shift-click) |
+
+Each position can refer to a **cell**, a **row**, or a **column**. Mixed
+granularity (anchor on a cell, focus on a row) is not supported.
+
+## Commands
+
+```rust
+// Select a single cell
+grid_state.apply(GridCommand::SelectCell { row: 0, col: 2 });
+
+// Extend selection (shift-click equivalent)
+grid_state.apply(GridCommand::ExtendSelection { row: 5, col: 2 });
+
+// Select an entire row
+grid_state.apply(GridCommand::SelectRow { row: 3 });
+
+// Select an entire column
+grid_state.apply(GridCommand::SelectColumn { col: 1 });
+
+// Clear selection
+grid_state.apply(GridCommand::ClearSelection);
+```
+
+## Hit-testing
+
+Given a pixel coordinate `(x, y)` relative to the canvas, hit-testing returns
+the cell under the cursor:
+
+```rust
+let hit = grid_state.hit_test(x, y);
+// Returns Option<HitResult> with { row: u64, col: usize }
+```
+
+Hit-testing uses the same precomputed column offset array as the viewport,
+giving **O(log n)** performance. Row hit-testing is O(1) with uniform row
+height.
+
+:::warning
+Never introduce an O(n) scan in the hit-testing path. The O(log n) guarantee
+is a core invariant.
+:::
+
+## Rendering the selection
+
+`SceneBuilder` reads `SelectionState` and emits `ScenePrimitive::Rect` entries
+with the selection highlight color for every selected cell in the viewport.
+
+:::tip
+Even with a full-grid selection (all rows x all columns), only the primitives
+for visible cells are built. The scene size is bounded by the viewport, not
+the selection size.
+:::

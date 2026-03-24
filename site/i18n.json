@@ -1,0 +1,294 @@
+{
+  "gettingStarted": {
+    "en": "Getting Started",
+    "fr": "Pour commencer"
+  },
+  "coreConcepts": {
+    "en": "Core Concepts",
+    "fr": "Concepts clés"
+  },
+  "features": {
+    "en": "Features",
+    "fr": "Fonctionnalités"
+  },
+  "dataSources": {
+    "en": "Data Sources",
+    "fr": "Sources de données"
+  },
+  "theming": {
+    "en": "Theming",
+    "fr": "Thème"
+  },
+  "integrations": {
+    "en": "Integrations",
+    "fr": "Intégrations"
+  },
+  "sceneGraph": {
+    "en": "Scene Graph",
+    "fr": "Scene Graph"
+  },
+  "deploymentDev": {
+    "en": "Deployment & Development",
+    "fr": "Déploiement & Développement"
+  },
+  "apiReference": {
+    "en": "API Reference",
+    "fr": "Référence API"
+  },
+  "hero.badge": {
+    "en": "Open Source · Rust · WebAssembly",
+    "fr": "Open Source · Rust · WebAssembly"
+  },
+  "hero.title1": {
+    "en": "The data grid engine",
+    "fr": "Le moteur de data grid"
+  },
+  "hero.title2": {
+    "en": "built for performance",
+    "fr": "conçu pour la performance"
+  },
+  "hero.sub": {
+    "en": "Virtualized rendering on Canvas2D, compiled to WebAssembly from Rust. Handles millions of rows with O(log n) hit-testing and 60 fps scrolling.",
+    "fr": "Rendu virtualisé sur Canvas2D, compilé en WebAssembly depuis Rust. Gère des millions de lignes avec du hit-testing O(log n) et un scroll à 60 fps."
+  },
+  "hero.cta": {
+    "en": "Get started",
+    "fr": "Commencer"
+  },
+  "hero.github": {
+    "en": "View on GitHub",
+    "fr": "Voir sur GitHub"
+  },
+  "hero.stat.rows": {
+    "en": "rows virtualized",
+    "fr": "lignes virtualisées"
+  },
+  "hero.stat.fps": {
+    "en": "canvas rendering",
+    "fr": "rendu canvas"
+  },
+  "hero.stat.hit": {
+    "en": "hit-testing",
+    "fr": "hit-testing"
+  },
+  "hero.stat.crates": {
+    "en": "focused crates",
+    "fr": "crates ciblées"
+  },
+  "features.tag": {
+    "en": "Why rs-grid",
+    "fr": "Pourquoi rs-grid"
+  },
+  "features.title": {
+    "en": "Built for the hard constraints",
+    "fr": "Conçu pour les contraintes réelles"
+  },
+  "features.sub": {
+    "en": "Most grid libraries struggle past 100k rows. rs-grid is designed from the ground up for virtualization, performance, and long-term maintainability.",
+    "fr": "La plupart des grilles peinent au-delà de 100k lignes. rs-grid est pensé dès le départ pour la virtualisation, la performance et la maintenabilité."
+  },
+  "features.viewport.title": {
+    "en": "Virtualized viewport",
+    "fr": "Viewport virtualisé"
+  },
+  "features.viewport.desc": {
+    "en": "Only visible cells are rendered. Memory usage stays constant regardless of row count.",
+    "fr": "Seules les cellules visibles sont rendues. La consommation mémoire reste constante quel que soit le nombre de lignes."
+  },
+  "features.rust.title": {
+    "en": "Zero-copy Rust core",
+    "fr": "Cœur Rust sans copie"
+  },
+  "features.rust.desc": {
+    "en": "rs-grid-core has no WASM dependency. Pure Rust logic, fully testable natively with cargo test.",
+    "fr": "rs-grid-core n'a aucune dépendance WASM. Logique Rust pure, testable nativement avec cargo test."
+  },
+  "features.renderer.title": {
+    "en": "Renderer-agnostic",
+    "fr": "Renderer-agnostique"
+  },
+  "features.renderer.desc": {
+    "en": "Scene primitives are decoupled from rendering. Swap Canvas2D for WebGL or any future backend without touching core logic.",
+    "fr": "Les primitives de scène sont découplées du rendu. Échangez Canvas2D contre WebGL ou tout autre backend sans toucher à la logique."
+  },
+  "features.leptos.title": {
+    "en": "Leptos integration",
+    "fr": "Intégration Leptos"
+  },
+  "features.leptos.desc": {
+    "en": "Drop-in <GridCanvas> component for Leptos CSR. CSS-variable theming, reactive props, zero boilerplate.",
+    "fr": "Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate."
+  },
+  "arch.tag": {
+    "en": "Architecture",
+    "fr": "Architecture"
+  },
+  "arch.title": {
+    "en": "One direction, no surprises",
+    "fr": "Une direction, pas de surprises"
+  },
+  "arch.sub": {
+    "en": "A strict unidirectional dependency graph keeps each crate focused and independently testable.",
+    "fr": "Un graphe de dépendances strictement unidirectionnel garde chaque crate focalisée et testable indépendamment."
+  },
+  "arch.core": {
+    "en": "Headless logic: model, viewport, selection, hit-testing. No WASM dependency.",
+    "fr": "Logique headless : model, viewport, sélection, hit-testing. Pas de WASM."
+  },
+  "arch.scene": {
+    "en": "Converts GridState to renderer-agnostic ScenePrimitive list.",
+    "fr": "Convertit GridState en liste de ScenePrimitive renderer-agnostiques."
+  },
+  "arch.render": {
+    "en": "Canvas2D backend via wasm-bindgen. Draws primitives to the DOM.",
+    "fr": "Backend Canvas2D via wasm-bindgen. Dessine les primitives dans le DOM."
+  },
+  "arch.web": {
+    "en": "Browser glue: events, DPR, rAF loop, CSS theme parsing.",
+    "fr": "Glue navigateur : events, DPR, boucle rAF, parsing thème CSS."
+  },
+  "arch.leptos": {
+    "en": "Leptos CSR component wrapping the full pipeline.",
+    "fr": "Composant Leptos CSR encapsulant tout le pipeline."
+  },
+  "cta.title": {
+    "en": "Start building today",
+    "fr": "Commencez à construire"
+  },
+  "cta.sub": {
+    "en": "Open source, MIT license. Contributions welcome.",
+    "fr": "Open source, licence MIT. Contributions bienvenues."
+  },
+  "cta.docs": {
+    "en": "Read the docs",
+    "fr": "Lire la doc"
+  },
+  "nav.home": {
+    "en": "Home",
+    "fr": "Accueil"
+  },
+  "nav.docs": {
+    "en": "Docs",
+    "fr": "Docs"
+  },
+  "nav.getStarted": {
+    "en": "Get started",
+    "fr": "Commencer"
+  },
+  "footer.desc": {
+    "en": "High-performance Rust/WASM data grid engine.",
+    "fr": "Moteur de data grid Rust/WASM haute performance."
+  },
+  "footer.project": {
+    "en": "Project",
+    "fr": "Projet"
+  },
+  "footer.documentation": {
+    "en": "Documentation",
+    "fr": "Documentation"
+  },
+  "footer.stack": {
+    "en": "Stack",
+    "fr": "Stack"
+  },
+  "footer.copyright": {
+    "en": "© 2025 rs-grid. Open source under MIT license.",
+    "fr": "© 2025 rs-grid. Open source sous licence MIT."
+  },
+  "languagesText": {
+    "en": "Languages",
+    "fr": "Langues"
+  },
+  "themeText": {
+    "en": "Theme",
+    "fr": "Thème"
+  },
+  "versionsText": {
+    "en": "Versions",
+    "fr": "Versions"
+  },
+  "menuTitle": {
+    "en": "Menu",
+    "fr": "Menu"
+  },
+  "outlineTitle": {
+    "en": "On this page",
+    "fr": "Sur cette page"
+  },
+  "scrollToTopText": {
+    "en": "Scroll to top",
+    "fr": "Retour en haut"
+  },
+  "lastUpdatedText": {
+    "en": "Last updated",
+    "fr": "Dernière mise à jour"
+  },
+  "prevPageText": {
+    "en": "Previous",
+    "fr": "Précédent"
+  },
+  "nextPageText": {
+    "en": "Next",
+    "fr": "Suivant"
+  },
+  "sourceCodeText": {
+    "en": "Source code",
+    "fr": "Code source"
+  },
+  "searchPlaceholderText": {
+    "en": "Search docs",
+    "fr": "Rechercher"
+  },
+  "searchPanelCancelText": {
+    "en": "Cancel",
+    "fr": "Annuler"
+  },
+  "searchNoResultsText": {
+    "en": "No results found",
+    "fr": "Aucun résultat"
+  },
+  "searchSuggestedQueryText": {
+    "en": "Try searching for",
+    "fr": "Essayez de rechercher"
+  },
+  "overview.filterNameText": {
+    "en": "Filter by name",
+    "fr": "Filtrer par nom"
+  },
+  "overview.filterPlaceholderText": {
+    "en": "Enter keyword",
+    "fr": "Entrez un mot-clé"
+  },
+  "overview.filterNoResultText": {
+    "en": "No results found",
+    "fr": "Aucun résultat"
+  },
+  "openInText": {
+    "en": "Open in",
+    "fr": "Ouvrir dans"
+  },
+  "copyMarkdownText": {
+    "en": "Copy Markdown",
+    "fr": "Copier le Markdown"
+  },
+  "copyMarkdownLinkText": {
+    "en": "Copy Markdown link",
+    "fr": "Copier le lien Markdown"
+  },
+  "editLinkText": {
+    "en": "Edit this page",
+    "fr": "Modifier cette page"
+  },
+  "codeButtonGroupCopyButtonText": {
+    "en": "Copy",
+    "fr": "Copier"
+  },
+  "notFoundText": {
+    "en": "Page not found",
+    "fr": "Page introuvable"
+  },
+  "takeMeHomeText": {
+    "en": "Take me home",
+    "fr": "Retour à l'accueil"
+  }
+}

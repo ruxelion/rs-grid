@@ -1,0 +1,73 @@
+# Virtual Data (FnDataSource)
+
+## Overview
+
+`FnDataSource` generates cell values on demand via a closure. It uses O(1)
+memory regardless of the row count — ideal for computed data, demos, or
+very large datasets.
+
+## Creating
+
+```rust
+use rs_grid_core::datasource::FnDataSource;
+
+let data = FnDataSource::new(1_000_000, |row, col_key| {
+    match col_key {
+        "id" => Some(format!("{row}")),
+        "name" => Some(format!("User {row}")),
+        "value" => Some(format!("{:.2}", row as f64 * 1.23)),
+        _ => None,
+    }
+});
+
+let model = GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+);
+```
+
+## Properties
+
+| Property      | Value                                        |
+| ------------- | -------------------------------------------- |
+| Memory        | O(1) — no data stored                        |
+| Editable      | No — `set_cell()` is a no-op\*               |
+| Cloneable     | No — `clone_box()` returns `None`            |
+| `cell_status` | Always `Ready` or `Absent` (never `Loading`) |
+
+:::note
+\*Editing still works via the `patches` layer on `GridModel`. The patch
+overrides the closure result for that cell. See [Data Model](/concepts/data-model.md).
+:::
+
+## Sharing with Rc
+
+Since `FnDataSource` cannot be cloned, wrap the `GridModel` in `Rc` if
+you need to share it:
+
+```rust
+use std::rc::Rc;
+use std::cell::RefCell;
+
+let model = Rc::new(RefCell::new(GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+)));
+```
+
+## When to use
+
+- Very large datasets (millions or billions of rows)
+- Deterministic/computed data (hashes, formulas)
+- Demo and testing scenarios
+- When memory is constrained
+
+## When NOT to use
+
+- When you need mutable data without patches
+- When you need to clone the data source
+- Server-side data with async loading — use `PageCacheDataSource`

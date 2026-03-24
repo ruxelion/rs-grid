@@ -1,0 +1,82 @@
+# Testing
+
+## Unit tests
+
+Run all workspace tests:
+
+```bash
+cargo test --workspace
+```
+
+Or test a specific crate:
+
+```bash
+cargo test -p rs-grid-core
+```
+
+### What's tested
+
+- Hit-testing (cell, column header, row header)
+- Column offsets computation
+- Cell formatting (all CellFormat variants)
+- Data sources (VecDataSource, FnDataSource, PageCacheDataSource)
+- Selection model (anchor/focus, copy/paste TSV)
+- Search (query matching, limits)
+- Undo/redo history
+- Sort and filter logic
+
+## End-to-end tests (Playwright)
+
+E2E tests verify the grid in a real browser environment.
+
+### Setup (one-time)
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+```
+
+### Run tests
+
+```bash
+# Build the app first
+cd examples/basic-leptos && trunk build
+
+# Then run tests
+cd e2e && npm test
+```
+
+### Test structure
+
+Tests are in `e2e/tests/grid.spec.ts`:
+
+| Suite                  | Tests                                                 |
+| ---------------------- | ----------------------------------------------------- |
+| **Smoke**              | Page loads, canvas visible, default values            |
+| **Controls**           | Row/column dropdown interactions                      |
+| **Canvas interaction** | Clicks, scroll, shift-click with viewport coordinates |
+| **Visual regression**  | Screenshot comparison (2% tolerance)                  |
+
+### Canvas-specific challenges
+
+The grid renders on `<canvas>`, not in the DOM. This means:
+
+- No DOM selectors for grid cells
+- Interactions use **fixed pixel coordinates**
+- Visual regression compares screenshots pixel-by-pixel
+
+:::warning
+If you change the layout (header height, row height, gutter width),
+update the coordinates in `grid.spec.ts`.
+:::
+
+### Update screenshots
+
+After intentional visual changes:
+
+```bash
+cd e2e && npm run update-snapshots
+```
+
+This regenerates the reference screenshots for visual regression tests.

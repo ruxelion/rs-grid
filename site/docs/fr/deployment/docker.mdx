@@ -1,0 +1,98 @@
+---
+title: "Docker"
+description: "Compiler et deployer le site de documentation avec Docker."
+---
+
+Le site de documentation est empaquete sous forme d'image Docker multi-stage.
+L'etape de build compile le site avec Node, et l'etape de service utilise
+nginx pour servir la sortie statique.
+
+## Demarrage rapide
+
+Depuis la racine du depot :
+
+```bash
+docker compose up --build
+```
+
+Le site sera disponible sur `http://localhost:8080`.
+
+## docker-compose.yml
+
+```yaml title="docker-compose.yml"
+services:
+  site:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+```
+
+## Dockerfile
+
+Build multi-stage — Node compile, nginx sert :
+
+```dockerfile title="site/Dockerfile"
+# Etape 1 : Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Etape 2 : Servir
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+## nginx.conf
+
+```nginx title="site/nginx.conf"
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ $uri.html =404;
+    }
+
+    # Cache longue duree pour les assets haches
+    location /_astro/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    error_page 404 /404.html;
+}
+```
+
+## Build sans Compose
+
+```bash
+# Construire l'image
+docker build -t rs-grid-site ./site
+
+# Lancer le conteneur
+docker run -p 8080:80 rs-grid-site
+```
+
+## Deploiement en production
+
+Poussez l'image vers un registre et deployez avec l'orchestrateur de
+votre choix :
+
+```bash
+docker build -t registry.example.com/rs-grid-site:latest ./site
+docker push registry.example.com/rs-grid-site:latest
+```
+
+:::tip
+L'image finale est basee sur `nginx:alpine` et pese generalement environ
+25 Mo. Aucun runtime Node n'est inclus dans l'image de production.
+:::

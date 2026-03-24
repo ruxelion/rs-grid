@@ -1,0 +1,94 @@
+---
+title: "Getting Started"
+description: "Install rs-grid and render your first data grid."
+---
+
+## Prerequisites
+
+- Rust toolchain (stable, 2021 edition)
+- [Trunk](https://trunkrs.dev) for building and serving WASM apps
+- The `wasm32-unknown-unknown` target
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Add the dependency
+
+Add `rs-grid-leptos` to your `Cargo.toml`. While the crate is not yet on
+crates.io, reference it by path:
+
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+
+## Basic usage
+
+Import the component and mount it inside a Leptos view:
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+## Run locally
+
+1. **Navigate to the example**
+
+   ```bash
+   cd examples/basic-leptos
+   ```
+
+2. **Start the dev server**
+
+   ```bash
+   trunk serve
+   ```
+
+3. **Open in your browser**
+
+   Navigate to `http://localhost:8080`. You should see a grid rendering
+   1 million rows at 60 fps.
+
+## Build for production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+The output goes into `dist/`. Serve it with any static file server or use the
+provided [Docker image](/deployment/docker).
+
+## Workspace commands
+
+| Command | Description |
+|---------|-------------|
+| `cargo check --workspace` | Quick type-check of all crates |
+| `cargo test --workspace` | Run all unit tests |
+| `cargo fmt --all` | Format the entire workspace |
+| `cargo clippy --workspace -- -D warnings` | Lint with warnings as errors |
+| `trunk serve` (in example dir) | Dev server with hot reload |
+
+:::tip
+`rs-grid-core` has no WASM dependency — its unit tests run with plain
+`cargo test`, no browser needed.
+:::

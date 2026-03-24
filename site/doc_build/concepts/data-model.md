@@ -1,0 +1,102 @@
+# Data Model
+
+## GridModel
+
+`GridModel` holds everything about the grid's data and layout:
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Creating a model
+
+### In-memory data
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+```
+
+This wraps the `Vec<RowRecord>` in a `VecDataSource` internally.
+
+### Custom data source
+
+```rust
+let data: Box<dyn DataSource> = Box::new(my_source);
+let model = GridModel::with_data_source(columns, data, 32.0, 36.0);
+```
+
+## Patches layer
+
+Edited cell values are stored in `patches` — a `HashMap<(u64, String), String>`
+mapping `(row_index, col_key)` to the new value. Patches override the underlying
+data source, which means editing works even with read-only sources like
+`FnDataSource`.
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // sort/filter done locally (default)
+    ServerSide,  // sort/filter delegated to server
+}
+```
+
+In `ServerSide` mode, `apply_sort()` and `apply_filter()` become no-ops —
+the server is responsible for returning already-sorted/filtered data.
+
+## Logical-to-physical row mapping
+
+When sorting or filtering is active, the display order differs from the
+data source order:
+
+```
+Display row 0 → physical row 42  (via sort_order or filtered_indices)
+Display row 1 → physical row 7
+...
+```
+
+`model.logical_to_physical(logical_row)` resolves this mapping:
+
+1. If `filtered_indices` is non-empty → use it (already in sort order)
+2. Else if `sort_order` is non-empty → use it
+3. Else → identity (logical == physical)
+
+## Row number gutter
+
+The row number gutter width is auto-computed based on the digit count of
+the largest row number:
+
+```
+width = max(digits × 9px + 24px padding, 40px)
+```
+
+This ensures the gutter is always wide enough to display all row numbers
+without truncation.
+
+## Key methods
+
+| Method                                                       | Description                                   |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| `new(columns, rows, row_height, header_height)`              | Create with in-memory data                    |
+| `with_data_source(columns, data, row_height, header_height)` | Create with any `DataSource`                  |
+| `get_cell(row, col_key)`                                     | Read a cell (patches first, then data source) |
+| `set_cell(row, col_key, value)`                              | Write a cell to the data source               |
+| `logical_to_physical(logical)`                               | Map display row to data source row            |
+| `display_row_count()`                                        | Number of visible rows (respects filters)     |
+| `total_width()`                                              | Sum of all column widths                      |
+| `total_height()`                                             | `row_count × row_height + header_height`      |
+| `pinned_width()`                                             | Total width of pinned columns                 |

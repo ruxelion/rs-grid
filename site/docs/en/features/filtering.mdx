@@ -1,0 +1,77 @@
+---
+title: Filtering
+description: Per-column text filtering with case-insensitive matching.
+---
+
+## Overview
+
+rs-grid supports per-column text filtering. Each filter does a case-insensitive
+"contains" match on the cell value.
+
+## Commands
+
+### Set a filter
+
+```rust
+state.apply(GridCommand::SetColumnFilter {
+    col_key: "name".into(),
+    text: "john".into(),
+});
+```
+
+Pass an empty string to clear the filter for that column:
+
+```rust
+state.apply(GridCommand::SetColumnFilter {
+    col_key: "name".into(),
+    text: "".into(),
+});
+```
+
+### Clear all filters
+
+```rust
+state.apply(GridCommand::ClearAllFilters);
+```
+
+## How it works
+
+### Client-side mode (default)
+
+When a filter is set, `apply_filter()` scans all rows and builds
+`filtered_indices: Vec<u64>` — the list of physical row indices that
+pass all active filters, stored in sort order.
+
+Multiple filters are AND-combined: a row must match all active column
+filters to be visible.
+
+`model.display_row_count()` returns the number of filtered rows (or
+the total count when no filter is active).
+
+:::warning
+Client-side filtering is designed for datasets up to ~1 million rows.
+For larger datasets, use server-side mode.
+:::
+
+### Server-side mode
+
+When `model.mode = DataSourceMode::ServerSide`, `apply_filter()` is a
+no-op. The filter state is still stored in `model.filters` for your
+application to read and forward to the server.
+
+## Filter state
+
+Active filters are stored in `model.filters: HashMap<String, String>`,
+mapping column keys to filter text. You can read this to build server
+queries:
+
+```rust
+for (col_key, text) in &state.model.filters {
+    println!("Filter on {}: {}", col_key, text);
+}
+```
+
+## Interaction with sorting
+
+Filtering respects the active sort order. When both are active,
+`filtered_indices` contains physical row indices in sorted order.

@@ -1,0 +1,22 @@
+[
+  {
+    "type": "file",
+    "name": "getting-started",
+    "label": "gettingStarted"
+  },
+  {
+    "type": "dir",
+    "name": "concepts",
+    "label": "coreConcepts"
+  },
+  {
+    "type": "dir",
+    "name": "integrations",
+    "label": "integrations"
+  },
+  {
+    "type": "dir",
+    "name": "deployment",
+    "label": "deploymentDev"
+  }
+]

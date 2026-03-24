@@ -1,0 +1,73 @@
+# Viewport
+
+Le viewport est la fenetre sur les donnees de la grille. Seules les cellules
+qui intersectent la zone visible sont transmises au renderer, quel que soit
+le nombre total de lignes ou de colonnes.
+
+## ViewportState
+
+`ViewportState` vit a l'interieur de `GridState` et suit quatre valeurs :
+
+| Champ      | Type  | Description                                 |
+| ---------- | ----- | ------------------------------------------- |
+| `scroll_x` | `f64` | Decalage horizontal du scroll en pixels CSS |
+| `scroll_y` | `f64` | Decalage vertical du scroll en pixels CSS   |
+| `width`    | `f64` | Largeur du canvas en pixels CSS             |
+| `height`   | `f64` | Hauteur du canvas en pixels CSS             |
+
+Les valeurs en pixels sont en pixels CSS. Le renderer applique le
+multiplicateur de ratio de pixels de l'appareil (DPR) lors des appels
+de dessin.
+
+## Colonnes visibles
+
+Les decalages de colonnes sont precalcules et stockes dans un tableau
+de sommes prefixees. A partir de `scroll_x` et `width`, la premiere et
+la derniere colonne visible sont trouvees par recherche binaire —
+**O(log n)** quel que soit le nombre de colonnes.
+
+La meme approche s'applique aux lignes en utilisant la hauteur de ligne
+et `scroll_y`.
+
+## Limites du nombre de lignes
+
+Les indices de lignes utilisent `u64`. La limite pratique avec des
+decalages de scroll en `f64` est d'environ 9 x 10^14 lignes avant que
+la precision en virgule flottante ne se degrade.
+
+:::note
+Les indices de lignes sont toujours en `u64`, jamais en `usize`. Sur
+wasm32, `usize` est 32 bits et ne peut pas adresser l'espace complet
+des lignes. Voir [row-count-limits](/row-count-limits.md) pour les
+details.
+:::
+
+## Defilement
+
+Envoyez une commande de scroll pour mettre a jour le viewport :
+
+```rust
+grid_state.apply(GridCommand::ScrollTo {
+    x: new_scroll_x,
+    y: new_scroll_y,
+});
+```
+
+La couche d'integration web (`rs-grid-web`) traduit automatiquement les
+evenements de molette du navigateur en commandes de scroll. Le DPR et
+l'arrondi des pixels sont geres en interne.
+
+## Redimensionnement
+
+Lorsque le canvas est redimensionne (redimensionnement de fenetre ou de
+conteneur), mettez a jour les dimensions du viewport :
+
+```rust
+grid_state.apply(GridCommand::Resize {
+    width: new_width,
+    height: new_height,
+});
+```
+
+Le composant Leptos observe un `ResizeObserver` et envoie cette commande
+automatiquement.
