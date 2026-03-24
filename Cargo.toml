@@ -9,6 +9,7 @@ members = [
   "examples/example-common",
   "examples/basic-leptos",
   "examples/basic-js",
+  "examples/basic-dioxus",
 ]
 resolver = "2"
 

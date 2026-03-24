@@ -84,6 +84,22 @@
       "detail": "Build WASM + tests Playwright"
     },
     {
+      "label": "just: build-dioxus",
+      "type": "shell",
+      "command": "just build-dioxus",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "trunk build (exemple Dioxus)"
+    },
+    {
+      "label": "just: serve-dioxus",
+      "type": "shell",
+      "command": "just serve-dioxus",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "trunk serve Dioxus (port 9081)"
+    },
+    {
       "label": "just: build-js",
       "type": "shell",
       "command": "just build-js",

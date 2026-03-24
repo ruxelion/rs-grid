@@ -42,6 +42,14 @@ build-wasm:
 serve:
     cd examples\basic-leptos && trunk serve --address 0.0.0.0 --port 9081
 
+# Build WASM (exemple Dioxus)
+build-dioxus:
+    cd examples\basic-dioxus && trunk build
+
+# Serveur de développement Dioxus (port 9081)
+serve-dioxus:
+    cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9081
+
 # Installer les dépendances Playwright (une seule fois)
 e2e-install:
     cd e2e && npm install && npx playwright install chromium
