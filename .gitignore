@@ -12,3 +12,4 @@ examples/basic-react/dist/
 site/node_modules/
 site/docs/public/wasm/
 *-original.mp4
+.certs/
