@@ -292,11 +292,11 @@ impl GridCanvas {
                     }
                 },
             );
-            ctr.add_event_listener_with_callback(
-                "mousedown",
-                cb.as_ref().unchecked_ref(),
-            )
-            .expect("mousedown");
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+            ctr.add_event_listener_with_callback("mousedown", &func)
+                .expect("mousedown");
+            self.0.edit_listener_refs.borrow_mut().push(("mousedown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -317,11 +317,11 @@ impl GridCanvas {
                     }
                 },
             );
-            ctr.add_event_listener_with_callback(
-                "mouseover",
-                cb.as_ref().unchecked_ref(),
-            )
-            .expect("mouseover");
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+            ctr.add_event_listener_with_callback("mouseover", &func)
+                .expect("mouseover");
+            self.0.edit_listener_refs.borrow_mut().push(("mouseover".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -394,11 +394,11 @@ impl GridCanvas {
                     _ => {}
                 }
             });
-            ctr.add_event_listener_with_callback(
-                "keydown",
-                cb.as_ref().unchecked_ref(),
-            )
-            .expect("keydown");
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+            ctr.add_event_listener_with_callback("keydown", &func)
+                .expect("keydown");
+            self.0.edit_listener_refs.borrow_mut().push(("keydown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -412,11 +412,11 @@ impl GridCanvas {
                         gc.remove_edit_input();
                     }
                 });
-            ctr.add_event_listener_with_callback(
-                "blur",
-                cb.as_ref().unchecked_ref(),
-            )
-            .expect("blur");
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+            ctr.add_event_listener_with_callback("blur", &func)
+                .expect("blur");
+            self.0.edit_listener_refs.borrow_mut().push(("blur".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -515,12 +515,12 @@ impl GridCanvas {
                         _ => {}
                     },
                 );
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             input
-                .add_event_listener_with_callback(
-                    "keydown",
-                    cb.as_ref().unchecked_ref(),
-                )
+                .add_event_listener_with_callback("keydown", &func)
                 .expect("keydown");
+            self.0.edit_listener_refs.borrow_mut().push(("keydown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -543,12 +543,12 @@ impl GridCanvas {
                         gc.remove_edit_input();
                     }
                 });
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             input
-                .add_event_listener_with_callback(
-                    "blur",
-                    cb.as_ref().unchecked_ref(),
-                )
+                .add_event_listener_with_callback("blur", &func)
                 .expect("blur");
+            self.0.edit_listener_refs.borrow_mut().push(("blur".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -556,9 +556,17 @@ impl GridCanvas {
             Some(input.unchecked_into::<web_sys::HtmlElement>());
     }
 
-    /// Remove the inline edit overlay from the DOM
-    /// and drop its closures.
+    /// Remove the inline edit overlay from the DOM and drop its closures.
+    ///
+    /// Explicitly calls `removeEventListener` before removal to avoid
+    /// dangling Rust closure references on the JS side.
     pub(super) fn remove_edit_input(&self) {
+        if let Some(el) = self.0.edit_input.borrow().as_ref() {
+            for (event, func) in self.0.edit_listener_refs.borrow().iter() {
+                let _ = el.remove_event_listener_with_callback(event, func);
+            }
+        }
+        self.0.edit_listener_refs.borrow_mut().clear();
         if let Some(el) = self.0.edit_input.borrow_mut().take() {
             el.remove();
         }

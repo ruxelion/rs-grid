@@ -136,8 +136,10 @@ build-site-wasm:
 
 # Serveur de développement RSPress (port 5173)
 site: build-site-wasm
+    cd site && npm install
     cd site && npx rspress dev --host 0.0.0.0
 
 # Build du site RSPress (avec démo WASM)
 build-site: build-site-wasm
+    cd site && npm install
     cd site && npm run build

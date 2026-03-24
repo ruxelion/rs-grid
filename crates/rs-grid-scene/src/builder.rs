@@ -133,6 +133,10 @@ impl SceneBuilder {
         // row_start whose viewport-y we derive from the small
         // fractional remainder.
         let rh = model.row_height;
+        // Guard: a zero row height would cause division by zero below.
+        if rh <= 0.0 {
+            return frame;
+        }
         let hh = model.header_height;
         // sy_content = scroll_y that falls inside the data
         // area (past the header).
@@ -601,9 +605,10 @@ impl SceneBuilder {
                 // 2. Insertion line
                 let insert_vx = if hint.insert_before < cols.len() {
                     col_vx(hint.insert_before)
-                } else {
-                    let last = cols.len() - 1;
+                } else if let Some(last) = cols.len().checked_sub(1) {
                     col_vx(last) + cols[last].width
+                } else {
+                    0.0 // no columns — nothing to draw
                 };
                 frame.push(ScenePrimitive::Line(LinePrimitive {
                     x1: insert_vx,

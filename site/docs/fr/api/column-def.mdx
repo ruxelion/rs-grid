@@ -12,6 +12,7 @@ pub struct ColumnDef {
     pub width: f64,
     pub format: Option<CellFormat>,
     pub editor: Option<CellEditor>,
+    pub validator: Option<CellValidator>,
 }
 ```
 
@@ -22,6 +23,7 @@ pub struct ColumnDef {
 | `width` | `f64` | Largeur en pixels logiques |
 | `format` | `Option<CellFormat>` | Format d'affichage (`None` = texte brut) |
 | `editor` | `Option<CellEditor>` | Type d'éditeur (`None` = champ texte par défaut) |
+| `validator` | `Option<CellValidator>` | Validateur optionnel appelé avant la validation d'une édition |
 
 ### Constructeur
 
@@ -72,6 +74,29 @@ pub enum CellAlign {
     Right,
 }
 ```
+
+## CellValidator
+
+```rust
+pub struct CellValidator(pub Rc<dyn Fn(&str) -> Result<(), String>>);
+```
+
+Callback de validation par colonne. Utilisez `CellValidator::new` pour en créer un :
+
+```rust
+CellValidator::new(|v| {
+    v.parse::<f64>()
+        .map(|_| ())
+        .map_err(|_| "pas un nombre".to_string())
+})
+```
+
+| Méthode | Description |
+|---------|-------------|
+| `new(f)` | Encapsule une closure en validateur |
+| `validate(value: &str)` | Exécute le validateur ; retourne `Ok(())` ou `Err(message)` |
+
+Voir [Validation](/fr/features/validation) pour le guide complet.
 
 ## CellEditor
 

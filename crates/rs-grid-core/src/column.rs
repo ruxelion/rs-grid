@@ -1,6 +1,47 @@
+use std::{fmt, rc::Rc};
+
 // Re-export formatting types so existing imports from
 // `rs_grid_core::column` keep working.
 pub use crate::format::{format_cell, CellAlign, CellFormat, FormattedCell};
+
+// ── cell validator ──────────────────────────────────────
+
+/// Per-column validation callback.
+///
+/// Called before a cell edit is committed. Returns `Ok(())` to
+/// accept the new value or `Err(message)` to reject it.
+///
+/// Wrap your closure with [`CellValidator::new`]:
+/// ```ignore
+/// CellValidator::new(|v| {
+///     v.parse::<u32>().map(|_| ()).map_err(|_| "not a number".into())
+/// })
+/// ```
+pub struct CellValidator(pub Rc<dyn Fn(&str) -> Result<(), String>>);
+
+impl CellValidator {
+    /// Create a new validator from a closure.
+    pub fn new(f: impl Fn(&str) -> Result<(), String> + 'static) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Run the validator against `value`.
+    pub fn validate(&self, value: &str) -> Result<(), String> {
+        (self.0)(value)
+    }
+}
+
+impl Clone for CellValidator {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+impl fmt::Debug for CellValidator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CellValidator(..)")
+    }
+}
 
 // ── cell editor ────────────────────────────────────────────
 
@@ -47,6 +88,9 @@ pub struct ColumnDef {
     pub format: Option<CellFormat>,
     /// Optional editor override for inline editing.
     pub editor: Option<CellEditor>,
+    /// Optional validator called before committing an edit.
+    /// Returns `Ok(())` to accept or `Err(message)` to reject.
+    pub validator: Option<CellValidator>,
 }
 
 impl ColumnDef {
@@ -63,6 +107,7 @@ impl ColumnDef {
             width,
             format: None,
             editor: None,
+            validator: None,
         }
     }
 }

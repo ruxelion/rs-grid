@@ -39,6 +39,10 @@ pub fn GridCanvas(
     /// `import_patches`, or `export_patches`.
     #[prop(optional)]
     on_mount: Option<Box<dyn FnOnce(rs_grid_web::GridCanvas)>>,
+    /// Called when a per-column validator rejects an edit.
+    /// Arguments: `(row, col_key, error_message)`.
+    #[prop(optional)]
+    on_validation_error: Option<Box<dyn Fn(u64, String, String)>>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -47,6 +51,7 @@ pub fn GridCanvas(
     // a panic when the data source is an FnDataSource (which is not cloneable).
     let model_slot = RefCell::new(Some(model));
     let on_mount_slot = RefCell::new(on_mount);
+    let on_validation_error_slot = RefCell::new(on_validation_error);
 
     // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
     // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
@@ -106,6 +111,11 @@ pub fn GridCanvas(
         let state = GridState::new(model, w, h);
         let gc = rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
         *gc_holder.borrow_mut() = Some(gc.clone());
+        if let Some(cb) = on_validation_error_slot.borrow_mut().take() {
+            gc.set_on_validation_error(move |row, col, msg| {
+                cb(row, col.to_string(), msg.to_string());
+            });
+        }
         if let Some(cb) = on_mount_slot.borrow_mut().take() {
             cb(gc);
         }

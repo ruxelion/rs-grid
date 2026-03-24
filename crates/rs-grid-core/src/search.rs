@@ -7,6 +7,14 @@ use crate::{
 ///
 /// Tracks the current query, all matching cell coordinates,
 /// and the index of the currently focused match.
+///
+/// # Scanning limits
+///
+/// For performance, the search engine scans at most **100 000 rows** and
+/// records at most **10 000 matches** per query. If the dataset exceeds
+/// these thresholds the scan stops early and `matches` only reflects the
+/// first portion of the data. This limit applies to client-side data
+/// sources; server-side (paginated) sources are not scanned.
 #[derive(Debug, Clone, Default)]
 pub struct SearchState {
     /// Current search text (empty = search inactive).

@@ -43,6 +43,7 @@ fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
     let theme_class = RwSignal::new(String::new());
+    let validation_error = RwSignal::new(String::new());
 
     // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
     // Wrapped in SendWrapper so the Rc can be captured in Leptos closures.
@@ -264,6 +265,18 @@ fn App() -> impl IntoView {
                     </div>
                 </div>
             </div>
+            {move || {
+                let err = validation_error.get();
+                if err.is_empty() {
+                    view! { <div></div> }.into_any()
+                } else {
+                    view! {
+                        <div class="app-validation-error">
+                            {err}
+                        </div>
+                    }.into_any()
+                }
+            }}
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
@@ -298,6 +311,14 @@ fn App() -> impl IntoView {
                             },
                         );
 
+                        let on_validation_error_cb = Box::new(
+                            move |_row: u64, col: String, msg: String| {
+                                validation_error.set(
+                                    format!("[{col}] {msg}")
+                                );
+                            },
+                        );
+
                         view! {
                             <GridCanvas
                                 model=model
@@ -305,6 +326,7 @@ fn App() -> impl IntoView {
                                 height="100%".into()
                                 theme=Signal::derive(move || theme_memo.get())
                                 on_mount=on_mount_cb
+                                on_validation_error=on_validation_error_cb
                             />
                         }
                     }}

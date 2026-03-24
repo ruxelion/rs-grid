@@ -21,6 +21,7 @@ const sidebarEN = [
       { text: 'Rows', link: '/features/rows' },
       { text: 'Cell Formatting', link: '/features/cell-formatting' },
       { text: 'Editing', link: '/features/editing' },
+      { text: 'Validation', link: '/features/validation' },
       { text: 'Sorting', link: '/features/sorting' },
       { text: 'Filtering', link: '/features/filtering' },
       {
@@ -114,6 +115,7 @@ const sidebarFR = [
         link: '/fr/features/cell-formatting',
       },
       { text: 'Édition', link: '/fr/features/editing' },
+      { text: 'Validation', link: '/fr/features/validation' },
       { text: 'Tri', link: '/fr/features/sorting' },
       { text: 'Filtrage', link: '/fr/features/filtering' },
       {

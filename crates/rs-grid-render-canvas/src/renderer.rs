@@ -290,10 +290,10 @@ impl CanvasRenderer {
 
         ctx.save();
 
-        // Cell clipping
+        // Cell clipping — round to integer pixels (same as text clipping)
         if let Some([cx, cy, cw, ch]) = img.clip {
             ctx.begin_path();
-            ctx.rect(cx, cy, cw, ch);
+            ctx.rect(cx.round(), cy.round(), cw.round(), ch.round());
             ctx.clip();
         }
 
@@ -317,6 +317,10 @@ impl CanvasRenderer {
     ) {
         let nat_w = el.natural_width() as f64;
         let nat_h = el.natural_height() as f64;
+        // Guard against degenerate images (zero-size would cause div/0)
+        if nat_w <= 0.0 || nat_h <= 0.0 {
+            return;
+        }
 
         // object-fit: contain
         let scale = (img.width / nat_w).min(img.height / nat_h);
