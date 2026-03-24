@@ -53,6 +53,10 @@ export default defineConfig({
   ],
   themeConfig: {
     darkMode: true,
+    nav: [
+      { text: 'nav.docs', link: '/getting-started' },
+      { text: 'nav.demo', link: '/#demo' },
+    ],
     socialLinks: [
       {
         icon: 'github',

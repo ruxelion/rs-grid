@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLang, useI18n } from '@rspress/core/runtime';
 import GridDemo from '../GridDemo';
 import styles from './index.module.css';
@@ -68,6 +69,29 @@ export default function HomeLayout() {
   const lang = useLang();
   const t = useI18n();
   const docsPath = lang === 'fr' ? '/fr/getting-started' : '/getting-started';
+
+  useEffect(() => {
+    // Scroll to #demo on mount if hash is present
+    if (window.location.hash === '#demo') {
+      setTimeout(() => {
+        document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+
+    // Intercept clicks on links targeting #demo
+    const handleClick = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement).closest<HTMLAnchorElement>(
+        'a[href*="#demo"]',
+      );
+      if (!link) return;
+      e.preventDefault();
+      document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+      history.replaceState(null, '', '#demo');
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
 
   return (
     <div className={styles.homeWrapper}>
@@ -211,7 +235,7 @@ export default function HomeLayout() {
       </section>
 
       {/* Live Demo */}
-      <section className={styles.section}>
+      <section id="demo" className={styles.section}>
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>{t('demo.tag')}</span>

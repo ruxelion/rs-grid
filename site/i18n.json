@@ -207,6 +207,10 @@
     "en": "Get started",
     "fr": "Commencer"
   },
+  "nav.demo": {
+    "en": "Demo",
+    "fr": "Démo"
+  },
   "footer.desc": {
     "en": "High-performance Rust/WASM data grid engine.",
     "fr": "Moteur de data grid Rust/WASM haute performance."
