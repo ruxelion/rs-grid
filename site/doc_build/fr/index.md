@@ -37,7 +37,11 @@ GridStatemodel · viewport · selection→SceneBuilderrs-grid-scene→SceneFrame
 
 `rs-grid-leptos`Composant Leptos CSR encapsulant tout le pipeline.
 
-## Commencez à construire
+Démo live## Voyez par vous-même
+
+Ceci est une véritable instance rs-grid fonctionnant dans votre navigateur via WebAssembly. Scrollez, sélectionnez des cellules, redimensionnez les colonnes — le tout à 60 fps.
+
+1K lignes100K lignes1M lignes## Commencez à construire
 
 Open source, licence MIT. Contributions bienvenues.
 

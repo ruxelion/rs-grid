@@ -1,4 +1,5 @@
 import { useLang, useI18n } from '@rspress/core/runtime';
+import GridDemo from '../GridDemo';
 import styles from './index.module.css';
 
 const ArrowIcon = () => (
@@ -206,6 +207,18 @@ export default function HomeLayout() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Live Demo */}
+      <section className={styles.section}>
+        <div className={styles.container}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>{t('demo.tag')}</span>
+            <h2 className={styles.sectionTitle}>{t('demo.title')}</h2>
+            <p className={styles.sectionSub}>{t('demo.sub')}</p>
+          </div>
+          <GridDemo t={t} />
         </div>
       </section>
 

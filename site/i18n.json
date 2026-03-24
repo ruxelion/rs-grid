@@ -119,6 +119,38 @@
     "en": "Drop-in <GridCanvas> component for Leptos CSR. CSS-variable theming, reactive props, zero boilerplate.",
     "fr": "Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate."
   },
+  "demo.tag": {
+    "en": "Live Demo",
+    "fr": "Démo live"
+  },
+  "demo.title": {
+    "en": "See it in action",
+    "fr": "Voyez par vous-même"
+  },
+  "demo.sub": {
+    "en": "This is a real rs-grid instance running in your browser via WebAssembly. Scroll, select cells, resize columns — all at 60 fps.",
+    "fr": "Ceci est une véritable instance rs-grid fonctionnant dans votre navigateur via WebAssembly. Scrollez, sélectionnez des cellules, redimensionnez les colonnes — le tout à 60 fps."
+  },
+  "demo.rows": {
+    "en": "rows",
+    "fr": "lignes"
+  },
+  "demo.loading": {
+    "en": "Loading WebAssembly module…",
+    "fr": "Chargement du module WebAssembly…"
+  },
+  "demo.error": {
+    "en": "Live demo unavailable.",
+    "fr": "Démo live indisponible."
+  },
+  "demo.errorLink": {
+    "en": "Try the full example →",
+    "fr": "Essayer l'exemple complet →"
+  },
+  "demo.hint": {
+    "en": "Try scrolling, clicking cells, or dragging column edges",
+    "fr": "Essayez de scroller, cliquer sur les cellules ou redimensionner les colonnes"
+  },
   "arch.tag": {
     "en": "Architecture",
     "fr": "Architecture"

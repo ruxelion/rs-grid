@@ -1,0 +1,124 @@
+.demoWrapper {
+  position: relative;
+}
+
+/* ── Row count selector ── */
+.demoControls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.rowBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--rs-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--rs-border);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.rowBtn:hover {
+  border-color: var(--rs-border-strong);
+  color: var(--rs-text);
+}
+
+.rowBtnActive {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+/* ── Canvas wrapper ── */
+.canvasWrapper {
+  position: relative;
+  height: 500px;
+  overflow: hidden;
+  border-radius: var(--rs-radius);
+  border: 1px solid var(--rs-border);
+  background: #1c1c1e;
+}
+
+.canvasWrapper canvas {
+  display: block;
+}
+
+/* ── Loading overlay ── */
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #1c1c1e;
+  color: var(--rs-text-muted);
+  font-size: 0.9rem;
+  z-index: 2;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error fallback ── */
+.errorFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #1c1c1e;
+  z-index: 2;
+}
+
+.errorFallback p {
+  color: var(--rs-text-muted);
+  font-size: 0.95rem;
+}
+
+.errorFallback a {
+  color: var(--rs-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.errorFallback a:hover {
+  text-decoration: underline;
+}
+
+/* ── Hint text ── */
+.demoHint {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--rs-text-subtle);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .canvasWrapper {
+    height: 350px;
+  }
+}

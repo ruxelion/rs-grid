@@ -85,6 +85,28 @@ body {
   --rs-radius-lg: 16px;
 }
 
+/* rs-grid WASM demo theme variables (dark) */
+:root {
+  --rs-grid-bg: #1c1c1e;
+  --rs-grid-header-bg: #2c2c2e;
+  --rs-grid-header-text: #b0b0b0;
+  --rs-grid-cell-text: #d0d0d0;
+  --rs-grid-grid-line: #333335;
+  --rs-grid-header-border: #333335;
+  --rs-grid-selection-fill: rgba(60, 130, 245, 0.30);
+  --rs-grid-selection-border: rgba(60, 130, 245, 0.9);
+  --rs-grid-scrollbar-track: #222224;
+  --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
+  --rs-grid-row-alt-bg: #212123;
+  --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.05);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 4px;
+}
+
 /* Code inline styling */
 .dark :not(pre) > code {
   background: rgba(59, 130, 246, 0.1);
