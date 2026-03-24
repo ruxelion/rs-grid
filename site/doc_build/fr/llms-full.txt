@@ -1,4 +1,103 @@
 ---
+url: /fr/getting-started.md
+---
+
+# Premiers pas
+
+## Prerequis
+
+- Toolchain Rust (stable, edition 2021)
+- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
+- La cible `wasm32-unknown-unknown`
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Ajouter la dependance
+
+Ajoutez `rs-grid-leptos` a votre `Cargo.toml`. Tant que le crate n'est pas
+encore publie sur crates.io, referencez-le par chemin :
+
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+
+## Utilisation de base
+
+Importez le composant et montez-le dans une vue Leptos :
+
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+
+## Lancer en local
+
+1. **Naviguez vers l'exemple**
+
+   ```bash
+   cd examples/basic-leptos
+   ```
+
+2. **Demarrez le serveur de developpement**
+
+   ```bash
+   trunk serve
+   ```
+
+3. **Ouvrez dans votre navigateur**
+
+   Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
+   affichant 1 million de lignes a 60 fps.
+
+## Compiler pour la production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
+fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
+fournie.
+
+## Commandes du workspace
+
+| Commande                                  | Description                                        |
+| ----------------------------------------- | -------------------------------------------------- |
+| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
+| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
+| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
+| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
+| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
+
+:::tip
+`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
+avec un simple `cargo test`, sans navigateur.
+:::
+
+
+
+---
 url: /fr/concepts/architecture.md
 ---
 
@@ -359,132 +458,65 @@ L'image finale est basee sur `nginx:alpine` et pese generalement environ
 
 
 ---
-url: /fr/getting-started.md
----
-
-# Premiers pas
-
-## Prerequis
-
-- Toolchain Rust (stable, edition 2021)
-- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
-- La cible `wasm32-unknown-unknown`
-
-```bash
-rustup target add wasm32-unknown-unknown
-cargo install trunk
-```
-
-## Ajouter la dependance
-
-Ajoutez `rs-grid-leptos` a votre `Cargo.toml`. Tant que le crate n'est pas
-encore publie sur crates.io, referencez-le par chemin :
-
-```toml title="Cargo.toml"
-[dependencies]
-rs-grid-leptos = { path = "../rs-grid-leptos" }
-```
-
-## Utilisation de base
-
-Importez le composant et montez-le dans une vue Leptos :
-
-```rust title="src/main.rs"
-use leptos::*;
-use rs_grid_leptos::GridCanvas;
-
-#[component]
-pub fn App() -> impl IntoView {
-    view! {
-        <main style="width: 100vw; height: 100vh;">
-            <GridCanvas
-                rows=1_000_000_u64
-                cols=50_usize
-            />
-        </main>
-    }
-}
-
-fn main() {
-    leptos::mount_to_body(App);
-}
-```
-
-## Lancer en local
-
-1. **Naviguez vers l'exemple**
-
-   ```bash
-   cd examples/basic-leptos
-   ```
-
-2. **Demarrez le serveur de developpement**
-
-   ```bash
-   trunk serve
-   ```
-
-3. **Ouvrez dans votre navigateur**
-
-   Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
-   affichant 1 million de lignes a 60 fps.
-
-## Compiler pour la production
-
-```bash
-cd examples/basic-leptos
-trunk build --release
-```
-
-La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
-fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
-fournie.
-
-## Commandes du workspace
-
-| Commande                                  | Description                                        |
-| ----------------------------------------- | -------------------------------------------------- |
-| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
-| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
-| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
-| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
-| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
-
-:::tip
-`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
-avec un simple `cargo test`, sans navigateur.
-:::
-
-
-
----
 url: /fr/index.md
 ---
 
 Open Source · Rust · WebAssembly# Le moteur de data grid
 conçu pour la performance
 
-Rendu virtualisé sur Canvas2D, compilé en WebAssembly depuis Rust. Gère des millions de lignes avec du hit-testing O(log n) et un scroll à 60 fps.
+Un data grid qui ne ralentit jamais. Parcourez des millions de lignes aussi fluidement que les cent premières — édition, tri et sélection inclus.
 
-[Commencer](/fr/getting-started)[Voir sur GitHub](https://github.com/bpodwinski/rs-grid)10M+lignes virtualisées60fpsrendu canvasO(log n)hit-testing5crates cibléesPourquoi rs-grid## Conçu pour les contraintes réelles
+[Commencer](/fr/getting-started)[Voir sur GitHub](https://github.com/bpodwinski/rs-grid)10M+lignes, zéro latence<1msinteraction 60fps100% Rustcompilé en WASMMITopen sourcePourquoi rs-grid## Conçu pour les contraintes réelles
 
 La plupart des grilles peinent au-delà de 100k lignes. rs-grid est pensé dès le départ pour la virtualisation, la performance et la maintenabilité.
 
-### Viewport virtualisé
+### Des millions de lignes
 
-Seules les cellules visibles sont rendues. La consommation mémoire reste constante quel que soit le nombre de lignes.
+Seules les cellules visibles sont rendues. La mémoire reste constante que vous ayez 1K ou 10M lignes.
 
-### Cœur Rust sans copie
+### Édition inline
 
-rs-grid-core n'a aucune dépendance WASM. Logique Rust pure, testable nativement avec cargo test.
+Double-cliquez pour éditer. Champs texte, menus déroulants avec icônes. Historique undo/redo complet.
 
-### Renderer-agnostique
+### Tri & filtre
 
-Les primitives de scène sont découplées du rendu. Échangez Canvas2D contre WebGL ou tout autre backend sans toucher à la logique.
+Tri par colonne avec indicateurs visuels. Filtre texte, combinable entre colonnes.
 
-### Intégration Leptos
+### Presse-papiers
 
-Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate.
+Couper, copier, coller avec Ctrl+C/X/V. Format TSV, compatible Excel et Google Sheets.
+
+### Gestion des colonnes
+
+Redimensionnement par drag, auto-fit au double-clic, réorganisation par drag-and-drop, colonnes figées.
+
+### Formats de cellule riches
+
+Nombre, devise, pourcentage, booléen, images, combos image+texte. Formateurs custom pour un contrôle total.
+
+### Navigation clavier
+
+Flèches, Shift+Flèche pour sélection, Enter pour éditer, Escape pour annuler. Tous les raccourcis tableur inclus.
+
+### Recherche plein texte
+
+Ctrl+F pour chercher dans toutes les cellules. Résultats surlignés avec navigation suivant/précédent.
+
+### Thème CSS
+
+Stylez tout via des propriétés CSS. Light, dark, ou créez le vôtre. Changement à chaud.
+
+### Données serveur
+
+Pagination asynchrone avec cache LRU. Tri et filtre délégués à votre backend.
+
+### Menu contextuel
+
+Menu clic droit avec couper, copier, coller, figer colonnes. Actions et items entièrement personnalisables.
+
+### 100% Rust & WebAssembly
+
+Aucun runtime JavaScript. Logique cœur compilée en WASM. Compatible tout framework ou vanilla JS.
 
 Architecture## Une direction, pas de surprises
 

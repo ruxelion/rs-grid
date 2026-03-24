@@ -1,27 +1,59 @@
 Open Source · Rust · WebAssembly# Le moteur de data grid
 conçu pour la performance
 
-Rendu virtualisé sur Canvas2D, compilé en WebAssembly depuis Rust. Gère des millions de lignes avec du hit-testing O(log n) et un scroll à 60 fps.
+Un data grid qui ne ralentit jamais. Parcourez des millions de lignes aussi fluidement que les cent premières — édition, tri et sélection inclus.
 
-[Commencer](/fr/getting-started)[Voir sur GitHub](https://github.com/bpodwinski/rs-grid)10M+lignes virtualisées60fpsrendu canvasO(log n)hit-testing5crates cibléesPourquoi rs-grid## Conçu pour les contraintes réelles
+[Commencer](/fr/getting-started)[Voir sur GitHub](https://github.com/bpodwinski/rs-grid)10M+lignes, zéro latence<1msinteraction 60fps100% Rustcompilé en WASMMITopen sourcePourquoi rs-grid## Conçu pour les contraintes réelles
 
 La plupart des grilles peinent au-delà de 100k lignes. rs-grid est pensé dès le départ pour la virtualisation, la performance et la maintenabilité.
 
-### Viewport virtualisé
+### Des millions de lignes
 
-Seules les cellules visibles sont rendues. La consommation mémoire reste constante quel que soit le nombre de lignes.
+Seules les cellules visibles sont rendues. La mémoire reste constante que vous ayez 1K ou 10M lignes.
 
-### Cœur Rust sans copie
+### Édition inline
 
-rs-grid-core n'a aucune dépendance WASM. Logique Rust pure, testable nativement avec cargo test.
+Double-cliquez pour éditer. Champs texte, menus déroulants avec icônes. Historique undo/redo complet.
 
-### Renderer-agnostique
+### Tri & filtre
 
-Les primitives de scène sont découplées du rendu. Échangez Canvas2D contre WebGL ou tout autre backend sans toucher à la logique.
+Tri par colonne avec indicateurs visuels. Filtre texte, combinable entre colonnes.
 
-### Intégration Leptos
+### Presse-papiers
 
-Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate.
+Couper, copier, coller avec Ctrl+C/X/V. Format TSV, compatible Excel et Google Sheets.
+
+### Gestion des colonnes
+
+Redimensionnement par drag, auto-fit au double-clic, réorganisation par drag-and-drop, colonnes figées.
+
+### Formats de cellule riches
+
+Nombre, devise, pourcentage, booléen, images, combos image+texte. Formateurs custom pour un contrôle total.
+
+### Navigation clavier
+
+Flèches, Shift+Flèche pour sélection, Enter pour éditer, Escape pour annuler. Tous les raccourcis tableur inclus.
+
+### Recherche plein texte
+
+Ctrl+F pour chercher dans toutes les cellules. Résultats surlignés avec navigation suivant/précédent.
+
+### Thème CSS
+
+Stylez tout via des propriétés CSS. Light, dark, ou créez le vôtre. Changement à chaud.
+
+### Données serveur
+
+Pagination asynchrone avec cache LRU. Tri et filtre délégués à votre backend.
+
+### Menu contextuel
+
+Menu clic droit avec couper, copier, coller, figer colonnes. Actions et items entièrement personnalisables.
+
+### 100% Rust & WebAssembly
+
+Aucun runtime JavaScript. Logique cœur compilée en WASM. Compatible tout framework ou vanilla JS.
 
 Architecture## Une direction, pas de surprises
 

@@ -57,6 +57,19 @@
   --rp-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
+/* Transparent header — background appears on scroll via JS */
+.rp-nav {
+  background: transparent !important;
+  border-bottom: 1px solid transparent !important;
+  transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+}
+
+.rp-nav.rp-nav--scrolled {
+  background: rgba(10, 15, 30, 0.8) !important;
+  backdrop-filter: var(--rs-blur);
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 /* Font family overrides */
 html,
 body {
@@ -83,6 +96,7 @@ body {
   --rs-radius: 12px;
   --rs-radius-sm: 8px;
   --rs-radius-lg: 16px;
+  --rs-blur: blur(8px);
 }
 
 /* rs-grid WASM demo theme variables (dark) */

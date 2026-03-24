@@ -2,7 +2,7 @@
 
 > High-performance Rust/WASM data grid engine for the web
 
-## nav.docs
+## Docs
 
 - [Getting Started](/getting-started.md): Install rs-grid and render your first data grid.
 

@@ -7,7 +7,8 @@
 /* ── Hero ── */
 .hero {
   position: relative;
-  padding: 7rem 0 5rem;
+  margin-top: -64px;
+  padding: calc(64px + 5rem) 0 5rem;
   overflow: hidden;
   text-align: center;
 }
@@ -36,6 +37,7 @@
     transparent 70%
   );
   pointer-events: none;
+  z-index: 1;
 }
 
 .container {
@@ -43,7 +45,7 @@
   margin: 0 auto;
   padding: 0 2rem;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .heroBadge {
@@ -54,6 +56,7 @@
   font-weight: 600;
   color: #93c5fd;
   background: rgba(59, 130, 246, 0.1);
+  backdrop-filter: var(--rs-blur);
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 999px;
   padding: 0.35rem 1rem;
@@ -134,7 +137,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: var(--rs-blur);
   color: var(--rs-text-muted);
   font-weight: 500;
   font-size: 0.95rem;
@@ -142,7 +146,7 @@
   border-radius: var(--rs-radius-sm);
   border: 1px solid var(--rs-border-strong);
   text-decoration: none;
-  transition: color 0.15s, border-color 0.15s, transform 0.1s;
+  transition: color 0.15s, border-color 0.15s, transform 0.1s, background 0.15s;
 }
 
 .btnOutline:hover {
@@ -157,6 +161,7 @@
   align-items: center;
   gap: 0;
   background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: var(--rs-blur);
   border: 1px solid var(--rs-border);
   border-radius: var(--rs-radius-lg);
   padding: 1.25rem 2rem;

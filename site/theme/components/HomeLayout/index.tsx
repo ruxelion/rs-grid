@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useLang, useI18n } from '@rspress/core/runtime';
 import GridDemo from '../GridDemo';
 import styles from './index.module.css';
@@ -21,27 +21,80 @@ const GitHubIcon = () => (
   </svg>
 );
 
-const FeatureIcons = {
-  viewport: () => (
+const FEATURES = [
+  'virtualScroll', 'editing', 'sorting', 'clipboard',
+  'columns', 'formats', 'keyboard', 'search',
+  'theming', 'serverData', 'contextMenu', 'wasm',
+] as const;
+
+const FeatureIcons: Record<(typeof FEATURES)[number], () => React.ReactElement> = {
+  virtualScroll: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
     </svg>
   ),
-  rust: () => (
+  editing: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  ),
+  sorting: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M11 5h10M11 9h7M11 13h4" />
+      <path d="M3 4l3 3 3-3M6 7v13" />
+    </svg>
+  ),
+  clipboard: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    </svg>
+  ),
+  columns: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18M15 3v18" />
+    </svg>
+  ),
+  formats: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4l3 3" />
+      <path d="M12 6v6l4 2" />
     </svg>
   ),
-  renderer: () => (
+  keyboard: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
-      <rect x="14" y="14" width="7" height="7" />
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
     </svg>
   ),
-  leptos: () => (
+  search: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+    </svg>
+  ),
+  theming: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="5" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  ),
+  serverData: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  ),
+  contextMenu: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M8 12h8M8 8h8M8 16h5" />
+    </svg>
+  ),
+  wasm: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
     </svg>
@@ -144,18 +197,18 @@ export default function HomeLayout() {
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statValue}>60fps</span>
-              <span className={styles.statLabel}>{t('hero.stat.fps')}</span>
+              <span className={styles.statValue}>&lt;1ms</span>
+              <span className={styles.statLabel}>{t('hero.stat.perf')}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statValue}>O(log n)</span>
-              <span className={styles.statLabel}>{t('hero.stat.hit')}</span>
+              <span className={styles.statValue}>{t('hero.stat.rustValue')}</span>
+              <span className={styles.statLabel}>{t('hero.stat.rust')}</span>
             </div>
             <div className={styles.statDivider} />
             <div className={styles.stat}>
-              <span className={styles.statValue}>5</span>
-              <span className={styles.statLabel}>{t('hero.stat.crates')}</span>
+              <span className={styles.statValue}>MIT</span>
+              <span className={styles.statLabel}>{t('hero.stat.license')}</span>
             </div>
           </div>
         </div>
@@ -171,24 +224,22 @@ export default function HomeLayout() {
           </div>
 
           <div className={styles.featuresGrid}>
-            {(['viewport', 'rust', 'renderer', 'leptos'] as const).map(
-              (key) => {
-                const Icon = FeatureIcons[key];
-                return (
-                  <div key={key} className={styles.featureCard}>
-                    <div className={styles.featureIcon}>
-                      <Icon />
-                    </div>
-                    <h3 className={styles.featureCardTitle}>
-                      {t(`features.${key}.title`)}
-                    </h3>
-                    <p className={styles.featureCardDesc}>
-                      {t(`features.${key}.desc`)}
-                    </p>
+            {FEATURES.map((key) => {
+              const Icon = FeatureIcons[key];
+              return (
+                <div key={key} className={styles.featureCard}>
+                  <div className={styles.featureIcon}>
+                    <Icon />
                   </div>
-                );
-              },
-            )}
+                  <h3 className={styles.featureCardTitle}>
+                    {t(`features.${key}.title`)}
+                  </h3>
+                  <p className={styles.featureCardDesc}>
+                    {t(`features.${key}.desc`)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -204,20 +255,17 @@ export default function HomeLayout() {
 
           <div className={styles.archPipeline}>
             {PIPELINE_STEPS.map((step, i) => (
-              <>
+              <React.Fragment key={step.name}>
                 {i > 0 && (
-                  <div key={`arrow-${i}`} className={styles.archArrow}>
-                    &rarr;
-                  </div>
+                  <div className={styles.archArrow}>&rarr;</div>
                 )}
                 <div
-                  key={step.name}
                   className={`${styles.archStep} ${step.isOutput ? styles.archStepOutput : ''}`}
                 >
                   <div className={styles.archStepName}>{step.name}</div>
                   <div className={styles.archStepDesc}>{step.desc}</div>
                 </div>
-              </>
+              </React.Fragment>
             ))}
           </div>
 

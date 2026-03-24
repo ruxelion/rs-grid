@@ -29,7 +29,12 @@
       "WebFetch(domain:rspress.rs)",
       "Bash(npx rspress:*)",
       "Bash(NODE_OPTIONS=\"--trace-warnings\" npx rspress build --verbose)",
-      "Bash(DEBUG=*)"
+      "Bash(DEBUG=*)",
+      "Bash(find /e/Dev/rs-grid -name *.css -path */node_modules/@rspress*)",
+      "Bash(grep -i \"\\\\.css\\\\|\\\\.tsx\\\\|\\\\.ts$\")",
+      "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavHamburger/*.css)",
+      "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavTitle/*.css)",
+      "Bash(cat /e/Dev/rs-grid/site/node_modules/@rspress/core/dist/theme/components/NavScreen/*.css)"
     ]
   }
 }

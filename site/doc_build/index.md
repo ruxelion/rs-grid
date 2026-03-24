@@ -1,27 +1,59 @@
 Open Source · Rust · WebAssembly# The data grid engine
 built for performance
 
-Virtualized rendering on Canvas2D, compiled to WebAssembly from Rust. Handles millions of rows with O(log n) hit-testing and 60 fps scrolling.
+A data grid that never slows down. Scroll through millions of rows as smoothly as the first hundred — editing, sorting, and selecting included.
 
-[Get started](/getting-started)[View on GitHub](https://github.com/bpodwinski/rs-grid)10M+rows virtualized60fpscanvas renderingO(log n)hit-testing5focused cratesWhy rs-grid## Built for the hard constraints
+[Get started](/getting-started)[View on GitHub](https://github.com/bpodwinski/rs-grid)10M+rows, zero lag<1ms60fps interactionPure Rustcompiled to WASMMITopen sourceWhy rs-grid## Built for the hard constraints
 
 Most grid libraries struggle past 100k rows. rs-grid is designed from the ground up for virtualization, performance, and long-term maintainability.
 
-### Virtualized viewport
+### Millions of rows
 
-Only visible cells are rendered. Memory usage stays constant regardless of row count.
+Only visible cells are rendered. Memory stays constant whether you have 1K or 10M rows.
 
-### Zero-copy Rust core
+### Inline editing
 
-rs-grid-core has no WASM dependency. Pure Rust logic, fully testable natively with cargo test.
+Double-click to edit cells. Text inputs, dropdowns with icons. Full undo/redo history.
 
-### Renderer-agnostic
+### Sort & filter
 
-Scene primitives are decoupled from rendering. Swap Canvas2D for WebGL or any future backend without touching core logic.
+Per-column sorting with visual indicators. Text filtering, combinable across columns.
 
-### Leptos integration
+### Clipboard
 
-Drop-in <GridCanvas> component for Leptos CSR. CSS-variable theming, reactive props, zero boilerplate.
+Cut, copy, paste with Ctrl+C/X/V. TSV format, compatible with Excel and Google Sheets.
+
+### Column management
+
+Resize by drag, auto-fit on double-click, reorder by drag-and-drop, pin columns to the left.
+
+### Rich cell formats
+
+Number, currency, percentage, boolean, images, image+text combos. Custom formatters for full control.
+
+### Keyboard navigation
+
+Arrow keys, Shift+Arrow for selection, Enter to edit, Escape to cancel. All spreadsheet shortcuts built in.
+
+### Full-text search
+
+Ctrl+F to search across all cells. Matches highlighted in-place with next/previous navigation.
+
+### CSS theming
+
+Style everything via CSS custom properties. Light, dark, or build your own. Hot-swap at runtime.
+
+### Server-side data
+
+Async pagination with LRU cache. Sort and filter can be delegated to your backend.
+
+### Context menu
+
+Right-click menu with cut, copy, paste, pin columns. Fully customizable items and actions.
+
+### Pure Rust & WebAssembly
+
+Zero JavaScript runtime. Core logic compiled to WASM. Works with any framework or vanilla JS.
 
 Architecture## One direction, no surprises
 

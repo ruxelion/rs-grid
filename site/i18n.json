@@ -48,8 +48,8 @@
     "fr": "conçu pour la performance"
   },
   "hero.sub": {
-    "en": "Virtualized rendering on Canvas2D, compiled to WebAssembly from Rust. Handles millions of rows with O(log n) hit-testing and 60 fps scrolling.",
-    "fr": "Rendu virtualisé sur Canvas2D, compilé en WebAssembly depuis Rust. Gère des millions de lignes avec du hit-testing O(log n) et un scroll à 60 fps."
+    "en": "A data grid that never slows down. Scroll through millions of rows as smoothly as the first hundred — editing, sorting, and selecting included.",
+    "fr": "Un data grid qui ne ralentit jamais. Parcourez des millions de lignes aussi fluidement que les cent premières — édition, tri et sélection inclus."
   },
   "hero.cta": {
     "en": "Get started",
@@ -60,20 +60,24 @@
     "fr": "Voir sur GitHub"
   },
   "hero.stat.rows": {
-    "en": "rows virtualized",
-    "fr": "lignes virtualisées"
+    "en": "rows, zero lag",
+    "fr": "lignes, zéro latence"
   },
-  "hero.stat.fps": {
-    "en": "canvas rendering",
-    "fr": "rendu canvas"
+  "hero.stat.perf": {
+    "en": "60fps interaction",
+    "fr": "interaction 60fps"
   },
-  "hero.stat.hit": {
-    "en": "hit-testing",
-    "fr": "hit-testing"
+  "hero.stat.rustValue": {
+    "en": "Pure Rust",
+    "fr": "100% Rust"
   },
-  "hero.stat.crates": {
-    "en": "focused crates",
-    "fr": "crates ciblées"
+  "hero.stat.rust": {
+    "en": "compiled to WASM",
+    "fr": "compilé en WASM"
+  },
+  "hero.stat.license": {
+    "en": "open source",
+    "fr": "open source"
   },
   "features.tag": {
     "en": "Why rs-grid",
@@ -87,37 +91,101 @@
     "en": "Most grid libraries struggle past 100k rows. rs-grid is designed from the ground up for virtualization, performance, and long-term maintainability.",
     "fr": "La plupart des grilles peinent au-delà de 100k lignes. rs-grid est pensé dès le départ pour la virtualisation, la performance et la maintenabilité."
   },
-  "features.viewport.title": {
-    "en": "Virtualized viewport",
-    "fr": "Viewport virtualisé"
+  "features.virtualScroll.title": {
+    "en": "Millions of rows",
+    "fr": "Des millions de lignes"
   },
-  "features.viewport.desc": {
-    "en": "Only visible cells are rendered. Memory usage stays constant regardless of row count.",
-    "fr": "Seules les cellules visibles sont rendues. La consommation mémoire reste constante quel que soit le nombre de lignes."
+  "features.virtualScroll.desc": {
+    "en": "Only visible cells are rendered. Memory stays constant whether you have 1K or 10M rows.",
+    "fr": "Seules les cellules visibles sont rendues. La mémoire reste constante que vous ayez 1K ou 10M lignes."
   },
-  "features.rust.title": {
-    "en": "Zero-copy Rust core",
-    "fr": "Cœur Rust sans copie"
+  "features.editing.title": {
+    "en": "Inline editing",
+    "fr": "Édition inline"
   },
-  "features.rust.desc": {
-    "en": "rs-grid-core has no WASM dependency. Pure Rust logic, fully testable natively with cargo test.",
-    "fr": "rs-grid-core n'a aucune dépendance WASM. Logique Rust pure, testable nativement avec cargo test."
+  "features.editing.desc": {
+    "en": "Double-click to edit cells. Text inputs, dropdowns with icons. Full undo/redo history.",
+    "fr": "Double-cliquez pour éditer. Champs texte, menus déroulants avec icônes. Historique undo/redo complet."
   },
-  "features.renderer.title": {
-    "en": "Renderer-agnostic",
-    "fr": "Renderer-agnostique"
+  "features.sorting.title": {
+    "en": "Sort & filter",
+    "fr": "Tri & filtre"
   },
-  "features.renderer.desc": {
-    "en": "Scene primitives are decoupled from rendering. Swap Canvas2D for WebGL or any future backend without touching core logic.",
-    "fr": "Les primitives de scène sont découplées du rendu. Échangez Canvas2D contre WebGL ou tout autre backend sans toucher à la logique."
+  "features.sorting.desc": {
+    "en": "Per-column sorting with visual indicators. Text filtering, combinable across columns.",
+    "fr": "Tri par colonne avec indicateurs visuels. Filtre texte, combinable entre colonnes."
   },
-  "features.leptos.title": {
-    "en": "Leptos integration",
-    "fr": "Intégration Leptos"
+  "features.clipboard.title": {
+    "en": "Clipboard",
+    "fr": "Presse-papiers"
   },
-  "features.leptos.desc": {
-    "en": "Drop-in <GridCanvas> component for Leptos CSR. CSS-variable theming, reactive props, zero boilerplate.",
-    "fr": "Composant <GridCanvas> prêt à l'emploi pour Leptos CSR. Thème CSS variables, props réactives, zéro boilerplate."
+  "features.clipboard.desc": {
+    "en": "Cut, copy, paste with Ctrl+C/X/V. TSV format, compatible with Excel and Google Sheets.",
+    "fr": "Couper, copier, coller avec Ctrl+C/X/V. Format TSV, compatible Excel et Google Sheets."
+  },
+  "features.columns.title": {
+    "en": "Column management",
+    "fr": "Gestion des colonnes"
+  },
+  "features.columns.desc": {
+    "en": "Resize by drag, auto-fit on double-click, reorder by drag-and-drop, pin columns to the left.",
+    "fr": "Redimensionnement par drag, auto-fit au double-clic, réorganisation par drag-and-drop, colonnes figées."
+  },
+  "features.formats.title": {
+    "en": "Rich cell formats",
+    "fr": "Formats de cellule riches"
+  },
+  "features.formats.desc": {
+    "en": "Number, currency, percentage, boolean, images, image+text combos. Custom formatters for full control.",
+    "fr": "Nombre, devise, pourcentage, booléen, images, combos image+texte. Formateurs custom pour un contrôle total."
+  },
+  "features.keyboard.title": {
+    "en": "Keyboard navigation",
+    "fr": "Navigation clavier"
+  },
+  "features.keyboard.desc": {
+    "en": "Arrow keys, Shift+Arrow for selection, Enter to edit, Escape to cancel. All spreadsheet shortcuts built in.",
+    "fr": "Flèches, Shift+Flèche pour sélection, Enter pour éditer, Escape pour annuler. Tous les raccourcis tableur inclus."
+  },
+  "features.search.title": {
+    "en": "Full-text search",
+    "fr": "Recherche plein texte"
+  },
+  "features.search.desc": {
+    "en": "Ctrl+F to search across all cells. Matches highlighted in-place with next/previous navigation.",
+    "fr": "Ctrl+F pour chercher dans toutes les cellules. Résultats surlignés avec navigation suivant/précédent."
+  },
+  "features.theming.title": {
+    "en": "CSS theming",
+    "fr": "Thème CSS"
+  },
+  "features.theming.desc": {
+    "en": "Style everything via CSS custom properties. Light, dark, or build your own. Hot-swap at runtime.",
+    "fr": "Stylez tout via des propriétés CSS. Light, dark, ou créez le vôtre. Changement à chaud."
+  },
+  "features.serverData.title": {
+    "en": "Server-side data",
+    "fr": "Données serveur"
+  },
+  "features.serverData.desc": {
+    "en": "Async pagination with LRU cache. Sort and filter can be delegated to your backend.",
+    "fr": "Pagination asynchrone avec cache LRU. Tri et filtre délégués à votre backend."
+  },
+  "features.contextMenu.title": {
+    "en": "Context menu",
+    "fr": "Menu contextuel"
+  },
+  "features.contextMenu.desc": {
+    "en": "Right-click menu with cut, copy, paste, pin columns. Fully customizable items and actions.",
+    "fr": "Menu clic droit avec couper, copier, coller, figer colonnes. Actions et items entièrement personnalisables."
+  },
+  "features.wasm.title": {
+    "en": "Pure Rust & WebAssembly",
+    "fr": "100% Rust & WebAssembly"
+  },
+  "features.wasm.desc": {
+    "en": "Zero JavaScript runtime. Core logic compiled to WASM. Works with any framework or vanilla JS.",
+    "fr": "Aucun runtime JavaScript. Logique cœur compilée en WASM. Compatible tout framework ou vanilla JS."
   },
   "demo.tag": {
     "en": "Live Demo",
