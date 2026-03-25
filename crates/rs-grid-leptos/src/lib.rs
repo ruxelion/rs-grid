@@ -21,8 +21,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 
 /// Callback type for validation error events: `(row, col_key, message)`.
-pub type ValidationErrorCb =
-    Box<dyn Fn(u64, String, String)>;
+pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
 
 /// A Leptos component that renders an rs-grid onto a `<canvas>` element.
 ///

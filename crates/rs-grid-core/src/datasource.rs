@@ -27,11 +27,7 @@ pub trait DataSource: std::fmt::Debug {
     /// (`VecDataSource`) — zero allocation per call.
     /// The default delegates to [`get_cell`](Self::get_cell)
     /// and wraps the result in `Cow::Owned`.
-    fn get_cell_ref(
-        &self,
-        row: u64,
-        col_key: &str,
-    ) -> Option<Cow<'_, str>> {
+    fn get_cell_ref(&self, row: u64, col_key: &str) -> Option<Cow<'_, str>> {
         self.get_cell(row, col_key).map(Cow::Owned)
     }
     /// Attempt to clone into a boxed trait object.
@@ -78,11 +74,7 @@ impl DataSource for VecDataSource {
         let row = usize::try_from(row).ok()?;
         self.rows.get(row)?.get(col_key).map(str::to_owned)
     }
-    fn get_cell_ref(
-        &self,
-        row: u64,
-        col_key: &str,
-    ) -> Option<Cow<'_, str>> {
+    fn get_cell_ref(&self, row: u64, col_key: &str) -> Option<Cow<'_, str>> {
         let row = usize::try_from(row).ok()?;
         self.rows.get(row)?.get(col_key).map(Cow::Borrowed)
     }

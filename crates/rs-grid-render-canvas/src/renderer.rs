@@ -112,12 +112,9 @@ fn truncate_with_ellipsis(
     let mut lo = 0usize;
     let mut hi = chars.len();
     while lo < hi {
-        let mid = (lo + hi + 1) / 2;
+        let mid = (lo + hi).div_ceil(2);
         let s: String = chars[..mid].iter().collect();
-        let w = ctx
-            .measure_text(&s)
-            .map(|m| m.width())
-            .unwrap_or(f64::MAX);
+        let w = ctx.measure_text(&s).map(|m| m.width()).unwrap_or(f64::MAX);
         if w <= available {
             lo = mid;
         } else {
@@ -230,10 +227,7 @@ impl CanvasRenderer {
 
         // Font must be set before measuring.
         let display = if let Some(max_w) = t.max_width {
-            let w = ctx
-                .measure_text(&t.text)
-                .map(|m| m.width())
-                .unwrap_or(0.0);
+            let w = ctx.measure_text(&t.text).map(|m| m.width()).unwrap_or(0.0);
             if w > max_w {
                 truncate_with_ellipsis(ctx, &t.text, max_w)
             } else {

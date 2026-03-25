@@ -30,13 +30,10 @@ impl GridCanvas {
                     .filter(|v| !v.is_empty())
                     .unwrap_or_else(|| fb.to_string())
             };
-            let border_color =
-                var("--rs-grid-header-border", "#babfc7");
+            let border_color = var("--rs-grid-header-border", "#babfc7");
             let bg = var("--rs-grid-editor-bg", "#ffffff");
-            let shadow = var(
-                "--rs-grid-overlay-shadow",
-                "0 2px 8px rgba(0,0,0,.15)",
-            );
+            let shadow =
+                var("--rs-grid-overlay-shadow", "0 2px 8px rgba(0,0,0,.15)");
             let fsz_raw = var("--rs-grid-font-size", "13");
             let fsz = fsz_raw.trim_end_matches("px").to_string();
             let font = format!("{fsz}px system-ui, sans-serif");
@@ -62,10 +59,8 @@ impl GridCanvas {
         let _ = style.set_property("width", &width);
         let _ = style.set_property("height", &height);
         let _ = style.set_property("z-index", "10001");
-        let _ = style.set_property(
-            "border",
-            &format!("1px solid {border_color}"),
-        );
+        let _ =
+            style.set_property("border", &format!("1px solid {border_color}"));
         let _ = style.set_property("border-radius", &radius);
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 8px");
@@ -94,7 +89,10 @@ impl GridCanvas {
             input
                 .add_event_listener_with_callback("input", &func)
                 .expect("add input listener");
-            self.0.search_listener_refs.borrow_mut().push(("input".into(), func));
+            self.0
+                .search_listener_refs
+                .borrow_mut()
+                .push(("input".into(), func));
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -124,7 +122,10 @@ impl GridCanvas {
             input
                 .add_event_listener_with_callback("keydown", &func)
                 .expect("add keydown listener");
-            self.0.search_listener_refs.borrow_mut().push(("keydown".into(), func));
+            self.0
+                .search_listener_refs
+                .borrow_mut()
+                .push(("keydown".into(), func));
             self.0.search_closures.borrow_mut().push(Box::new(cb));
         }
 

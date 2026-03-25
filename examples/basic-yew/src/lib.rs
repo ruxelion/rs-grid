@@ -71,11 +71,8 @@ fn App() -> Html {
                 let w = canvas.client_width() as f64;
                 let h = canvas.client_height() as f64;
                 let state = GridState::new(model, w, h);
-                let gc = GridCanvas::mount(
-                    canvas,
-                    state,
-                    theme_from_css_vars(),
-                );
+                let gc =
+                    GridCanvas::mount(canvas, state, theme_from_css_vars());
                 // Restore patches from localStorage
                 if let Some(s) = local_storage() {
                     if let Ok(Some(data)) = s.get_item(LS_KEY) {
@@ -149,8 +146,7 @@ fn App() -> Html {
     let on_theme_change = {
         let theme_class = theme_class.clone();
         Callback::from(move |e: Event| {
-            let v =
-                e.target_unchecked_into::<HtmlSelectElement>().value();
+            let v = e.target_unchecked_into::<HtmlSelectElement>().value();
             theme_class.set(v);
         })
     };
@@ -172,8 +168,7 @@ fn App() -> Html {
     let on_filter_input = {
         let grid_ref = grid_ref.clone();
         Callback::from(move |e: InputEvent| {
-            let text =
-                e.target_unchecked_into::<HtmlInputElement>().value();
+            let text = e.target_unchecked_into::<HtmlInputElement>().value();
             if let Some(gc) = grid_ref.borrow().as_ref() {
                 gc.set_filter("name", &text);
             }
@@ -191,8 +186,7 @@ fn App() -> Html {
             let url = format!(
                 "data:text/tab-separated-values;charset=utf-8,{encoded}"
             );
-            let doc =
-                web_sys::window().unwrap().document().unwrap();
+            let doc = web_sys::window().unwrap().document().unwrap();
             let a = doc
                 .create_element("a")
                 .unwrap()
@@ -213,9 +207,7 @@ fn App() -> Html {
             .unwrap()
             .get_element_by_id("yew-file-import")
         {
-            let _ = el
-                .dyn_into::<HtmlInputElement>()
-                .map(|i| i.click());
+            let _ = el.dyn_into::<HtmlInputElement>().map(|i| i.click());
         }
     });
 
@@ -240,10 +232,8 @@ fn App() -> Html {
                         if let Some(text) = result.as_string() {
                             gc.import_patches(&text);
                             if let Some(s) = local_storage() {
-                                let _ = s.set_item(
-                                    LS_KEY,
-                                    &gc.export_patches(),
-                                );
+                                let _ =
+                                    s.set_item(LS_KEY, &gc.export_patches());
                             }
                         }
                     }

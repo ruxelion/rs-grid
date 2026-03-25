@@ -48,12 +48,7 @@ fn local_storage() -> Option<web_sys::Storage> {
 
 /// Detach the current GridCanvas if any and mount a fresh one with
 /// `rows` × `cols` of virtual data.
-fn remount(
-    canvas_ref: &CanvasRef,
-    grid_ref: &GridRef,
-    rows: u64,
-    cols: usize,
-) {
+fn remount(canvas_ref: &CanvasRef, grid_ref: &GridRef, rows: u64, cols: usize) {
     let Some(canvas) = canvas_ref.borrow().clone() else {
         return;
     };

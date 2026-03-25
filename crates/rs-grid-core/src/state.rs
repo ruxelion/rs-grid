@@ -572,8 +572,7 @@ impl GridState {
                     let label = &self.model.columns[col_idx].label;
                     let header_w = label.len() as f64 * header_char_width
                         + cell_padding * 2.0;
-                    let col_format =
-                        self.model.columns[col_idx].format.clone();
+                    let col_format = self.model.columns[col_idx].format.clone();
                     let row_count =
                         self.model.display_row_count().min(MAX_SAMPLE_ROWS);
                     let mut max_w = header_w;
@@ -581,8 +580,7 @@ impl GridState {
                         if let Some(val) = self.model.get_cell(r, &col_key) {
                             let w = match &col_format {
                                 Some(CellFormat::Image { .. }) => {
-                                    self.model.row_height
-                                        + cell_padding * 2.0
+                                    self.model.row_height + cell_padding * 2.0
                                 }
                                 Some(CellFormat::ImageText {
                                     image_size,
@@ -599,10 +597,8 @@ impl GridState {
                                         + cell_padding * 2.0
                                 }
                                 Some(fmt) => {
-                                    let formatted =
-                                        format_cell(&val, fmt);
-                                    formatted.text.len() as f64
-                                        * char_width
+                                    let formatted = format_cell(&val, fmt);
+                                    formatted.text.len() as f64 * char_width
                                         + cell_padding * 2.0
                                 }
                                 None => {
@@ -1110,10 +1106,7 @@ mod tests {
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
-        row.set(
-            "country",
-            "data:image/png;base64,AAAA France".to_string(),
-        );
+        row.set("country", "data:image/png;base64,AAAA France".to_string());
         let model = GridModel::new(cols, vec![row], 30.0, 40.0);
         let mut s = GridState::new(model, 800.0, 600.0);
         s.apply(GridCommand::AutoFitColumn {
@@ -1125,10 +1118,7 @@ mod tests {
         let w = s.model.columns[0].width;
         // image_size(20) + gap(6) + "France".len(6)*8 + pad*2(20) = 94
         let expected = 20.0 + 6.0 + 6.0 * 8.0 + 10.0 * 2.0;
-        assert!(
-            (w - expected).abs() < 0.01,
-            "expected {expected}, got {w}"
-        );
+        assert!((w - expected).abs() < 0.01, "expected {expected}, got {w}");
     }
 
     // ── Undo / Redo ────────────────────────────────────────────────────────

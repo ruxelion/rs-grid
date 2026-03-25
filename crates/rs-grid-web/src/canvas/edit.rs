@@ -58,8 +58,7 @@ impl GridCanvas {
                 .filter(|v| !v.is_empty())
                 .unwrap_or_else(|| fb.to_string())
         };
-        let border_color =
-            var("--rs-grid-editor-border", "#2563eb");
+        let border_color = var("--rs-grid-editor-border", "#2563eb");
         let bg = var("--rs-grid-editor-bg", "#ffffff");
 
         let style = el.style();
@@ -69,10 +68,8 @@ impl GridCanvas {
         let _ = style.set_property("width", &format!("{w}px"));
         let _ = style.set_property("height", &format!("{h}px"));
         let _ = style.set_property("z-index", "10000");
-        let _ = style.set_property(
-            "border",
-            &format!("2px solid {border_color}"),
-        );
+        let _ =
+            style.set_property("border", &format!("2px solid {border_color}"));
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 4px");
         let _ = style.set_property("margin", "0");
@@ -160,8 +157,7 @@ impl GridCanvas {
         }
 
         // ── theme colours ─────────────────────────────
-        let (bg, text_c, sel_c, border_c, fsz, shadow, dd_min_w, dd_max_h) =
-        {
+        let (bg, text_c, sel_c, border_c, fsz, shadow, dd_min_w, dd_max_h) = {
             let b = self.0.builder.borrow();
             let t = &b.theme;
             let css_style = css_theme::root_computed_style();
@@ -331,7 +327,10 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             ctr.add_event_listener_with_callback("mousedown", &func)
                 .expect("mousedown");
-            self.0.edit_listener_refs.borrow_mut().push(("mousedown".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("mousedown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -356,7 +355,10 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             ctr.add_event_listener_with_callback("mouseover", &func)
                 .expect("mouseover");
-            self.0.edit_listener_refs.borrow_mut().push(("mouseover".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("mouseover".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -433,7 +435,10 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             ctr.add_event_listener_with_callback("keydown", &func)
                 .expect("keydown");
-            self.0.edit_listener_refs.borrow_mut().push(("keydown".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("keydown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -451,7 +456,10 @@ impl GridCanvas {
                 cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
             ctr.add_event_listener_with_callback("blur", &func)
                 .expect("blur");
-            self.0.edit_listener_refs.borrow_mut().push(("blur".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("blur".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -555,7 +563,10 @@ impl GridCanvas {
             input
                 .add_event_listener_with_callback("keydown", &func)
                 .expect("keydown");
-            self.0.edit_listener_refs.borrow_mut().push(("keydown".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("keydown".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
@@ -583,7 +594,10 @@ impl GridCanvas {
             input
                 .add_event_listener_with_callback("blur", &func)
                 .expect("blur");
-            self.0.edit_listener_refs.borrow_mut().push(("blur".into(), func));
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("blur".into(), func));
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
