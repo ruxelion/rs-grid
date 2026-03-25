@@ -65,7 +65,8 @@
       "Bash(MKCERT=\"/c/Users/Admin/AppData/Local/Microsoft/WinGet/Packages/FiloSottile.mkcert_Microsoft.Winget.Source_8wekyb3d8bbwe/mkcert.exe\")",
       "Bash(\"$MKCERT\" -install)",
       "Bash(mkdir -p e:/Dev/rs-grid/.certs)",
-      "Bash(\"$MKCERT\" localhost:*)"
+      "Bash(\"$MKCERT\" localhost:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''hooks'''',{}\\), indent=2\\)\\)\")"
     ]
   }
 }

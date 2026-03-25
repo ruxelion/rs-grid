@@ -457,21 +457,22 @@ impl SceneBuilder {
                     // Sort indicator ▲ / ▼
                     if let Some(s) = &state.sort {
                         if s.col_key == col.key {
-                            const AW: f64 = 4.0;
-                            const AH: f64 = 3.5;
-                            let ax = cx + col.width - t.cell_padding - AW;
+                            let aw = t.sort_arrow_width;
+                            let ah = t.sort_arrow_height;
+                            let ax =
+                                cx + col.width - t.cell_padding - aw;
                             let ay = mid_y - t.header_font_size * 0.35;
                             let points = if s.dir == SortDir::Asc {
                                 vec![
-                                    [ax, ay - AH],
-                                    [ax + AW, ay + AH * 0.6],
-                                    [ax - AW, ay + AH * 0.6],
+                                    [ax, ay - ah],
+                                    [ax + aw, ay + ah * 0.6],
+                                    [ax - aw, ay + ah * 0.6],
                                 ]
                             } else {
                                 vec![
-                                    [ax, ay + AH],
-                                    [ax + AW, ay - AH * 0.6],
-                                    [ax - AW, ay - AH * 0.6],
+                                    [ax, ay + ah],
+                                    [ax + aw, ay - ah * 0.6],
+                                    [ax - aw, ay - ah * 0.6],
                                 ]
                             };
                             frame.push(ScenePrimitive::Polygon(
@@ -641,7 +642,7 @@ impl SceneBuilder {
                     x2: insert_vx,
                     y2: vp.height,
                     color: t.selection_border,
-                    width: 3.0,
+                    width: t.drag_insert_line_width,
                 }));
 
                 // 3. Ghost header (follows cursor)

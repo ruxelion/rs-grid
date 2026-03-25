@@ -55,6 +55,9 @@ struct CtxColors {
     separator: String,
     radius: String,
     font_size: String,
+    min_width: String,
+    shortcut_font_size: String,
+    item_gap: String,
 }
 
 fn read_ctx_colors() -> CtxColors {
@@ -80,6 +83,12 @@ fn read_ctx_colors() -> CtxColors {
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
         radius: v("--rs-grid-ctx-radius", "6px"),
         font_size: v("--rs-grid-ctx-font-size", "13px"),
+        min_width: v("--rs-grid-ctx-min-width", "160px"),
+        shortcut_font_size: v(
+            "--rs-grid-ctx-shortcut-font-size",
+            "11px",
+        ),
+        item_gap: v("--rs-grid-ctx-item-gap", "8px"),
     }
 }
 
@@ -110,7 +119,7 @@ fn make_menu_item(
         &[
             ("display", "flex"),
             ("align-items", "center"),
-            ("gap", "8px"),
+            ("gap", &colors.item_gap),
             ("padding", "6px 12px"),
         ],
     );
@@ -136,7 +145,7 @@ fn make_menu_item(
         &sc_el,
         &[
             ("color", &colors.text_disabled),
-            ("font-size", "11px"),
+            ("font-size", &colors.shortcut_font_size),
             ("white-space", "nowrap"),
         ],
     );
@@ -302,7 +311,7 @@ fn create_menu_shell(
             ("box-shadow", &colors.shadow),
             ("padding", "4px 0"),
             ("font", &font_val),
-            ("min-width", "160px"),
+            ("min-width", &colors.min_width),
             ("user-select", "none"),
         ],
     );
