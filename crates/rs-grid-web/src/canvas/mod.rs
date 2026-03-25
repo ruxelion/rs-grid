@@ -79,6 +79,8 @@ struct Inner {
     /// Decays each frame via exponential smoothing until negligible.
     scroll_vx: Cell<f64>,
     scroll_vy: Cell<f64>,
+    /// Column index whose header menu icon is currently hovered, if any.
+    hovered_menu_col: RefCell<Option<usize>>,
     /// Current animated column offsets during a drag
     /// (`col_idx → cumulative left offset`).
     /// Initialised from real positions when drag starts and
@@ -239,6 +241,7 @@ impl GridCanvas {
             raf_scheduled: Cell::new(false),
             scroll_vx: Cell::new(0.0),
             scroll_vy: Cell::new(0.0),
+            hovered_menu_col: RefCell::new(None),
             drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
             on_change: RefCell::new(None),
@@ -297,10 +300,12 @@ impl GridCanvas {
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
         let flash = self.compute_flash_hint();
+        let hovered_menu = *self.0.hovered_menu_col.borrow();
         let frame = self.0.builder.borrow().build(
             &state,
             hint.as_ref(),
             flash.as_ref(),
+            hovered_menu,
         );
         drop(state);
         self.0.renderer.render(&frame);
@@ -770,6 +775,33 @@ impl GridCanvas {
             }
         }
         best_idx
+    }
+
+    /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the
+    /// three-dot menu icon zone at the right edge of a column header.
+    fn hit_header_menu_icon(&self, vx: f64, vy: f64) -> Option<usize> {
+        let col_idx =
+            self.0.state.borrow().hit_test_col_header(vx, vy)?;
+        let theme = self.0.builder.borrow();
+        let mr = theme.theme.header_menu_icon_margin_r;
+        let bw = theme.theme.header_menu_icon_btn_w;
+        drop(theme);
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let off = model.column_offsets.offsets[col_idx];
+        let sx = state.viewport.scroll_x;
+        let rnw = model.row_number_width;
+        let col_left_vx = if col_idx < model.pinned_count {
+            off + rnw
+        } else {
+            off - sx + rnw
+        };
+        let col_right_vx = col_left_vx + model.columns[col_idx].width;
+        if vx >= col_right_vx - mr - bw && vx < col_right_vx - mr {
+            Some(col_idx)
+        } else {
+            None
+        }
     }
 
     /// Build a `ColumnDragHint` from the current drag state,

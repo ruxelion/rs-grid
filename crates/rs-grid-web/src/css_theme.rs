@@ -41,6 +41,7 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-sort-arrow-height`       | `Theme::sort_arrow_height`       |
 /// | `--rs-grid-header-height`           | `Theme::header_height`           |
 /// | `--rs-grid-row-height`              | `Theme::row_height`              |
+/// | `--rs-grid-header-menu-icon`        | `Theme::header_menu_icon`        |
 /// | `--rs-grid-gutter-bg`              | `Theme::gutter_bg`               |
 /// | `--rs-grid-gutter-text`            | `Theme::gutter_text`             |
 /// | `--rs-grid-gutter-font-size`       | `Theme::gutter_font_size`        |
@@ -184,6 +185,34 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.header_height,
         ),
         row_height: px("--rs-grid-row-height", fallback.row_height),
+        header_menu_icon: color(
+            "--rs-grid-header-menu-icon",
+            fallback.header_menu_icon,
+        ),
+        header_menu_icon_hover_bg: color(
+            "--rs-grid-header-menu-icon-hover-bg",
+            fallback.header_menu_icon_hover_bg,
+        ),
+        header_menu_icon_radius: px(
+            "--rs-grid-header-menu-icon-radius",
+            fallback.header_menu_icon_radius,
+        ),
+        header_menu_icon_margin_r: px(
+            "--rs-grid-header-menu-icon-margin-r",
+            fallback.header_menu_icon_margin_r,
+        ),
+        header_menu_icon_btn_w: px(
+            "--rs-grid-header-menu-icon-btn-w",
+            fallback.header_menu_icon_btn_w,
+        ),
+        header_menu_icon_btn_h: px(
+            "--rs-grid-header-menu-icon-btn-h",
+            fallback.header_menu_icon_btn_h,
+        ),
+        header_menu_icon_dot_r: px(
+            "--rs-grid-header-menu-icon-dot-r",
+            fallback.header_menu_icon_dot_r,
+        ),
         gutter_bg: color("--rs-grid-gutter-bg", fallback.gutter_bg),
         gutter_text: color(
             "--rs-grid-gutter-text",

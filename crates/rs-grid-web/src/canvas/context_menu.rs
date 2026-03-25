@@ -373,7 +373,12 @@ impl GridCanvas {
         self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
-    fn show_col_header_menu(&self, col_idx: usize, x: i32, y: i32) {
+    pub(super) fn show_col_header_menu(
+        &self,
+        col_idx: usize,
+        x: i32,
+        y: i32,
+    ) {
         remove_ctx_menu();
         let colors = read_ctx_colors();
         let doc = document();
