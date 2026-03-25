@@ -63,6 +63,62 @@ enum MixedSortKey {
     Empty,
 }
 
+// ── Radix sort (numeric fast path) ──────────────────
+
+/// Maps an `f64` bit pattern to a `u64` that preserves total
+/// order across the entire domain, including negative values and
+/// NaN (which sorts last, consistent with `f64::total_cmp`).
+#[inline]
+fn f64_to_sort_key(f: f64) -> u64 {
+    let bits = f.to_bits();
+    // Positive floats and +0: flip sign bit so they sort after negatives.
+    // Negative floats and -0: flip all bits so larger-magnitude negatives
+    // map to smaller keys.
+    if bits >> 63 == 0 { bits | (1u64 << 63) } else { !bits }
+}
+
+/// LSD radix sort on `indices` ordered by pre-extracted `f64`
+/// keys.  O(8 × n) time, O(n) auxiliary space — significantly
+/// faster than comparison-based sort for n ≳ 50 000.
+fn radix_sort_f64_indices(
+    indices: &mut Vec<u64>,
+    keys: &[f64],
+    ascending: bool,
+) {
+    let n = indices.len();
+    if n <= 1 {
+        return;
+    }
+    // Convert all keys once so the inner loop only touches u64s.
+    let sort_keys: Vec<u64> =
+        keys.iter().map(|&f| f64_to_sort_key(f)).collect();
+    let mut aux: Vec<u64> = vec![0; n];
+    for pass in 0..8u32 {
+        let shift = pass * 8;
+        let mut counts = [0usize; 256];
+        for &idx in indices.iter() {
+            let byte =
+                ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
+            counts[byte] += 1;
+        }
+        // Exclusive prefix sum → bucket start positions.
+        let mut offsets = [0usize; 256];
+        for i in 1..256 {
+            offsets[i] = offsets[i - 1] + counts[i - 1];
+        }
+        for &idx in indices.iter() {
+            let byte =
+                ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
+            aux[offsets[byte]] = idx;
+            offsets[byte] += 1;
+        }
+        std::mem::swap(indices, &mut aux);
+    }
+    if !ascending {
+        indices.reverse();
+    }
+}
+
 /// The data model: columns, a virtual data source, and sizing constants.
 #[derive(Debug)]
 pub struct GridModel {
@@ -107,6 +163,10 @@ pub struct GridModel {
 }
 
 impl GridModel {
+    /// Maximum number of rows for which client-side sort is performed.
+    /// `apply_sort` is a no-op above this threshold and returns `false`.
+    pub const MAX_CLIENT_SORT_ROWS: u64 = 1_000_000;
+
     /// Create a model backed by an in-memory Vec (backwards-compatible API).
     pub fn new(
         columns: Vec<ColumnDef>,
@@ -287,15 +347,16 @@ impl GridModel {
     /// - **Mixed / string columns** fall back to a
     ///   `Vec<MixedSortKey>` with lexicographic comparison.
     ///
-    /// No-op for server-side sources or > 1 000 000 rows.
-    pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) {
+    /// Returns `true` when the sort was applied, `false` when it was
+    /// skipped (server-side mode or row count exceeds
+    /// [`Self::MAX_CLIENT_SORT_ROWS`]).
+    pub fn apply_sort(&mut self, col_key: &str, dir: &SortDir) -> bool {
         if self.mode == DataSourceMode::ServerSide {
-            return;
+            return false;
         }
-        const MAX_SORT_ROWS: u64 = 1_000_000;
         let n = self.data.row_count();
-        if n > MAX_SORT_ROWS {
-            return;
+        if n > Self::MAX_CLIENT_SORT_ROWS {
+            return false;
         }
 
         // ── Cache hit? Re-sort without extraction ────────
@@ -315,14 +376,10 @@ impl GridModel {
 
         if cache_hit {
             let mut indices: Vec<u64> = (0..n).collect();
-            let rev = *dir == SortDir::Desc;
+            let asc = *dir == SortDir::Asc;
             match &self.sort_key_cache {
                 SortKeyCache::Numeric { keys, .. } => {
-                    indices.sort_unstable_by(|&a, &b| {
-                        let cmp = keys[a as usize]
-                            .total_cmp(&keys[b as usize]);
-                        if rev { cmp.reverse() } else { cmp }
-                    });
+                    radix_sort_f64_indices(&mut indices, keys, asc);
                 }
                 SortKeyCache::Mixed { keys, .. } => {
                     indices.sort_unstable_by(|&a, &b| {
@@ -330,13 +387,13 @@ impl GridModel {
                             &keys[a as usize],
                             &keys[b as usize],
                         );
-                        if rev { cmp.reverse() } else { cmp }
+                        if asc { cmp } else { cmp.reverse() }
                     });
                 }
                 SortKeyCache::None => unreachable!(),
             }
             self.sort_order = indices;
-            return;
+            return true;
         }
 
         // ── Cache miss — extract keys ────────────────────
@@ -381,18 +438,13 @@ impl GridModel {
 
         if all_numeric {
             let mut indices: Vec<u64> = (0..n).collect();
-            let rev = *dir == SortDir::Desc;
-            indices.sort_unstable_by(|&a, &b| {
-                let cmp =
-                    fkeys[a as usize].total_cmp(&fkeys[b as usize]);
-                if rev { cmp.reverse() } else { cmp }
-            });
+            radix_sort_f64_indices(&mut indices, &fkeys, *dir == SortDir::Asc);
             self.sort_order = indices;
             self.sort_key_cache = SortKeyCache::Numeric {
                 col_key: col_key.to_owned(),
                 keys: fkeys,
             };
-            return;
+            return true;
         }
 
         // Phase 2: mixed / string fallback.
@@ -437,6 +489,7 @@ impl GridModel {
             col_key: col_key.to_owned(),
             keys,
         };
+        true
     }
 
     /// Invalidate the sort key cache (e.g. after a cell
