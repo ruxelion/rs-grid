@@ -811,9 +811,21 @@ impl GridCanvas {
         let theme = self.0.builder.borrow();
         let mr = theme.theme.header_menu_icon_margin_r;
         let bw = theme.theme.header_menu_icon_btn_w;
+        let bh_cfg = theme.theme.header_menu_icon_btn_h;
         drop(theme);
         let state = self.0.state.borrow();
         let model = &state.model;
+        // Compute button vertical bounds (same formula as builder.rs).
+        let btn_h = if bh_cfg > 0.0 {
+            bh_cfg
+        } else {
+            (model.header_height - 12.0).max(8.0)
+        };
+        let btn_ty = (model.header_height - btn_h) / 2.0;
+        // Reject if the pointer is not within the button's height.
+        if vy < btn_ty || vy >= btn_ty + btn_h {
+            return None;
+        }
         let off = model.column_offsets.offsets[col_idx];
         let sx = state.viewport.scroll_x;
         let rnw = model.row_number_width;
