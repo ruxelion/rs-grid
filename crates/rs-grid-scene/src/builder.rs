@@ -97,6 +97,7 @@ impl SceneBuilder {
         state: &GridState,
         col_drag: Option<&ColumnDragHint>,
         flash: Option<&FlashHint>,
+        hovered_menu_col: Option<usize>,
     ) -> SceneFrame {
         let vp = &state.viewport;
         let model = &state.model;
@@ -183,36 +184,35 @@ impl SceneBuilder {
         // their target positions while dragging.
         // Prefer pre-computed animated offsets from the hint
         // (smooth lerp); fall back to instant computation.
-        let preview_offsets: Option<Vec<f64>> =
-            col_drag.and_then(|hint| {
-                if !hint.animated_offsets.is_empty() {
-                    return Some(hint.animated_offsets.clone());
-                }
-                let cols = &model.columns;
-                let src = hint.source_col;
-                if src >= cols.len() {
-                    return None;
-                }
-                let dst = if hint.insert_before > src {
-                    hint.insert_before.saturating_sub(1)
-                } else {
-                    hint.insert_before
-                };
-                if dst == src {
-                    return None;
-                }
-                let mut order: Vec<usize> =
-                    (0..cols.len()).filter(|&i| i != src).collect();
-                let ins = dst.min(order.len());
-                order.insert(ins, src);
-                let mut offs = vec![0.0_f64; cols.len()];
-                let mut cum = 0.0_f64;
-                for &ci in &order {
-                    offs[ci] = cum;
-                    cum += cols[ci].width;
-                }
-                Some(offs)
-            });
+        let preview_offsets: Option<Vec<f64>> = col_drag.and_then(|hint| {
+            if !hint.animated_offsets.is_empty() {
+                return Some(hint.animated_offsets.clone());
+            }
+            let cols = &model.columns;
+            let src = hint.source_col;
+            if src >= cols.len() {
+                return None;
+            }
+            let dst = if hint.insert_before > src {
+                hint.insert_before.saturating_sub(1)
+            } else {
+                hint.insert_before
+            };
+            if dst == src {
+                return None;
+            }
+            let mut order: Vec<usize> =
+                (0..cols.len()).filter(|&i| i != src).collect();
+            let ins = dst.min(order.len());
+            order.insert(ins, src);
+            let mut offs = vec![0.0_f64; cols.len()];
+            let mut cum = 0.0_f64;
+            for &ci in &order {
+                offs[ci] = cum;
+                cum += cols[ci].width;
+            }
+            Some(offs)
+        });
 
         // Helper: viewport x of the left edge of column `ci`.
         // Uses preview offsets when a drag is active so columns
@@ -416,9 +416,14 @@ impl SceneBuilder {
             // During a flash the border adopts the flash colour;
             // otherwise use the normal selection border colour.
             let border_color = if let Some(f) = flash {
-                let a = (t.flash_border.a as f64 * f.alpha_factor).round()
-                    as u8;
-                Color::rgba(t.flash_border.r, t.flash_border.g, t.flash_border.b, a)
+                let a =
+                    (t.flash_border.a as f64 * f.alpha_factor).round() as u8;
+                Color::rgba(
+                    t.flash_border.r,
+                    t.flash_border.g,
+                    t.flash_border.b,
+                    a,
+                )
             } else {
                 t.selection_border
             };
@@ -509,13 +514,66 @@ impl SceneBuilder {
                         align: TextAlign::Left,
                     }));
 
+                    // Three-dot menu icon (⋮) — three small circles at
+                    // the right edge of the header cell.
+                    {
+                        let mr = t.header_menu_icon_margin_r;
+                        let btn_w = t.header_menu_icon_btn_w;
+                        let btn_h = if t.header_menu_icon_btn_h > 0.0 {
+                            t.header_menu_icon_btn_h
+                        } else {
+                            (model.header_height - 12.0).max(8.0)
+                        };
+                        // Right edge of button, inset by margin_r.
+                        let btn_rx = cx + col.width - mr;
+                        let btn_lx = btn_rx - btn_w;
+                        let btn_ty = (model.header_height - btn_h) / 2.0;
+
+                        // Hover background.
+                        if hovered_menu_col == Some(ci) {
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: btn_lx,
+                                y: btn_ty,
+                                width: btn_w,
+                                height: btn_h,
+                                fill: t.header_menu_icon_hover_bg,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: t.header_menu_icon_radius,
+                            }));
+                        }
+
+                        let dot_r = t.header_menu_icon_dot_r;
+                        let dot_gap = dot_r * 3.75;
+                        // Icon center x = horizontal center of button.
+                        let icon_cx = btn_lx + btn_w / 2.0;
+                        let icon_mid_y = model.header_height / 2.0;
+                        for i in -1i32..=1 {
+                            let dot_y = icon_mid_y + i as f64 * dot_gap;
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: icon_cx - dot_r,
+                                y: dot_y - dot_r,
+                                width: dot_r * 2.0,
+                                height: dot_r * 2.0,
+                                fill: t.header_menu_icon,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: dot_r,
+                            }));
+                        }
+                    }
+
                     // Sort indicator ▲ / ▼
                     if let Some(s) = &state.sort {
                         if s.col_key == col.key {
                             let aw = t.sort_arrow_width;
                             let ah = t.sort_arrow_height;
-                            let ax =
-                                cx + col.width - t.cell_padding - aw;
+                            // Shifted left to leave room for menu icon.
+                            let ax = cx + col.width
+                                - t.header_menu_icon_margin_r
+                                - t.header_menu_icon_btn_w
+                                - t.cell_padding
+                                - aw;
                             let ay = mid_y - t.header_font_size * 0.35;
                             let points = if s.dir == SortDir::Asc {
                                 vec![
@@ -545,8 +603,7 @@ impl SceneBuilder {
                         x1: sep_x,
                         y1: t.header_separator_inset,
                         x2: sep_x,
-                        y2: model.header_height
-                            - t.header_separator_inset,
+                        y2: model.header_height - t.header_separator_inset,
                         color: t.header_border,
                         width: t.header_separator_width,
                     }));
@@ -618,9 +675,8 @@ impl SceneBuilder {
                     }));
                 }
 
-                let mid_y = ry
-                    + model.row_height * 0.5
-                    + t.gutter_font_size * 0.35;
+                let mid_y =
+                    ry + model.row_height * 0.5 + t.gutter_font_size * 0.35;
                 frame.push(ScenePrimitive::Text(TextPrimitive {
                     x: rnw - t.cell_padding,
                     y: mid_y,
@@ -710,9 +766,7 @@ impl SceneBuilder {
                 }));
 
                 // Ghost label — vertically centred inside the badge
-                let mid_y = ghost_y
-                    + ghost_h * 0.5
-                    + t.header_font_size * 0.35;
+                let mid_y = ghost_y + ghost_h * 0.5 + t.header_font_size * 0.35;
                 frame.push(ScenePrimitive::Text(TextPrimitive {
                     x: ghost_x + t.cell_padding,
                     y: mid_y,
@@ -980,14 +1034,18 @@ impl SceneBuilder {
             }));
             // Flash overlay — themed fade on paste
             if let Some(f) = flash {
-                let a = (t.flash_fill.a as f64 * f.alpha_factor).round()
-                    as u8;
+                let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
                 frame.push(ScenePrimitive::Rect(RectPrimitive {
                     x: cx,
                     y: ry,
                     width: col.width,
                     height: row_height,
-                    fill: Color::rgba(t.flash_fill.r, t.flash_fill.g, t.flash_fill.b, a),
+                    fill: Color::rgba(
+                        t.flash_fill.r,
+                        t.flash_fill.g,
+                        t.flash_fill.b,
+                        a,
+                    ),
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,

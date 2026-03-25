@@ -110,6 +110,24 @@ pub struct Theme {
     /// Half-height of the sort arrow triangle, in logical pixels.
     pub sort_arrow_height: f64,
 
+    // ── column header menu icon ───────────────────────────────────────────────
+    /// Color of the three-dot (⋮) menu icon in each column header.
+    pub header_menu_icon: Color,
+    /// Background color of the menu icon button on hover.
+    pub header_menu_icon_hover_bg: Color,
+    /// Corner radius of the menu icon hover background, in logical pixels.
+    pub header_menu_icon_radius: f64,
+    /// Gap between the button right edge and the column right edge,
+    /// in logical pixels. Increase to shift the icon leftward.
+    pub header_menu_icon_margin_r: f64,
+    /// Width of the menu icon button in logical pixels.
+    pub header_menu_icon_btn_w: f64,
+    /// Height of the menu icon button in logical pixels.
+    /// Use 0.0 to auto-size to `header_height − 12`.
+    pub header_menu_icon_btn_h: f64,
+    /// Radius of each dot in the three-dot icon, in logical pixels.
+    pub header_menu_icon_dot_r: f64,
+
     // ── row-number gutter ─────────────────────────────────────────────────────
     /// Background of the row-number gutter column.
     pub gutter_bg: Color,
@@ -164,6 +182,13 @@ impl Theme {
             drag_anim_alpha: 0.3,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
+            header_menu_icon: Color::rgba(0, 0, 0, 255),
+            header_menu_icon_hover_bg: Color::rgba(0, 0, 0, 15),
+            header_menu_icon_radius: 3.0,
+            header_menu_icon_margin_r: 10.0,
+            header_menu_icon_btn_w: 22.0,
+            header_menu_icon_btn_h: 22.0,
+            header_menu_icon_dot_r: 1.2,
             gutter_bg: Color::rgb(250, 250, 250),
             gutter_text: Color::rgba(0, 0, 0, 255),
             gutter_font_size: 13.0,
@@ -212,6 +237,13 @@ impl Theme {
             sort_arrow_height: 3.5,
             header_height: 50.0,
             row_height: 40.0,
+            header_menu_icon: Color::rgba(169, 177, 214, 100),
+            header_menu_icon_hover_bg: Color::rgba(169, 177, 214, 30),
+            header_menu_icon_radius: 4.0,
+            header_menu_icon_margin_r: 2.0,
+            header_menu_icon_btn_w: 16.0,
+            header_menu_icon_btn_h: 0.0,
+            header_menu_icon_dot_r: 1.0,
             gutter_bg: Color::rgb(36, 40, 59),
             gutter_text: Color::rgba(169, 177, 214, 153),
             gutter_font_size: 12.0,

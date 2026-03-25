@@ -136,6 +136,10 @@ impl GridCanvas {
             if gc.0.state.borrow().hovered_row.is_some() {
                 gc.dispatch(GridCommand::SetHoveredRow(None));
             }
+            if gc.0.hovered_menu_col.borrow().is_some() {
+                *gc.0.hovered_menu_col.borrow_mut() = None;
+                gc.render();
+            }
         });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
@@ -396,6 +400,15 @@ impl GridCanvas {
             // ── column header ─────────────────────────────
             let col = gc.0.state.borrow().hit_test_col_header(x, y);
             if let Some(col) = col {
+                // Three-dot icon at right edge → open header menu.
+                if gc.hit_header_menu_icon(x, y).is_some() {
+                    gc.show_col_header_menu(
+                        col,
+                        evt.client_x(),
+                        evt.client_y(),
+                    );
+                    return;
+                }
                 if evt.shift_key() {
                     gc.dispatch(GridCommand::ExtendColSelection(col));
                     *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
@@ -627,6 +640,12 @@ impl GridCanvas {
                     let new_row = gc.row_at(x, y);
                     if gc.0.state.borrow().hovered_row != new_row {
                         gc.dispatch(GridCommand::SetHoveredRow(new_row));
+                    }
+                    // Track which column's menu icon is hovered.
+                    let new_menu = gc.hit_header_menu_icon(x, y);
+                    if *gc.0.hovered_menu_col.borrow() != new_menu {
+                        *gc.0.hovered_menu_col.borrow_mut() = new_menu;
+                        gc.render();
                     }
                 }
             }
