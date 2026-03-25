@@ -588,7 +588,7 @@ impl SceneBuilder {
                 y: 0.0,
                 width: rnw,
                 height: vp.height,
-                fill: t.header_bg,
+                fill: t.gutter_bg,
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
@@ -618,14 +618,16 @@ impl SceneBuilder {
                     }));
                 }
 
-                let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
+                let mid_y = ry
+                    + model.row_height * 0.5
+                    + t.gutter_font_size * 0.35;
                 frame.push(ScenePrimitive::Text(TextPrimitive {
                     x: rnw - t.cell_padding,
                     y: mid_y,
                     text: (ri + 1).to_string(),
-                    color: t.header_text,
-                    font_size: t.font_size,
-                    bold: false,
+                    color: t.gutter_text,
+                    font_size: t.gutter_font_size,
+                    bold: t.gutter_font_bold,
                     clip: Some([0.0, ry, rnw, model.row_height]),
                     align: TextAlign::Right,
                 }));
@@ -647,7 +649,7 @@ impl SceneBuilder {
                 y1: 0.0,
                 x2: rnw - 0.5,
                 y2: vp.height,
-                color: t.header_border,
+                color: t.gutter_border,
                 width: 1.0,
             }));
 
@@ -657,7 +659,7 @@ impl SceneBuilder {
                 y1: model.header_height - 0.5,
                 x2: rnw,
                 y2: model.header_height - 0.5,
-                color: t.header_border,
+                color: t.gutter_border,
                 width: 1.0,
             }));
         }
