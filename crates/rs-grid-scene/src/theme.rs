@@ -86,6 +86,11 @@ pub struct Theme {
     /// Corner radius of the ghost badge in logical pixels.
     /// Set to 0.0 to keep the rectangle shape.
     pub drag_ghost_radius: f64,
+    /// Border width of the ghost badge in logical pixels.
+    pub drag_ghost_border_width: f64,
+    /// Exponential-smoothing factor for the column-drag animation
+    /// (0–1). Higher = faster. Default 0.30 ≈ 200 ms at 60 fps.
+    pub drag_anim_alpha: f64,
 
     // ── sort indicator ────────────────────────────────────────────────────────
     /// Half-width of the sort arrow triangle, in logical pixels.
@@ -122,11 +127,13 @@ impl Theme {
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
             scrollbar_inset: 2.0,
-            drag_overlay: Color::rgba(128, 128, 128, 100),
+            drag_overlay: Color::rgba(128, 128, 128, 0),
             drag_ghost_bg: Color::rgba(248, 249, 250, 180),
             drag_ghost_text: Color::rgba(24, 29, 31, 200),
             drag_insert_line_width: 3.0,
             drag_ghost_radius: 4.0,
+            drag_ghost_border_width: 1.0,
+            drag_anim_alpha: 0.30,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
         }
@@ -159,11 +166,13 @@ impl Theme {
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
             scrollbar_inset: 2.0,
-            drag_overlay: Color::rgba(128, 128, 128, 100),
+            drag_overlay: Color::rgba(128, 128, 128, 0),
             drag_ghost_bg: Color::rgba(36, 40, 59, 180),
             drag_ghost_text: Color::rgba(169, 177, 214, 200),
             drag_insert_line_width: 3.0,
             drag_ghost_radius: 4.0,
+            drag_ghost_border_width: 1.0,
+            drag_anim_alpha: 0.30,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
         }

@@ -182,9 +182,6 @@ body {
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
 
-  /* column drag */
-  --rs-grid-drag-ghost-radius: 4px;
-
   /* context menu */
   --rs-grid-ctx-bg: #ffffff;
   --rs-grid-ctx-border: #d1d5db;

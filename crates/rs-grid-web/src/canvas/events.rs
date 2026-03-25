@@ -514,6 +514,25 @@ impl GridCanvas {
                     let dx = evt.client_x() as f64 - scx;
                     if dx.abs() > 5.0 {
                         let (vx, vy) = gc.canvas_xy(&evt);
+                        // Seed animation from real column positions
+                        // so the lerp starts from the actual layout.
+                        {
+                            let state = gc.0.state.borrow();
+                            let mut cum = 0.0_f64;
+                            let init: Vec<f64> = state
+                                .model
+                                .columns
+                                .iter()
+                                .map(|c| {
+                                    let off = cum;
+                                    cum += c.width;
+                                    off
+                                })
+                                .collect();
+                            drop(state);
+                            *gc.0.drag_col_offsets.borrow_mut() =
+                                init;
+                        }
                         *gc.0.drag.borrow_mut() =
                             Some(ActiveDrag::ColumnDrag {
                                 col_idx: ci,
@@ -617,6 +636,7 @@ impl GridCanvas {
                     current_vx,
                     ..
                 }) => {
+                    gc.0.drag_col_offsets.borrow_mut().clear();
                     gc.set_cursor("default");
                     let insert = gc.insertion_index(current_vx);
                     let to = if insert > col_idx { insert - 1 } else { insert };

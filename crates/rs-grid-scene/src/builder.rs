@@ -36,6 +36,10 @@ pub struct ColumnDragHint {
     pub cursor_vx: f64,
     /// Viewport-relative Y of the cursor (positions the ghost).
     pub cursor_vy: f64,
+    /// Animated column offsets (`col_idx → cumulative left offset`)
+    /// for smooth lerp transitions. When non-empty the builder uses
+    /// these directly instead of computing from `insert_before`.
+    pub animated_offsets: Vec<f64>,
 }
 
 // ── flash hint ───────────────────────────────────────────────────────────────
@@ -174,10 +178,51 @@ impl SceneBuilder {
         let row_vy =
             |ri: u64| -> f64 { ry_base + (ri as f64 - row_start as f64) * rh };
 
+        // During a drag, compute preview offsets: columns laid out
+        // as-if the drop has already happened, so they render at
+        // their target positions while dragging.
+        // Prefer pre-computed animated offsets from the hint
+        // (smooth lerp); fall back to instant computation.
+        let preview_offsets: Option<Vec<f64>> =
+            col_drag.and_then(|hint| {
+                if !hint.animated_offsets.is_empty() {
+                    return Some(hint.animated_offsets.clone());
+                }
+                let cols = &model.columns;
+                let src = hint.source_col;
+                if src >= cols.len() {
+                    return None;
+                }
+                let dst = if hint.insert_before > src {
+                    hint.insert_before.saturating_sub(1)
+                } else {
+                    hint.insert_before
+                };
+                if dst == src {
+                    return None;
+                }
+                let mut order: Vec<usize> =
+                    (0..cols.len()).filter(|&i| i != src).collect();
+                let ins = dst.min(order.len());
+                order.insert(ins, src);
+                let mut offs = vec![0.0_f64; cols.len()];
+                let mut cum = 0.0_f64;
+                for &ci in &order {
+                    offs[ci] = cum;
+                    cum += cols[ci].width;
+                }
+                Some(offs)
+            });
+
         // Helper: viewport x of the left edge of column `ci`.
+        // Uses preview offsets when a drag is active so columns
+        // render at their drop-target positions.
         // Pinned columns are not shifted by scroll_x.
         let col_vx = |ci: usize| -> f64 {
-            let off = model.column_offsets.offsets[ci];
+            let off = match &preview_offsets {
+                Some(po) => po[ci],
+                None => model.column_offsets.offsets[ci],
+            };
             if ci < pinned_count {
                 off + rnw
             } else {
@@ -238,7 +283,15 @@ impl SceneBuilder {
                 }));
             }
 
-            for ci in col_start..col_end {
+            // During a drag, render all non-pinned columns so
+            // that columns shifted to new preview positions are
+            // not missed by the normal visible-range culling.
+            let drag_end = if preview_offsets.is_some() {
+                model.columns.len()
+            } else {
+                col_end
+            };
+            for ci in col_start..drag_end {
                 let col = &model.columns[ci];
                 let cx = col_vx(ci);
                 let status = model.cell_status(ri, &col.key);
@@ -618,33 +671,19 @@ impl SceneBuilder {
                 let src_w = cols[hint.source_col].width;
                 let src_vx = col_vx(hint.source_col);
 
-                // 1. Dim the source column header
+                // 1. Dim the source column (header + all rows)
+                // — with preview offsets, src_vx is already the
+                //   target position, so the overlay shows where
+                //   the column will land.
                 frame.push(ScenePrimitive::Rect(RectPrimitive {
                     x: src_vx,
                     y: 0.0,
                     width: src_w,
-                    height: model.header_height,
+                    height: vp.height,
                     fill: t.drag_overlay,
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,
-                }));
-
-                // 2. Insertion line
-                let insert_vx = if hint.insert_before < cols.len() {
-                    col_vx(hint.insert_before)
-                } else if let Some(last) = cols.len().checked_sub(1) {
-                    col_vx(last) + cols[last].width
-                } else {
-                    0.0 // no columns — nothing to draw
-                };
-                frame.push(ScenePrimitive::Line(LinePrimitive {
-                    x1: insert_vx,
-                    y1: 0.0,
-                    x2: insert_vx,
-                    y2: vp.height,
-                    color: t.selection_border,
-                    width: t.drag_insert_line_width,
                 }));
 
                 // 3. Ghost badge (follows cursor in both X and Y)
@@ -663,7 +702,7 @@ impl SceneBuilder {
                     height: ghost_h,
                     fill: t.drag_ghost_bg,
                     stroke: Some(t.header_border),
-                    stroke_width: 1.0,
+                    stroke_width: t.drag_ghost_border_width,
                     corner_radius: t.drag_ghost_radius,
                 }));
 
