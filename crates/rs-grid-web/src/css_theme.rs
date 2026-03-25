@@ -15,7 +15,9 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-header-text`        | `Theme::header_text`         |
 /// | `--rs-grid-cell-text`          | `Theme::cell_text`           |
 /// | `--rs-grid-grid-line`          | `Theme::grid_line`           |
-/// | `--rs-grid-header-border`      | `Theme::header_border`       |
+/// | `--rs-grid-header-border`           | `Theme::header_border`            |
+/// | `--rs-grid-header-separator-inset` | `Theme::header_separator_inset`   |
+/// | `--rs-grid-header-separator-width` | `Theme::header_separator_width`   |
 /// | `--rs-grid-selection-fill`     | `Theme::selection_fill`      |
 /// | `--rs-grid-selection-border`   | `Theme::selection_border`    |
 /// | `--rs-grid-scrollbar-track`    | `Theme::scrollbar_track`     |
@@ -37,6 +39,8 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-drag-anim-alpha`         | `Theme::drag_anim_alpha`         |
 /// | `--rs-grid-sort-arrow-width`        | `Theme::sort_arrow_width`        |
 /// | `--rs-grid-sort-arrow-height`       | `Theme::sort_arrow_height`       |
+/// | `--rs-grid-header-height`           | `Theme::header_height`           |
+/// | `--rs-grid-row-height`              | `Theme::row_height`              |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -68,7 +72,18 @@ pub fn theme_from_css_vars() -> Theme {
         header_text: color("--rs-grid-header-text", fallback.header_text),
         cell_text: color("--rs-grid-cell-text", fallback.cell_text),
         grid_line: color("--rs-grid-grid-line", fallback.grid_line),
-        header_border: color("--rs-grid-header-border", fallback.header_border),
+        header_border: color(
+            "--rs-grid-header-border",
+            fallback.header_border,
+        ),
+        header_separator_inset: px(
+            "--rs-grid-header-separator-inset",
+            fallback.header_separator_inset,
+        ),
+        header_separator_width: px(
+            "--rs-grid-header-separator-width",
+            fallback.header_separator_width,
+        ),
         selection_fill: color(
             "--rs-grid-selection-fill",
             fallback.selection_fill,
@@ -159,6 +174,11 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-sort-arrow-height",
             fallback.sort_arrow_height,
         ),
+        header_height: px(
+            "--rs-grid-header-height",
+            fallback.header_height,
+        ),
+        row_height: px("--rs-grid-row-height", fallback.row_height),
     }
 }
 

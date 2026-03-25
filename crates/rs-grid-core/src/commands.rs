@@ -56,6 +56,10 @@ pub enum GridCommand {
     SelectCol(usize),
     /// Extend the current column selection to cover a new column (drag in header).
     ExtendColSelection(usize),
+    /// Set the header row height in logical pixels.
+    SetHeaderHeight(f64),
+    /// Set the data row height in logical pixels.
+    SetRowHeight(f64),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.
