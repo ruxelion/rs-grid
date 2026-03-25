@@ -75,6 +75,10 @@ struct Inner {
     scroll_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Whether a render is already scheduled via rAF.
     raf_scheduled: Cell<bool>,
+    /// Scroll momentum velocity in logical px/frame (mouse wheel only).
+    /// Decays each frame via exponential smoothing until negligible.
+    scroll_vx: Cell<f64>,
+    scroll_vy: Cell<f64>,
     /// Current animated column offsets during a drag
     /// (`col_idx → cumulative left offset`).
     /// Initialised from real positions when drag starts and
@@ -233,6 +237,8 @@ impl GridCanvas {
             closures: RefCell::new(Vec::new()),
             scroll_closures: RefCell::new(Vec::new()),
             raf_scheduled: Cell::new(false),
+            scroll_vx: Cell::new(0.0),
+            scroll_vy: Cell::new(0.0),
             drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
             on_change: RefCell::new(None),
@@ -285,6 +291,9 @@ impl GridCanvas {
         // Advance column-drag animation one step; returns true
         // while columns are still moving toward their targets.
         let drag_anim = self.step_drag_animation();
+        // Apply one frame of scroll momentum (dispatches ScrollBy
+        // internally); returns true while still decelerating.
+        let momentum = self.step_scroll_momentum();
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
         let flash = self.compute_flash_hint();
@@ -295,9 +304,30 @@ impl GridCanvas {
         );
         drop(state);
         self.0.renderer.render(&frame);
-        if flash.is_some() || drag_anim {
+        if flash.is_some() || drag_anim || momentum {
             self.render();
         }
+    }
+
+    /// Apply one frame of scroll momentum and decay the velocity.
+    ///
+    /// Returns `true` while the velocity is still significant
+    /// (caller should schedule another rAF frame).
+    fn step_scroll_momentum(&self) -> bool {
+        let vx = self.0.scroll_vx.get();
+        let vy = self.0.scroll_vy.get();
+        if vx.abs() < 0.5 && vy.abs() < 0.5 {
+            self.0.scroll_vx.set(0.0);
+            self.0.scroll_vy.set(0.0);
+            return false;
+        }
+        // ~300 ms deceleration at 60 fps.
+        const FRICTION: f64 = 0.88;
+        self.0.scroll_vx.set(vx * FRICTION);
+        self.0.scroll_vy.set(vy * FRICTION);
+        // dispatch triggers page fetches for async data sources.
+        self.dispatch(GridCommand::ScrollBy { dx: vx, dy: vy });
+        true
     }
 
     /// Lerp `drag_col_offsets` one step toward the preview target.
