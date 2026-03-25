@@ -75,6 +75,11 @@ struct Inner {
     scroll_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Whether a render is already scheduled via rAF.
     raf_scheduled: Cell<bool>,
+    /// Current animated column offsets during a drag
+    /// (`col_idx → cumulative left offset`).
+    /// Initialised from real positions when drag starts and
+    /// lerped toward the preview target each frame.
+    drag_col_offsets: RefCell<Vec<f64>>,
     /// Active flash-cells animation, if any.
     flash: RefCell<Option<FlashState>>,
     /// Optional callback fired after every command that mutates cell data.
@@ -226,6 +231,7 @@ impl GridCanvas {
             closures: RefCell::new(Vec::new()),
             scroll_closures: RefCell::new(Vec::new()),
             raf_scheduled: Cell::new(false),
+            drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
             on_change: RefCell::new(None),
             on_validation_error: RefCell::new(None),
@@ -274,6 +280,9 @@ impl GridCanvas {
     /// Render the current state synchronously (used by
     /// `mount` and the rAF callback).
     fn render_immediate(&self) {
+        // Advance column-drag animation one step; returns true
+        // while columns are still moving toward their targets.
+        let drag_anim = self.step_drag_animation();
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
         let flash = self.compute_flash_hint();
@@ -284,10 +293,79 @@ impl GridCanvas {
         );
         drop(state);
         self.0.renderer.render(&frame);
-        // Keep scheduling frames while the flash is animating.
-        if flash.is_some() {
+        if flash.is_some() || drag_anim {
             self.render();
         }
+    }
+
+    /// Lerp `drag_col_offsets` one step toward the preview target.
+    ///
+    /// Returns `true` while columns have not yet reached their
+    /// target positions (caller should schedule another rAF).
+    fn step_drag_animation(&self) -> bool {
+        // Only active during a ColumnDrag.
+        let (src, vx) = {
+            let drag = self.0.drag.borrow();
+            match *drag {
+                Some(ActiveDrag::ColumnDrag {
+                    col_idx,
+                    current_vx,
+                    ..
+                }) => (col_idx, current_vx),
+                _ => return false,
+            }
+        };
+
+        let ins = self.insertion_index(vx);
+
+        // Compute target offsets for the prospective drop position.
+        let target: Vec<f64> = {
+            let state = self.0.state.borrow();
+            let cols = &state.model.columns;
+            if src >= cols.len() {
+                return false;
+            }
+            let dst = if ins > src {
+                ins.saturating_sub(1)
+            } else {
+                ins
+            };
+            let mut order: Vec<usize> =
+                (0..cols.len()).filter(|&i| i != src).collect();
+            let at = dst.min(order.len());
+            order.insert(at, src);
+            let mut offs = vec![0.0_f64; cols.len()];
+            let mut cum = 0.0_f64;
+            for &ci in &order {
+                offs[ci] = cum;
+                cum += cols[ci].width;
+            }
+            offs
+        };
+
+        let mut anim = self.0.drag_col_offsets.borrow_mut();
+        if anim.len() != target.len() {
+            // Offsets not yet initialised — use target as starting
+            // point (events.rs should have initialised from real
+            // positions, but guard against races).
+            *anim = target;
+            return false;
+        }
+
+        // Exponential smoothing — alpha from the theme CSS var
+        // `--rs-grid-drag-anim-alpha` (default 0.30 ≈ 200 ms).
+        let alpha = self.0.builder.borrow().theme.drag_anim_alpha;
+        let mut settled = true;
+        for (a, &t) in anim.iter_mut().zip(target.iter()) {
+            let diff = t - *a;
+            if diff.abs() < 0.5 {
+                *a = t;
+            } else {
+                *a += diff * alpha;
+                settled = false;
+            }
+        }
+        !settled
     }
 
     /// Compute the current flash alpha factor, clearing the flash
@@ -674,11 +752,14 @@ impl GridCanvas {
             }) => {
                 drop(drag);
                 let insert = self.insertion_index(current_vx);
+                let animated_offsets =
+                    self.0.drag_col_offsets.borrow().clone();
                 Some(ColumnDragHint {
                     source_col: col_idx,
                     insert_before: insert,
                     cursor_vx: current_vx,
                     cursor_vy: current_vy,
+                    animated_offsets,
                 })
             }
             _ => None,
