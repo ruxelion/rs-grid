@@ -161,4 +161,12 @@ pub enum CommandOutput {
     CopyText(String),
     /// Copy/cut failed.
     CopyError(CopyError),
+    /// Sort was requested but skipped because the dataset exceeds
+    /// the client-side sort limit. The grid remains unsorted.
+    SortWarning {
+        /// Actual number of rows in the dataset.
+        row_count: u64,
+        /// Maximum rows supported for client-side sort.
+        limit: u64,
+    },
 }

@@ -393,6 +393,15 @@ impl GridCanvas {
             }
         }
         let out = self.0.state.borrow_mut().apply(cmd);
+        if let CommandOutput::SortWarning { row_count, limit } = &out {
+            web_sys::console::warn_1(&wasm_bindgen::JsValue::from_str(
+                &format!(
+                    "rs-grid: sort skipped — {row_count} rows exceeds \
+                     the {limit}-row client-side limit. Use a \
+                     server-side data source for large datasets."
+                ),
+            ));
+        }
         self.render();
         if is_mutation {
             if let Some(cb) = self.0.on_change.borrow().as_ref() {

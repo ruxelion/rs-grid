@@ -375,20 +375,28 @@ impl GridState {
                         dir: SortDir::Asc,
                     }),
                 };
-                match &new_sort {
+                let sorted = match &new_sort {
                     Some(s) => self.model.apply_sort(&s.col_key, &s.dir),
                     None => {
                         self.model.sort_order.clear();
                         self.model.invalidate_sort_cache();
+                        true
                     }
-                }
+                };
                 self.sort = new_sort;
                 // Reapply filter with updated sort order.
                 if !self.model.filters.is_empty() {
                     self.model.apply_filter();
                 }
                 self.viewport.scroll_y = 0.0;
-                CommandOutput::None
+                if sorted {
+                    CommandOutput::None
+                } else {
+                    CommandOutput::SortWarning {
+                        row_count: self.model.data.row_count(),
+                        limit: crate::model::GridModel::MAX_CLIENT_SORT_ROWS,
+                    }
+                }
             }
             GridCommand::SetPinnedColumnCount { count } => {
                 self.model.pinned_count = count.min(self.model.columns.len());
