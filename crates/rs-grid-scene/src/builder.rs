@@ -34,6 +34,8 @@ pub struct ColumnDragHint {
     pub insert_before: usize,
     /// Viewport-relative X of the cursor (positions the ghost).
     pub cursor_vx: f64,
+    /// Viewport-relative Y of the cursor (positions the ghost).
+    pub cursor_vy: f64,
 }
 
 // ── flash hint ───────────────────────────────────────────────────────────────
@@ -645,25 +647,30 @@ impl SceneBuilder {
                     width: t.drag_insert_line_width,
                 }));
 
-                // 3. Ghost header (follows cursor)
+                // 3. Ghost badge (follows cursor in both X and Y)
                 let ghost_w = src_w;
+                let ghost_h = model.header_height;
                 let ghost_x = (hint.cursor_vx - ghost_w / 2.0)
                     .max(0.0)
                     .min(vp.width - ghost_w);
+                let ghost_y = (hint.cursor_vy - ghost_h / 2.0)
+                    .max(0.0)
+                    .min(vp.height - ghost_h);
                 frame.push(ScenePrimitive::Rect(RectPrimitive {
                     x: ghost_x,
-                    y: 0.0,
+                    y: ghost_y,
                     width: ghost_w,
-                    height: model.header_height,
+                    height: ghost_h,
                     fill: t.drag_ghost_bg,
                     stroke: Some(t.header_border),
                     stroke_width: 1.0,
-                    corner_radius: 0.0,
+                    corner_radius: t.drag_ghost_radius,
                 }));
 
-                // Ghost label
-                let mid_y =
-                    model.header_height * 0.5 + t.header_font_size * 0.35;
+                // Ghost label — vertically centred inside the badge
+                let mid_y = ghost_y
+                    + ghost_h * 0.5
+                    + t.header_font_size * 0.35;
                 frame.push(ScenePrimitive::Text(TextPrimitive {
                     x: ghost_x + t.cell_padding,
                     y: mid_y,
@@ -671,7 +678,7 @@ impl SceneBuilder {
                     color: t.drag_ghost_text,
                     font_size: t.header_font_size,
                     bold: t.header_font_bold,
-                    clip: Some([ghost_x, 0.0, ghost_w, model.header_height]),
+                    clip: Some([ghost_x, ghost_y, ghost_w, ghost_h]),
                     align: TextAlign::Left,
                 }));
             }

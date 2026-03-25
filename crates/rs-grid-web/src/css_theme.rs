@@ -32,6 +32,7 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-drag-ghost-bg`           | `Theme::drag_ghost_bg`           |
 /// | `--rs-grid-drag-ghost-text`         | `Theme::drag_ghost_text`         |
 /// | `--rs-grid-drag-insert-line-width`  | `Theme::drag_insert_line_width`  |
+/// | `--rs-grid-drag-ghost-radius`       | `Theme::drag_ghost_radius`       |
 /// | `--rs-grid-sort-arrow-width`        | `Theme::sort_arrow_width`        |
 /// | `--rs-grid-sort-arrow-height`       | `Theme::sort_arrow_height`       |
 pub fn theme_from_css_vars() -> Theme {
@@ -135,6 +136,10 @@ pub fn theme_from_css_vars() -> Theme {
         drag_insert_line_width: px(
             "--rs-grid-drag-insert-line-width",
             fallback.drag_insert_line_width,
+        ),
+        drag_ghost_radius: px(
+            "--rs-grid-drag-ghost-radius",
+            fallback.drag_ghost_radius,
         ),
         sort_arrow_width: px(
             "--rs-grid-sort-arrow-width",

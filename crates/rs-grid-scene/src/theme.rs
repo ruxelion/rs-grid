@@ -83,6 +83,9 @@ pub struct Theme {
     /// Width of the column insertion indicator line during a drag, in logical
     /// pixels.
     pub drag_insert_line_width: f64,
+    /// Corner radius of the ghost badge in logical pixels.
+    /// Set to 0.0 to keep the rectangle shape.
+    pub drag_ghost_radius: f64,
 
     // ── sort indicator ────────────────────────────────────────────────────────
     /// Half-width of the sort arrow triangle, in logical pixels.
@@ -123,6 +126,7 @@ impl Theme {
             drag_ghost_bg: Color::rgba(248, 249, 250, 180),
             drag_ghost_text: Color::rgba(24, 29, 31, 200),
             drag_insert_line_width: 3.0,
+            drag_ghost_radius: 4.0,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
         }
@@ -159,6 +163,7 @@ impl Theme {
             drag_ghost_bg: Color::rgba(36, 40, 59, 180),
             drag_ghost_text: Color::rgba(169, 177, 214, 200),
             drag_insert_line_width: 3.0,
+            drag_ghost_radius: 4.0,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
         }

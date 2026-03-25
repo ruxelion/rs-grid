@@ -513,11 +513,12 @@ impl GridCanvas {
                     drop(drag);
                     let dx = evt.client_x() as f64 - scx;
                     if dx.abs() > 5.0 {
-                        let (vx, _) = gc.canvas_xy(&evt);
+                        let (vx, vy) = gc.canvas_xy(&evt);
                         *gc.0.drag.borrow_mut() =
                             Some(ActiveDrag::ColumnDrag {
                                 col_idx: ci,
                                 current_vx: vx,
+                                current_vy: vy,
                             });
                         gc.set_cursor("grabbing");
                         gc.render();
@@ -526,10 +527,11 @@ impl GridCanvas {
                 Some(ActiveDrag::ColumnDrag { col_idx, .. }) => {
                     let ci = col_idx;
                     drop(drag);
-                    let (vx, _) = gc.canvas_xy(&evt);
+                    let (vx, vy) = gc.canvas_xy(&evt);
                     *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColumnDrag {
                         col_idx: ci,
                         current_vx: vx,
+                        current_vy: vy,
                     });
                     gc.set_cursor("grabbing");
                     gc.render();
@@ -613,6 +615,7 @@ impl GridCanvas {
                 Some(ActiveDrag::ColumnDrag {
                     col_idx,
                     current_vx,
+                    ..
                 }) => {
                     gc.set_cursor("default");
                     let insert = gc.insertion_index(current_vx);
