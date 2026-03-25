@@ -526,6 +526,7 @@ impl GridCanvas {
                                     gc2.dispatch(GridCommand::PasteAt {
                                         text,
                                     });
+                                    gc2.flash_selection();
                                 }
                             }
                             Err(e) => {

@@ -42,6 +42,12 @@ pub struct Theme {
     /// Render column header labels with font-weight 600.
     pub header_font_bold: bool,
 
+    // ── flash (paste feedback) ───────────────────────────────────────────────
+    /// Fill colour for the paste-flash animation (fades from full to transparent).
+    pub flash_fill: Color,
+    /// Border colour for the paste-flash animation.
+    pub flash_border: Color,
+
     // ── search ──────────────────────────────────────────────────────────────
     /// Background highlight for cells matching the active search query.
     pub search_highlight: Color,
@@ -79,6 +85,8 @@ impl Theme {
             scrollbar_thumb: Color::rgba(100, 100, 110, 160),
             row_alt_bg: Color::rgb(252, 252, 253),
             row_hover_bg: Color::rgba(0, 0, 0, 10),
+            flash_fill: Color::rgba(255, 193, 7, 180),
+            flash_border: Color::rgba(255, 193, 7, 210),
             search_highlight: Color::rgba(255, 213, 0, 80),
             search_current: Color::rgba(255, 165, 0, 140),
             skeleton_fg: Color::rgba(200, 200, 200, 100),
@@ -106,6 +114,8 @@ impl Theme {
             scrollbar_thumb: Color::rgba(169, 177, 214, 102),
             row_alt_bg: Color::rgb(30, 32, 48),
             row_hover_bg: Color::rgba(255, 255, 255, 10),
+            flash_fill: Color::rgba(255, 193, 7, 180),
+            flash_border: Color::rgba(255, 193, 7, 210),
             search_highlight: Color::rgba(255, 213, 0, 80),
             search_current: Color::rgba(255, 165, 0, 140),
             skeleton_fg: Color::rgba(60, 65, 90, 100),

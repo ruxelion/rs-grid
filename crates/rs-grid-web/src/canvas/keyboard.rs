@@ -133,6 +133,7 @@ impl GridCanvas {
                 if let Ok(text) = dt.get_data("text/plain") {
                     evt.prevent_default();
                     gc.dispatch(GridCommand::PasteAt { text });
+                    gc.flash_selection();
                 }
             }
         });

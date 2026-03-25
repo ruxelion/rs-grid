@@ -25,7 +25,7 @@ use rs_grid_render_canvas::renderer::CanvasRenderer;
 
 use fetcher::FetchConfig;
 use rs_grid_scene::{
-    builder::{ColumnDragHint, SceneBuilder},
+    builder::{ColumnDragHint, FlashHint, SceneBuilder},
     Theme,
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
@@ -75,6 +75,8 @@ struct Inner {
     scroll_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Whether a render is already scheduled via rAF.
     raf_scheduled: Cell<bool>,
+    /// Active flash-cells animation, if any.
+    flash: RefCell<Option<FlashState>>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
@@ -143,6 +145,14 @@ struct ThumbDrag {
 struct HThumbDrag {
     start_client_x: f64,
     start_scroll_x: f64,
+}
+
+/// Tracks an active flash-cells animation.
+struct FlashState {
+    /// `performance.now()` timestamp when the flash was triggered (ms).
+    start_ms: f64,
+    /// Total fade duration in milliseconds.
+    duration_ms: f64,
 }
 
 // ── impl ──────────────────────────────────────────────────────────────────────
@@ -214,6 +224,7 @@ impl GridCanvas {
             closures: RefCell::new(Vec::new()),
             scroll_closures: RefCell::new(Vec::new()),
             raf_scheduled: Cell::new(false),
+            flash: RefCell::new(None),
             on_change: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             edit_input: RefCell::new(None),
@@ -263,8 +274,57 @@ impl GridCanvas {
     fn render_immediate(&self) {
         let state = self.0.state.borrow();
         let hint = self.column_drag_hint();
-        let frame = self.0.builder.borrow().build(&state, hint.as_ref());
+        let flash = self.compute_flash_hint();
+        let frame = self.0.builder.borrow().build(
+            &state,
+            hint.as_ref(),
+            flash.as_ref(),
+        );
+        drop(state);
         self.0.renderer.render(&frame);
+        // Keep scheduling frames while the flash is animating.
+        if flash.is_some() {
+            self.render();
+        }
+    }
+
+    /// Compute the current flash alpha factor, clearing the flash
+    /// state when expired. Returns `None` when no flash is active.
+    fn compute_flash_hint(&self) -> Option<FlashHint> {
+        let mut flash = self.0.flash.borrow_mut();
+        let f = flash.as_ref()?;
+        let now = web_sys::window()
+            .expect("no window")
+            .performance()
+            .expect("no performance")
+            .now();
+        let elapsed = now - f.start_ms;
+        if elapsed >= f.duration_ms {
+            *flash = None;
+            return None;
+        }
+        let alpha_factor = 1.0 - elapsed / f.duration_ms;
+        Some(FlashHint { alpha_factor })
+    }
+
+    /// Trigger a brief golden-yellow flash on the currently selected cells.
+    ///
+    /// No-op if there is no active selection. Multiple calls restart
+    /// the animation from full intensity.
+    pub fn flash_selection(&self) {
+        if !self.0.state.borrow().selection.has_selection() {
+            return;
+        }
+        let now = web_sys::window()
+            .expect("no window")
+            .performance()
+            .expect("no performance")
+            .now();
+        *self.0.flash.borrow_mut() = Some(FlashState {
+            start_ms: now,
+            duration_ms: 400.0,
+        });
+        self.render();
     }
 
     /// Apply a command, redraw, and return the output.
