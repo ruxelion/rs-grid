@@ -618,10 +618,33 @@ impl GridCanvas {
                     });
                 }
                 BuiltinAction::PinColumn => {
-                    gc.set_pinned_count(col_idx + 1);
+                    let pinned_count =
+                        gc.0.state.borrow().model.pinned_count;
+                    // Move the column to the end of the pinned zone
+                    // before expanding it, so only this column is
+                    // added — not every column to its left.
+                    if col_idx != pinned_count {
+                        gc.dispatch(GridCommand::MoveColumn {
+                            from_idx: col_idx,
+                            to_idx: pinned_count,
+                        });
+                    }
+                    gc.set_pinned_count(pinned_count + 1);
                 }
                 BuiltinAction::UnpinColumn => {
-                    gc.set_pinned_count(0);
+                    let pinned_count =
+                        gc.0.state.borrow().model.pinned_count;
+                    let new_count = pinned_count.saturating_sub(1);
+                    // Move the column just past the new pinned zone
+                    // so it appears at the left of the scrollable
+                    // area and only this column is unpinned.
+                    if col_idx != new_count {
+                        gc.dispatch(GridCommand::MoveColumn {
+                            from_idx: col_idx,
+                            to_idx: new_count,
+                        });
+                    }
+                    gc.set_pinned_count(new_count);
                 }
                 BuiltinAction::SortAsc | BuiltinAction::SortDesc => {
                     let col_key = gc
