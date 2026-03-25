@@ -676,12 +676,20 @@ impl SceneBuilder {
                     .range()
                     .is_some_and(|(tl, br)| ri >= tl.row && ri <= br.row);
 
+                // Clamp everything to below the sticky header.
+                let clip_y = ry.max(model.header_height);
+                let clip_h =
+                    (ry + model.row_height - clip_y).max(0.0);
+                if clip_h == 0.0 {
+                    continue;
+                }
+
                 if is_selected {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: 0.0,
-                        y: ry,
+                        y: clip_y,
                         width: rnw,
-                        height: model.row_height,
+                        height: clip_h,
                         fill: t.selection_fill,
                         stroke: None,
                         stroke_width: 0.0,
@@ -698,20 +706,23 @@ impl SceneBuilder {
                     color: t.gutter_text,
                     font_size: t.gutter_font_size,
                     bold: t.gutter_font_bold,
-                    clip: Some([0.0, ry, rnw, model.row_height]),
+                    clip: Some([0.0, clip_y, rnw, clip_h]),
                     align: TextAlign::Right,
                     max_width: None,
                 }));
 
-                // Horizontal grid line inside gutter
-                frame.push(ScenePrimitive::Line(LinePrimitive {
-                    x1: 0.0,
-                    y1: ry + model.row_height - 0.5,
-                    x2: rnw,
-                    y2: ry + model.row_height - 0.5,
-                    color: t.grid_line,
-                    width: 1.0,
-                }));
+                // Horizontal grid line inside gutter — only below header.
+                let line_y = ry + model.row_height - 0.5;
+                if line_y > model.header_height {
+                    frame.push(ScenePrimitive::Line(LinePrimitive {
+                        x1: 0.0,
+                        y1: line_y,
+                        x2: rnw,
+                        y2: line_y,
+                        color: t.grid_line,
+                        width: 1.0,
+                    }));
+                }
             }
 
             // Gutter right border (full height)
