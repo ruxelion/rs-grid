@@ -125,6 +125,8 @@ enum ActiveDrag {
         col_idx: usize,
         /// Current viewport-relative X of the cursor.
         current_vx: f64,
+        /// Current viewport-relative Y of the cursor.
+        current_vy: f64,
     },
     Pan {
         origin_x: f64,
@@ -668,6 +670,7 @@ impl GridCanvas {
             Some(ActiveDrag::ColumnDrag {
                 col_idx,
                 current_vx,
+                current_vy,
             }) => {
                 drop(drag);
                 let insert = self.insertion_index(current_vx);
@@ -675,6 +678,7 @@ impl GridCanvas {
                     source_col: col_idx,
                     insert_before: insert,
                     cursor_vx: current_vx,
+                    cursor_vy: current_vy,
                 })
             }
             _ => None,
