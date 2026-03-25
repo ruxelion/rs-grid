@@ -28,9 +28,12 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-header-font-size`   | `Theme::header_font_size`    |
 /// | `--rs-grid-header-font-bold`   | `Theme::header_font_bold`    |
 /// | `--rs-grid-cell-padding`       | `Theme::cell_padding`        |
-/// | `--rs-grid-drag-overlay`       | `Theme::drag_overlay`        |
-/// | `--rs-grid-drag-ghost-bg`      | `Theme::drag_ghost_bg`       |
-/// | `--rs-grid-drag-ghost-text`    | `Theme::drag_ghost_text`     |
+/// | `--rs-grid-drag-overlay`            | `Theme::drag_overlay`            |
+/// | `--rs-grid-drag-ghost-bg`           | `Theme::drag_ghost_bg`           |
+/// | `--rs-grid-drag-ghost-text`         | `Theme::drag_ghost_text`         |
+/// | `--rs-grid-drag-insert-line-width`  | `Theme::drag_insert_line_width`  |
+/// | `--rs-grid-sort-arrow-width`        | `Theme::sort_arrow_width`        |
+/// | `--rs-grid-sort-arrow-height`       | `Theme::sort_arrow_height`       |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -128,6 +131,18 @@ pub fn theme_from_css_vars() -> Theme {
         drag_ghost_text: color(
             "--rs-grid-drag-ghost-text",
             fallback.drag_ghost_text,
+        ),
+        drag_insert_line_width: px(
+            "--rs-grid-drag-insert-line-width",
+            fallback.drag_insert_line_width,
+        ),
+        sort_arrow_width: px(
+            "--rs-grid-sort-arrow-width",
+            fallback.sort_arrow_width,
+        ),
+        sort_arrow_height: px(
+            "--rs-grid-sort-arrow-height",
+            fallback.sort_arrow_height,
         ),
     }
 }

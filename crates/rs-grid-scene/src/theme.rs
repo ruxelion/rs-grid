@@ -80,6 +80,15 @@ pub struct Theme {
     /// Text color of the ghost header label during a column drag
     /// (semi-transparent version of `header_text`).
     pub drag_ghost_text: Color,
+    /// Width of the column insertion indicator line during a drag, in logical
+    /// pixels.
+    pub drag_insert_line_width: f64,
+
+    // ── sort indicator ────────────────────────────────────────────────────────
+    /// Half-width of the sort arrow triangle, in logical pixels.
+    pub sort_arrow_width: f64,
+    /// Half-height of the sort arrow triangle, in logical pixels.
+    pub sort_arrow_height: f64,
 }
 
 impl Theme {
@@ -113,6 +122,9 @@ impl Theme {
             drag_overlay: Color::rgba(128, 128, 128, 100),
             drag_ghost_bg: Color::rgba(248, 249, 250, 180),
             drag_ghost_text: Color::rgba(24, 29, 31, 200),
+            drag_insert_line_width: 3.0,
+            sort_arrow_width: 4.0,
+            sort_arrow_height: 3.5,
         }
     }
 
@@ -146,6 +158,9 @@ impl Theme {
             drag_overlay: Color::rgba(128, 128, 128, 100),
             drag_ghost_bg: Color::rgba(36, 40, 59, 180),
             drag_ghost_text: Color::rgba(169, 177, 214, 200),
+            drag_insert_line_width: 3.0,
+            sort_arrow_width: 4.0,
+            sort_arrow_height: 3.5,
         }
     }
 }

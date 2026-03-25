@@ -21,7 +21,7 @@ impl GridCanvas {
         let top = canvas_rect.top() + 4.0;
 
         // Read theme CSS variables.
-        let (border_color, bg, shadow, font) = {
+        let (border_color, bg, shadow, font, width, height, radius) = {
             let css_style = css_theme::root_computed_style();
             let var = |name: &str, fb: &str| -> String {
                 css_style
@@ -39,9 +39,11 @@ impl GridCanvas {
             );
             let fsz_raw = var("--rs-grid-font-size", "13");
             let fsz = fsz_raw.trim_end_matches("px").to_string();
-            let font =
-                format!("{fsz}px system-ui, sans-serif");
-            (border_color, bg, shadow, font)
+            let font = format!("{fsz}px system-ui, sans-serif");
+            let width = var("--rs-grid-search-width", "250px");
+            let height = var("--rs-grid-search-height", "28px");
+            let radius = var("--rs-grid-search-radius", "4px");
+            (border_color, bg, shadow, font, width, height, radius)
         };
 
         let doc = document();
@@ -57,14 +59,14 @@ impl GridCanvas {
         let _ = style.set_property("position", "fixed");
         let _ = style.set_property("left", &format!("{left}px"));
         let _ = style.set_property("top", &format!("{top}px"));
-        let _ = style.set_property("width", "250px");
-        let _ = style.set_property("height", "28px");
+        let _ = style.set_property("width", &width);
+        let _ = style.set_property("height", &height);
         let _ = style.set_property("z-index", "10001");
         let _ = style.set_property(
             "border",
             &format!("1px solid {border_color}"),
         );
-        let _ = style.set_property("border-radius", "4px");
+        let _ = style.set_property("border-radius", &radius);
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 8px");
         let _ = style.set_property("margin", "0");

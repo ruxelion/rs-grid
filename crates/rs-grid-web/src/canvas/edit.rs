@@ -160,17 +160,25 @@ impl GridCanvas {
         }
 
         // ── theme colours ─────────────────────────────
-        let (bg, text_c, sel_c, border_c, fsz, shadow) = {
+        let (bg, text_c, sel_c, border_c, fsz, shadow, dd_min_w, dd_max_h) =
+        {
             let b = self.0.builder.borrow();
             let t = &b.theme;
             let css_style = css_theme::root_computed_style();
-            let shadow = css_style
-                .as_ref()
-                .map(|s| css_theme::get_var(s, "--rs-grid-overlay-shadow"))
-                .filter(|v| !v.is_empty())
-                .unwrap_or_else(|| {
-                    "0 4px 12px rgba(0,0,0,.15)".to_string()
-                });
+            let var = |name: &str, fb: &str| -> String {
+                css_style
+                    .as_ref()
+                    .map(|s| css_theme::get_var(s, name))
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| fb.to_string())
+            };
+            let shadow =
+                var("--rs-grid-overlay-shadow", "0 4px 12px rgba(0,0,0,.15)");
+            let dd_min_w: f64 = var("--rs-grid-dropdown-min-width", "220")
+                .trim_end_matches("px")
+                .parse()
+                .unwrap_or(220.0);
+            let dd_max_h = var("--rs-grid-dropdown-max-height", "240px");
             (
                 t.bg.to_css(),
                 t.cell_text.to_css(),
@@ -178,6 +186,8 @@ impl GridCanvas {
                 t.selection_border.to_css(),
                 t.font_size,
                 shadow,
+                dd_min_w,
+                dd_max_h,
             )
         };
 
@@ -197,8 +207,8 @@ impl GridCanvas {
         let s = ctr.style();
         let _ = s.set_property("position", "fixed");
         let _ = s.set_property("left", &format!("{left}px"));
-        let _ = s.set_property("width", &format!("{}px", w.max(220.0)));
-        let _ = s.set_property("max-height", "240px");
+        let _ = s.set_property("width", &format!("{}px", w.max(dd_min_w)));
+        let _ = s.set_property("max-height", &dd_max_h);
         let _ = s.set_property("overflow-y", "auto");
         let _ = s.set_property("z-index", "10000");
         let _ = s.set_property("border", &format!("2px solid {border_c}"));
