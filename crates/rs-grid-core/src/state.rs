@@ -1,13 +1,22 @@
+mod cmd_clipboard;
+mod cmd_column;
+mod cmd_edit;
+mod cmd_meta;
+mod cmd_search;
+mod cmd_scroll;
+mod cmd_selection;
+mod cmd_sort_filter;
+mod cmd_undo;
+
 use crate::{
     commands::{CommandOutput, GridCommand},
     edit::EditCell,
-    format::{format_cell, CellFormat},
     hit_test,
     model::GridModel,
     search::SearchState,
     selection::{CellCoord, SelectionState},
-    sort::{SortDir, SortState},
-    undo::{UndoEntry, UndoHistory},
+    sort::SortState,
+    undo::UndoHistory,
     viewport::ViewportState,
 };
 
@@ -74,597 +83,60 @@ impl GridState {
         }
     }
 
-    /// Apply an undo entry and return the inverse entry for redo.
-    fn apply_undo_entry(&mut self, entry: &UndoEntry) -> UndoEntry {
-        match entry {
-            UndoEntry::SetCell {
-                row,
-                col_key,
-                old_value,
-            } => {
-                let current = self.model.get_cell(*row, col_key);
-                if let Some(v) = old_value {
-                    self.model.set_cell(*row, col_key, v.clone());
-                } else {
-                    // Remove patch to restore datasource value.
-                    let physical = self.model.logical_to_physical(*row);
-                    self.model.patches.remove(&(physical, col_key.clone()));
-                }
-                UndoEntry::SetCell {
-                    row: *row,
-                    col_key: col_key.clone(),
-                    old_value: current,
-                }
-            }
-            UndoEntry::SetCells(cells) => {
-                let mut inverse = Vec::with_capacity(cells.len());
-                for (row, col_key, old_value) in cells {
-                    let current = self.model.get_cell(*row, col_key);
-                    if let Some(v) = old_value {
-                        self.model.set_cell(*row, col_key, v.clone());
-                    } else {
-                        let physical = self.model.logical_to_physical(*row);
-                        self.model.patches.remove(&(physical, col_key.clone()));
-                    }
-                    inverse.push((*row, col_key.clone(), current));
-                }
-                UndoEntry::SetCells(inverse)
-            }
-            UndoEntry::ResizeColumn { col_idx, old_width } => {
-                let current_width = self.model.columns[*col_idx].width;
-                self.model.columns[*col_idx].width = *old_width;
-                self.model.rebuild_offsets();
-                UndoEntry::ResizeColumn {
-                    col_idx: *col_idx,
-                    old_width: current_width,
-                }
-            }
-            UndoEntry::MoveColumn { from_idx, to_idx } => {
-                let col = self.model.columns.remove(*from_idx);
-                self.model.columns.insert(*to_idx, col);
-                self.model.rebuild_offsets();
-                UndoEntry::MoveColumn {
-                    from_idx: *to_idx,
-                    to_idx: *from_idx,
-                }
-            }
-        }
-    }
-
-    fn run_search(&mut self, query: &str) {
-        self.search = SearchState::run(&self.model, query);
-    }
-
-    fn scroll_to_search_match(&mut self) {
-        let coord = match self.search.matches.get(self.search.current) {
-            Some(c) => c.clone(),
-            None => return,
-        };
-        // Select the matched cell.
-        self.selection.select_cell(coord.row, coord.col);
-        // Scroll to make the cell visible.
-        let ry = self.model.row_top(coord.row);
-        let cy = ry - self.viewport.scroll_y;
-        if cy < self.model.header_height {
-            self.viewport.scroll_y = ry - self.model.header_height;
-        } else if cy + self.model.row_height > self.viewport.height {
-            self.viewport.scroll_y =
-                ry + self.model.row_height - self.viewport.height;
-        }
-        if coord.col < self.model.columns.len() {
-            let off = self.model.column_offsets.offsets[coord.col];
-            let w = self.model.columns[coord.col].width;
-            let rnw = self.model.row_number_width;
-            // Don't scroll for pinned columns.
-            if coord.col >= self.model.pinned_count {
-                let cx = off - self.viewport.scroll_x + rnw;
-                if cx < rnw + self.model.pinned_width() {
-                    self.viewport.scroll_x = off - self.model.pinned_width();
-                } else if cx + w > self.viewport.width {
-                    self.viewport.scroll_x =
-                        off + w - self.viewport.width + rnw;
-                }
-            }
-        }
-        let (sx, sy) = clamp_scroll(
-            self.viewport.scroll_x,
-            self.viewport.scroll_y,
-            &self.model,
-            &self.viewport,
-        );
-        self.viewport.scroll_x = sx;
-        self.viewport.scroll_y = sy;
-    }
-
     /// Apply a command, mutating state in place.
     pub fn apply(&mut self, cmd: GridCommand) -> CommandOutput {
         match cmd {
-            GridCommand::SelectCell(coord) => {
-                self.selection.select_cell(coord.row, coord.col);
-                CommandOutput::None
+            GridCommand::SelectCell { .. }
+            | GridCommand::ExtendSelection { .. }
+            | GridCommand::SelectRow(_)
+            | GridCommand::SelectCol(_)
+            | GridCommand::ExtendRowSelection(_)
+            | GridCommand::ExtendColSelection(_)
+            | GridCommand::ClearSelection
+            | GridCommand::MoveSelection { .. } => {
+                self.cmd_selection(cmd)
             }
-            GridCommand::ExtendSelection(coord) => {
-                self.selection.extend_to(coord.row, coord.col);
-                CommandOutput::None
-            }
-            GridCommand::ScrollTo { x, y } => {
-                let (sx, sy) = clamp_scroll(x, y, &self.model, &self.viewport);
-                self.viewport.scroll_x = sx;
-                self.viewport.scroll_y = sy;
-                CommandOutput::None
-            }
-            GridCommand::ScrollBy { dx, dy } => {
-                let (sx, sy) = clamp_scroll(
-                    self.viewport.scroll_x + dx,
-                    self.viewport.scroll_y + dy,
-                    &self.model,
-                    &self.viewport,
-                );
-                self.viewport.scroll_x = sx;
-                self.viewport.scroll_y = sy;
-                CommandOutput::None
-            }
-            GridCommand::Resize { width, height } => {
-                self.viewport.width = width;
-                self.viewport.height = height;
-                CommandOutput::None
-            }
-            GridCommand::ClearSelection => {
-                self.selection.clear();
-                CommandOutput::None
-            }
-            GridCommand::CopySelection => {
-                match self.selection.to_tsv(&self.model) {
-                    Ok(text) => CommandOutput::CopyText(text),
-                    Err(e) => CommandOutput::CopyError(e),
-                }
-            }
-            GridCommand::CutSelection => {
-                let result = match self.selection.to_tsv(&self.model) {
-                    Ok(text) => CommandOutput::CopyText(text),
-                    Err(e) => return CommandOutput::CopyError(e),
-                };
-                if let Some((tl, br)) = self.selection.range() {
-                    let mut old_cells = Vec::new();
-                    for r in tl.row..=br.row {
-                        for ci in tl.col..=br.col {
-                            let key = self.model.columns[ci].key.clone();
-                            let old = self.model.get_cell(r, &key);
-                            old_cells.push((r, key.clone(), old));
-                            self.model.set_cell(r, key, String::new());
-                        }
-                    }
-                    self.history.push(UndoEntry::SetCells(old_cells));
-                }
-                result
-            }
-            GridCommand::PasteAt { text } => {
-                let sel_range = self.selection.range();
-                // Use the top-left of the normalized selection so
-                // that paste always starts at the visual top-left,
-                // regardless of selection direction.
-                let origin = sel_range
-                    .as_ref()
-                    .map(|(tl, _)| tl.clone())
-                    .or_else(|| self.selection.anchor.clone())
-                    .or_else(|| self.selection.focus.clone());
-                if let Some(orig) = origin {
-                    let clip = crate::selection::parse_tsv(&text);
-                    if clip.is_empty() || clip[0].is_empty() {
-                        return CommandOutput::None;
-                    }
-                    let col_count = self.model.columns.len();
-                    let row_count = self.model.display_row_count();
-                    let clip_rows = clip.len();
-                    let clip_cols = clip[0].len();
 
-                    // Determine target rectangle.
-                    // Single-cell selection → paste clipboard
-                    // as-is. Multi-cell selection → tile
-                    // clipboard to fill the target range
-                    // (Excel-like behavior).
-                    let (target_rows, target_cols) = match sel_range {
-                        Some((ref tl, ref br))
-                            if tl.row != br.row || tl.col != br.col =>
-                        {
-                            let tr = (br.row - tl.row + 1) as usize;
-                            let tc = br.col - tl.col + 1;
-                            (tr, tc)
-                        }
-                        _ => (clip_rows, clip_cols),
-                    };
+            GridCommand::ScrollTo { .. }
+            | GridCommand::ScrollBy { .. }
+            | GridCommand::Resize { .. } => self.cmd_scroll(cmd),
 
-                    let mut old_cells = Vec::new();
-                    for dr in 0..target_rows {
-                        let r = orig.row.saturating_add(dr as u64);
-                        if r >= row_count {
-                            break;
-                        }
-                        let src_row = &clip[dr % clip_rows];
-                        for dc in 0..target_cols {
-                            let c = orig.col + dc;
-                            if c >= col_count {
-                                break;
-                            }
-                            let val = &src_row[dc % clip_cols];
-                            let key = self.model.columns[c].key.clone();
-                            let old = self.model.get_cell(r, &key);
-                            old_cells.push((r, key.clone(), old));
-                            self.model.set_cell(r, key, val.clone());
-                        }
-                    }
-                    if !old_cells.is_empty() {
-                        self.history.push(UndoEntry::SetCells(old_cells));
-                    }
-                    // Update selection to cover pasted area
-                    let last_r =
-                        (orig.row + target_rows as u64 - 1).min(row_count - 1);
-                    let last_c =
-                        (orig.col + target_cols - 1).min(col_count - 1);
-                    self.selection.anchor = Some(CellCoord {
-                        row: orig.row,
-                        col: orig.col,
-                    });
-                    self.selection.focus = Some(CellCoord {
-                        row: last_r,
-                        col: last_c,
-                    });
-                }
-                CommandOutput::None
+            GridCommand::CopySelection
+            | GridCommand::CutSelection
+            | GridCommand::PasteAt { .. } => self.cmd_clipboard(cmd),
+
+            GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+            | GridCommand::SetColumnFilter { .. }
+            | GridCommand::ClearAllFilters => self.cmd_sort_filter(cmd),
+
+            GridCommand::ResizeColumn { .. }
+            | GridCommand::SetPinnedColumnCount { .. }
+            | GridCommand::MoveColumn { .. }
+            | GridCommand::AutoFitColumn { .. }
+            | GridCommand::AutoFitAllColumns { .. } => {
+                self.cmd_column(cmd)
             }
-            GridCommand::SelectRow(row) => {
-                let last_col = self.model.columns.len().saturating_sub(1);
-                self.selection.anchor = Some(CellCoord { row, col: 0 });
-                self.selection.focus = Some(CellCoord { row, col: last_col });
-                CommandOutput::None
+
+            GridCommand::StartEdit { .. }
+            | GridCommand::CommitEdit { .. }
+            | GridCommand::CancelEdit => self.cmd_edit(cmd),
+
+            GridCommand::Undo | GridCommand::Redo => {
+                self.cmd_undo(cmd)
             }
-            GridCommand::ExtendRowSelection(row) => {
-                let last_col = self.model.columns.len().saturating_sub(1);
-                // Clamp anchor column to 0 so the range always spans all columns.
-                if let Some(ref mut a) = self.selection.anchor {
-                    a.col = 0;
-                }
-                self.selection.focus = Some(CellCoord { row, col: last_col });
-                CommandOutput::None
-            }
-            GridCommand::SelectCol(col) => {
-                let last_row = self.model.display_row_count().saturating_sub(1);
-                self.selection.anchor = Some(CellCoord { row: 0, col });
-                self.selection.focus = Some(CellCoord { row: last_row, col });
-                CommandOutput::None
-            }
-            GridCommand::ExtendColSelection(col) => {
-                let last_row = self.model.display_row_count().saturating_sub(1);
-                // Clamp anchor row to 0 so the range always spans all rows.
-                if let Some(ref mut a) = self.selection.anchor {
-                    a.row = 0;
-                }
-                self.selection.focus = Some(CellCoord { row: last_row, col });
-                CommandOutput::None
-            }
-            GridCommand::SetHoveredRow(row) => {
-                self.hovered_row = row;
-                CommandOutput::None
-            }
-            GridCommand::SetHeaderHeight(h) => {
-                if h > 0.0 {
-                    self.model.header_height = h;
-                }
-                CommandOutput::None
-            }
-            GridCommand::SetRowHeight(h) => {
-                if h > 0.0 {
-                    self.model.row_height = h;
-                }
-                CommandOutput::None
-            }
-            GridCommand::ResizeColumn { col_idx, new_width } => {
-                const MIN_COL_WIDTH: f64 = 20.0;
-                if col_idx < self.model.columns.len() {
-                    self.model.columns[col_idx].width =
-                        new_width.max(MIN_COL_WIDTH);
-                    self.model.rebuild_offsets();
-                }
-                CommandOutput::None
-            }
-            GridCommand::ToggleSort { col_key } => {
-                let new_sort = match &self.sort {
-                    None => Some(SortState {
-                        col_key: col_key.clone(),
-                        dir: SortDir::Asc,
-                    }),
-                    Some(s)
-                        if s.col_key == col_key && s.dir == SortDir::Asc =>
-                    {
-                        Some(SortState {
-                            col_key: col_key.clone(),
-                            dir: SortDir::Desc,
-                        })
-                    }
-                    Some(s) if s.col_key == col_key => None,
-                    _ => Some(SortState {
-                        col_key: col_key.clone(),
-                        dir: SortDir::Asc,
-                    }),
-                };
-                let sorted = match &new_sort {
-                    Some(s) => self.model.apply_sort(&s.col_key, &s.dir),
-                    None => {
-                        self.model.sort_order.clear();
-                        self.model.invalidate_sort_cache();
-                        true
-                    }
-                };
-                self.sort = new_sort;
-                // Reapply filter with updated sort order.
-                if !self.model.filters.is_empty() {
-                    self.model.apply_filter();
-                }
-                self.viewport.scroll_y = 0.0;
-                if sorted {
-                    CommandOutput::None
-                } else {
-                    CommandOutput::SortWarning {
-                        row_count: self.model.data.row_count(),
-                        limit: crate::model::GridModel::MAX_CLIENT_SORT_ROWS,
-                    }
-                }
-            }
-            GridCommand::SetSort { col_key, dir } => {
-                self.sort = Some(SortState {
-                    col_key: col_key.clone(),
-                    dir: dir.clone(),
-                });
-                let sorted = self.model.apply_sort(&col_key, &dir);
-                if !self.model.filters.is_empty() {
-                    self.model.apply_filter();
-                }
-                self.viewport.scroll_y = 0.0;
-                if sorted {
-                    CommandOutput::None
-                } else {
-                    CommandOutput::SortWarning {
-                        row_count: self.model.data.row_count(),
-                        limit: crate::model::GridModel::MAX_CLIENT_SORT_ROWS,
-                    }
-                }
-            }
-            GridCommand::ClearSort => {
-                self.sort = None;
-                self.model.sort_order.clear();
-                self.model.invalidate_sort_cache();
-                if !self.model.filters.is_empty() {
-                    self.model.apply_filter();
-                }
-                self.viewport.scroll_y = 0.0;
-                CommandOutput::None
-            }
-            GridCommand::SetPinnedColumnCount { count } => {
-                self.model.pinned_count = count.min(self.model.columns.len());
-                CommandOutput::None
-            }
-            GridCommand::SetColumnFilter { col_key, text } => {
-                if text.is_empty() {
-                    self.model.filters.remove(&col_key);
-                } else {
-                    self.model.filters.insert(col_key, text);
-                }
-                self.model.apply_filter();
-                self.selection.clear();
-                self.viewport.scroll_y = 0.0;
-                CommandOutput::None
-            }
-            GridCommand::ClearAllFilters => {
-                self.model.filters.clear();
-                self.model.filtered_indices.clear();
-                self.selection.clear();
-                self.viewport.scroll_y = 0.0;
-                CommandOutput::None
-            }
-            GridCommand::MoveColumn { from_idx, to_idx } => {
-                let len = self.model.columns.len();
-                if from_idx < len && to_idx < len && from_idx != to_idx {
-                    let col = self.model.columns.remove(from_idx);
-                    self.model.columns.insert(to_idx, col);
-                    self.model.rebuild_offsets();
-                    self.history.push(UndoEntry::MoveColumn {
-                        from_idx: to_idx,
-                        to_idx: from_idx,
-                    });
-                }
-                CommandOutput::None
-            }
-            GridCommand::StartEdit { row, col_key } => {
-                let initial_value =
-                    self.model.get_cell(row, &col_key).unwrap_or_default();
-                self.edit = Some(EditCell {
-                    row,
-                    col_key,
-                    initial_value,
-                });
-                CommandOutput::None
-            }
-            GridCommand::CommitEdit {
-                row,
-                col_key,
-                value,
-            } => {
-                if self
-                    .edit
-                    .as_ref()
-                    .is_some_and(|e| e.row == row && e.col_key == col_key)
-                {
-                    let old_value = self.model.get_cell(row, &col_key);
-                    self.model.set_cell(row, &col_key, value);
-                    self.edit = None;
-                    self.history.push(UndoEntry::SetCell {
-                        row,
-                        col_key,
-                        old_value,
-                    });
-                }
-                CommandOutput::None
-            }
-            GridCommand::CancelEdit => {
-                self.edit = None;
-                CommandOutput::None
-            }
-            GridCommand::Undo => {
-                if let Some(entry) = self.history.pop_undo() {
-                    let redo = self.apply_undo_entry(&entry);
-                    self.history.push_redo(redo);
-                }
-                CommandOutput::None
-            }
-            GridCommand::Redo => {
-                if let Some(entry) = self.history.pop_redo() {
-                    let undo = self.apply_undo_entry(&entry);
-                    self.history.push_undo_keep_redo(undo);
-                }
-                CommandOutput::None
-            }
-            GridCommand::Search { query } => {
-                self.run_search(&query);
-                CommandOutput::None
-            }
-            GridCommand::SearchNext => {
-                if !self.search.matches.is_empty() {
-                    self.search.current =
-                        (self.search.current + 1) % self.search.matches.len();
-                    self.scroll_to_search_match();
-                }
-                CommandOutput::None
-            }
-            GridCommand::SearchPrev => {
-                if !self.search.matches.is_empty() {
-                    let len = self.search.matches.len();
-                    self.search.current = (self.search.current + len - 1) % len;
-                    self.scroll_to_search_match();
-                }
-                CommandOutput::None
-            }
-            GridCommand::ClearSearch => {
-                self.search = SearchState::default();
-                CommandOutput::None
-            }
-            GridCommand::NotifyPageLoaded => {
-                // No-op — triggers a re-render via dispatch.
-                CommandOutput::None
-            }
-            GridCommand::SetTotalRowCount(n) => {
-                // Update the underlying data source row count.
-                // For PageCacheDataSource this is done
-                // externally; here we just trigger re-render.
-                let _ = n;
-                CommandOutput::None
-            }
-            GridCommand::AutoFitColumn {
-                col_idx,
-                char_width,
-                header_char_width,
-                cell_padding,
-            } => {
-                const MIN_COL_WIDTH: f64 = 20.0;
-                const MAX_SAMPLE_ROWS: u64 = 1_000;
-                if col_idx < self.model.columns.len() {
-                    let old_width = self.model.columns[col_idx].width;
-                    let col_key = self.model.columns[col_idx].key.clone();
-                    let label = &self.model.columns[col_idx].label;
-                    let header_w = label.len() as f64 * header_char_width
-                        + cell_padding * 2.0;
-                    let col_format = self.model.columns[col_idx].format.clone();
-                    let row_count =
-                        self.model.display_row_count().min(MAX_SAMPLE_ROWS);
-                    let mut max_w = header_w;
-                    for r in 0..row_count {
-                        if let Some(val) = self.model.get_cell(r, &col_key) {
-                            let w = match &col_format {
-                                Some(CellFormat::Image { .. }) => {
-                                    self.model.row_height + cell_padding * 2.0
-                                }
-                                Some(CellFormat::ImageText {
-                                    image_size,
-                                    gap,
-                                    ..
-                                }) => {
-                                    let label_len = val
-                                        .find(' ')
-                                        .map(|i| val[i + 1..].len())
-                                        .unwrap_or(val.len());
-                                    image_size
-                                        + gap
-                                        + label_len as f64 * char_width
-                                        + cell_padding * 2.0
-                                }
-                                Some(fmt) => {
-                                    let formatted = format_cell(&val, fmt);
-                                    formatted.text.len() as f64 * char_width
-                                        + cell_padding * 2.0
-                                }
-                                None => {
-                                    val.len() as f64 * char_width
-                                        + cell_padding * 2.0
-                                }
-                            };
-                            if w > max_w {
-                                max_w = w;
-                            }
-                        }
-                    }
-                    self.model.columns[col_idx].width =
-                        max_w.max(MIN_COL_WIDTH);
-                    self.model.rebuild_offsets();
-                    self.history
-                        .push(UndoEntry::ResizeColumn { col_idx, old_width });
-                }
-                CommandOutput::None
-            }
-            GridCommand::AutoFitAllColumns {
-                char_width,
-                header_char_width,
-                cell_padding,
-            } => {
-                let n = self.model.columns.len();
-                for col_idx in 0..n {
-                    self.apply(GridCommand::AutoFitColumn {
-                        col_idx,
-                        char_width,
-                        header_char_width,
-                        cell_padding,
-                    });
-                }
-                CommandOutput::None
-            }
-            GridCommand::MoveSelection {
-                delta_row,
-                delta_col,
-                extend,
-            } => {
-                let row_count = self.model.display_row_count();
-                let col_count = self.model.columns.len();
-                let base = self
-                    .selection
-                    .focus
-                    .clone()
-                    .or_else(|| self.selection.anchor.clone());
-                if let Some(b) = base {
-                    // Cast to i64 first so negative deltas don't
-                    // underflow the unsigned row/col indices, then
-                    // clamp to valid bounds before casting back.
-                    let new_row = (b.row as i64 + delta_row)
-                        .clamp(0, row_count.saturating_sub(1) as i64)
-                        as u64;
-                    let new_col = (b.col as i64 + delta_col)
-                        .clamp(0, col_count.saturating_sub(1) as i64)
-                        as usize;
-                    if extend {
-                        self.selection.extend_to(new_row, new_col);
-                    } else {
-                        self.selection.select_cell(new_row, new_col);
-                    }
-                }
-                CommandOutput::None
-            }
+
+            GridCommand::Search { .. }
+            | GridCommand::SearchNext
+            | GridCommand::SearchPrev
+            | GridCommand::ClearSearch => self.cmd_search(cmd),
+
+            GridCommand::SetHoveredRow(_)
+            | GridCommand::SetHeaderHeight(_)
+            | GridCommand::SetRowHeight(_)
+            | GridCommand::NotifyPageLoaded
+            | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
     }
 
@@ -706,6 +178,7 @@ mod tests {
     use crate::{
         column::ColumnDef,
         commands::{CommandOutput, GridCommand},
+        format::CellFormat,
         model::GridModel,
         row::RowRecord,
         selection::CellCoord,
