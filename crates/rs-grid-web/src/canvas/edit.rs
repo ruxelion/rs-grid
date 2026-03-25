@@ -10,6 +10,7 @@ use web_sys::{HtmlImageElement, HtmlInputElement, KeyboardEvent};
 
 use super::dom_helpers::document;
 use super::GridCanvas;
+use crate::css_theme;
 
 /// Geometry of an inline cell editor (screen coordinates).
 struct EditorGeom {
@@ -49,6 +50,18 @@ impl GridCanvas {
         w: f64,
         h: f64,
     ) {
+        let css_style = css_theme::root_computed_style();
+        let var = |name: &str, fb: &str| -> String {
+            css_style
+                .as_ref()
+                .map(|s| css_theme::get_var(s, name))
+                .filter(|v| !v.is_empty())
+                .unwrap_or_else(|| fb.to_string())
+        };
+        let border_color =
+            var("--rs-grid-editor-border", "#2563eb");
+        let bg = var("--rs-grid-editor-bg", "#ffffff");
+
         let style = el.style();
         let _ = style.set_property("position", "fixed");
         let _ = style.set_property("left", &format!("{left}px"));
@@ -56,13 +69,16 @@ impl GridCanvas {
         let _ = style.set_property("width", &format!("{w}px"));
         let _ = style.set_property("height", &format!("{h}px"));
         let _ = style.set_property("z-index", "10000");
-        let _ = style.set_property("border", "2px solid #2563eb");
+        let _ = style.set_property(
+            "border",
+            &format!("2px solid {border_color}"),
+        );
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 4px");
         let _ = style.set_property("margin", "0");
         let _ = style.set_property("box-sizing", "border-box");
         let _ = style.set_property("font", "inherit");
-        let _ = style.set_property("background", "#fff");
+        let _ = style.set_property("background", &bg);
     }
 
     /// Create the appropriate DOM overlay for inline
@@ -144,15 +160,24 @@ impl GridCanvas {
         }
 
         // ── theme colours ─────────────────────────────
-        let (bg, text_c, sel_c, border_c, fsz) = {
+        let (bg, text_c, sel_c, border_c, fsz, shadow) = {
             let b = self.0.builder.borrow();
             let t = &b.theme;
+            let css_style = css_theme::root_computed_style();
+            let shadow = css_style
+                .as_ref()
+                .map(|s| css_theme::get_var(s, "--rs-grid-overlay-shadow"))
+                .filter(|v| !v.is_empty())
+                .unwrap_or_else(|| {
+                    "0 4px 12px rgba(0,0,0,.15)".to_string()
+                });
             (
                 t.bg.to_css(),
                 t.cell_text.to_css(),
                 t.selection_fill.to_css(),
                 t.selection_border.to_css(),
                 t.font_size,
+                shadow,
             )
         };
 
@@ -182,7 +207,7 @@ impl GridCanvas {
         let _ = s.set_property("color", &text_c);
         let _ = s.set_property("font-size", &format!("{fsz}px"));
         let _ = s.set_property("font-family", "inherit");
-        let _ = s.set_property("box-shadow", "0 4px 12px rgba(0,0,0,.15)");
+        let _ = s.set_property("box-shadow", &shadow);
         let _ = s.set_property("outline", "none");
         let _ = s.set_property("box-sizing", "border-box");
         let _ = s.set_property("margin", "0");

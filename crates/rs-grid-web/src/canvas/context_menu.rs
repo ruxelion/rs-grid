@@ -53,6 +53,8 @@ struct CtxColors {
     text_disabled: String,
     hover_bg: String,
     separator: String,
+    radius: String,
+    font_size: String,
 }
 
 fn read_ctx_colors() -> CtxColors {
@@ -76,6 +78,8 @@ fn read_ctx_colors() -> CtxColors {
         text_disabled: v("--rs-grid-ctx-text-disabled", "#9ca3af"),
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
+        radius: v("--rs-grid-ctx-radius", "6px"),
+        font_size: v("--rs-grid-ctx-font-size", "13px"),
     }
 }
 
@@ -284,6 +288,7 @@ fn create_menu_shell(
     let menu = make_el(&doc, "div");
     menu.set_id("rs-grid-ctx-menu");
     let border_val = format!("1px solid {}", colors.border);
+    let font_val = format!("{}/1.4 system-ui,sans-serif", colors.font_size);
     set_styles(
         &menu,
         &[
@@ -293,10 +298,10 @@ fn create_menu_shell(
             ("z-index", "9999"),
             ("background", &colors.bg),
             ("border", &border_val),
-            ("border-radius", "6px"),
+            ("border-radius", &colors.radius),
             ("box-shadow", &colors.shadow),
             ("padding", "4px 0"),
-            ("font", "13px/1.4 system-ui,sans-serif"),
+            ("font", &font_val),
             ("min-width", "160px"),
             ("user-select", "none"),
         ],

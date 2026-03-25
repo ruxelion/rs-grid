@@ -350,7 +350,7 @@ impl CanvasRenderer {
         let bar_h = img.height * 0.5;
         let bar_x = img.x + (img.width - bar_w) / 2.0;
         let bar_y = img.y + (img.height - bar_h) / 2.0;
-        ctx.set_fill_style_str("rgba(200,200,200,0.4)");
+        ctx.set_fill_style_str(&img.placeholder_color.to_css());
         let r = if img.corner_radius > 0.0 {
             img.corner_radius.min(bar_w / 2.0).min(bar_h / 2.0)
         } else {
