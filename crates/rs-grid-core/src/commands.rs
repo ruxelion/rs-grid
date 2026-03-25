@@ -1,4 +1,7 @@
-use crate::{selection::{CellCoord, CopyError}, sort::SortDir};
+use crate::{
+    selection::{CellCoord, CopyError},
+    sort::SortDir,
+};
 
 /// All mutations that can be applied to a `GridState`.
 #[derive(Debug, Clone)]

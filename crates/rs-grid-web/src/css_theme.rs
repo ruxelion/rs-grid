@@ -78,10 +78,7 @@ pub fn theme_from_css_vars() -> Theme {
         header_text: color("--rs-grid-header-text", fallback.header_text),
         cell_text: color("--rs-grid-cell-text", fallback.cell_text),
         grid_line: color("--rs-grid-grid-line", fallback.grid_line),
-        header_border: color(
-            "--rs-grid-header-border",
-            fallback.header_border,
-        ),
+        header_border: color("--rs-grid-header-border", fallback.header_border),
         header_separator_inset: px(
             "--rs-grid-header-separator-inset",
             fallback.header_separator_inset,
@@ -131,10 +128,7 @@ pub fn theme_from_css_vars() -> Theme {
         ),
         cell_padding: px("--rs-grid-cell-padding", fallback.cell_padding),
         flash_fill: color("--rs-grid-flash-fill", fallback.flash_fill),
-        flash_border: color(
-            "--rs-grid-flash-border",
-            fallback.flash_border,
-        ),
+        flash_border: color("--rs-grid-flash-border", fallback.flash_border),
         search_highlight: color(
             "--rs-grid-search-highlight",
             fallback.search_highlight,
@@ -144,14 +138,8 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.search_current,
         ),
         skeleton_fg: color("--rs-grid-skeleton-fg", fallback.skeleton_fg),
-        drag_overlay: color(
-            "--rs-grid-drag-overlay",
-            fallback.drag_overlay,
-        ),
-        drag_ghost_bg: color(
-            "--rs-grid-drag-ghost-bg",
-            fallback.drag_ghost_bg,
-        ),
+        drag_overlay: color("--rs-grid-drag-overlay", fallback.drag_overlay),
+        drag_ghost_bg: color("--rs-grid-drag-ghost-bg", fallback.drag_ghost_bg),
         drag_ghost_text: color(
             "--rs-grid-drag-ghost-text",
             fallback.drag_ghost_text,
@@ -180,10 +168,7 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-sort-arrow-height",
             fallback.sort_arrow_height,
         ),
-        header_height: px(
-            "--rs-grid-header-height",
-            fallback.header_height,
-        ),
+        header_height: px("--rs-grid-header-height", fallback.header_height),
         row_height: px("--rs-grid-row-height", fallback.row_height),
         header_menu_icon: color(
             "--rs-grid-header-menu-icon",
@@ -214,10 +199,7 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.header_menu_icon_dot_r,
         ),
         gutter_bg: color("--rs-grid-gutter-bg", fallback.gutter_bg),
-        gutter_text: color(
-            "--rs-grid-gutter-text",
-            fallback.gutter_text,
-        ),
+        gutter_text: color("--rs-grid-gutter-text", fallback.gutter_text),
         gutter_font_size: px(
             "--rs-grid-gutter-font-size",
             fallback.gutter_font_size,
@@ -226,10 +208,7 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-gutter-font-bold",
             fallback.gutter_font_bold,
         ),
-        gutter_border: color(
-            "--rs-grid-gutter-border",
-            fallback.gutter_border,
-        ),
+        gutter_border: color("--rs-grid-gutter-border", fallback.gutter_border),
     }
 }
 

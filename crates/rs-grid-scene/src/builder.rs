@@ -518,12 +518,7 @@ impl SceneBuilder {
                         color: t.header_text,
                         font_size: t.header_font_size,
                         bold: t.header_font_bold,
-                        clip: Some([
-                            cx,
-                            0.0,
-                            col.width,
-                            model.header_height,
-                        ]),
+                        clip: Some([cx, 0.0, col.width, model.header_height]),
                         align: TextAlign::Left,
                         max_width: Some(label_max_w),
                     }));
@@ -678,8 +673,7 @@ impl SceneBuilder {
 
                 // Clamp everything to below the sticky header.
                 let clip_y = ry.max(model.header_height);
-                let clip_h =
-                    (ry + model.row_height - clip_y).max(0.0);
+                let clip_h = (ry + model.row_height - clip_y).max(0.0);
                 if clip_h == 0.0 {
                     continue;
                 }

@@ -114,10 +114,7 @@ fn read_ctx_colors() -> CtxColors {
         radius: v("--rs-grid-ctx-radius", "6px"),
         font_size: v("--rs-grid-ctx-font-size", "13px"),
         min_width: v("--rs-grid-ctx-min-width", "160px"),
-        shortcut_font_size: v(
-            "--rs-grid-ctx-shortcut-font-size",
-            "11px",
-        ),
+        shortcut_font_size: v("--rs-grid-ctx-shortcut-font-size", "11px"),
         item_gap: v("--rs-grid-ctx-item-gap", "8px"),
     }
 }
@@ -245,8 +242,9 @@ fn builtin_icon(action: BuiltinAction) -> &'static str {
         BuiltinAction::SortAsc => ICON_SORT_ASC,
         BuiltinAction::SortDesc => ICON_SORT_DESC,
         BuiltinAction::ClearSort => ICON_CLEAR_SORT,
-        BuiltinAction::AutoSizeColumn
-        | BuiltinAction::AutoSizeAllColumns => ICON_AUTOSIZE,
+        BuiltinAction::AutoSizeColumn | BuiltinAction::AutoSizeAllColumns => {
+            ICON_AUTOSIZE
+        }
     }
 }
 
@@ -413,12 +411,7 @@ impl GridCanvas {
         self.0.closures.borrow_mut().push(Box::new(cb));
     }
 
-    pub(super) fn show_col_header_menu(
-        &self,
-        col_idx: usize,
-        x: i32,
-        y: i32,
-    ) {
+    pub(super) fn show_col_header_menu(&self, col_idx: usize, x: i32, y: i32) {
         remove_ctx_menu();
         let colors = read_ctx_colors();
         let doc = document();
@@ -434,10 +427,8 @@ impl GridCanvas {
                 .get(col_idx)
                 .map(|c| c.key.as_str())
                 .unwrap_or("");
-            let sorted = state
-                .sort
-                .as_ref()
-                .is_some_and(|s| s.col_key == col_key);
+            let sorted =
+                state.sort.as_ref().is_some_and(|s| s.col_key == col_key);
             (pinned, sorted)
         };
 
@@ -555,9 +546,7 @@ impl GridCanvas {
                         BuiltinAction::Cut
                         | BuiltinAction::Copy
                         | BuiltinAction::CopyWithHeaders => has_selection,
-                        BuiltinAction::Paste => {
-                            has_selection && secure
-                        }
+                        BuiltinAction::Paste => has_selection && secure,
                         _ => true,
                     };
                     let lbl = label.as_deref().unwrap_or(builtin_label(action));
@@ -596,8 +585,7 @@ impl GridCanvas {
                         return;
                     }
                     let win = web_sys::window().expect("no window");
-                    let promise =
-                        win.navigator().clipboard().read_text();
+                    let promise = win.navigator().clipboard().read_text();
                     let gc2 = gc.clone();
                     wasm_bindgen_futures::spawn_local(async move {
                         match wasm_bindgen_futures::JsFuture::from(promise)
@@ -605,9 +593,7 @@ impl GridCanvas {
                         {
                             Ok(val) => {
                                 if let Some(text) = val.as_string() {
-                                    gc2.dispatch(GridCommand::PasteAt {
-                                        text,
-                                    });
+                                    gc2.dispatch(GridCommand::PasteAt { text });
                                     gc2.flash_selection();
                                 }
                             }
@@ -618,8 +604,7 @@ impl GridCanvas {
                     });
                 }
                 BuiltinAction::PinColumn => {
-                    let pinned_count =
-                        gc.0.state.borrow().model.pinned_count;
+                    let pinned_count = gc.0.state.borrow().model.pinned_count;
                     // Move the column to the end of the pinned zone
                     // before expanding it, so only this column is
                     // added — not every column to its left.
@@ -632,8 +617,7 @@ impl GridCanvas {
                     gc.set_pinned_count(pinned_count + 1);
                 }
                 BuiltinAction::UnpinColumn => {
-                    let pinned_count =
-                        gc.0.state.borrow().model.pinned_count;
+                    let pinned_count = gc.0.state.borrow().model.pinned_count;
                     let new_count = pinned_count.saturating_sub(1);
                     // Move the column just past the new pinned zone
                     // so it appears at the left of the scrollable
@@ -647,15 +631,14 @@ impl GridCanvas {
                     gc.set_pinned_count(new_count);
                 }
                 BuiltinAction::SortAsc | BuiltinAction::SortDesc => {
-                    let col_key = gc
-                        .0
-                        .state
-                        .borrow()
-                        .model
-                        .columns
-                        .get(col_idx)
-                        .map(|c| c.key.clone())
-                        .unwrap_or_default();
+                    let col_key =
+                        gc.0.state
+                            .borrow()
+                            .model
+                            .columns
+                            .get(col_idx)
+                            .map(|c| c.key.clone())
+                            .unwrap_or_default();
                     let dir = if action == BuiltinAction::SortAsc {
                         SortDir::Asc
                     } else {

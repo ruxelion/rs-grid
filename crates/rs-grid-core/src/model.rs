@@ -33,7 +33,10 @@ enum SortKeyCache {
     /// All values parsed as f64 — compact 8 B/row.
     Numeric { col_key: String, keys: Vec<f64> },
     /// Mixed numeric + string values.
-    Mixed { col_key: String, keys: Vec<MixedSortKey> },
+    Mixed {
+        col_key: String,
+        keys: Vec<MixedSortKey>,
+    },
 }
 
 impl std::fmt::Debug for SortKeyCache {
@@ -74,7 +77,11 @@ fn f64_to_sort_key(f: f64) -> u64 {
     // Positive floats and +0: flip sign bit so they sort after negatives.
     // Negative floats and -0: flip all bits so larger-magnitude negatives
     // map to smaller keys.
-    if bits >> 63 == 0 { bits | (1u64 << 63) } else { !bits }
+    if bits >> 63 == 0 {
+        bits | (1u64 << 63)
+    } else {
+        !bits
+    }
 }
 
 /// LSD radix sort on `indices` ordered by pre-extracted `f64`
@@ -97,8 +104,7 @@ fn radix_sort_f64_indices(
         let shift = pass * 8;
         let mut counts = [0usize; 256];
         for &idx in indices.iter() {
-            let byte =
-                ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
+            let byte = ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
             counts[byte] += 1;
         }
         // Exclusive prefix sum → bucket start positions.
@@ -107,8 +113,7 @@ fn radix_sort_f64_indices(
             offsets[i] = offsets[i - 1] + counts[i - 1];
         }
         for &idx in indices.iter() {
-            let byte =
-                ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
+            let byte = ((sort_keys[idx as usize] >> shift) & 0xFF) as usize;
             aux[offsets[byte]] = idx;
             offsets[byte] += 1;
         }
@@ -383,11 +388,13 @@ impl GridModel {
                 }
                 SortKeyCache::Mixed { keys, .. } => {
                     indices.sort_unstable_by(|&a, &b| {
-                        let cmp = cmp_mixed(
-                            &keys[a as usize],
-                            &keys[b as usize],
-                        );
-                        if asc { cmp } else { cmp.reverse() }
+                        let cmp =
+                            cmp_mixed(&keys[a as usize], &keys[b as usize]);
+                        if asc {
+                            cmp
+                        } else {
+                            cmp.reverse()
+                        }
                     });
                 }
                 SortKeyCache::None => unreachable!(),
@@ -417,9 +424,7 @@ impl GridModel {
             match self.data.get_cell_ref(i, col_key) {
                 Some(s) => {
                     let src = if is_image_text {
-                        s.find(' ')
-                            .map(|p| &s[p + 1..])
-                            .unwrap_or(&s)
+                        s.find(' ').map(|p| &s[p + 1..]).unwrap_or(&s)
                     } else {
                         &s
                     };
@@ -450,24 +455,19 @@ impl GridModel {
         // Phase 2: mixed / string fallback.
         drop(fkeys);
 
-        let mut keys: Vec<MixedSortKey> =
-            Vec::with_capacity(len);
+        let mut keys: Vec<MixedSortKey> = Vec::with_capacity(len);
         for i in 0..n {
             match self.data.get_cell_ref(i, col_key) {
                 Some(s) => {
                     let val = if is_image_text {
-                        s.find(' ')
-                            .map(|p| &s[p + 1..])
-                            .unwrap_or(&s)
+                        s.find(' ').map(|p| &s[p + 1..]).unwrap_or(&s)
                     } else {
                         &s
                     };
                     if let Ok(f) = val.parse::<f64>() {
                         keys.push(MixedSortKey::Num(f));
                     } else {
-                        keys.push(MixedSortKey::Str(
-                            val.to_owned(),
-                        ));
+                        keys.push(MixedSortKey::Str(val.to_owned()));
                     }
                 }
                 None => {
@@ -479,9 +479,12 @@ impl GridModel {
         let mut indices: Vec<u64> = (0..n).collect();
         let rev = *dir == SortDir::Desc;
         indices.sort_unstable_by(|&a, &b| {
-            let cmp =
-                cmp_mixed(&keys[a as usize], &keys[b as usize]);
-            if rev { cmp.reverse() } else { cmp }
+            let cmp = cmp_mixed(&keys[a as usize], &keys[b as usize]);
+            if rev {
+                cmp.reverse()
+            } else {
+                cmp
+            }
         });
 
         self.sort_order = indices;
@@ -533,22 +536,13 @@ impl GridModel {
 }
 
 /// Compare two mixed sort keys: numbers < strings < empty.
-fn cmp_mixed(
-    a: &MixedSortKey,
-    b: &MixedSortKey,
-) -> std::cmp::Ordering {
+fn cmp_mixed(a: &MixedSortKey, b: &MixedSortKey) -> std::cmp::Ordering {
     match (a, b) {
-        (MixedSortKey::Num(fa), MixedSortKey::Num(fb)) => {
-            fa.total_cmp(fb)
-        }
-        (MixedSortKey::Str(sa), MixedSortKey::Str(sb)) => {
-            sa.cmp(sb)
-        }
+        (MixedSortKey::Num(fa), MixedSortKey::Num(fb)) => fa.total_cmp(fb),
+        (MixedSortKey::Str(sa), MixedSortKey::Str(sb)) => sa.cmp(sb),
         (MixedSortKey::Num(_), _) => std::cmp::Ordering::Less,
         (_, MixedSortKey::Num(_)) => std::cmp::Ordering::Greater,
-        (MixedSortKey::Empty, MixedSortKey::Empty) => {
-            std::cmp::Ordering::Equal
-        }
+        (MixedSortKey::Empty, MixedSortKey::Empty) => std::cmp::Ordering::Equal,
         (MixedSortKey::Empty, _) => std::cmp::Ordering::Greater,
         (_, MixedSortKey::Empty) => std::cmp::Ordering::Less,
     }
@@ -694,18 +688,8 @@ mod tests {
         assert_eq!(m.sort_order[999], 0);
         // Verify full ordering
         for w in m.sort_order.windows(2) {
-            let va: f64 = m
-                .data
-                .get_cell(w[0], "v")
-                .unwrap()
-                .parse()
-                .unwrap();
-            let vb: f64 = m
-                .data
-                .get_cell(w[1], "v")
-                .unwrap()
-                .parse()
-                .unwrap();
+            let va: f64 = m.data.get_cell(w[0], "v").unwrap().parse().unwrap();
+            let vb: f64 = m.data.get_cell(w[1], "v").unwrap().parse().unwrap();
             assert!(va <= vb);
         }
     }
@@ -737,14 +721,9 @@ mod tests {
         let sorted: Vec<String> = m
             .sort_order
             .iter()
-            .map(|&i| {
-                m.data.get_cell(i, "s").unwrap()
-            })
+            .map(|&i| m.data.get_cell(i, "s").unwrap())
             .collect();
-        assert_eq!(
-            sorted,
-            vec!["apple", "banana", "cherry", "date"]
-        );
+        assert_eq!(sorted, vec!["apple", "banana", "cherry", "date"]);
     }
 
     #[test]
@@ -765,15 +744,10 @@ mod tests {
         let sorted: Vec<String> = m
             .sort_order
             .iter()
-            .map(|&i| {
-                m.data.get_cell(i, "m").unwrap()
-            })
+            .map(|&i| m.data.get_cell(i, "m").unwrap())
             .collect();
         // Numerics sort first (1, 2, 3), then strings
-        assert_eq!(
-            sorted,
-            vec!["1", "2", "3", "apple", "banana"]
-        );
+        assert_eq!(sorted, vec!["1", "2", "3", "apple", "banana"]);
     }
 
     #[test]
@@ -801,11 +775,7 @@ mod tests {
         // Non-empty first (alpha, beta), empty last
         assert_eq!(
             sorted,
-            vec![
-                Some("alpha".into()),
-                Some("beta".into()),
-                None
-            ]
+            vec![Some("alpha".into()), Some("beta".into()), None]
         );
     }
 
@@ -827,10 +797,7 @@ mod tests {
         m.apply_sort("v", &SortDir::Asc);
         let asc_first = m.sort_order[0];
         let asc_last = m.sort_order[999];
-        assert!(matches!(
-            m.sort_key_cache,
-            SortKeyCache::Numeric { .. }
-        ));
+        assert!(matches!(m.sort_key_cache, SortKeyCache::Numeric { .. }));
 
         // Toggle to Desc — should hit cache
         m.apply_sort("v", &SortDir::Desc);
@@ -838,25 +805,16 @@ mod tests {
         assert_eq!(m.sort_order[999], asc_first);
 
         // Cache still present
-        assert!(matches!(
-            m.sort_key_cache,
-            SortKeyCache::Numeric { .. }
-        ));
+        assert!(matches!(m.sort_key_cache, SortKeyCache::Numeric { .. }));
     }
 
     #[test]
     fn sort_cache_invalidated_on_clear() {
         let mut m = make_numeric_model(100);
         m.apply_sort("v", &SortDir::Asc);
-        assert!(!matches!(
-            m.sort_key_cache,
-            SortKeyCache::None
-        ));
+        assert!(!matches!(m.sort_key_cache, SortKeyCache::None));
         m.invalidate_sort_cache();
-        assert!(matches!(
-            m.sort_key_cache,
-            SortKeyCache::None
-        ));
+        assert!(matches!(m.sort_key_cache, SortKeyCache::None));
     }
 
     #[test]
@@ -876,9 +834,7 @@ mod tests {
         let mut m = GridModel::new(cols, rows, 30.0, 40.0);
 
         m.apply_sort("a", &SortDir::Asc);
-        if let SortKeyCache::Numeric { col_key, .. } =
-            &m.sort_key_cache
-        {
+        if let SortKeyCache::Numeric { col_key, .. } = &m.sort_key_cache {
             assert_eq!(col_key, "a");
         } else {
             panic!("expected Numeric cache for col a");
@@ -886,9 +842,7 @@ mod tests {
 
         // Sort on different column replaces cache
         m.apply_sort("b", &SortDir::Asc);
-        if let SortKeyCache::Numeric { col_key, .. } =
-            &m.sort_key_cache
-        {
+        if let SortKeyCache::Numeric { col_key, .. } = &m.sort_key_cache {
             assert_eq!(col_key, "b");
         } else {
             panic!("expected Numeric cache for col b");

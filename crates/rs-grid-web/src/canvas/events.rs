@@ -102,12 +102,10 @@ impl GridCanvas {
                 // Line / page mode = mouse wheel: accumulate velocity
                 // so render_immediate() can apply a smooth deceleration.
                 const MAX_V: f64 = 250.0;
-                gc.0.scroll_vx.set(
-                    (gc.0.scroll_vx.get() + dx).clamp(-MAX_V, MAX_V),
-                );
-                gc.0.scroll_vy.set(
-                    (gc.0.scroll_vy.get() + dy).clamp(-MAX_V, MAX_V),
-                );
+                gc.0.scroll_vx
+                    .set((gc.0.scroll_vx.get() + dx).clamp(-MAX_V, MAX_V));
+                gc.0.scroll_vy
+                    .set((gc.0.scroll_vy.get() + dy).clamp(-MAX_V, MAX_V));
                 gc.render();
             }
         });
@@ -581,8 +579,7 @@ impl GridCanvas {
                                 })
                                 .collect();
                             drop(state);
-                            *gc.0.drag_col_offsets.borrow_mut() =
-                                init;
+                            *gc.0.drag_col_offsets.borrow_mut() = init;
                         }
                         *gc.0.drag.borrow_mut() =
                             Some(ActiveDrag::ColumnDrag {
