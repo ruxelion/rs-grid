@@ -41,6 +41,11 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-sort-arrow-height`       | `Theme::sort_arrow_height`       |
 /// | `--rs-grid-header-height`           | `Theme::header_height`           |
 /// | `--rs-grid-row-height`              | `Theme::row_height`              |
+/// | `--rs-grid-gutter-bg`              | `Theme::gutter_bg`               |
+/// | `--rs-grid-gutter-text`            | `Theme::gutter_text`             |
+/// | `--rs-grid-gutter-font-size`       | `Theme::gutter_font_size`        |
+/// | `--rs-grid-gutter-font-bold`       | `Theme::gutter_font_bold`        |
+/// | `--rs-grid-gutter-border`          | `Theme::gutter_border`           |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -179,6 +184,23 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.header_height,
         ),
         row_height: px("--rs-grid-row-height", fallback.row_height),
+        gutter_bg: color("--rs-grid-gutter-bg", fallback.gutter_bg),
+        gutter_text: color(
+            "--rs-grid-gutter-text",
+            fallback.gutter_text,
+        ),
+        gutter_font_size: px(
+            "--rs-grid-gutter-font-size",
+            fallback.gutter_font_size,
+        ),
+        gutter_font_bold: bool_var(
+            "--rs-grid-gutter-font-bold",
+            fallback.gutter_font_bold,
+        ),
+        gutter_border: color(
+            "--rs-grid-gutter-border",
+            fallback.gutter_border,
+        ),
     }
 }
 

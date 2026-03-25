@@ -109,6 +109,18 @@ pub struct Theme {
     pub sort_arrow_width: f64,
     /// Half-height of the sort arrow triangle, in logical pixels.
     pub sort_arrow_height: f64,
+
+    // ── row-number gutter ─────────────────────────────────────────────────────
+    /// Background of the row-number gutter column.
+    pub gutter_bg: Color,
+    /// Text color of row numbers in the gutter.
+    pub gutter_text: Color,
+    /// Font size of row numbers in logical pixels.
+    pub gutter_font_size: f64,
+    /// Render row numbers with font-weight 600.
+    pub gutter_font_bold: bool,
+    /// Right border color of the gutter column.
+    pub gutter_border: Color,
 }
 
 impl Theme {
@@ -116,11 +128,11 @@ impl Theme {
     pub fn light() -> Self {
         Self {
             bg: Color::rgb(255, 255, 255),
-            header_bg: Color::rgb(248, 249, 250),
-            header_text: Color::rgb(24, 29, 31),
-            cell_text: Color::rgb(24, 29, 31),
-            grid_line: Color::rgb(224, 224, 224),
-            header_border: Color::rgb(186, 191, 199),
+            cell_text: Color::rgb(0, 0, 0),
+            grid_line: Color::rgb(220, 220, 220),
+            header_bg: Color::rgb(250, 250, 250),
+            header_text: Color::rgb(0, 0, 0),
+            header_border: Color::rgb(220, 220, 220),
             header_separator_inset: 15.0,
             header_height: 50.0,
             row_height: 40.0,
@@ -149,9 +161,14 @@ impl Theme {
             drag_insert_line_width: 3.0,
             drag_ghost_radius: 4.0,
             drag_ghost_border_width: 1.0,
-            drag_anim_alpha: 0.30,
+            drag_anim_alpha: 0.60,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
+            gutter_bg: Color::rgb(250, 250, 250),
+            gutter_text: Color::rgba(0, 0, 0, 255),
+            gutter_font_size: 13.0,
+            gutter_font_bold: true,
+            gutter_border: Color::rgb(220, 220, 220),
         }
     }
 
@@ -159,10 +176,10 @@ impl Theme {
     pub fn dark() -> Self {
         Self {
             bg: Color::rgb(26, 27, 38),
-            header_bg: Color::rgb(36, 40, 59),
-            header_text: Color::rgb(169, 177, 214),
             cell_text: Color::rgb(192, 202, 245),
             grid_line: Color::rgb(42, 47, 69),
+            header_bg: Color::rgb(36, 40, 59),
+            header_text: Color::rgb(169, 177, 214),
             header_border: Color::rgb(61, 68, 102),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -195,6 +212,11 @@ impl Theme {
             sort_arrow_height: 3.5,
             header_height: 50.0,
             row_height: 40.0,
+            gutter_bg: Color::rgb(36, 40, 59),
+            gutter_text: Color::rgba(169, 177, 214, 153),
+            gutter_font_size: 12.0,
+            gutter_font_bold: false,
+            gutter_border: Color::rgb(61, 68, 102),
         }
     }
 }
