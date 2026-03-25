@@ -621,7 +621,7 @@ impl SceneBuilder {
                     y: 0.0,
                     width: src_w,
                     height: model.header_height,
-                    fill: Color::rgba(128, 128, 128, 100),
+                    fill: t.drag_overlay,
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,
@@ -649,18 +649,12 @@ impl SceneBuilder {
                 let ghost_x = (hint.cursor_vx - ghost_w / 2.0)
                     .max(0.0)
                     .min(vp.width - ghost_w);
-                let ghost_fill = Color::rgba(
-                    t.header_bg.r,
-                    t.header_bg.g,
-                    t.header_bg.b,
-                    180,
-                );
                 frame.push(ScenePrimitive::Rect(RectPrimitive {
                     x: ghost_x,
                     y: 0.0,
                     width: ghost_w,
                     height: model.header_height,
-                    fill: ghost_fill,
+                    fill: t.drag_ghost_bg,
                     stroke: Some(t.header_border),
                     stroke_width: 1.0,
                     corner_radius: 0.0,
@@ -669,17 +663,11 @@ impl SceneBuilder {
                 // Ghost label
                 let mid_y =
                     model.header_height * 0.5 + t.header_font_size * 0.35;
-                let ghost_text = Color::rgba(
-                    t.header_text.r,
-                    t.header_text.g,
-                    t.header_text.b,
-                    200,
-                );
                 frame.push(ScenePrimitive::Text(TextPrimitive {
                     x: ghost_x + t.cell_padding,
                     y: mid_y,
                     text: cols[hint.source_col].label.clone(),
-                    color: ghost_text,
+                    color: t.drag_ghost_text,
                     font_size: t.header_font_size,
                     bold: t.header_font_bold,
                     clip: Some([ghost_x, 0.0, ghost_w, model.header_height]),
@@ -769,13 +757,13 @@ impl SceneBuilder {
                 corner_radius: 0.0,
             }));
 
-            // Thumb (inset 2px on each side)
-            const INSET: f64 = 2.0;
+            // Thumb (inset on each side)
+            let inset = t.scrollbar_inset;
             frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: sb.track_x + INSET,
-                y: sb.thumb_y + INSET,
-                width: (sb.track_w - INSET * 2.0).max(2.0),
-                height: (sb.thumb_h - INSET * 2.0).max(4.0),
+                x: sb.track_x + inset,
+                y: sb.thumb_y + inset,
+                width: (sb.track_w - inset * 2.0).max(2.0),
+                height: (sb.thumb_h - inset * 2.0).max(4.0),
                 fill: t.scrollbar_thumb,
                 stroke: None,
                 stroke_width: 0.0,
@@ -854,13 +842,13 @@ impl SceneBuilder {
                 corner_radius: 0.0,
             }));
 
-            // Thumb (inset 2px on each side)
-            const INSET: f64 = 2.0;
+            // Thumb (inset on each side)
+            let inset = t.scrollbar_inset;
             frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: hsb.thumb_x + INSET,
-                y: hsb.track_y + INSET,
-                width: (hsb.thumb_w - INSET * 2.0).max(4.0),
-                height: (hsb.track_h - INSET * 2.0).max(2.0),
+                x: hsb.thumb_x + inset,
+                y: hsb.track_y + inset,
+                width: (hsb.thumb_w - inset * 2.0).max(4.0),
+                height: (hsb.track_h - inset * 2.0).max(2.0),
                 fill: t.scrollbar_thumb,
                 stroke: None,
                 stroke_width: 0.0,

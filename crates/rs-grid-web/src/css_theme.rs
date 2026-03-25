@@ -8,25 +8,29 @@ use rs_grid_scene::{primitives::Color, Theme};
 ///
 /// ## Supported variables
 ///
-/// | Variable                        | Maps to                    |
-/// |--------------------------------|----------------------------|
-/// | `--rs-grid-bg`                 | `Theme::bg`                |
-/// | `--rs-grid-header-bg`          | `Theme::header_bg`         |
-/// | `--rs-grid-header-text`        | `Theme::header_text`       |
-/// | `--rs-grid-cell-text`          | `Theme::cell_text`         |
-/// | `--rs-grid-grid-line`          | `Theme::grid_line`         |
-/// | `--rs-grid-header-border`      | `Theme::header_border`     |
-/// | `--rs-grid-selection-fill`     | `Theme::selection_fill`    |
-/// | `--rs-grid-selection-border`   | `Theme::selection_border`  |
-/// | `--rs-grid-scrollbar-track`    | `Theme::scrollbar_track`   |
-/// | `--rs-grid-scrollbar-thumb`    | `Theme::scrollbar_thumb`   |
-/// | `--rs-grid-scrollbar-width`    | `Theme::scrollbar_width`   |
-/// | `--rs-grid-scrollbar-radius`   | `Theme::scrollbar_radius`  |
-/// | `--rs-grid-row-alt-bg`         | `Theme::row_alt_bg`        |
-/// | `--rs-grid-font-size`          | `Theme::font_size`         |
-/// | `--rs-grid-header-font-size`   | `Theme::header_font_size`  |
-/// | `--rs-grid-header-font-bold`   | `Theme::header_font_bold`  |
-/// | `--rs-grid-cell-padding`       | `Theme::cell_padding`      |
+/// | Variable                        | Maps to                      |
+/// |--------------------------------|------------------------------|
+/// | `--rs-grid-bg`                 | `Theme::bg`                  |
+/// | `--rs-grid-header-bg`          | `Theme::header_bg`           |
+/// | `--rs-grid-header-text`        | `Theme::header_text`         |
+/// | `--rs-grid-cell-text`          | `Theme::cell_text`           |
+/// | `--rs-grid-grid-line`          | `Theme::grid_line`           |
+/// | `--rs-grid-header-border`      | `Theme::header_border`       |
+/// | `--rs-grid-selection-fill`     | `Theme::selection_fill`      |
+/// | `--rs-grid-selection-border`   | `Theme::selection_border`    |
+/// | `--rs-grid-scrollbar-track`    | `Theme::scrollbar_track`     |
+/// | `--rs-grid-scrollbar-thumb`    | `Theme::scrollbar_thumb`     |
+/// | `--rs-grid-scrollbar-width`    | `Theme::scrollbar_width`     |
+/// | `--rs-grid-scrollbar-radius`   | `Theme::scrollbar_radius`    |
+/// | `--rs-grid-scrollbar-inset`    | `Theme::scrollbar_inset`     |
+/// | `--rs-grid-row-alt-bg`         | `Theme::row_alt_bg`          |
+/// | `--rs-grid-font-size`          | `Theme::font_size`           |
+/// | `--rs-grid-header-font-size`   | `Theme::header_font_size`    |
+/// | `--rs-grid-header-font-bold`   | `Theme::header_font_bold`    |
+/// | `--rs-grid-cell-padding`       | `Theme::cell_padding`        |
+/// | `--rs-grid-drag-overlay`       | `Theme::drag_overlay`        |
+/// | `--rs-grid-drag-ghost-bg`      | `Theme::drag_ghost_bg`       |
+/// | `--rs-grid-drag-ghost-text`    | `Theme::drag_ghost_text`     |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -85,6 +89,10 @@ pub fn theme_from_css_vars() -> Theme {
             "--rs-grid-scrollbar-radius",
             fallback.scrollbar_radius,
         ),
+        scrollbar_inset: px(
+            "--rs-grid-scrollbar-inset",
+            fallback.scrollbar_inset,
+        ),
         font_size: px("--rs-grid-font-size", fallback.font_size),
         header_font_size: px(
             "--rs-grid-header-font-size",
@@ -109,6 +117,18 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.search_current,
         ),
         skeleton_fg: color("--rs-grid-skeleton-fg", fallback.skeleton_fg),
+        drag_overlay: color(
+            "--rs-grid-drag-overlay",
+            fallback.drag_overlay,
+        ),
+        drag_ghost_bg: color(
+            "--rs-grid-drag-ghost-bg",
+            fallback.drag_ghost_bg,
+        ),
+        drag_ghost_text: color(
+            "--rs-grid-drag-ghost-text",
+            fallback.drag_ghost_text,
+        ),
     }
 }
 
