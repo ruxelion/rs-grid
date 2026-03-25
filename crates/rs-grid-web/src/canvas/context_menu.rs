@@ -1,4 +1,4 @@
-use rs_grid_core::commands::GridCommand;
+use rs_grid_core::{commands::GridCommand, sort::SortDir};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlElement, MouseEvent};
 
@@ -9,6 +9,36 @@ use crate::css_theme;
 
 // ── context-menu icons (Feather Icons) ──────────────────
 
+const ICON_SORT_ASC: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<line x1="12" y1="19" x2="12" y2="5"/>"#,
+    r#"<polyline points="5 12 12 5 19 12"/></svg>"#
+);
+const ICON_SORT_DESC: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<line x1="12" y1="5" x2="12" y2="19"/>"#,
+    r#"<polyline points="19 12 12 19 5 12"/></svg>"#
+);
+const ICON_CLEAR_SORT: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<line x1="18" y1="6" x2="6" y2="18"/>"#,
+    r#"<line x1="6" y1="6" x2="18" y2="18"/></svg>"#
+);
+const ICON_AUTOSIZE: &str = concat!(
+    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"stroke-linecap="round" stroke-linejoin="round">"#,
+    r#"<polyline points="15 3 21 3 21 9"/>"#,
+    r#"<polyline points="9 21 3 21 3 15"/>"#,
+    r#"<line x1="21" y1="3" x2="14" y2="10"/>"#,
+    r#"<line x1="3" y1="21" x2="10" y2="14"/></svg>"#
+);
 const ICON_PIN: &str = concat!(
     r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
     r#"stroke="currentColor" stroke-width="2" "#,
@@ -212,6 +242,11 @@ fn builtin_icon(action: BuiltinAction) -> &'static str {
         BuiltinAction::Copy | BuiltinAction::CopyWithHeaders => ICON_COPY,
         BuiltinAction::Paste => ICON_PASTE,
         BuiltinAction::PinColumn | BuiltinAction::UnpinColumn => ICON_PIN,
+        BuiltinAction::SortAsc => ICON_SORT_ASC,
+        BuiltinAction::SortDesc => ICON_SORT_DESC,
+        BuiltinAction::ClearSort => ICON_CLEAR_SORT,
+        BuiltinAction::AutoSizeColumn
+        | BuiltinAction::AutoSizeAllColumns => ICON_AUTOSIZE,
     }
 }
 
@@ -223,6 +258,11 @@ fn builtin_label(action: BuiltinAction) -> &'static str {
         BuiltinAction::Paste => "Paste",
         BuiltinAction::PinColumn => "Pin Column",
         BuiltinAction::UnpinColumn => "Unpin Column",
+        BuiltinAction::SortAsc => "Sort Ascending",
+        BuiltinAction::SortDesc => "Sort Descending",
+        BuiltinAction::ClearSort => "Clear Sort",
+        BuiltinAction::AutoSizeColumn => "Autosize This Column",
+        BuiltinAction::AutoSizeAllColumns => "Autosize All Columns",
     }
 }
 
@@ -385,9 +425,20 @@ impl GridCanvas {
         let (_, menu) = create_menu_shell(x, y, &colors);
 
         let config = self.0.ctx_menu_config.borrow();
-        let is_pinned = {
+        let (is_pinned, col_sorted) = {
             let state = self.0.state.borrow();
-            col_idx < state.model.pinned_count
+            let pinned = col_idx < state.model.pinned_count;
+            let col_key = state
+                .model
+                .columns
+                .get(col_idx)
+                .map(|c| c.key.as_str())
+                .unwrap_or("");
+            let sorted = state
+                .sort
+                .as_ref()
+                .is_some_and(|s| s.col_key == col_key);
+            (pinned, sorted)
         };
 
         // Build item list.
@@ -396,11 +447,23 @@ impl GridCanvas {
         {
             Some(list) => list,
             None => {
-                default_items = if is_pinned {
-                    vec![ContextMenuItem::unpin_column()]
+                let mut v = vec![
+                    ContextMenuItem::sort_asc(),
+                    ContextMenuItem::sort_desc(),
+                ];
+                if col_sorted {
+                    v.push(ContextMenuItem::clear_sort());
+                }
+                v.push(ContextMenuItem::separator());
+                v.push(ContextMenuItem::autosize_column());
+                v.push(ContextMenuItem::autosize_all_columns());
+                v.push(ContextMenuItem::separator());
+                if is_pinned {
+                    v.push(ContextMenuItem::unpin_column());
                 } else {
-                    vec![ContextMenuItem::pin_column()]
-                };
+                    v.push(ContextMenuItem::pin_column());
+                }
+                default_items = v;
                 &default_items
             }
         };
@@ -559,6 +622,43 @@ impl GridCanvas {
                 }
                 BuiltinAction::UnpinColumn => {
                     gc.set_pinned_count(0);
+                }
+                BuiltinAction::SortAsc | BuiltinAction::SortDesc => {
+                    let col_key = gc
+                        .0
+                        .state
+                        .borrow()
+                        .model
+                        .columns
+                        .get(col_idx)
+                        .map(|c| c.key.clone())
+                        .unwrap_or_default();
+                    let dir = if action == BuiltinAction::SortAsc {
+                        SortDir::Asc
+                    } else {
+                        SortDir::Desc
+                    };
+                    gc.dispatch(GridCommand::SetSort { col_key, dir });
+                }
+                BuiltinAction::ClearSort => {
+                    gc.dispatch(GridCommand::ClearSort);
+                }
+                BuiltinAction::AutoSizeColumn => {
+                    let (cw, hcw, cp) = gc.autofit_params();
+                    gc.dispatch(GridCommand::AutoFitColumn {
+                        col_idx,
+                        char_width: cw,
+                        header_char_width: hcw,
+                        cell_padding: cp,
+                    });
+                }
+                BuiltinAction::AutoSizeAllColumns => {
+                    let (cw, hcw, cp) = gc.autofit_params();
+                    gc.dispatch(GridCommand::AutoFitAllColumns {
+                        char_width: cw,
+                        header_char_width: hcw,
+                        cell_padding: cp,
+                    });
                 }
             }
         });

@@ -410,6 +410,35 @@ impl GridState {
                     }
                 }
             }
+            GridCommand::SetSort { col_key, dir } => {
+                self.sort = Some(SortState {
+                    col_key: col_key.clone(),
+                    dir: dir.clone(),
+                });
+                let sorted = self.model.apply_sort(&col_key, &dir);
+                if !self.model.filters.is_empty() {
+                    self.model.apply_filter();
+                }
+                self.viewport.scroll_y = 0.0;
+                if sorted {
+                    CommandOutput::None
+                } else {
+                    CommandOutput::SortWarning {
+                        row_count: self.model.data.row_count(),
+                        limit: crate::model::GridModel::MAX_CLIENT_SORT_ROWS,
+                    }
+                }
+            }
+            GridCommand::ClearSort => {
+                self.sort = None;
+                self.model.sort_order.clear();
+                self.model.invalidate_sort_cache();
+                if !self.model.filters.is_empty() {
+                    self.model.apply_filter();
+                }
+                self.viewport.scroll_y = 0.0;
+                CommandOutput::None
+            }
             GridCommand::SetPinnedColumnCount { count } => {
                 self.model.pinned_count = count.min(self.model.columns.len());
                 CommandOutput::None
@@ -591,6 +620,22 @@ impl GridState {
                     self.model.rebuild_offsets();
                     self.history
                         .push(UndoEntry::ResizeColumn { col_idx, old_width });
+                }
+                CommandOutput::None
+            }
+            GridCommand::AutoFitAllColumns {
+                char_width,
+                header_char_width,
+                cell_padding,
+            } => {
+                let n = self.model.columns.len();
+                for col_idx in 0..n {
+                    self.apply(GridCommand::AutoFitColumn {
+                        col_idx,
+                        char_width,
+                        header_char_width,
+                        cell_padding,
+                    });
                 }
                 CommandOutput::None
             }

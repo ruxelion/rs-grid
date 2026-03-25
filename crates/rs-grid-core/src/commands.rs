@@ -1,4 +1,4 @@
-use crate::selection::{CellCoord, CopyError};
+use crate::{selection::{CellCoord, CopyError}, sort::SortDir};
 
 /// All mutations that can be applied to a `GridState`.
 #[derive(Debug, Clone)]
@@ -74,6 +74,15 @@ pub enum GridCommand {
         /// Column key to toggle.
         col_key: String,
     },
+    /// Set an explicit sort direction for a column.
+    SetSort {
+        /// Column key to sort.
+        col_key: String,
+        /// Direction to apply.
+        dir: SortDir,
+    },
+    /// Remove the active sort (restore natural row order).
+    ClearSort,
     /// Set the number of leading columns pinned (frozen) during
     /// horizontal scroll.
     SetPinnedColumnCount {
@@ -147,6 +156,15 @@ pub enum GridCommand {
         col_idx: usize,
         /// Average character width in logical pixels, provided by the
         /// renderer (derived from `font_size`).
+        char_width: f64,
+        /// Average character width for the header font (may be bold).
+        header_char_width: f64,
+        /// Horizontal cell padding (both sides).
+        cell_padding: f64,
+    },
+    /// Auto-fit all column widths to their content.
+    AutoFitAllColumns {
+        /// Average character width in logical pixels.
         char_width: f64,
         /// Average character width for the header font (may be bold).
         header_char_width: f64,

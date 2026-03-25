@@ -14,6 +14,16 @@ pub enum BuiltinAction {
     PinColumn,
     /// Unpin the clicked column.
     UnpinColumn,
+    /// Sort the clicked column ascending.
+    SortAsc,
+    /// Sort the clicked column descending.
+    SortDesc,
+    /// Clear the active sort.
+    ClearSort,
+    /// Auto-size the clicked column to its content.
+    AutoSizeColumn,
+    /// Auto-size all columns to their content.
+    AutoSizeAllColumns,
 }
 
 /// A single item in the context menu.
@@ -92,6 +102,56 @@ impl ContextMenuItem {
     pub fn unpin_column() -> Self {
         Self::Builtin {
             action: BuiltinAction::UnpinColumn,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create a Sort Ascending item.
+    pub fn sort_asc() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::SortAsc,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create a Sort Descending item.
+    pub fn sort_desc() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::SortDesc,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create a Clear Sort item.
+    pub fn clear_sort() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::ClearSort,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create an Auto-size This Column item.
+    pub fn autosize_column() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::AutoSizeColumn,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create an Auto-size All Columns item.
+    pub fn autosize_all_columns() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::AutoSizeAllColumns,
             label: None,
             icon: None,
             shortcut: None,

@@ -777,6 +777,20 @@ impl GridCanvas {
         best_idx
     }
 
+    /// Returns `(char_width, header_char_width, cell_padding)` derived
+    /// from the current theme — same values used by double-click auto-fit.
+    pub(super) fn autofit_params(&self) -> (f64, f64, f64) {
+        let b = self.0.builder.borrow();
+        let t = &b.theme;
+        let char_width = t.font_size * 0.6;
+        let header_char_width = if t.header_font_bold {
+            t.header_font_size * 0.65
+        } else {
+            t.header_font_size * 0.6
+        };
+        (char_width, header_char_width, t.cell_padding)
+    }
+
     /// Minimum column width that keeps the menu icon and sort arrow
     /// fully visible, derived from the current theme values.
     fn min_col_width(&self) -> f64 {
