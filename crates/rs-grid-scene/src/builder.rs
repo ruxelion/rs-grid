@@ -36,6 +36,18 @@ pub struct ColumnDragHint {
     pub cursor_vx: f64,
 }
 
+// ── flash hint ───────────────────────────────────────────────────────────────
+
+/// Transient hint for the flash-cells animation.
+///
+/// Computed by the web layer from elapsed time; consumed by the
+/// scene builder to render a fading golden-yellow overlay on
+/// selected cells.
+pub struct FlashHint {
+    /// Normalised intensity: 1.0 = full flash, 0.0 = invisible.
+    pub alpha_factor: f64,
+}
+
 // ── builder ───────────────────────────────────────────────────────────────────
 
 /// Transforms a `GridState` snapshot into a `SceneFrame`.
@@ -78,6 +90,7 @@ impl SceneBuilder {
         &self,
         state: &GridState,
         col_drag: Option<&ColumnDragHint>,
+        flash: Option<&FlashHint>,
     ) -> SceneFrame {
         let vp = &state.viewport;
         let model = &state.model;
@@ -241,6 +254,7 @@ impl SceneBuilder {
                     &search_set,
                     search_current,
                     t,
+                    flash,
                 );
             }
 
@@ -321,6 +335,7 @@ impl SceneBuilder {
                         &search_set,
                         search_current,
                         t,
+                        flash,
                     );
                 }
             }
@@ -343,13 +358,23 @@ impl SceneBuilder {
             let x2 = col_vx(br.col) + model.columns[br.col].width;
             let y2 = row_vy(br.row) + model.row_height;
 
+            // During a flash the border adopts the flash colour;
+            // otherwise use the normal selection border colour.
+            let border_color = if let Some(f) = flash {
+                let a = (t.flash_border.a as f64 * f.alpha_factor).round()
+                    as u8;
+                Color::rgba(t.flash_border.r, t.flash_border.g, t.flash_border.b, a)
+            } else {
+                t.selection_border
+            };
+
             // top
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1,
                 y1: y1 - 0.5,
                 x2,
                 y2: y1 - 0.5,
-                color: t.selection_border,
+                color: border_color,
                 width: 1.0,
             }));
             // bottom
@@ -358,7 +383,7 @@ impl SceneBuilder {
                 y1: y2 - 0.5,
                 x2,
                 y2: y2 - 0.5,
-                color: t.selection_border,
+                color: border_color,
                 width: 1.0,
             }));
             // left
@@ -367,7 +392,7 @@ impl SceneBuilder {
                 y1,
                 x2: x1 + 0.5,
                 y2,
-                color: t.selection_border,
+                color: border_color,
                 width: 1.0,
             }));
             // right
@@ -376,7 +401,7 @@ impl SceneBuilder {
                 y1,
                 x2: x2 - 0.5,
                 y2,
-                color: t.selection_border,
+                color: border_color,
                 width: 1.0,
             }));
         }
@@ -901,6 +926,7 @@ impl SceneBuilder {
         search_set: &HashSet<(u64, usize)>,
         search_current: Option<(u64, usize)>,
         t: &Theme,
+        flash: Option<&FlashHint>,
     ) {
         // Selection fill (no border — outer border drawn below)
         if sel.is_selected(ri, ci) {
@@ -914,6 +940,21 @@ impl SceneBuilder {
                 stroke_width: 0.0,
                 corner_radius: 0.0,
             }));
+            // Flash overlay — themed fade on paste
+            if let Some(f) = flash {
+                let a = (t.flash_fill.a as f64 * f.alpha_factor).round()
+                    as u8;
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: cx,
+                    y: ry,
+                    width: col.width,
+                    height: row_height,
+                    fill: Color::rgba(t.flash_fill.r, t.flash_fill.g, t.flash_fill.b, a),
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                }));
+            }
         }
 
         // Search highlight

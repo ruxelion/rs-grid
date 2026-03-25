@@ -95,6 +95,11 @@ pub fn theme_from_css_vars() -> Theme {
             fallback.header_font_bold,
         ),
         cell_padding: px("--rs-grid-cell-padding", fallback.cell_padding),
+        flash_fill: color("--rs-grid-flash-fill", fallback.flash_fill),
+        flash_border: color(
+            "--rs-grid-flash-border",
+            fallback.flash_border,
+        ),
         search_highlight: color(
             "--rs-grid-search-highlight",
             fallback.search_highlight,
