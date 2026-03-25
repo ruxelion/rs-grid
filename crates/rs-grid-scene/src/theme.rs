@@ -20,6 +20,12 @@ pub struct Theme {
     pub grid_line: Color,
     /// Bottom border below the header row.
     pub header_border: Color,
+    /// Vertical inset applied to each end of the column separator
+    /// line in the header. 0 = full height; 6 = shorter divider.
+    pub header_separator_inset: f64,
+    /// Width of the column separator line in the header, in logical
+    /// pixels.
+    pub header_separator_width: f64,
     /// Fill color for the selection rectangle.
     pub selection_fill: Color,
     /// Border color for the selection rectangle.
@@ -33,6 +39,12 @@ pub struct Theme {
     pub row_alt_bg: Color,
     /// Background overlay for the row under the cursor (transparent = disabled).
     pub row_hover_bg: Color,
+
+    // ── row / header dimensions ──────────────────────────────────────────────
+    /// Height of the sticky header row in logical pixels.
+    pub header_height: f64,
+    /// Height of each data row in logical pixels.
+    pub row_height: f64,
 
     // ── typography ───────────────────────────────────────────────────────────
     /// Cell text font size in logical pixels.
@@ -109,6 +121,10 @@ impl Theme {
             cell_text: Color::rgb(24, 29, 31),
             grid_line: Color::rgb(224, 224, 224),
             header_border: Color::rgb(186, 191, 199),
+            header_separator_inset: 15.0,
+            header_height: 50.0,
+            row_height: 40.0,
+            header_separator_width: 2.0,
             selection_fill: Color::rgba(31, 119, 220, 46),
             selection_border: Color::rgba(31, 119, 220, 210),
             scrollbar_track: Color::rgb(241, 241, 241),
@@ -148,6 +164,8 @@ impl Theme {
             cell_text: Color::rgb(192, 202, 245),
             grid_line: Color::rgb(42, 47, 69),
             header_border: Color::rgb(61, 68, 102),
+            header_separator_inset: 15.0,
+            header_separator_width: 2.0,
             selection_fill: Color::rgba(122, 162, 255, 51),
             selection_border: Color::rgba(122, 162, 255, 204),
             scrollbar_track: Color::rgb(31, 35, 53),
@@ -175,6 +193,8 @@ impl Theme {
             drag_anim_alpha: 0.30,
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
+            header_height: 50.0,
+            row_height: 40.0,
         }
     }
 }

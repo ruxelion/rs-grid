@@ -202,6 +202,8 @@ impl GridCanvas {
             width: css_w,
             height: css_h,
         });
+        state.apply(GridCommand::SetHeaderHeight(theme.header_height));
+        state.apply(GridCommand::SetRowHeight(theme.row_height));
 
         // Opaque canvas (alpha: false) enables sub-pixel text
         // rendering (ClearType on Windows, LCD on macOS).

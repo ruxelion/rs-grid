@@ -346,6 +346,18 @@ impl GridState {
                 self.hovered_row = row;
                 CommandOutput::None
             }
+            GridCommand::SetHeaderHeight(h) => {
+                if h > 0.0 {
+                    self.model.header_height = h;
+                }
+                CommandOutput::None
+            }
+            GridCommand::SetRowHeight(h) => {
+                if h > 0.0 {
+                    self.model.row_height = h;
+                }
+                CommandOutput::None
+            }
             GridCommand::ResizeColumn { col_idx, new_width } => {
                 const MIN_COL_WIDTH: f64 = 20.0;
                 if col_idx < self.model.columns.len() {

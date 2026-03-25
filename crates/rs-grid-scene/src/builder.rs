@@ -543,11 +543,12 @@ impl SceneBuilder {
                     let sep_x = cx + col.width - 0.5;
                     frame.push(ScenePrimitive::Line(LinePrimitive {
                         x1: sep_x,
-                        y1: 0.0,
+                        y1: t.header_separator_inset,
                         x2: sep_x,
-                        y2: model.header_height,
+                        y2: model.header_height
+                            - t.header_separator_inset,
                         color: t.header_border,
-                        width: 1.0,
+                        width: t.header_separator_width,
                     }));
                 }
             };
