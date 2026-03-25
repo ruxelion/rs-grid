@@ -503,13 +503,13 @@ impl SceneBuilder {
                         }));
                     }
 
-                    // Available text width = column minus left
-                    // padding minus icon zone (margin + button + gap).
-                    let icon_zone = t.header_menu_icon_margin_r
-                        + t.header_menu_icon_btn_w
-                        + t.cell_padding;
+                    // Text must end before the icon dots (which
+                    // are at the horizontal center of the button).
+                    // icon_center_offset = margin_r + btn_w / 2
+                    let icon_center_offset = t.header_menu_icon_margin_r
+                        + t.header_menu_icon_btn_w / 2.0;
                     let label_max_w =
-                        (col.width - t.cell_padding - icon_zone)
+                        (col.width - t.cell_padding - icon_center_offset)
                             .max(0.0);
                     frame.push(ScenePrimitive::Text(TextPrimitive {
                         x: cx + t.cell_padding,
