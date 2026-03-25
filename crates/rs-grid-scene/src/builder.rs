@@ -503,6 +503,14 @@ impl SceneBuilder {
                         }));
                     }
 
+                    // Available text width = column minus left
+                    // padding minus icon zone (margin + button + gap).
+                    let icon_zone = t.header_menu_icon_margin_r
+                        + t.header_menu_icon_btn_w
+                        + t.cell_padding;
+                    let label_max_w =
+                        (col.width - t.cell_padding - icon_zone)
+                            .max(0.0);
                     frame.push(ScenePrimitive::Text(TextPrimitive {
                         x: cx + t.cell_padding,
                         y: mid_y,
@@ -510,8 +518,14 @@ impl SceneBuilder {
                         color: t.header_text,
                         font_size: t.header_font_size,
                         bold: t.header_font_bold,
-                        clip: Some([cx, 0.0, col.width, model.header_height]),
+                        clip: Some([
+                            cx,
+                            0.0,
+                            col.width,
+                            model.header_height,
+                        ]),
                         align: TextAlign::Left,
+                        max_width: Some(label_max_w),
                     }));
 
                     // Three-dot menu icon (⋮) — three small circles at
@@ -686,6 +700,7 @@ impl SceneBuilder {
                     bold: t.gutter_font_bold,
                     clip: Some([0.0, ry, rnw, model.row_height]),
                     align: TextAlign::Right,
+                    max_width: None,
                 }));
 
                 // Horizontal grid line inside gutter
@@ -776,6 +791,7 @@ impl SceneBuilder {
                     bold: t.header_font_bold,
                     clip: Some([ghost_x, ghost_y, ghost_w, ghost_h]),
                     align: TextAlign::Left,
+                    max_width: None,
                 }));
             }
         }
@@ -1150,6 +1166,7 @@ impl SceneBuilder {
                         bold,
                         clip: Some([cx, ry, col.width, row_height]),
                         align,
+                        max_width: None,
                     }));
                 }
             }
@@ -1224,6 +1241,7 @@ impl SceneBuilder {
                 bold: false,
                 clip: Some([cx, ry, col_width, row_height]),
                 align: TextAlign::Left,
+                max_width: None,
             }));
         }
     }

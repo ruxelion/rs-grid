@@ -63,5 +63,6 @@ features = [
   "File",
   "FileReader",
   "Storage",
+  "TextMetrics",
 ]
 version = "0.3"

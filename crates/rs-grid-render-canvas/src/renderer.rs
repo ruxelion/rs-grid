@@ -88,6 +88,46 @@ impl ImageCache {
     }
 }
 
+// ── ellipsis helper ─────────────────────────────────────
+
+/// Return a truncated copy of `text` that fits within `max_w`
+/// logical pixels, appended with a "…" character.
+/// The font must already be set on `ctx` before calling this.
+fn truncate_with_ellipsis(
+    ctx: &CanvasRenderingContext2d,
+    text: &str,
+    max_w: f64,
+) -> String {
+    const ELLIPSIS: &str = "…";
+    let ellipsis_w = ctx
+        .measure_text(ELLIPSIS)
+        .map(|m| m.width())
+        .unwrap_or(10.0);
+    let available = max_w - ellipsis_w;
+    if available <= 0.0 {
+        return ELLIPSIS.to_owned();
+    }
+    // Binary-search the longest prefix that fits within `available`.
+    let chars: Vec<char> = text.chars().collect();
+    let mut lo = 0usize;
+    let mut hi = chars.len();
+    while lo < hi {
+        let mid = (lo + hi + 1) / 2;
+        let s: String = chars[..mid].iter().collect();
+        let w = ctx
+            .measure_text(&s)
+            .map(|m| m.width())
+            .unwrap_or(f64::MAX);
+        if w <= available {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    let truncated: String = chars[..lo].iter().collect();
+    format!("{}{}", truncated, ELLIPSIS)
+}
+
 // ── renderer ────────────────────────────────────────────
 
 /// Renders a `SceneFrame` onto a `CanvasRenderingContext2d`.
@@ -187,7 +227,22 @@ impl CanvasRenderer {
             TextAlign::Right => "right",
             TextAlign::Center => "center",
         });
-        let _ = ctx.fill_text(&t.text, t.x.round(), t.y.round());
+
+        // Font must be set before measuring.
+        let display = if let Some(max_w) = t.max_width {
+            let w = ctx
+                .measure_text(&t.text)
+                .map(|m| m.width())
+                .unwrap_or(0.0);
+            if w > max_w {
+                truncate_with_ellipsis(ctx, &t.text, max_w)
+            } else {
+                t.text.clone()
+            }
+        } else {
+            t.text.clone()
+        };
+        let _ = ctx.fill_text(&display, t.x.round(), t.y.round());
 
         ctx.restore();
     }
