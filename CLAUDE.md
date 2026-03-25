@@ -1,5 +1,19 @@
 # rs-grid — Claude Code guide
 
+## Documentation
+
+The project has a full documentation site built in `site/`. Two files are
+particularly useful for AI context:
+
+- `site/doc_build/llms.txt` — index of all documentation pages
+- `site/doc_build/llms-full.txt` — full documentation concatenated (use for
+  deep API or concept questions)
+
+Individual pages under `site/doc_build/` cover the API reference
+(`api/`), architecture concepts (`concepts/`), data sources (`data/`),
+and all features (`features/`). Consult these before asking questions about
+existing behaviour or before designing a change.
+
 ## Global context
 
 This repository is part of a global roadmap centralised in the private repo:
