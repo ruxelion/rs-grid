@@ -67,6 +67,19 @@ pub struct Theme {
     pub scrollbar_width: f64,
     /// Corner radius of the thumb in logical pixels.
     pub scrollbar_radius: f64,
+    /// Gap between the track edge and the thumb on each side, in logical
+    /// pixels.
+    pub scrollbar_inset: f64,
+
+    // ── column drag ───────────────────────────────────────────────────────────
+    /// Dim overlay drawn over the source column header during a column drag.
+    pub drag_overlay: Color,
+    /// Background of the ghost header that follows the cursor during a column
+    /// drag (semi-transparent version of `header_bg`).
+    pub drag_ghost_bg: Color,
+    /// Text color of the ghost header label during a column drag
+    /// (semi-transparent version of `header_text`).
+    pub drag_ghost_text: Color,
 }
 
 impl Theme {
@@ -96,6 +109,10 @@ impl Theme {
             cell_padding: 10.0,
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
+            scrollbar_inset: 2.0,
+            drag_overlay: Color::rgba(128, 128, 128, 100),
+            drag_ghost_bg: Color::rgba(248, 249, 250, 180),
+            drag_ghost_text: Color::rgba(24, 29, 31, 200),
         }
     }
 
@@ -125,6 +142,10 @@ impl Theme {
             cell_padding: 10.0,
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
+            scrollbar_inset: 2.0,
+            drag_overlay: Color::rgba(128, 128, 128, 100),
+            drag_ghost_bg: Color::rgba(36, 40, 59, 180),
+            drag_ghost_text: Color::rgba(169, 177, 214, 200),
         }
     }
 }
