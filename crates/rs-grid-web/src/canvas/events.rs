@@ -74,10 +74,42 @@ impl GridCanvas {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: WheelEvent| {
             evt.prevent_default();
-            gc.dispatch(GridCommand::ScrollBy {
-                dx: evt.delta_x(),
-                dy: evt.delta_y(),
-            });
+
+            // Convert delta to logical pixels regardless of unit.
+            let (dx, dy) = {
+                let state = gc.0.state.borrow();
+                match evt.delta_mode() {
+                    // DOM_DELTA_LINE — Firefox mouse wheel (3 lines/notch)
+                    1 => {
+                        let lh = state.model.row_height;
+                        (evt.delta_x() * lh, evt.delta_y() * lh)
+                    }
+                    // DOM_DELTA_PAGE
+                    2 => {
+                        let h = state.viewport.height;
+                        (evt.delta_x() * h, evt.delta_y() * h)
+                    }
+                    // DOM_DELTA_PIXEL (0) — Chrome/Safari (trackpad + wheel)
+                    _ => (evt.delta_x(), evt.delta_y()),
+                }
+            };
+
+            if evt.delta_mode() == 0 {
+                // Pixel mode = trackpad: the OS already supplies
+                // inertia — scroll directly, no software momentum.
+                gc.dispatch(GridCommand::ScrollBy { dx, dy });
+            } else {
+                // Line / page mode = mouse wheel: accumulate velocity
+                // so render_immediate() can apply a smooth deceleration.
+                const MAX_V: f64 = 250.0;
+                gc.0.scroll_vx.set(
+                    (gc.0.scroll_vx.get() + dx).clamp(-MAX_V, MAX_V),
+                );
+                gc.0.scroll_vy.set(
+                    (gc.0.scroll_vy.get() + dy).clamp(-MAX_V, MAX_V),
+                );
+                gc.render();
+            }
         });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
@@ -167,6 +199,12 @@ impl GridCanvas {
     fn attach_mousedown(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
+            // Stop any active scroll momentum so a click always
+            // lands on the row the user sees, not one that is
+            // still drifting.
+            gc.0.scroll_vx.set(0.0);
+            gc.0.scroll_vy.set(0.0);
+
             // Claim focus so keydown / clipboard handlers know
             // this grid is the active target.
             let _ = gc.0.canvas.focus();
