@@ -777,6 +777,18 @@ impl GridCanvas {
         best_idx
     }
 
+    /// Minimum column width that keeps the menu icon and sort arrow
+    /// fully visible, derived from the current theme values.
+    fn min_col_width(&self) -> f64 {
+        let b = self.0.builder.borrow();
+        let t = &b.theme;
+        // left padding  +  sort arrow (width + right gap)  +  icon button  +  right margin
+        let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
+        let icon_zone =
+            t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
+        t.cell_padding + sort_zone + icon_zone
+    }
+
     /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the
     /// three-dot menu icon zone at the right edge of a column header.
     fn hit_header_menu_icon(&self, vx: f64, vy: f64) -> Option<usize> {

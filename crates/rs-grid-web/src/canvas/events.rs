@@ -619,9 +619,10 @@ impl GridCanvas {
                     let (ci, scx, sw) = (col_idx, start_client_x, start_width);
                     drop(drag);
                     let dx = evt.client_x() as f64 - scx;
+                    let min_w = gc.min_col_width();
                     gc.dispatch(GridCommand::ResizeColumn {
                         col_idx: ci,
-                        new_width: sw + dx,
+                        new_width: (sw + dx).max(min_w),
                     });
                 }
                 None => {

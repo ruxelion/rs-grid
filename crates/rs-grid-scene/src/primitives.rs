@@ -81,6 +81,10 @@ pub struct TextPrimitive {
     pub clip: Option<[f64; 4]>,
     /// Horizontal text alignment.
     pub align: TextAlign,
+    /// If set, text is truncated with "…" to fit within this
+    /// logical-pixel width. Measurement happens in the renderer
+    /// using Canvas2D `measureText()`.
+    pub max_width: Option<f64>,
 }
 
 /// A straight line segment.
