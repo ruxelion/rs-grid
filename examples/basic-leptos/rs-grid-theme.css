@@ -181,12 +181,13 @@ body {
   --rs-grid-header-font-size: 13px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
-
-  /* column drag */
+  --rs-grid-scrollbar-inset: 2px;
   --rs-grid-drag-overlay: rgba(128, 128, 128, 0.39);
   --rs-grid-drag-ghost-bg: rgba(248, 249, 250, 0.71);
   --rs-grid-drag-ghost-text: rgba(24, 29, 31, 0.78);
-  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-editor-border: #2563eb;
+  --rs-grid-editor-bg: #ffffff;
+  --rs-grid-overlay-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
   /* context menu */
   --rs-grid-ctx-bg: #ffffff;
@@ -196,6 +197,8 @@ body {
   --rs-grid-ctx-text-disabled: #9ca3af;
   --rs-grid-ctx-hover-bg: #f3f4f6;
   --rs-grid-ctx-separator: #e5e7eb;
+  --rs-grid-ctx-radius: 6px;
+  --rs-grid-ctx-font-size: 13px;
 }
 
 /* ── dark theme — active when <html class="dark"> ───────────────────────────── */
@@ -216,12 +219,13 @@ body {
   --rs-grid-header-font-size: 13px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
-
-  /* column drag */
+  --rs-grid-scrollbar-inset: 2px;
   --rs-grid-drag-overlay: rgba(0, 0, 0, 0.39);
   --rs-grid-drag-ghost-bg: rgba(44, 44, 46, 0.71);
   --rs-grid-drag-ghost-text: rgba(176, 176, 176, 0.78);
-  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-editor-border: #6ab0f3;
+  --rs-grid-editor-bg: #1c1c1e;
+  --rs-grid-overlay-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 
   /* context menu */
   --rs-grid-ctx-bg: #252527;
@@ -231,6 +235,8 @@ body {
   --rs-grid-ctx-text-disabled: #666668;
   --rs-grid-ctx-hover-bg: #2c2c2e;
   --rs-grid-ctx-separator: #333335;
+  --rs-grid-ctx-radius: 6px;
+  --rs-grid-ctx-font-size: 13px;
 }
 
 /* ── dark app shell overrides ────────────────────────────────────────────────── */
@@ -327,12 +333,13 @@ body {
   --rs-grid-header-font-size: 14px;                       /* Title Small        */
   --rs-grid-header-font-bold: 1;                          /* Title = weight 500 */
   --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
-
-  /* column drag */
+  --rs-grid-scrollbar-inset: 2px;
   --rs-grid-drag-overlay: rgba(103, 80, 164, 0.39);      /* Primary @ 39%      */
   --rs-grid-drag-ghost-bg: rgba(231, 224, 236, 0.71);    /* Surface Variant    */
   --rs-grid-drag-ghost-text: rgba(28, 27, 31, 0.78);     /* On Surface         */
-  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-editor-border: #6750a4;                       /* Primary            */
+  --rs-grid-editor-bg: #fffbfe;                           /* Surface            */
+  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
 
   /* context menu — M3 Elevation 2 surface */
   --rs-grid-ctx-bg: #fffbfe;                              /* Surface            */
@@ -342,6 +349,8 @@ body {
   --rs-grid-ctx-text-disabled: #1c1b1f66;                 /* On Surface @ 40%   */
   --rs-grid-ctx-hover-bg: #e7e0ec;                        /* Surface Variant    */
   --rs-grid-ctx-separator: #cac4d0;                       /* Outline Variant    */
+  --rs-grid-ctx-radius: 4px;                              /* Shape Extra-small  */
+  --rs-grid-ctx-font-size: 14px;                          /* Body Medium        */
 }
 
 /* ── M3 app shell overrides ──────────────────────────────────────────────────── */
@@ -436,12 +445,13 @@ body {
   --rs-grid-header-font-size: 14px;                       /* Title Small        */
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
-
-  /* column drag */
+  --rs-grid-scrollbar-inset: 2px;
   --rs-grid-drag-overlay: rgba(208, 188, 255, 0.25);     /* Primary @ 25%      */
   --rs-grid-drag-ghost-bg: rgba(73, 69, 78, 0.71);       /* Surface Variant    */
   --rs-grid-drag-ghost-text: rgba(230, 225, 230, 0.78);  /* On Surface         */
-  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-editor-border: #d0bcff;                       /* Primary            */
+  --rs-grid-editor-bg: #1c1b1f;                           /* Surface            */
+  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
 
   /* context menu — M3 Elevation 2 dark */
   --rs-grid-ctx-bg: #2b2930;
@@ -451,6 +461,8 @@ body {
   --rs-grid-ctx-text-disabled: #e6e1e640;                 /* On Surface @ 25%   */
   --rs-grid-ctx-hover-bg: #49454e;                        /* Surface Variant    */
   --rs-grid-ctx-separator: #49454e;                       /* Outline Variant    */
+  --rs-grid-ctx-radius: 4px;                              /* Shape Extra-small  */
+  --rs-grid-ctx-font-size: 14px;                          /* Body Medium        */
 }
 
 /* ── M3 dark app shell overrides ─────────────────────────────────────────────── */

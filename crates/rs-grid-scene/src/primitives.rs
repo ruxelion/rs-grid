@@ -132,6 +132,8 @@ pub struct ImagePrimitive {
     pub corner_radius: f64,
     /// Optional clipping rectangle `[x, y, w, h]`.
     pub clip: Option<[f64; 4]>,
+    /// Color of the placeholder shown while the image is loading.
+    pub placeholder_color: Color,
 }
 
 /// Sum type over all renderable primitives.

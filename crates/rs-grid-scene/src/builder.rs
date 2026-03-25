@@ -986,6 +986,7 @@ impl SceneBuilder {
                         height: row_height - pad * 2.0,
                         corner_radius: *border_radius,
                         clip: Some([cx, ry, col.width, row_height]),
+                        placeholder_color: t.skeleton_fg,
                     }));
                 } else if let Some(CellFormat::ImageText {
                     base_url,
@@ -1100,6 +1101,7 @@ impl SceneBuilder {
             height: image_size,
             corner_radius: border_radius,
             clip: Some([cx, ry, col_width, row_height]),
+            placeholder_color: t.skeleton_fg,
         }));
 
         // Text — offset after the image.

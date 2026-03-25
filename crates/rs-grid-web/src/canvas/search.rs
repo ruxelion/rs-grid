@@ -4,6 +4,7 @@ use web_sys::{HtmlInputElement, KeyboardEvent};
 
 use super::dom_helpers::document;
 use super::GridCanvas;
+use crate::css_theme;
 
 impl GridCanvas {
     /// Show the floating search bar above the canvas.
@@ -18,6 +19,30 @@ impl GridCanvas {
         let canvas_rect = self.0.canvas.get_bounding_client_rect();
         let left = canvas_rect.right() - 260.0;
         let top = canvas_rect.top() + 4.0;
+
+        // Read theme CSS variables.
+        let (border_color, bg, shadow, font) = {
+            let css_style = css_theme::root_computed_style();
+            let var = |name: &str, fb: &str| -> String {
+                css_style
+                    .as_ref()
+                    .map(|s| css_theme::get_var(s, name))
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| fb.to_string())
+            };
+            let border_color =
+                var("--rs-grid-header-border", "#babfc7");
+            let bg = var("--rs-grid-editor-bg", "#ffffff");
+            let shadow = var(
+                "--rs-grid-overlay-shadow",
+                "0 2px 8px rgba(0,0,0,.15)",
+            );
+            let fsz_raw = var("--rs-grid-font-size", "13");
+            let fsz = fsz_raw.trim_end_matches("px").to_string();
+            let font =
+                format!("{fsz}px system-ui, sans-serif");
+            (border_color, bg, shadow, font)
+        };
 
         let doc = document();
         let input: HtmlInputElement = doc
@@ -35,15 +60,18 @@ impl GridCanvas {
         let _ = style.set_property("width", "250px");
         let _ = style.set_property("height", "28px");
         let _ = style.set_property("z-index", "10001");
-        let _ = style.set_property("border", "1px solid #babfc7");
+        let _ = style.set_property(
+            "border",
+            &format!("1px solid {border_color}"),
+        );
         let _ = style.set_property("border-radius", "4px");
         let _ = style.set_property("outline", "none");
         let _ = style.set_property("padding", "0 8px");
         let _ = style.set_property("margin", "0");
         let _ = style.set_property("box-sizing", "border-box");
-        let _ = style.set_property("font", "13px system-ui, sans-serif");
-        let _ = style.set_property("background", "#fff");
-        let _ = style.set_property("box-shadow", "0 2px 8px rgba(0,0,0,.15)");
+        let _ = style.set_property("font", &font);
+        let _ = style.set_property("background", &bg);
+        let _ = style.set_property("box-shadow", &shadow);
 
         doc.body()
             .expect("body")
