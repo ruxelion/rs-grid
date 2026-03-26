@@ -85,10 +85,12 @@ GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRend
 | `rs-grid-render-canvas` | Canvas2D backend via wasm-bindgen                                                 |
 | `rs-grid-web`           | Browser integration: events, DPR, rAF loop, CSS theme                            |
 | `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                     |
+| `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                       |
 | `examples/basic-leptos` | Demo application using Trunk                                                      |
 
-Dependencies flow in one direction only: `leptos → web → render-canvas → scene → core`.
-Never introduce a reverse dependency.
+Dependencies flow in one direction only — never introduce a reverse dependency:
+- `leptos → web → render-canvas → scene → core`
+- `dioxus → web → render-canvas → scene → core`
 
 ## Common commands
 

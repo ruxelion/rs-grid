@@ -205,6 +205,7 @@ dependencies = [
  "example-common",
  "js-sys",
  "rs-grid-core",
+ "rs-grid-dioxus",
  "rs-grid-web",
  "wasm-bindgen",
  "web-sys",
@@ -3147,6 +3148,18 @@ dependencies = [
 [[package]]
 name = "rs-grid-core"
 version = "0.1.0"
+
+[[package]]
+name = "rs-grid-dioxus"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "rs-grid-core",
+ "rs-grid-scene",
+ "rs-grid-web",
+ "wasm-bindgen",
+ "web-sys",
+]
 
 [[package]]
 name = "rs-grid-icons"
