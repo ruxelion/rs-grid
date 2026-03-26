@@ -28,10 +28,10 @@
 
 ## Ajouter rs-grid a votre projet
 
-### Integration Leptos
+
+**Leptos**
 
 Ajoutez les crates necessaires a votre `Cargo.toml` :
-
 ```toml
 [dependencies]
 rs-grid-core   = { path = "../crates/rs-grid-core" }
@@ -39,23 +39,20 @@ rs-grid-scene  = { path = "../crates/rs-grid-scene" }
 rs-grid-web    = { path = "../crates/rs-grid-web" }
 rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
 ```
-
 :::note
 rs-grid n'est pas encore publie sur crates.io. Utilisez des dependances
 par chemin local ou par git pour le moment.
 :::
 
-### Integration Vanilla JS
+
+**Vanilla JS**
 
 Compilez le package WASM avec `wasm-pack` :
-
 ```bash
 cd crates/rs-grid-web
 wasm-pack build --target web
 ```
-
 Puis importez le module ES dans votre HTML :
-
 ```html
 <script type="module">
   import init, { JsGrid } from './pkg/rs_grid_web.js';
@@ -63,6 +60,7 @@ Puis importez le module ES dans votre HTML :
   const grid = new JsGrid(canvas, 1000, 10);
 </script>
 ```
+
 
 ## Graphe de dependances des crates
 

@@ -31,7 +31,10 @@ description: Set up your Rust toolchain and add rs-grid to your project.
 
 ## Add rs-grid to your project
 
-### Leptos integration
+import { Tabs, Tab } from '@rspress/core/theme';
+
+<Tabs groupId="framework">
+<Tab label="Leptos">
 
 Add the required crates to your `Cargo.toml`:
 
@@ -48,7 +51,8 @@ rs-grid is not yet published on crates.io. Use local path dependencies
 or git dependencies for now.
 :::
 
-### Vanilla JS integration
+</Tab>
+<Tab label="Vanilla JS">
 
 Build the WASM package with `wasm-pack`:
 
@@ -66,6 +70,9 @@ Then import the ES module in your HTML:
   const grid = new JsGrid(canvas, 1000, 10);
 </script>
 ```
+
+</Tab>
+</Tabs>
 
 ## Crate dependency graph
 

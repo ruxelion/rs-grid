@@ -1,103 +1,4 @@
 ---
-url: /fr/getting-started.md
----
-
-# Premiers pas
-
-## Prerequis
-
-- Toolchain Rust (stable, edition 2021)
-- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
-- La cible `wasm32-unknown-unknown`
-
-```bash
-rustup target add wasm32-unknown-unknown
-cargo install trunk
-```
-
-## Ajouter la dependance
-
-Ajoutez `rs-grid-leptos` a votre `Cargo.toml`. Tant que le crate n'est pas
-encore publie sur crates.io, referencez-le par chemin :
-
-```toml title="Cargo.toml"
-[dependencies]
-rs-grid-leptos = { path = "../rs-grid-leptos" }
-```
-
-## Utilisation de base
-
-Importez le composant et montez-le dans une vue Leptos :
-
-```rust title="src/main.rs"
-use leptos::*;
-use rs_grid_leptos::GridCanvas;
-
-#[component]
-pub fn App() -> impl IntoView {
-    view! {
-        <main style="width: 100vw; height: 100vh;">
-            <GridCanvas
-                rows=1_000_000_u64
-                cols=50_usize
-            />
-        </main>
-    }
-}
-
-fn main() {
-    leptos::mount_to_body(App);
-}
-```
-
-## Lancer en local
-
-1. **Naviguez vers l'exemple**
-
-   ```bash
-   cd examples/basic-leptos
-   ```
-
-2. **Demarrez le serveur de developpement**
-
-   ```bash
-   trunk serve
-   ```
-
-3. **Ouvrez dans votre navigateur**
-
-   Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
-   affichant 1 million de lignes a 60 fps.
-
-## Compiler pour la production
-
-```bash
-cd examples/basic-leptos
-trunk build --release
-```
-
-La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
-fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
-fournie.
-
-## Commandes du workspace
-
-| Commande                                  | Description                                        |
-| ----------------------------------------- | -------------------------------------------------- |
-| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
-| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
-| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
-| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
-| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
-
-:::tip
-`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
-avec un simple `cargo test`, sans navigateur.
-:::
-
-
-
----
 url: /fr/api/column-def.md
 ---
 
@@ -2721,11 +2622,13 @@ Vous pouvez aussi matcher un tag BCP 47 manuellement :
 let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ```
 
-## Utilisation avec Leptos
+## Utilisation par framework
+
+
+**Leptos**
 
 Le composant `<GridCanvas>` accepte une prop réactive optionnelle `locale`.
 Quand le signal change, la grille met à jour ses textes sans se remonter.
-
 ```rust
 use rs_grid_leptos::{GridCanvas, Locale};
 
@@ -2739,14 +2642,13 @@ view! {
     />
 }
 ```
-
 Pour changer de langue à la volée :
-
 ```rust
 locale.set(Locale::de());
 ```
 
-## Utilisation en vanilla JS (wasm-bindgen)
+
+**Vanilla JS**
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -2762,6 +2664,7 @@ let gc = GridCanvas::mount(
 // Change de langue plus tard
 gc.set_locale(Locale::es());
 ```
+
 
 ## Chaînes traduites
 
@@ -3361,29 +3264,10 @@ La closure reçoit la valeur brute de la cellule et doit retourner :
 
 ## Écouter les erreurs de validation
 
-Enregistrez un callback sur le handle web du canvas :
 
-```rust
-gc.set_on_validation_error(|row, col_key, message| {
-    web_sys::console::warn_1(
-        &format!("[{col_key}] ligne {row} : {message}").into()
-    );
-});
-```
-
-Le callback est déclenché de façon synchrone après l'annulation de l'édition.
-Arguments :
-
-| Argument  | Type   | Description                                          |
-| --------- | ------ | ---------------------------------------------------- |
-| `row`     | `u64`  | Index de ligne logique de la cellule rejetée         |
-| `col_key` | `&str` | Clé de la colonne dont le validateur s'est déclenché |
-| `message` | `&str` | Chaîne d'erreur retournée par le validateur          |
-
-## Intégration Leptos
+**Leptos**
 
 Passez `on_validation_error` comme prop à `<GridCanvas>` :
-
 ```rust
 let set_error = /* RwSignal<String> */;
 
@@ -3396,6 +3280,28 @@ view! {
     />
 }
 ```
+
+
+**Vanilla JS**
+
+Enregistrez un callback sur le handle web du canvas :
+```rust
+gc.set_on_validation_error(|row, col_key, message| {
+    web_sys::console::warn_1(
+        &format!("[{col_key}] ligne {row} : {message}").into()
+    );
+});
+```
+
+
+Le callback est déclenché de façon synchrone après l'annulation de l'édition.
+Arguments :
+
+| Argument  | Type   | Description                                          |
+| --------- | ------ | ---------------------------------------------------- |
+| `row`     | `u64`  | Index de ligne logique de la cellule rejetée         |
+| `col_key` | `&str` | Clé de la colonne dont le validateur s'est déclenché |
+| `message` | `&str` | Chaîne d'erreur retournée par le validateur          |
 
 ## Comportement
 
@@ -3414,6 +3320,111 @@ view! {
 - [Édition](/fr/features/editing.md) — cycle de vie de l'édition et types d'éditeurs
 - [API ColumnDef](/fr/api/column-def.md) — référence du type `CellValidator`
 - [Annuler / Rétablir](/fr/features/undo-redo.md) — comportement de la pile d'annulation
+
+
+
+---
+url: /fr/getting-started.md
+---
+
+# Premiers pas
+
+## Prerequis
+
+- Toolchain Rust (stable, edition 2021)
+- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
+- La cible `wasm32-unknown-unknown`
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Demarrage rapide
+
+
+**Leptos**
+
+Ajoutez `rs-grid-leptos` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+Importez le composant et montez-le dans une vue Leptos :
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-leptos
+trunk serve
+```
+
+
+**Vanilla JS**
+
+Compilez le package WASM :
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+Utilisez-le dans votre HTML :
+```html title="index.html"
+<canvas id="grid" style="width: 100vw; height: 100vh;"></canvas>
+<script type="module">
+  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  await init();
+  const canvas = document.getElementById('grid');
+  const grid = new JsGrid(canvas, 1_000_000, 50);
+</script>
+```
+
+
+Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
+affichant 1 million de lignes a 60 fps.
+
+## Compiler pour la production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
+fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
+fournie.
+
+## Commandes du workspace
+
+| Commande                                  | Description                                        |
+| ----------------------------------------- | -------------------------------------------------- |
+| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
+| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
+| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
+| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
+| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
+
+:::tip
+`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
+avec un simple `cargo test`, sans navigateur.
+:::
 
 
 
@@ -3537,10 +3548,10 @@ url: /fr/installation.md
 
 ## Ajouter rs-grid a votre projet
 
-### Integration Leptos
+
+**Leptos**
 
 Ajoutez les crates necessaires a votre `Cargo.toml` :
-
 ```toml
 [dependencies]
 rs-grid-core   = { path = "../crates/rs-grid-core" }
@@ -3548,23 +3559,20 @@ rs-grid-scene  = { path = "../crates/rs-grid-scene" }
 rs-grid-web    = { path = "../crates/rs-grid-web" }
 rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
 ```
-
 :::note
 rs-grid n'est pas encore publie sur crates.io. Utilisez des dependances
 par chemin local ou par git pour le moment.
 :::
 
-### Integration Vanilla JS
+
+**Vanilla JS**
 
 Compilez le package WASM avec `wasm-pack` :
-
 ```bash
 cd crates/rs-grid-web
 wasm-pack build --target web
 ```
-
 Puis importez le module ES dans votre HTML :
-
 ```html
 <script type="module">
   import init, { JsGrid } from './pkg/rs_grid_web.js';
@@ -3572,6 +3580,7 @@ Puis importez le module ES dans votre HTML :
   const grid = new JsGrid(canvas, 1000, 10);
 </script>
 ```
+
 
 ## Graphe de dependances des crates
 
@@ -4241,7 +4250,10 @@ html.dark {
 }
 ```
 
-### Via des signaux Leptos
+### Via le code
+
+
+**Leptos**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -4255,6 +4267,16 @@ set_theme.update(|t| {
     };
 });
 ```
+
+
+**Vanilla JS**
+
+```rust
+// Remonter la grille avec un nouveau theme
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
 
 ## Creer un theme personnalise
 

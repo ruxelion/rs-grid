@@ -88,7 +88,12 @@
       "Bash(done)",
       "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-core/src/*.rs)",
       "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
-      "Bash(cargo doc:*)"
+      "Bash(cargo doc:*)",
+      "Bash(grep -l \"Leptos\\\\|Vanilla JS\\\\|GridCanvas\\\\|JsGrid\\\\|framework\" /e/Dev/rs-grid/site/docs/en/**/*.mdx)",
+      "Bash(find /e/Dev/rs-grid/site/node_modules/@rspress/core -name *tab* -o -name *Tab*)",
+      "Bash(grep -l \"Leptos\\\\|Vanilla JS\\\\|GridCanvas\\\\|JsGrid\\\\|framework\" /e/Dev/rs-grid/site/docs/fr/**/*.mdx)",
+      "Bash(grep -n \"code-group\\\\|CodeGroup\\\\|<Tabs\\\\|<Tab\\\\s\\\\|<PageTabs\\\\|<PackageManagerTabs\" /e/Dev/rs-grid/site/docs/en/*.mdx)",
+      "Bash(find /e/Dev/rs-grid/site/node_modules/@rspress/core -name *code* -o -name *Code*)"
     ]
   }
 }

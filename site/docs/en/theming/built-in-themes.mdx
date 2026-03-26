@@ -64,7 +64,12 @@ html.dark {
 }
 ```
 
-### Via Leptos signals
+### Via code
+
+import { Tabs, Tab } from '@rspress/core/theme';
+
+<Tabs groupId="framework">
+<Tab label="Leptos">
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -78,6 +83,18 @@ set_theme.update(|t| {
     };
 });
 ```
+
+</Tab>
+<Tab label="Vanilla JS">
+
+```rust
+// Re-mount the grid with a new theme
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
+</Tab>
+</Tabs>
 
 ## Creating a custom theme
 

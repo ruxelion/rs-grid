@@ -38,29 +38,10 @@ La closure reçoit la valeur brute de la cellule et doit retourner :
 
 ## Écouter les erreurs de validation
 
-Enregistrez un callback sur le handle web du canvas :
 
-```rust
-gc.set_on_validation_error(|row, col_key, message| {
-    web_sys::console::warn_1(
-        &format!("[{col_key}] ligne {row} : {message}").into()
-    );
-});
-```
-
-Le callback est déclenché de façon synchrone après l'annulation de l'édition.
-Arguments :
-
-| Argument  | Type   | Description                                          |
-| --------- | ------ | ---------------------------------------------------- |
-| `row`     | `u64`  | Index de ligne logique de la cellule rejetée         |
-| `col_key` | `&str` | Clé de la colonne dont le validateur s'est déclenché |
-| `message` | `&str` | Chaîne d'erreur retournée par le validateur          |
-
-## Intégration Leptos
+**Leptos**
 
 Passez `on_validation_error` comme prop à `<GridCanvas>` :
-
 ```rust
 let set_error = /* RwSignal<String> */;
 
@@ -73,6 +54,28 @@ view! {
     />
 }
 ```
+
+
+**Vanilla JS**
+
+Enregistrez un callback sur le handle web du canvas :
+```rust
+gc.set_on_validation_error(|row, col_key, message| {
+    web_sys::console::warn_1(
+        &format!("[{col_key}] ligne {row} : {message}").into()
+    );
+});
+```
+
+
+Le callback est déclenché de façon synchrone après l'annulation de l'édition.
+Arguments :
+
+| Argument  | Type   | Description                                          |
+| --------- | ------ | ---------------------------------------------------- |
+| `row`     | `u64`  | Index de ligne logique de la cellule rejetée         |
+| `col_key` | `&str` | Clé de la colonne dont le validateur s'est déclenché |
+| `message` | `&str` | Chaîne d'erreur retournée par le validateur          |
 
 ## Comportement
 

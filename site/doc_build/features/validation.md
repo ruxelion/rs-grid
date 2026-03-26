@@ -37,28 +37,10 @@ The closure receives the raw cell string and must return:
 
 ## Listening to validation errors
 
-Register a callback on the web canvas handle:
 
-```rust
-gc.set_on_validation_error(|row, col_key, message| {
-    web_sys::console::warn_1(
-        &format!("[{col_key}] row {row}: {message}").into()
-    );
-});
-```
-
-The callback fires synchronously after the edit is cancelled. Arguments:
-
-| Argument  | Type   | Description                             |
-| --------- | ------ | --------------------------------------- |
-| `row`     | `u64`  | Logical row index of the rejected cell  |
-| `col_key` | `&str` | Key of the column whose validator fired |
-| `message` | `&str` | Error string returned by the validator  |
-
-## Leptos integration
+**Leptos**
 
 Pass `on_validation_error` as a prop to `<GridCanvas>`:
-
 ```rust
 let set_error = /* RwSignal<String> */;
 
@@ -71,6 +53,27 @@ view! {
     />
 }
 ```
+
+
+**Vanilla JS**
+
+Register a callback on the web canvas handle:
+```rust
+gc.set_on_validation_error(|row, col_key, message| {
+    web_sys::console::warn_1(
+        &format!("[{col_key}] row {row}: {message}").into()
+    );
+});
+```
+
+
+The callback fires synchronously after the edit is cancelled. Arguments:
+
+| Argument  | Type   | Description                             |
+| --------- | ------ | --------------------------------------- |
+| `row`     | `u64`  | Logical row index of the rejected cell  |
+| `col_key` | `&str` | Key of the column whose validator fired |
+| `message` | `&str` | Error string returned by the validator  |
 
 ## Behaviour
 

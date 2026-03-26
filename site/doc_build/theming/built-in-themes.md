@@ -61,7 +61,10 @@ html.dark {
 }
 ```
 
-### Via Leptos signals
+### Via code
+
+
+**Leptos**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -75,6 +78,16 @@ set_theme.update(|t| {
     };
 });
 ```
+
+
+**Vanilla JS**
+
+```rust
+// Re-mount the grid with a new theme
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
 
 ## Creating a custom theme
 

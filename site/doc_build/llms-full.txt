@@ -15,20 +15,17 @@ rustup target add wasm32-unknown-unknown
 cargo install trunk
 ```
 
-## Add the dependency
+## Quick start
 
-Add `rs-grid-leptos` to your `Cargo.toml`. While the crate is not yet on
-crates.io, reference it by path:
 
+**Leptos**
+
+Add `rs-grid-leptos` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
 [dependencies]
 rs-grid-leptos = { path = "../rs-grid-leptos" }
 ```
-
-## Basic usage
-
 Import the component and mount it inside a Leptos view:
-
 ```rust title="src/main.rs"
 use leptos::*;
 use rs_grid_leptos::GridCanvas;
@@ -49,25 +46,34 @@ fn main() {
     leptos::mount_to_body(App);
 }
 ```
+Run the example:
+```bash
+cd examples/basic-leptos
+trunk serve
+```
 
-## Run locally
 
-1. **Navigate to the example**
+**Vanilla JS**
 
-   ```bash
-   cd examples/basic-leptos
-   ```
+Build the WASM package:
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+Use it in your HTML:
+```html title="index.html"
+<canvas id="grid" style="width: 100vw; height: 100vh;"></canvas>
+<script type="module">
+  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  await init();
+  const canvas = document.getElementById('grid');
+  const grid = new JsGrid(canvas, 1_000_000, 50);
+</script>
+```
 
-2. **Start the dev server**
 
-   ```bash
-   trunk serve
-   ```
-
-3. **Open in your browser**
-
-   Navigate to `http://localhost:8080`. You should see a grid rendering
-   1 million rows at 60 fps.
+Open `http://localhost:8080` in your browser. You should see a grid rendering
+1 million rows at 60 fps.
 
 ## Build for production
 
@@ -2682,12 +2688,14 @@ You can also match a BCP 47 tag manually:
 let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ```
 
-## Usage with Leptos
+## Framework usage
+
+
+**Leptos**
 
 The `<GridCanvas>` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
 remounting.
-
 ```rust
 use rs_grid_leptos::{GridCanvas, Locale};
 
@@ -2701,14 +2709,13 @@ view! {
     />
 }
 ```
-
 To switch language at runtime:
-
 ```rust
 locale.set(Locale::de());
 ```
 
-## Usage with vanilla JS (wasm-bindgen)
+
+**Vanilla JS**
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -2724,6 +2731,7 @@ let gc = GridCanvas::mount(
 // Switch language later
 gc.set_locale(Locale::es());
 ```
+
 
 ## Translated strings
 
@@ -3317,28 +3325,10 @@ The closure receives the raw cell string and must return:
 
 ## Listening to validation errors
 
-Register a callback on the web canvas handle:
 
-```rust
-gc.set_on_validation_error(|row, col_key, message| {
-    web_sys::console::warn_1(
-        &format!("[{col_key}] row {row}: {message}").into()
-    );
-});
-```
-
-The callback fires synchronously after the edit is cancelled. Arguments:
-
-| Argument  | Type   | Description                             |
-| --------- | ------ | --------------------------------------- |
-| `row`     | `u64`  | Logical row index of the rejected cell  |
-| `col_key` | `&str` | Key of the column whose validator fired |
-| `message` | `&str` | Error string returned by the validator  |
-
-## Leptos integration
+**Leptos**
 
 Pass `on_validation_error` as a prop to `<GridCanvas>`:
-
 ```rust
 let set_error = /* RwSignal<String> */;
 
@@ -3351,6 +3341,27 @@ view! {
     />
 }
 ```
+
+
+**Vanilla JS**
+
+Register a callback on the web canvas handle:
+```rust
+gc.set_on_validation_error(|row, col_key, message| {
+    web_sys::console::warn_1(
+        &format!("[{col_key}] row {row}: {message}").into()
+    );
+});
+```
+
+
+The callback fires synchronously after the edit is cancelled. Arguments:
+
+| Argument  | Type   | Description                             |
+| --------- | ------ | --------------------------------------- |
+| `row`     | `u64`  | Logical row index of the rejected cell  |
+| `col_key` | `&str` | Key of the column whose validator fired |
+| `message` | `&str` | Error string returned by the validator  |
 
 ## Behaviour
 
@@ -3491,10 +3502,10 @@ url: /installation.md
 
 ## Add rs-grid to your project
 
-### Leptos integration
+
+**Leptos**
 
 Add the required crates to your `Cargo.toml`:
-
 ```toml
 [dependencies]
 rs-grid-core   = { path = "../crates/rs-grid-core" }
@@ -3502,23 +3513,20 @@ rs-grid-scene  = { path = "../crates/rs-grid-scene" }
 rs-grid-web    = { path = "../crates/rs-grid-web" }
 rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
 ```
-
 :::note
 rs-grid is not yet published on crates.io. Use local path dependencies
 or git dependencies for now.
 :::
 
-### Vanilla JS integration
+
+**Vanilla JS**
 
 Build the WASM package with `wasm-pack`:
-
 ```bash
 cd crates/rs-grid-web
 wasm-pack build --target web
 ```
-
 Then import the ES module in your HTML:
-
 ```html
 <script type="module">
   import init, { JsGrid } from './pkg/rs_grid_web.js';
@@ -3526,6 +3534,7 @@ Then import the ES module in your HTML:
   const grid = new JsGrid(canvas, 1000, 10);
 </script>
 ```
+
 
 ## Crate dependency graph
 
@@ -4187,7 +4196,10 @@ html.dark {
 }
 ```
 
-### Via Leptos signals
+### Via code
+
+
+**Leptos**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -4201,6 +4213,16 @@ set_theme.update(|t| {
     };
 });
 ```
+
+
+**Vanilla JS**
+
+```rust
+// Re-mount the grid with a new theme
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
 
 ## Creating a custom theme
 

@@ -47,12 +47,14 @@ You can also match a BCP 47 tag manually:
 let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ```
 
-## Usage with Leptos
+## Framework usage
+
+
+**Leptos**
 
 The `<GridCanvas>` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
 remounting.
-
 ```rust
 use rs_grid_leptos::{GridCanvas, Locale};
 
@@ -66,14 +68,13 @@ view! {
     />
 }
 ```
-
 To switch language at runtime:
-
 ```rust
 locale.set(Locale::de());
 ```
 
-## Usage with vanilla JS (wasm-bindgen)
+
+**Vanilla JS**
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -89,6 +90,7 @@ let gc = GridCanvas::mount(
 // Switch language later
 gc.set_locale(Locale::es());
 ```
+
 
 ## Translated strings
 

@@ -50,7 +50,12 @@ You can also match a BCP 47 tag manually:
 let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ```
 
-## Usage with Leptos
+## Framework usage
+
+import { Tabs, Tab } from '@rspress/core/theme';
+
+<Tabs groupId="framework">
+<Tab label="Leptos">
 
 The `<GridCanvas>` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
@@ -76,7 +81,8 @@ To switch language at runtime:
 locale.set(Locale::de());
 ```
 
-## Usage with vanilla JS (wasm-bindgen)
+</Tab>
+<Tab label="Vanilla JS">
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -92,6 +98,9 @@ let gc = GridCanvas::mount(
 // Switch language later
 gc.set_locale(Locale::es());
 ```
+
+</Tab>
+</Tabs>
 
 ## Translated strings
 

@@ -11,20 +11,17 @@ rustup target add wasm32-unknown-unknown
 cargo install trunk
 ```
 
-## Ajouter la dependance
+## Demarrage rapide
 
-Ajoutez `rs-grid-leptos` a votre `Cargo.toml`. Tant que le crate n'est pas
-encore publie sur crates.io, referencez-le par chemin :
 
+**Leptos**
+
+Ajoutez `rs-grid-leptos` a votre `Cargo.toml` :
 ```toml title="Cargo.toml"
 [dependencies]
 rs-grid-leptos = { path = "../rs-grid-leptos" }
 ```
-
-## Utilisation de base
-
 Importez le composant et montez-le dans une vue Leptos :
-
 ```rust title="src/main.rs"
 use leptos::*;
 use rs_grid_leptos::GridCanvas;
@@ -45,25 +42,34 @@ fn main() {
     leptos::mount_to_body(App);
 }
 ```
+Lancez l'exemple :
+```bash
+cd examples/basic-leptos
+trunk serve
+```
 
-## Lancer en local
 
-1. **Naviguez vers l'exemple**
+**Vanilla JS**
 
-   ```bash
-   cd examples/basic-leptos
-   ```
+Compilez le package WASM :
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+Utilisez-le dans votre HTML :
+```html title="index.html"
+<canvas id="grid" style="width: 100vw; height: 100vh;"></canvas>
+<script type="module">
+  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  await init();
+  const canvas = document.getElementById('grid');
+  const grid = new JsGrid(canvas, 1_000_000, 50);
+</script>
+```
 
-2. **Demarrez le serveur de developpement**
 
-   ```bash
-   trunk serve
-   ```
-
-3. **Ouvrez dans votre navigateur**
-
-   Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
-   affichant 1 million de lignes a 60 fps.
+Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
+affichant 1 million de lignes a 60 fps.
 
 ## Compiler pour la production
 
