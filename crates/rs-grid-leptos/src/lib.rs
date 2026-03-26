@@ -7,6 +7,7 @@ pub use rs_grid_web::theme_from_css_vars;
 /// Re-exported so callers can name the type in `on_mount` closures without
 /// depending on `rs-grid-web` directly.
 pub use rs_grid_web::GridCanvas as WebGridCanvas;
+pub use rs_grid_web::Locale;
 
 use std::{
     cell::{Cell, RefCell},
@@ -31,12 +32,15 @@ pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
 /// - `height`: CSS height string (e.g. `"600px"`).
 /// - `theme`: Optional reactive `Signal<Theme>`. When supplied, theme changes
 ///   are applied in-place via `set_theme()` without remounting the grid.
+/// - `locale`: Optional reactive `Signal<Locale>`. When supplied, locale
+///   changes are applied in-place via `set_locale()` without remounting.
 #[component]
 pub fn GridCanvas(
     model: GridModel,
     #[prop(default = "100%".into())] width: String,
     #[prop(default = "600px".into())] height: String,
     #[prop(optional)] theme: Option<Signal<Theme>>,
+    #[prop(optional)] locale: Option<Signal<Locale>>,
     /// Called once after the grid is mounted with a cloned handle to the
     /// underlying `GridCanvas`. Use it to call `set_on_change`,
     /// `import_patches`, or `export_patches`.
@@ -63,6 +67,7 @@ pub fn GridCanvas(
     let gc_holder: Rc<RefCell<Option<rs_grid_web::GridCanvas>>> =
         Rc::new(RefCell::new(None));
     let gc_for_theme = gc_holder.clone();
+    let gc_for_locale = gc_holder.clone();
     let gc_for_cleanup = SendWrapper::new(gc_holder.clone());
 
     Effect::new(move |_| {
@@ -80,6 +85,9 @@ pub fn GridCanvas(
         let mount_theme = theme
             .map(|s| s.get_untracked())
             .unwrap_or_else(rs_grid_web::theme_from_css_vars);
+
+        let mount_locale =
+            locale.map(|s| s.get_untracked()).unwrap_or_default();
 
         // getBoundingClientRect() is reliable even before first paint;
         // fall back to window dimensions if the element has no size yet.
@@ -112,7 +120,12 @@ pub fn GridCanvas(
 
         let canvas: HtmlCanvasElement = canvas_el.unchecked_into();
         let state = GridState::new(model, w, h);
-        let gc = rs_grid_web::GridCanvas::mount(canvas, state, mount_theme);
+        let gc = rs_grid_web::GridCanvas::mount(
+            canvas,
+            state,
+            mount_theme,
+            mount_locale,
+        );
         *gc_holder.borrow_mut() = Some(gc.clone());
         if let Some(cb) = on_validation_error_slot.borrow_mut().take() {
             gc.set_on_validation_error(move |row, col, msg| {
@@ -136,6 +149,20 @@ pub fn GridCanvas(
             }
             if let Some(gc) = gc_for_theme.borrow().as_ref() {
                 gc.set_theme(t);
+            }
+        });
+    }
+
+    // Reactive locale effect: same pattern as theme.
+    if let Some(locale_sig) = locale {
+        let first_run = Cell::new(true);
+        Effect::new(move |_| {
+            let l = locale_sig.get();
+            if first_run.replace(false) {
+                return; // mount already applied this locale
+            }
+            if let Some(gc) = gc_for_locale.borrow().as_ref() {
+                gc.set_locale(l);
             }
         });
     }

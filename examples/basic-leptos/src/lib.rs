@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use example_common::build_model;
 use leptos::prelude::*;
-use rs_grid_leptos::{theme_from_css_vars, GridCanvas, WebGridCanvas};
+use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use send_wrapper::SendWrapper;
 use wasm_bindgen::{prelude::*, JsCast};
@@ -43,6 +43,21 @@ fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
     let theme_class = RwSignal::new(String::new());
+    let detected_lang = web_sys::window()
+        .and_then(|w| w.navigator().language())
+        .unwrap_or_default();
+    let initial_lang_code = match detected_lang
+        .split('-')
+        .next()
+        .unwrap_or("en")
+    {
+        "fr" => "fr",
+        "de" => "de",
+        "es" => "es",
+        _ => "en",
+    };
+    let lang_code = RwSignal::new(initial_lang_code.to_string());
+    let locale_sig = RwSignal::new(Locale::from_browser());
     let validation_error = RwSignal::new(String::new());
 
     // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
@@ -263,6 +278,27 @@ fn App() -> impl IntoView {
                             <option value="material-dark">"Material 3 Dark"</option>
                         </select>
                     </div>
+
+                    // Language selector
+                    <div class="app-control">
+                        <span class="app-control-label">"Language"</span>
+                        <select
+                            class="app-control-select"
+                            prop:value=move || lang_code.get()
+                            on:change=move |e| {
+                                let v = event_target_value(&e);
+                                locale_sig.set(
+                                    Locale::from_language_tag(&v),
+                                );
+                                lang_code.set(v);
+                            }
+                        >
+                            <option value="en">"English"</option>
+                            <option value="fr">"Fran\u{e7}ais"</option>
+                            <option value="de">"Deutsch"</option>
+                            <option value="es">"Espa\u{f1}ol"</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             {move || {
@@ -325,6 +361,7 @@ fn App() -> impl IntoView {
                                 width="100%".into()
                                 height="100%".into()
                                 theme=Signal::derive(move || theme_memo.get())
+                                locale=Signal::derive(move || locale_sig.get())
                                 on_mount=on_mount_cb
                                 on_validation_error=on_validation_error_cb
                             />

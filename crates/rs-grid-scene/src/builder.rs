@@ -8,8 +8,8 @@ use rs_grid_core::{sort::SortDir, state::GridState};
 use crate::{
     frame::SceneFrame,
     primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive,
-        ScenePrimitive, TextAlign, TextPrimitive,
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextAlign, TextPrimitive,
     },
     theme::Theme,
 };
@@ -797,5 +797,4 @@ impl SceneBuilder {
 
         frame
     }
-
 }

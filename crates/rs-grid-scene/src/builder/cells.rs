@@ -9,8 +9,8 @@ use rs_grid_core::{
 use crate::{
     frame::SceneFrame,
     primitives::{
-        Color, ImagePrimitive, RectPrimitive, ScenePrimitive,
-        TextAlign, TextPrimitive,
+        Color, ImagePrimitive, RectPrimitive, ScenePrimitive, TextAlign,
+        TextPrimitive,
     },
     theme::Theme,
 };
@@ -53,9 +53,7 @@ pub(super) fn emit_cell(
         }));
         // Flash overlay — themed fade on paste
         if let Some(f) = flash {
-            let a =
-                (t.flash_fill.a as f64 * f.alpha_factor).round()
-                    as u8;
+            let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
             frame.push(ScenePrimitive::Rect(RectPrimitive {
                 x: cx,
                 y: ry,
@@ -141,28 +139,23 @@ pub(super) fn emit_cell(
                     *gap,
                 );
             } else {
-                let (txt, align, bold, color) =
-                    if let Some(fmt) = &col.format {
-                        let fc = format_cell(&raw, fmt);
-                        let a = match fc.align.unwrap_or_default() {
-                            CellAlign::Left => TextAlign::Left,
-                            CellAlign::Right => TextAlign::Right,
-                            CellAlign::Center => TextAlign::Center,
-                        };
-                        let c = fc
-                            .color
-                            .map(|c| {
-                                Color::rgba(c[0], c[1], c[2], c[3])
-                            })
-                            .unwrap_or(t.cell_text);
-                        (fc.text, a, fc.bold, c)
-                    } else {
-                        (raw, TextAlign::Left, false, t.cell_text)
+                let (txt, align, bold, color) = if let Some(fmt) = &col.format {
+                    let fc = format_cell(&raw, fmt);
+                    let a = match fc.align.unwrap_or_default() {
+                        CellAlign::Left => TextAlign::Left,
+                        CellAlign::Right => TextAlign::Right,
+                        CellAlign::Center => TextAlign::Center,
                     };
+                    let c = fc
+                        .color
+                        .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
+                        .unwrap_or(t.cell_text);
+                    (fc.text, a, fc.bold, c)
+                } else {
+                    (raw, TextAlign::Left, false, t.cell_text)
+                };
                 let x = match align {
-                    TextAlign::Right => {
-                        cx + col.width - t.cell_padding
-                    }
+                    TextAlign::Right => cx + col.width - t.cell_padding,
                     TextAlign::Center => cx + col.width / 2.0,
                     TextAlign::Left => cx + t.cell_padding,
                 };

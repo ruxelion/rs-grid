@@ -27,10 +27,7 @@ impl GridState {
     }
 
     /// Apply an undo entry and return the inverse entry for redo.
-    pub(super) fn apply_undo_entry(
-        &mut self,
-        entry: &UndoEntry,
-    ) -> UndoEntry {
+    pub(super) fn apply_undo_entry(&mut self, entry: &UndoEntry) -> UndoEntry {
         match entry {
             UndoEntry::SetCell {
                 row,
@@ -42,11 +39,8 @@ impl GridState {
                     self.model.set_cell(*row, col_key, v.clone());
                 } else {
                     // Remove patch to restore datasource value.
-                    let physical =
-                        self.model.logical_to_physical(*row);
-                    self.model
-                        .patches
-                        .remove(&(physical, col_key.clone()));
+                    let physical = self.model.logical_to_physical(*row);
+                    self.model.patches.remove(&(physical, col_key.clone()));
                 }
                 UndoEntry::SetCell {
                     row: *row,
@@ -61,19 +55,15 @@ impl GridState {
                     if let Some(v) = old_value {
                         self.model.set_cell(*row, col_key, v.clone());
                     } else {
-                        let physical =
-                            self.model.logical_to_physical(*row);
-                        self.model
-                            .patches
-                            .remove(&(physical, col_key.clone()));
+                        let physical = self.model.logical_to_physical(*row);
+                        self.model.patches.remove(&(physical, col_key.clone()));
                     }
                     inverse.push((*row, col_key.clone(), current));
                 }
                 UndoEntry::SetCells(inverse)
             }
             UndoEntry::ResizeColumn { col_idx, old_width } => {
-                let current_width =
-                    self.model.columns[*col_idx].width;
+                let current_width = self.model.columns[*col_idx].width;
                 self.model.columns[*col_idx].width = *old_width;
                 self.model.rebuild_offsets();
                 UndoEntry::ResizeColumn {
@@ -82,8 +72,7 @@ impl GridState {
                 }
             }
             UndoEntry::MoveColumn { from_idx, to_idx } => {
-                let col =
-                    self.model.columns.remove(*from_idx);
+                let col = self.model.columns.remove(*from_idx);
                 self.model.columns.insert(*to_idx, col);
                 self.model.rebuild_offsets();
                 UndoEntry::MoveColumn {

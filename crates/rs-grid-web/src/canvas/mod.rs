@@ -30,6 +30,8 @@ use web_sys::{
     HtmlCanvasElement, HtmlElement, HtmlInputElement, ResizeObserver,
 };
 
+use crate::locale::Locale;
+
 use dom_helpers::document;
 
 // ── public handle ─────────────────────────────────────────────────────────────
@@ -108,6 +110,8 @@ struct Inner {
     pending_clipboard: RefCell<Option<String>>,
     /// Context menu configuration (items + overrides).
     ctx_menu_config: RefCell<context_menu_config::ContextMenuConfig>,
+    /// Locale strings for UI chrome (context menu, search bar).
+    locale: RefCell<Locale>,
     /// Shared page cache for async data sources (None for client-side).
     page_cache: RefCell<Option<PageCacheDataSource>>,
     /// Async fetch configuration (None = no async fetching).
@@ -175,6 +179,7 @@ impl GridCanvas {
         canvas: HtmlCanvasElement,
         mut state: GridState,
         theme: Theme,
+        locale: Locale,
     ) -> Self {
         let win = web_sys::window().expect("no window");
         let dpr = win.device_pixel_ratio();
@@ -252,6 +257,7 @@ impl GridCanvas {
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
             ),
+            locale: RefCell::new(locale),
             page_cache: RefCell::new(None),
             fetch_config: RefCell::new(None),
         });
@@ -392,6 +398,14 @@ impl GridCanvas {
             .set_property("background-color", &theme.bg.to_css());
         self.0.builder.borrow_mut().theme = theme;
         self.render();
+    }
+
+    /// Update the locale in-place without remounting the grid.
+    ///
+    /// The new strings take effect the next time the context
+    /// menu or search bar is opened.
+    pub fn set_locale(&self, locale: Locale) {
+        *self.0.locale.borrow_mut() = locale;
     }
 
     // ── public API for new v1 features ────────────────────────────────────────
