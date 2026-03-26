@@ -15,6 +15,8 @@ pub(crate) enum UndoEntry {
     MoveColumn { from_idx: usize, to_idx: usize },
 }
 
+/// Maximum number of entries in the undo stack. Once
+/// reached, the oldest entry is evicted (FIFO).
 const MAX_UNDO: usize = 100;
 
 /// Undo/redo stack with a fixed capacity.

@@ -46,16 +46,13 @@ fn App() -> impl IntoView {
     let detected_lang = web_sys::window()
         .and_then(|w| w.navigator().language())
         .unwrap_or_default();
-    let initial_lang_code = match detected_lang
-        .split('-')
-        .next()
-        .unwrap_or("en")
-    {
-        "fr" => "fr",
-        "de" => "de",
-        "es" => "es",
-        _ => "en",
-    };
+    let initial_lang_code =
+        match detected_lang.split('-').next().unwrap_or("en") {
+            "fr" => "fr",
+            "de" => "de",
+            "es" => "es",
+            _ => "en",
+        };
     let lang_code = RwSignal::new(initial_lang_code.to_string());
     let locale_sig = RwSignal::new(Locale::from_browser());
     let validation_error = RwSignal::new(String::new());

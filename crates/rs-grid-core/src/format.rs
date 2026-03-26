@@ -38,6 +38,7 @@ pub struct FormattedCell {
 /// When `ColumnDef::format` is `Some`, the scene builder
 /// pipes the raw string through `format_cell()` before
 /// rendering.
+#[non_exhaustive]
 pub enum CellFormat {
     /// Numeric: 1234.5 → "1 234.50"
     Number {

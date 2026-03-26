@@ -4,6 +4,7 @@ use crate::row::RowRecord;
 
 /// Distinguishes "data not yet fetched" from "data fetched but absent".
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum CellStatus {
     /// Cell value is available.
     Ready(String),

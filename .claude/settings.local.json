@@ -87,7 +87,8 @@
       "Bash(find /e/Dev/rs-grid/site/docs -type f -name *.md)",
       "Bash(done)",
       "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-core/src/*.rs)",
-      "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)"
+      "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)",
+      "Bash(cargo doc:*)"
     ]
   }
 }

@@ -48,7 +48,9 @@ impl SearchState {
         if model.mode == DataSourceMode::ServerSide {
             return state;
         }
+        // Max matches recorded per query.
         const MAX_MATCHES: usize = 10_000;
+        // Max rows scanned per query.
         const MAX_ROWS: u64 = 100_000;
         let query_lower = query.to_ascii_lowercase();
         let row_count = model.display_row_count().min(MAX_ROWS);

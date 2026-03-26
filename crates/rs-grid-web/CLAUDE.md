@@ -1,37 +1,37 @@
 # rs-grid-web
 
-Intégration navigateur. Gère le cycle de vie complet d'une instance de grille
-dans le DOM : events souris/clavier, boucle rAF, redimensionnement, DPR, thème CSS.
+Browser integration. Manages the full lifecycle of a grid instance in the DOM:
+mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 
 ## Modules
 
-| Module | Rôle |
+| Module | Role |
 |---|---|
-| `canvas` | `GridCanvas` : monte la grille sur un `HtmlCanvasElement`, gère rAF et events |
-| `css_theme` | `theme_from_css_vars()` : lit les variables CSS pour construire un `Theme` |
+| `canvas` | `GridCanvas`: mounts the grid on an `HtmlCanvasElement`, manages rAF and events |
+| `css_theme` | `theme_from_css_vars()`: reads CSS variables to build a `Theme` |
+| `locale` | `Locale`: UI string translations (15 built-in languages, TOML-based) |
 
-## Responsabilités de `GridCanvas`
+## Responsibilities of `GridCanvas`
 
-- Redimensionnement via `ResizeObserver` (mise à jour du viewport)
-- Boucle `requestAnimationFrame` : `SceneBuilder` → `SceneFrame` → `CanvasRenderer`
-- Gestion des events : `mousemove`, `mousedown`, `mouseup`, `wheel`, `keydown`,
+- Resize via `ResizeObserver` (viewport update)
+- `requestAnimationFrame` loop: `SceneBuilder` → `SceneFrame` → `CanvasRenderer`
+- Event handling: `mousemove`, `mousedown`, `mouseup`, `wheel`, `keydown`,
   `copy`, `paste`
-- Ajustement du canvas au `devicePixelRatio` pour les écrans HiDPI
-- Auto-scroll pendant le drag de sélection
+- Canvas DPR adjustment for HiDPI screens
+- Auto-scroll during selection drag
 
-## Invariants critiques
+## Critical invariants
 
-- `GridCanvas::mount()` est l'unique point d'entrée public — un canvas = une instance.
-- Les events sont convertis en `GridCommand` avant d'être appliqués à `GridState`.
-  **Ne pas manipuler `GridState` directement depuis les handlers d'events.**
-- Le DPR est lu une seule fois au mount et à chaque resize. Ne pas le relire
-  à chaque frame.
-- `theme_from_css_vars()` lit le DOM — appeler uniquement au mount, pas à chaque frame.
+- `GridCanvas::mount()` is the only public entry point — one canvas = one instance.
+- Events are converted to `GridCommand` before being applied to `GridState`.
+  **Do not manipulate `GridState` directly from event handlers.**
+- DPR is read once at mount and on each resize. Do not re-read it every frame.
+- `theme_from_css_vars()` reads the DOM — call only at mount, not every frame.
 
-## Thème CSS
+## CSS theme
 
-Les variables CSS sont préfixées `--rs-grid-*`. Le fichier de référence est
-`examples/basic-leptos/rs-grid-theme.css`. Pour ajouter une couleur de thème :
-1. Ajouter la variable dans le CSS de l'exemple
-2. Lire la variable dans `css_theme.rs`
-3. Ajouter le champ dans `Theme` (`rs-grid-scene/src/theme.rs`)
+CSS variables are prefixed `--rs-grid-*`. The reference file is
+`examples/basic-leptos/rs-grid-theme.css`. To add a theme colour:
+1. Add the variable in the example CSS
+2. Read the variable in `css_theme.rs`
+3. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`)

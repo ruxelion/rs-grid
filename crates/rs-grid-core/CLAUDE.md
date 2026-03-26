@@ -1,31 +1,31 @@
 # rs-grid-core
 
-Crate headless de logique de grille. **Zéro dépendance WASM, zéro dépendance web.**
-Elle doit rester testable avec `cargo test` natif standard.
+Headless grid logic crate. **Zero WASM dependency, zero web dependency.**
+It must remain testable with standard native `cargo test`.
 
 ## Modules
 
-| Module | Rôle |
+| Module | Role |
 |---|---|
-| `model` | `GridModel` : colonnes + source de données |
-| `state` | `GridState` : structure centrale combinant model + viewport + selection |
-| `viewport` | `ViewportState` : scroll_x, scroll_y, dimensions visibles, virtualisation des lignes |
-| `selection` | `SelectionState` : ancre/focus, copie TSV, paste TSV |
-| `hit_test` | Hit-testing O(log n) sur cellules, headers de lignes et de colonnes |
-| `commands` | `GridCommand` (enum) + `CommandOutput` — toutes les mutations passent par là |
-| `datasource` | Trait `DataSource` pour l'abstraction des données |
-| `column` | Définition des colonnes (`ColumnDef`) |
-| `row` | Métadonnées de ligne |
-| `scrollbar` | État des scrollbars (géométrie, dragging) |
+| `model` | `GridModel`: columns + data source |
+| `state` | `GridState`: central structure combining model + viewport + selection |
+| `viewport` | `ViewportState`: scroll_x, scroll_y, visible dimensions, row virtualisation |
+| `selection` | `SelectionState`: anchor/focus, TSV copy, TSV paste |
+| `hit_test` | O(log n) hit-testing on cells, row headers, and column headers |
+| `commands` | `GridCommand` (enum) + `CommandOutput` — all mutations go through here |
+| `datasource` | `DataSource` trait for data abstraction |
+| `column` | Column definitions (`ColumnDef`) |
+| `row` | Row metadata |
+| `scrollbar` | Scrollbar state (geometry, dragging) |
 
-## Invariants critiques
+## Critical invariants
 
-- **Pas de `wasm-bindgen`** ici. Si tu as besoin de WASM, ça appartient à `rs-grid-web`.
-- Les index de lignes sont **`u64`** (pas `usize`) pour supporter >4 Go de lignes sur WASM32.
-- Les mutations de `GridState` passent **uniquement** par `GridState::apply(GridCommand)`.
-- Le hit-testing doit rester O(log n) — les offsets de colonnes sont précompilés.
+- **No `wasm-bindgen` here.** If you need WASM, it belongs in `rs-grid-web`.
+- Row indices are **`u64`** (not `usize`) to support >4B rows on WASM32.
+- `GridState` mutations go **exclusively** through `GridState::apply(GridCommand)`.
+- Hit-testing must remain O(log n) — column offsets are precomputed.
 
-## Commandes utiles
+## Useful commands
 
 ```sh
 cargo test -p rs-grid-core

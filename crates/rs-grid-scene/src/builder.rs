@@ -16,10 +16,13 @@ use crate::{
 
 // ── column drag hint ─────────────────────────────────────────────────────────
 
-/// Transient UI hint for column-drag visual feedback.
+/// Transient render-time hint for column-drag visual
+/// feedback.
 ///
-/// Computed by the web layer, consumed by the scene builder to
-/// render a dimmed source header, an insertion line, and a ghost.
+/// This is **not** persistent state — it exists only for a
+/// single frame render cycle. Computed by the web layer,
+/// consumed by the scene builder to render a dimmed source
+/// header, an insertion line, and a ghost.
 pub struct ColumnDragHint {
     /// Index of the column being dragged.
     pub source_col: usize,
@@ -38,11 +41,12 @@ pub struct ColumnDragHint {
 
 // ── flash hint ───────────────────────────────────────────────────────────────
 
-/// Transient hint for the flash-cells animation.
+/// Transient render-time hint for the paste-flash animation.
 ///
-/// Computed by the web layer from elapsed time; consumed by the
-/// scene builder to render a fading golden-yellow overlay on
-/// selected cells.
+/// This is **not** persistent state — it exists only for a
+/// single frame render cycle. Computed by the web layer
+/// from elapsed time; consumed by the scene builder to
+/// render a fading overlay on selected cells.
 pub struct FlashHint {
     /// Normalised intensity: 1.0 = full flash, 0.0 = invisible.
     pub alpha_factor: f64,
