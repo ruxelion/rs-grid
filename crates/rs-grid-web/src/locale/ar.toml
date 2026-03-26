@@ -1,0 +1,17 @@
+# Arabic — العربية
+
+cut                = "قص"
+copy               = "نسخ"
+copy_with_headers  = "نسخ مع العناوين"
+paste              = "لصق"
+pin_column         = "تثبيت العمود"
+unpin_column       = "إلغاء تثبيت العمود"
+sort_ascending     = "ترتيب تصاعدي"
+sort_descending    = "ترتيب تنازلي"
+clear_sort         = "إلغاء الترتيب"
+autosize_this_column  = "ضبط حجم هذا العمود"
+autosize_all_columns  = "ضبط حجم كل الأعمدة"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "بحث…"

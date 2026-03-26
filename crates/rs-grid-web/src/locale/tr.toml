@@ -1,0 +1,17 @@
+# Turkish — Türkçe
+
+cut                = "Kes"
+copy               = "Kopyala"
+copy_with_headers  = "Başlıklarla kopyala"
+paste              = "Yapıştır"
+pin_column         = "Sütunu sabitle"
+unpin_column       = "Sütunu serbest bırak"
+sort_ascending     = "Artan sıralama"
+sort_descending    = "Azalan sıralama"
+clear_sort         = "Sıralamayı kaldır"
+autosize_this_column  = "Bu sütunu otomatik boyutla"
+autosize_all_columns  = "Tüm sütunları otomatik boyutla"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Ara…"
