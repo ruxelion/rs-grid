@@ -6,10 +6,10 @@ import React from 'react';
 import type { ReactNode, ReactElement } from 'react';
 
 const icons: Record<string, string> = {
-  Leptos: '/images/frameworks/leptos.svg',
-  Dioxus: '/images/frameworks/dioxus.svg',
-  Yew: '/images/frameworks/yew.svg',
-  'Vanilla JS': '/images/frameworks/js.svg',
+  Leptos: '/images/frameworks/leptos.png',
+  Dioxus: '/images/frameworks/dioxus.png',
+  Yew: '/images/frameworks/yew.png',
+  'Vanilla JS': '/images/frameworks/js.png',
 };
 
 function enrichLabel(label: string): ReactNode {
