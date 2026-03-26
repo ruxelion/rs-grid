@@ -92,6 +92,29 @@ gc.set_locale(Locale::es());
 ```
 
 
+**Dioxus**
+
+Le composant `GridCanvas` accepte un prop reactif `locale` optionnel.
+Lorsque le signal change, la grille met a jour ses chaines d'interface
+sans remontage.
+```rust
+use rs_grid_dioxus::{GridCanvas, ModelSlot, Locale};
+
+let locale = use_signal(|| Locale::from_browser());
+
+rsx! {
+    GridCanvas {
+        model: model_slot,
+        locale: locale,
+    }
+}
+```
+Pour changer de langue au runtime :
+```rust
+locale.set(Locale::de());
+```
+
+
 ## Chaînes traduites
 
 Le struct `Locale` contient toutes les chaînes de l'interface :

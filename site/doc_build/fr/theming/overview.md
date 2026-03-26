@@ -68,6 +68,16 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
+**Dioxus**
+
+Passez le theme en tant que signal pour des mises a jour reactives :
+```rust
+let mut theme = use_signal(|| Theme::dark());
+// Mise a jour dynamique du theme
+theme.set(Theme::light());
+```
+
+
 ## Quand les variables sont-elles lues ?
 
 Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
@@ -85,6 +95,12 @@ lorsque le signal est mis a jour.
 Remontez la grille apres avoir modifie les variables CSS. Appelez `detach()`
 d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
 `JsGrid`.
+
+
+**Dioxus**
+
+Utilisez un signal de theme — le composant se re-rendra automatiquement
+lorsque le signal est mis a jour. Meme comportement que Leptos.
 
 
 ## Themes par defaut

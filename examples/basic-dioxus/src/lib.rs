@@ -5,14 +5,16 @@ use std::{cell::RefCell, rc::Rc};
 use dioxus::prelude::*;
 use example_common::build_model;
 use rs_grid_core::state::GridState;
-use rs_grid_web::{theme_from_css_vars, GridCanvas, Locale};
+use rs_grid_dioxus::{
+    theme_from_css_vars, WebGridCanvas, Locale,
+};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::HtmlCanvasElement;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type CanvasRef = Rc<RefCell<Option<HtmlCanvasElement>>>;
-type GridRef = Rc<RefCell<Option<GridCanvas>>>;
+type GridRef = Rc<RefCell<Option<WebGridCanvas>>>;
 
 const LS_KEY: &str = "rs-grid-patches";
 
@@ -59,7 +61,7 @@ fn remount(canvas_ref: &CanvasRef, grid_ref: &GridRef, rows: u64, cols: usize) {
     let w = canvas.client_width() as f64;
     let h = canvas.client_height() as f64;
     let state = GridState::new(model, w, h);
-    let gc = GridCanvas::mount(
+    let gc = WebGridCanvas::mount(
         canvas,
         state,
         theme_from_css_vars(),
@@ -95,7 +97,7 @@ fn App() -> Element {
     let canvas_ref: CanvasRef =
         use_hook(|| Rc::new(RefCell::new(None::<HtmlCanvasElement>))).clone();
     let grid_ref: GridRef =
-        use_hook(|| Rc::new(RefCell::new(None::<GridCanvas>))).clone();
+        use_hook(|| Rc::new(RefCell::new(None::<WebGridCanvas>))).clone();
 
     // Per-closure clones of the shared handles
     let cr_mount = Rc::clone(&canvas_ref);

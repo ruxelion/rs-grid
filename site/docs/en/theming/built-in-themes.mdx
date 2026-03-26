@@ -94,6 +94,21 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 </Tab>
+<Tab label="Dioxus">
+
+```rust
+let mut theme = use_signal(|| Theme::light());
+
+// Toggle
+let current = theme.read().clone();
+theme.set(if current == Theme::light() {
+    Theme::dark()
+} else {
+    Theme::light()
+});
+```
+
+</Tab>
 </Tabs>
 
 ## Creating a custom theme

@@ -73,6 +73,24 @@ gc.set_on_validation_error(|row, col_key, message| {
 ```
 
 </Tab>
+<Tab label="Dioxus">
+
+Pass `on_validation_error` as an `EventHandler` to `GridCanvas`:
+
+```rust
+let mut error = use_signal(String::new);
+
+rsx! {
+    GridCanvas {
+        model: model_slot,
+        on_validation_error: move |(_, col, msg): (u64, String, String)| {
+            error.set(format!("[{col}] {msg}"));
+        },
+    }
+}
+```
+
+</Tab>
 </Tabs>
 
 The callback fires synchronously after the edit is cancelled. Arguments:

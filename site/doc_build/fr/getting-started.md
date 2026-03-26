@@ -68,6 +68,41 @@ Utilisez-le dans votre HTML :
 ```
 
 
+**Dioxus**
+
+Ajoutez `rs-grid-dioxus` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-dioxus = { path = "../rs-grid-dioxus" }
+```
+Importez le composant et montez-le dans une application Dioxus :
+```rust title="src/main.rs"
+use dioxus::prelude::*;
+use rs_grid_dioxus::{GridCanvas, ModelSlot};
+use rs_grid_core::model::GridModel;
+
+fn App() -> Element {
+    let model = use_hook(|| {
+        ModelSlot::new(GridModel::new(1_000_000, 50))
+    });
+    rsx! {
+        main { style: "width:100vw;height:100vh;",
+            GridCanvas { model: model.clone() }
+        }
+    }
+}
+
+fn main() {
+    dioxus::launch(App);
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-dioxus
+trunk serve
+```
+
+
 Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
 affichant 1 million de lignes a 60 fps.
 

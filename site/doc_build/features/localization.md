@@ -92,6 +92,29 @@ gc.set_locale(Locale::es());
 ```
 
 
+**Dioxus**
+
+The `GridCanvas` component accepts an optional reactive `locale` prop.
+When the signal changes, the grid updates its UI strings in place without
+remounting.
+```rust
+use rs_grid_dioxus::{GridCanvas, ModelSlot, Locale};
+
+let locale = use_signal(|| Locale::from_browser());
+
+rsx! {
+    GridCanvas {
+        model: model_slot,
+        locale: locale,
+    }
+}
+```
+To switch language at runtime:
+```rust
+locale.set(Locale::de());
+```
+
+
 ## Translated strings
 
 The `Locale` struct contains all UI chrome strings:

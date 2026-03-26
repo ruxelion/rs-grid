@@ -72,6 +72,41 @@ Utilisez-le dans votre HTML :
 ```
 
 
+**Dioxus**
+
+Ajoutez `rs-grid-dioxus` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-dioxus = { path = "../rs-grid-dioxus" }
+```
+Importez le composant et montez-le dans une application Dioxus :
+```rust title="src/main.rs"
+use dioxus::prelude::*;
+use rs_grid_dioxus::{GridCanvas, ModelSlot};
+use rs_grid_core::model::GridModel;
+
+fn App() -> Element {
+    let model = use_hook(|| {
+        ModelSlot::new(GridModel::new(1_000_000, 50))
+    });
+    rsx! {
+        main { style: "width:100vw;height:100vh;",
+            GridCanvas { model: model.clone() }
+        }
+    }
+}
+
+fn main() {
+    dioxus::launch(App);
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-dioxus
+trunk serve
+```
+
+
 Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
 affichant 1 million de lignes a 60 fps.
 
@@ -1965,7 +2000,7 @@ Concu pour des millions de lignes avec un rendu fluide a 60 fps sur Canvas2D.
 - **Renderer-agnostique** -- graphe de scene en primitives, le backend est interchangeable
 - **Barres de defilement personnalisees** -- themees, coherentes entre plateformes
 - **Menu contextuel** -- actions integrees et personnalisables
-- **Leptos et vanilla JS** -- utilisable avec Leptos CSR ou en JavaScript pur
+- **Leptos, Dioxus et vanilla JS** -- utilisable avec Leptos CSR, Dioxus CSR ou en JavaScript pur
 
 ## Architecture en un coup d'oeil
 
@@ -2771,6 +2806,29 @@ gc.set_locale(Locale::es());
 ```
 
 
+**Dioxus**
+
+Le composant `GridCanvas` accepte un prop reactif `locale` optionnel.
+Lorsque le signal change, la grille met a jour ses chaines d'interface
+sans remontage.
+```rust
+use rs_grid_dioxus::{GridCanvas, ModelSlot, Locale};
+
+let locale = use_signal(|| Locale::from_browser());
+
+rsx! {
+    GridCanvas {
+        model: model_slot,
+        locale: locale,
+    }
+}
+```
+Pour changer de langue au runtime :
+```rust
+locale.set(Locale::de());
+```
+
+
 ## Chaînes traduites
 
 Le struct `Locale` contient toutes les chaînes de l'interface :
@@ -3399,6 +3457,23 @@ gc.set_on_validation_error(|row, col_key, message| {
 ```
 
 
+**Dioxus**
+
+Passez `on_validation_error` comme `EventHandler` a `GridCanvas` :
+```rust
+let mut error = use_signal(String::new);
+
+rsx! {
+    GridCanvas {
+        model: model_slot,
+        on_validation_error: move |(_, col, msg): (u64, String, String)| {
+            error.set(format!("[{col}] {msg}"));
+        },
+    }
+}
+```
+
+
 Le callback est déclenché de façon synchrone après l'annulation de l'édition.
 Arguments :
 
@@ -3582,12 +3657,29 @@ Puis importez le module ES dans votre HTML :
 ```
 
 
+**Dioxus**
+
+Ajoutez les crates necessaires a votre `Cargo.toml` :
+```toml
+[dependencies]
+rs-grid-core   = { path = "../crates/rs-grid-core" }
+rs-grid-scene  = { path = "../crates/rs-grid-scene" }
+rs-grid-web    = { path = "../crates/rs-grid-web" }
+rs-grid-dioxus = { path = "../crates/rs-grid-dioxus" }
+```
+:::note
+rs-grid n'est pas encore publie sur crates.io. Utilisez des dependances
+par chemin local ou par git pour le moment.
+:::
+
+
 ## Graphe de dependances des crates
 
 Les dependances vont dans un seul sens -- n'introduisez jamais de dependance inverse :
 
 ```
 rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+rs-grid-dioxus ↗
 ```
 
 | Crate                   | Role                                                                                     |
@@ -3597,6 +3689,7 @@ rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → r
 | `rs-grid-render-canvas` | Backend Canvas2D via `wasm-bindgen`                                                      |
 | `rs-grid-web`           | Integration navigateur : evenements, DPR, boucle rAF, theme CSS                          |
 | `rs-grid-leptos`        | Composant Leptos CSR (`<GridCanvas>`)                                                    |
+| `rs-grid-dioxus`        | Composant Dioxus CSR (`GridCanvas`)                                                      |
 
 ## Verifier votre installation
 
@@ -3744,6 +3837,22 @@ Cela produit un module ES dans `pkg/` :
 - `rs_grid_web_bg.wasm` — le binaire WASM
 
 
+**Dioxus**
+
+`rs-grid-dioxus` fournit un composant `GridCanvas` pour les applications
+Dioxus CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la
+gestion des evenements et le theming dans un seul composant.
+```rust
+rsx! {
+    GridCanvas {
+        model: ModelSlot::new(model),
+        width: "100%",
+        height: "600px",
+    }
+}
+```
+
+
 ## API du composant
 
 
@@ -3767,6 +3876,20 @@ Cela produit un module ES dans `pkg/` :
 | `detach()`                       | Démonte la grille et supprime les écouteurs d'événements |
 | `export_patches()`               | Exporte les valeurs de cellules modifiées au format TSV  |
 | `import_patches(tsv)`            | Importe des modifications TSV dans la grille             |
+
+
+**Dioxus**
+
+### Props
+| Prop                  | Type                                  | Defaut    | Description                                         |
+| --------------------- | ------------------------------------- | --------- | --------------------------------------------------- |
+| `model`               | `ModelSlot`                           | requis    | Modele de grille encapsule dans `ModelSlot::new()`  |
+| `width`               | `String`                              | `"100%"`  | Largeur CSS                                         |
+| `height`              | `String`                              | `"600px"` | Hauteur CSS                                         |
+| `theme`               | `Option<Signal<Theme>>`               | `None`    | Signal de theme reactif optionnel                   |
+| `locale`              | `Option<Signal<Locale>>`              | `None`    | Signal de locale reactif optionnel                  |
+| `on_mount`            | `EventHandler<WebGridCanvas>`         | no-op     | Appele apres le montage avec le handle de la grille |
+| `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Callback d'erreur de validation                     |
 
 
 ## Thème
@@ -3806,6 +3929,25 @@ Leptos. Ajoutez les variables `--rs-grid-*` à votre feuille de styles :
 Consultez la [Référence des variables CSS](/fr/theming/css-variables.md) pour la liste complète.
 
 
+**Dioxus**
+
+Le composant lit sa palette de couleurs a partir des proprietes CSS
+personnalisees au moment du montage via `theme_from_css_vars`. Memes
+variables CSS que Leptos — definissez-les dans votre feuille de style :
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
+`index.html`.
+
+
 ## Événements
 
 
@@ -3829,6 +3971,21 @@ d'événements manuellement.
 l'élément canvas au moment du montage. Les événements sont convertis en
 valeurs `GridCommand` en interne. Appelez `detach()` pour supprimer tous
 les écouteurs et arrêter la boucle d'animation.
+
+
+**Dioxus**
+
+Le composant Dioxus monte la grille via `rs-grid-web`, qui attache
+automatiquement les ecouteurs pointer, wheel et resize :
+| Evenement navigateur  | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+Les evenements sont convertis en valeurs `GridCommand` et appliques a la
+prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
+d'evenements manuellement.
 
 
 ## Exemple complet
@@ -3889,6 +4046,35 @@ pour votre propre thème.
 ```
 
 
+**Dioxus**
+
+```rust title="src/main.rs"
+use dioxus::prelude::*;
+use rs_grid_dioxus::{GridCanvas, ModelSlot};
+use rs_grid_core::model::GridModel;
+
+fn App() -> Element {
+    let model = use_hook(|| {
+        ModelSlot::new(GridModel::new(500_000, 20))
+    });
+    rsx! {
+        main { style: "width:100vw;height:100vh;",
+            GridCanvas { model: model.clone() }
+        }
+    }
+}
+
+fn main() {
+    dioxus::launch(App);
+}
+```
+:::tip
+Le fichier de theme de reference se trouve dans
+`examples/basic-leptos/rs-grid-theme.css`. Copiez-le comme point de depart
+pour votre propre theme.
+:::
+
+
 ## Limitations
 
 
@@ -3910,6 +4096,13 @@ données personnalisées et des définitions de colonnes, utilisez
 l'intégration Leptos ou construisez une intégration personnalisée
 par-dessus `rs-grid-web`.
 :::
+
+
+**Dioxus**
+
+- rs-grid-dioxus est CSR uniquement — le SSR n'est pas supporte
+- Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
+- `GridModel` n'est pas `Clone` — utilisez `ModelSlot::new()` pour l'encapsuler
 
 
 
@@ -4300,6 +4493,21 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
+**Dioxus**
+
+```rust
+let mut theme = use_signal(|| Theme::light());
+
+// Toggle
+let current = theme.read().clone();
+theme.set(if current == Theme::light() {
+    Theme::dark()
+} else {
+    Theme::light()
+});
+```
+
+
 ## Creer un theme personnalise
 
 Partez d'un theme integre et surchargez les champs souhaites :
@@ -4472,6 +4680,16 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
+**Dioxus**
+
+Passez le theme en tant que signal pour des mises a jour reactives :
+```rust
+let mut theme = use_signal(|| Theme::dark());
+// Mise a jour dynamique du theme
+theme.set(Theme::light());
+```
+
+
 ## Quand les variables sont-elles lues ?
 
 Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
@@ -4489,6 +4707,12 @@ lorsque le signal est mis a jour.
 Remontez la grille apres avoir modifie les variables CSS. Appelez `detach()`
 d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
 `JsGrid`.
+
+
+**Dioxus**
+
+Utilisez un signal de theme — le composant se re-rendra automatiquement
+lorsque le signal est mis a jour. Meme comportement que Leptos.
 
 
 ## Themes par defaut

@@ -89,6 +89,21 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
+**Dioxus**
+
+```rust
+let mut theme = use_signal(|| Theme::light());
+
+// Toggle
+let current = theme.read().clone();
+theme.set(if current == Theme::light() {
+    Theme::dark()
+} else {
+    Theme::light()
+});
+```
+
+
 ## Creer un theme personnalise
 
 Partez d'un theme integre et surchargez les champs souhaites :

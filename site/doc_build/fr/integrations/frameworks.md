@@ -31,6 +31,22 @@ Cela produit un module ES dans `pkg/` :
 - `rs_grid_web_bg.wasm` — le binaire WASM
 
 
+**Dioxus**
+
+`rs-grid-dioxus` fournit un composant `GridCanvas` pour les applications
+Dioxus CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la
+gestion des evenements et le theming dans un seul composant.
+```rust
+rsx! {
+    GridCanvas {
+        model: ModelSlot::new(model),
+        width: "100%",
+        height: "600px",
+    }
+}
+```
+
+
 ## API du composant
 
 
@@ -54,6 +70,20 @@ Cela produit un module ES dans `pkg/` :
 | `detach()`                       | Démonte la grille et supprime les écouteurs d'événements |
 | `export_patches()`               | Exporte les valeurs de cellules modifiées au format TSV  |
 | `import_patches(tsv)`            | Importe des modifications TSV dans la grille             |
+
+
+**Dioxus**
+
+### Props
+| Prop                  | Type                                  | Defaut    | Description                                         |
+| --------------------- | ------------------------------------- | --------- | --------------------------------------------------- |
+| `model`               | `ModelSlot`                           | requis    | Modele de grille encapsule dans `ModelSlot::new()`  |
+| `width`               | `String`                              | `"100%"`  | Largeur CSS                                         |
+| `height`              | `String`                              | `"600px"` | Hauteur CSS                                         |
+| `theme`               | `Option<Signal<Theme>>`               | `None`    | Signal de theme reactif optionnel                   |
+| `locale`              | `Option<Signal<Locale>>`              | `None`    | Signal de locale reactif optionnel                  |
+| `on_mount`            | `EventHandler<WebGridCanvas>`         | no-op     | Appele apres le montage avec le handle de la grille |
+| `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Callback d'erreur de validation                     |
 
 
 ## Thème
@@ -93,6 +123,25 @@ Leptos. Ajoutez les variables `--rs-grid-*` à votre feuille de styles :
 Consultez la [Référence des variables CSS](/fr/theming/css-variables.md) pour la liste complète.
 
 
+**Dioxus**
+
+Le composant lit sa palette de couleurs a partir des proprietes CSS
+personnalisees au moment du montage via `theme_from_css_vars`. Memes
+variables CSS que Leptos — definissez-les dans votre feuille de style :
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
+`index.html`.
+
+
 ## Événements
 
 
@@ -116,6 +165,21 @@ d'événements manuellement.
 l'élément canvas au moment du montage. Les événements sont convertis en
 valeurs `GridCommand` en interne. Appelez `detach()` pour supprimer tous
 les écouteurs et arrêter la boucle d'animation.
+
+
+**Dioxus**
+
+Le composant Dioxus monte la grille via `rs-grid-web`, qui attache
+automatiquement les ecouteurs pointer, wheel et resize :
+| Evenement navigateur  | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+Les evenements sont convertis en valeurs `GridCommand` et appliques a la
+prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
+d'evenements manuellement.
 
 
 ## Exemple complet
@@ -176,6 +240,35 @@ pour votre propre thème.
 ```
 
 
+**Dioxus**
+
+```rust title="src/main.rs"
+use dioxus::prelude::*;
+use rs_grid_dioxus::{GridCanvas, ModelSlot};
+use rs_grid_core::model::GridModel;
+
+fn App() -> Element {
+    let model = use_hook(|| {
+        ModelSlot::new(GridModel::new(500_000, 20))
+    });
+    rsx! {
+        main { style: "width:100vw;height:100vh;",
+            GridCanvas { model: model.clone() }
+        }
+    }
+}
+
+fn main() {
+    dioxus::launch(App);
+}
+```
+:::tip
+Le fichier de theme de reference se trouve dans
+`examples/basic-leptos/rs-grid-theme.css`. Copiez-le comme point de depart
+pour votre propre theme.
+:::
+
+
 ## Limitations
 
 
@@ -197,4 +290,11 @@ données personnalisées et des définitions de colonnes, utilisez
 l'intégration Leptos ou construisez une intégration personnalisée
 par-dessus `rs-grid-web`.
 :::
+
+
+**Dioxus**
+
+- rs-grid-dioxus est CSR uniquement — le SSR n'est pas supporte
+- Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
+- `GridModel` n'est pas `Clone` — utilisez `ModelSlot::new()` pour l'encapsuler
 

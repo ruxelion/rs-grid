@@ -68,6 +68,16 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
+**Dioxus**
+
+Pass the theme as a signal for reactive updates:
+```rust
+let mut theme = use_signal(|| Theme::dark());
+// Update theme dynamically
+theme.set(Theme::light());
+```
+
+
 ## When are variables read?
 
 CSS variables are read **once** at mount time. They are not re-read on
@@ -84,6 +94,12 @@ signal updates.
 
 Re-mount the grid after changing CSS variables. Call `detach()` first,
 update the CSS properties, then create a new `JsGrid` instance.
+
+
+**Dioxus**
+
+Use a theme signal — the component will re-render automatically when the
+signal updates. Same behaviour as Leptos.
 
 
 ## Default themes

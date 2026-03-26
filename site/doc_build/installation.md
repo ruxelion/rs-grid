@@ -62,12 +62,29 @@ Then import the ES module in your HTML:
 ```
 
 
+**Dioxus**
+
+Add the required crates to your `Cargo.toml`:
+```toml
+[dependencies]
+rs-grid-core   = { path = "../crates/rs-grid-core" }
+rs-grid-scene  = { path = "../crates/rs-grid-scene" }
+rs-grid-web    = { path = "../crates/rs-grid-web" }
+rs-grid-dioxus = { path = "../crates/rs-grid-dioxus" }
+```
+:::note
+rs-grid is not yet published on crates.io. Use local path dependencies
+or git dependencies for now.
+:::
+
+
 ## Crate dependency graph
 
 The dependency flows in one direction — never introduce reverse dependencies:
 
 ```
 rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+rs-grid-dioxus → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
 ```
 
 | Crate                   | Role                                                                             |
@@ -77,6 +94,7 @@ rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → r
 | `rs-grid-render-canvas` | Canvas2D backend via `wasm-bindgen`                                              |
 | `rs-grid-web`           | Browser integration: events, DPR, rAF loop, CSS theme                            |
 | `rs-grid-leptos`        | Leptos CSR wrapper component (`<GridCanvas>`)                                    |
+| `rs-grid-dioxus`        | Dioxus CSR wrapper component (`GridCanvas`)                                      |
 
 ## Verify your setup
 
