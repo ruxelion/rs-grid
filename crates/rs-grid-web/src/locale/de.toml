@@ -1,0 +1,17 @@
+# German — Deutsch
+
+cut                = "Ausschneiden"
+copy               = "Kopieren"
+copy_with_headers  = "Mit Überschriften kopieren"
+paste              = "Einfügen"
+pin_column         = "Spalte fixieren"
+unpin_column       = "Spalte lösen"
+sort_ascending     = "Aufsteigend sortieren"
+sort_descending    = "Absteigend sortieren"
+clear_sort         = "Sortierung aufheben"
+autosize_this_column  = "Diese Spalte anpassen"
+autosize_all_columns  = "Alle Spalten anpassen"
+shortcut_cut       = "Strg+X"
+shortcut_copy      = "Strg+C"
+shortcut_paste     = "Strg+V"
+search_placeholder = "Suchen…"

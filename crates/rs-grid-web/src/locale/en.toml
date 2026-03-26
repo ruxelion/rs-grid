@@ -1,0 +1,17 @@
+# English (default)
+
+cut                = "Cut"
+copy               = "Copy"
+copy_with_headers  = "Copy with headers"
+paste              = "Paste"
+pin_column         = "Pin Column"
+unpin_column       = "Unpin Column"
+sort_ascending     = "Sort Ascending"
+sort_descending    = "Sort Descending"
+clear_sort         = "Clear Sort"
+autosize_this_column  = "Autosize This Column"
+autosize_all_columns  = "Autosize All Columns"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Find…"

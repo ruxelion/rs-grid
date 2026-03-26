@@ -1,0 +1,17 @@
+# Spanish — Español
+
+cut                = "Cortar"
+copy               = "Copiar"
+copy_with_headers  = "Copiar con encabezados"
+paste              = "Pegar"
+pin_column         = "Fijar columna"
+unpin_column       = "Desfijar columna"
+sort_ascending     = "Orden ascendente"
+sort_descending    = "Orden descendente"
+clear_sort         = "Quitar orden"
+autosize_this_column  = "Ajustar esta columna"
+autosize_all_columns  = "Ajustar todas las columnas"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Buscar…"

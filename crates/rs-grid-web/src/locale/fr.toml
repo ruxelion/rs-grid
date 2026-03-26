@@ -1,0 +1,17 @@
+# French — Français
+
+cut                = "Couper"
+copy               = "Copier"
+copy_with_headers  = "Copier avec en-têtes"
+paste              = "Coller"
+pin_column         = "Épingler la colonne"
+unpin_column       = "Désépingler la colonne"
+sort_ascending     = "Tri croissant"
+sort_descending    = "Tri décroissant"
+clear_sort         = "Annuler le tri"
+autosize_this_column  = "Ajuster cette colonne"
+autosize_all_columns  = "Ajuster toutes les colonnes"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Rechercher…"
