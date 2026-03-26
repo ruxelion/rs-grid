@@ -78,6 +78,22 @@ or git dependencies for now.
 :::
 
 
+**Yew**
+
+Add the required crates to your `Cargo.toml`:
+```toml
+[dependencies]
+rs-grid-core  = { path = "../crates/rs-grid-core" }
+rs-grid-scene = { path = "../crates/rs-grid-scene" }
+rs-grid-web   = { path = "../crates/rs-grid-web" }
+rs-grid-yew   = { path = "../crates/rs-grid-yew" }
+```
+:::note
+rs-grid is not yet published on crates.io. Use local path dependencies
+or git dependencies for now.
+:::
+
+
 ## Crate dependency graph
 
 The dependency flows in one direction — never introduce reverse dependencies:
@@ -85,6 +101,7 @@ The dependency flows in one direction — never introduce reverse dependencies:
 ```
 rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
 rs-grid-dioxus → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+rs-grid-yew    → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
 ```
 
 | Crate                   | Role                                                                             |
@@ -95,6 +112,7 @@ rs-grid-dioxus → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → r
 | `rs-grid-web`           | Browser integration: events, DPR, rAF loop, CSS theme                            |
 | `rs-grid-leptos`        | Leptos CSR wrapper component (`<GridCanvas>`)                                    |
 | `rs-grid-dioxus`        | Dioxus CSR wrapper component (`GridCanvas`)                                      |
+| `rs-grid-yew`           | Yew CSR wrapper component (`GridCanvas`)                                         |
 
 ## Verify your setup
 

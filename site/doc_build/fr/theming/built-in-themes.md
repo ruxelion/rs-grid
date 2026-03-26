@@ -104,6 +104,22 @@ theme.set(if current == Theme::light() {
 ```
 
 
+**Yew**
+
+```rust
+// Utilisez le callback on_mount pour obtenir le handle de la grille
+let on_mount = Callback::from(|gc: WebGridCanvas| {
+    // Basculer le theme via le handle de la grille
+    gc.set_theme(Theme::dark());
+});
+
+html! {
+    <GridCanvas model={model}
+        on_mount={Some(on_mount)} />
+}
+```
+
+
 ## Creer un theme personnalise
 
 Partez d'un theme integre et surchargez les champs souhaites :

@@ -47,6 +47,22 @@ rsx! {
 ```
 
 
+**Yew**
+
+`rs-grid-yew` provides a `GridCanvas` function component for Yew CSR
+applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
+theming in a single component.
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model};
+
+let model = wrap_model(my_model);
+html! {
+    <GridCanvas model={model}
+        width="100%" height="600px" />
+}
+```
+
+
 ## Component API
 
 
@@ -84,6 +100,20 @@ rsx! {
 | `locale`              | `Option<Signal<Locale>>`              | `None`    | Optional reactive locale signal          |
 | `on_mount`            | `EventHandler<WebGridCanvas>`         | no-op     | Called after mount with the grid handle  |
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Validation error callback                |
+
+
+**Yew**
+
+### Props
+| Prop                  | Type                              | Default   | Description                             |
+| --------------------- | --------------------------------- | --------- | --------------------------------------- |
+| `model`               | `Rc<RefCell<Option<GridModel>>>`  | required  | Grid model wrapped via `wrap_model()`   |
+| `width`               | `AttrValue`                       | `"100%"`  | CSS width                               |
+| `height`              | `AttrValue`                       | `"600px"` | CSS height                              |
+| `theme`               | `Option<Theme>`                   | `None`    | Optional theme                          |
+| `locale`              | `Option<Locale>`                  | `None`    | Optional locale                         |
+| `on_mount`            | `Option<Callback<WebGridCanvas>>` | `None`    | Called after mount with the grid handle |
+| `on_validation_error` | `Option<ValidationErrorCb>`       | `None`    | Validation error callback               |
 
 
 ## Theming
@@ -139,6 +169,24 @@ your stylesheet:
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 
 
+**Yew**
+
+The component reads its color palette from CSS custom properties at mount time
+via `theme_from_css_vars`. Same CSS variables as Leptos — define them in
+your stylesheet:
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
+
+
 ## Events
 
 
@@ -165,6 +213,20 @@ internally. Call `detach()` to remove all listeners and stop the animation loop.
 **Dioxus**
 
 The Dioxus component mounts the grid via `rs-grid-web`, which attaches
+pointer, wheel, and resize listeners automatically:
+| Browser event         | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+Events are translated to `GridCommand` values and applied on the next animation
+frame. You do not need to manage the event loop manually.
+
+
+**Yew**
+
+The Yew component mounts the grid via `rs-grid-web`, which attaches
 pointer, wheel, and resize listeners automatically:
 | Browser event         | GridCommand                                 |
 | --------------------- | ------------------------------------------- |
@@ -261,6 +323,33 @@ Copy it as a starting point for your own theme.
 :::
 
 
+**Yew**
+
+```rust title="src/main.rs"
+use yew::prelude::*;
+use rs_grid_yew::{GridCanvas, wrap_model};
+use rs_grid_core::model::GridModel;
+
+#[function_component]
+fn App() -> Html {
+    let model = wrap_model(GridModel::new(500_000, 20));
+    html! {
+        <main style="width:100vw;height:100vh;">
+            <GridCanvas model={model} />
+        </main>
+    }
+}
+
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+```
+:::tip
+The reference theme file is at `examples/basic-leptos/rs-grid-theme.css`.
+Copy it as a starting point for your own theme.
+:::
+
+
 ## Limitations
 
 
@@ -288,4 +377,11 @@ integration on top of `rs-grid-web`.
 - rs-grid-dioxus is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
 - `GridModel` is not `Clone` — use `ModelSlot::new()` to wrap it
+
+
+**Yew**
+
+- rs-grid-yew is CSR-only — SSR is not supported
+- The component expects to be rendered in a browser environment with `<canvas>` support
+- `GridModel` is not `Clone` — use `wrap_model()` to wrap it
 

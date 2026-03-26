@@ -24,7 +24,7 @@ Concu pour des millions de lignes avec un rendu fluide a 60 fps sur Canvas2D.
 - **Renderer-agnostique** -- graphe de scene en primitives, le backend est interchangeable
 - **Barres de defilement personnalisees** -- themees, coherentes entre plateformes
 - **Menu contextuel** -- actions integrees et personnalisables
-- **Leptos, Dioxus et vanilla JS** -- utilisable avec Leptos CSR, Dioxus CSR ou en JavaScript pur
+- **Leptos, Dioxus, Yew et vanilla JS** -- utilisable avec Leptos CSR, Dioxus CSR ou en JavaScript pur
 
 ## Architecture en un coup d'oeil
 

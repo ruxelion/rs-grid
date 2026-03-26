@@ -78,13 +78,30 @@ par chemin local ou par git pour le moment.
 :::
 
 
+**Yew**
+
+Ajoutez les crates necessaires a votre `Cargo.toml` :
+```toml
+[dependencies]
+rs-grid-core  = { path = "../crates/rs-grid-core" }
+rs-grid-scene = { path = "../crates/rs-grid-scene" }
+rs-grid-web   = { path = "../crates/rs-grid-web" }
+rs-grid-yew   = { path = "../crates/rs-grid-yew" }
+```
+:::note
+rs-grid n'est pas encore publie sur crates.io. Utilisez des dependances
+par chemin local ou par git pour le moment.
+:::
+
+
 ## Graphe de dependances des crates
 
 Les dependances vont dans un seul sens -- n'introduisez jamais de dependance inverse :
 
 ```
 rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
-rs-grid-dioxus ↗
+rs-grid-dioxus → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+rs-grid-yew    → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
 ```
 
 | Crate                   | Role                                                                                     |
@@ -95,6 +112,7 @@ rs-grid-dioxus ↗
 | `rs-grid-web`           | Integration navigateur : evenements, DPR, boucle rAF, theme CSS                          |
 | `rs-grid-leptos`        | Composant Leptos CSR (`<GridCanvas>`)                                                    |
 | `rs-grid-dioxus`        | Composant Dioxus CSR (`GridCanvas`)                                                      |
+| `rs-grid-yew`           | Composant Yew CSR (`GridCanvas`)                                                         |
 
 ## Verifier votre installation
 

@@ -104,6 +104,22 @@ theme.set(if current == Theme::light() {
 ```
 
 
+**Yew**
+
+```rust
+// Use the on_mount callback to get the grid handle
+let on_mount = Callback::from(|gc: WebGridCanvas| {
+    // Toggle theme via the grid handle
+    gc.set_theme(Theme::dark());
+});
+
+html! {
+    <GridCanvas model={model}
+        on_mount={Some(on_mount)} />
+}
+```
+
+
 ## Creating a custom theme
 
 Start from a built-in theme and override specific fields:

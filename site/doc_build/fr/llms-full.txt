@@ -1,144 +1,4 @@
 ---
-url: /fr/getting-started.md
----
-
-# Premiers pas
-
-## Prerequis
-
-- Toolchain Rust (stable, edition 2021)
-- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
-- La cible `wasm32-unknown-unknown`
-
-```bash
-rustup target add wasm32-unknown-unknown
-cargo install trunk
-```
-
-## Demarrage rapide
-
-
-**Leptos**
-
-Ajoutez `rs-grid-leptos` a votre `Cargo.toml` :
-```toml title="Cargo.toml"
-[dependencies]
-rs-grid-leptos = { path = "../rs-grid-leptos" }
-```
-Importez le composant et montez-le dans une vue Leptos :
-```rust title="src/main.rs"
-use leptos::*;
-use rs_grid_leptos::GridCanvas;
-
-#[component]
-pub fn App() -> impl IntoView {
-    view! {
-        <main style="width: 100vw; height: 100vh;">
-            <GridCanvas
-                rows=1_000_000_u64
-                cols=50_usize
-            />
-        </main>
-    }
-}
-
-fn main() {
-    leptos::mount_to_body(App);
-}
-```
-Lancez l'exemple :
-```bash
-cd examples/basic-leptos
-trunk serve
-```
-
-
-**Vanilla JS**
-
-Compilez le package WASM :
-```bash
-cd crates/rs-grid-web
-wasm-pack build --target web
-```
-Utilisez-le dans votre HTML :
-```html title="index.html"
-<canvas id="grid" style="width: 100vw; height: 100vh;"></canvas>
-<script type="module">
-  import init, { JsGrid } from './pkg/rs_grid_web.js';
-  await init();
-  const canvas = document.getElementById('grid');
-  const grid = new JsGrid(canvas, 1_000_000, 50);
-</script>
-```
-
-
-**Dioxus**
-
-Ajoutez `rs-grid-dioxus` a votre `Cargo.toml` :
-```toml title="Cargo.toml"
-[dependencies]
-rs-grid-dioxus = { path = "../rs-grid-dioxus" }
-```
-Importez le composant et montez-le dans une application Dioxus :
-```rust title="src/main.rs"
-use dioxus::prelude::*;
-use rs_grid_dioxus::{GridCanvas, ModelSlot};
-use rs_grid_core::model::GridModel;
-
-fn App() -> Element {
-    let model = use_hook(|| {
-        ModelSlot::new(GridModel::new(1_000_000, 50))
-    });
-    rsx! {
-        main { style: "width:100vw;height:100vh;",
-            GridCanvas { model: model.clone() }
-        }
-    }
-}
-
-fn main() {
-    dioxus::launch(App);
-}
-```
-Lancez l'exemple :
-```bash
-cd examples/basic-dioxus
-trunk serve
-```
-
-
-Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
-affichant 1 million de lignes a 60 fps.
-
-## Compiler pour la production
-
-```bash
-cd examples/basic-leptos
-trunk build --release
-```
-
-La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
-fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
-fournie.
-
-## Commandes du workspace
-
-| Commande                                  | Description                                        |
-| ----------------------------------------- | -------------------------------------------------- |
-| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
-| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
-| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
-| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
-| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
-
-:::tip
-`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
-avec un simple `cargo test`, sans navigateur.
-:::
-
-
-
----
 url: /fr/api/column-def.md
 ---
 
@@ -2000,7 +1860,7 @@ Concu pour des millions de lignes avec un rendu fluide a 60 fps sur Canvas2D.
 - **Renderer-agnostique** -- graphe de scene en primitives, le backend est interchangeable
 - **Barres de defilement personnalisees** -- themees, coherentes entre plateformes
 - **Menu contextuel** -- actions integrees et personnalisables
-- **Leptos, Dioxus et vanilla JS** -- utilisable avec Leptos CSR, Dioxus CSR ou en JavaScript pur
+- **Leptos, Dioxus, Yew et vanilla JS** -- utilisable avec Leptos CSR, Dioxus CSR ou en JavaScript pur
 
 ## Architecture en un coup d'oeil
 
@@ -2829,6 +2689,24 @@ locale.set(Locale::de());
 ```
 
 
+**Yew**
+
+Le composant `GridCanvas` accepte un prop `locale` optionnel.
+Passez une valeur `Locale` au montage.
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, Locale};
+
+let locale = Some(Locale::from_browser());
+
+html! {
+    <GridCanvas model={model}
+        locale={locale} />
+}
+```
+Pour changer de langue au runtime, utilisez le callback `on_mount` pour
+obtenir le handle de la grille et appelez `gc.set_locale(Locale::de())`.
+
+
 ## Chaînes traduites
 
 Le struct `Locale` contient toutes les chaînes de l'interface :
@@ -3474,6 +3352,26 @@ rsx! {
 ```
 
 
+**Yew**
+
+Passez `on_validation_error` comme `Option<ValidationErrorCb>` a `GridCanvas` :
+```rust
+use std::rc::Rc;
+use rs_grid_yew::{GridCanvas, wrap_model, ValidationErrorCb};
+
+let error_cb: ValidationErrorCb = Rc::new(|_row, col, msg| {
+    web_sys::console::warn_1(
+        &format!("[{col}] {msg}").into()
+    );
+});
+
+html! {
+    <GridCanvas model={model}
+        on_validation_error={Some(error_cb)} />
+}
+```
+
+
 Le callback est déclenché de façon synchrone après l'annulation de l'édition.
 Arguments :
 
@@ -3500,6 +3398,180 @@ Arguments :
 - [Édition](/fr/features/editing.md) — cycle de vie de l'édition et types d'éditeurs
 - [API ColumnDef](/fr/api/column-def.md) — référence du type `CellValidator`
 - [Annuler / Rétablir](/fr/features/undo-redo.md) — comportement de la pile d'annulation
+
+
+
+---
+url: /fr/getting-started.md
+---
+
+# Premiers pas
+
+## Prerequis
+
+- Toolchain Rust (stable, edition 2021)
+- [Trunk](https://trunkrs.dev) pour compiler et servir les applications WASM
+- La cible `wasm32-unknown-unknown`
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install trunk
+```
+
+## Demarrage rapide
+
+
+**Leptos**
+
+Ajoutez `rs-grid-leptos` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-leptos = { path = "../rs-grid-leptos" }
+```
+Importez le composant et montez-le dans une vue Leptos :
+```rust title="src/main.rs"
+use leptos::*;
+use rs_grid_leptos::GridCanvas;
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <main style="width: 100vw; height: 100vh;">
+            <GridCanvas
+                rows=1_000_000_u64
+                cols=50_usize
+            />
+        </main>
+    }
+}
+
+fn main() {
+    leptos::mount_to_body(App);
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-leptos
+trunk serve
+```
+
+
+**Vanilla JS**
+
+Compilez le package WASM :
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+Utilisez-le dans votre HTML :
+```html title="index.html"
+<canvas id="grid" style="width: 100vw; height: 100vh;"></canvas>
+<script type="module">
+  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  await init();
+  const canvas = document.getElementById('grid');
+  const grid = new JsGrid(canvas, 1_000_000, 50);
+</script>
+```
+
+
+**Dioxus**
+
+Ajoutez `rs-grid-dioxus` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-dioxus = { path = "../rs-grid-dioxus" }
+```
+Importez le composant et montez-le dans une application Dioxus :
+```rust title="src/main.rs"
+use dioxus::prelude::*;
+use rs_grid_dioxus::{GridCanvas, ModelSlot};
+use rs_grid_core::model::GridModel;
+
+fn App() -> Element {
+    let model = use_hook(|| {
+        ModelSlot::new(GridModel::new(1_000_000, 50))
+    });
+    rsx! {
+        main { style: "width:100vw;height:100vh;",
+            GridCanvas { model: model.clone() }
+        }
+    }
+}
+
+fn main() {
+    dioxus::launch(App);
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-dioxus
+trunk serve
+```
+
+
+**Yew**
+
+Ajoutez `rs-grid-yew` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-yew = { path = "../rs-grid-yew" }
+```
+Importez le composant et montez-le dans une application Yew :
+```rust title="src/main.rs"
+use yew::prelude::*;
+use rs_grid_yew::{GridCanvas, wrap_model};
+use rs_grid_core::model::GridModel;
+
+#[function_component]
+fn App() -> Html {
+    let model = wrap_model(GridModel::new(1_000_000, 50));
+    html! {
+        <main style="width:100vw;height:100vh;">
+            <GridCanvas model={model} />
+        </main>
+    }
+}
+
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-yew
+trunk serve
+```
+
+
+Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
+affichant 1 million de lignes a 60 fps.
+
+## Compiler pour la production
+
+```bash
+cd examples/basic-leptos
+trunk build --release
+```
+
+La sortie est generee dans `dist/`. Servez-la avec n'importe quel serveur de
+fichiers statiques ou utilisez l'[image Docker](/fr/deployment/docker.md)
+fournie.
+
+## Commandes du workspace
+
+| Commande                                  | Description                                        |
+| ----------------------------------------- | -------------------------------------------------- |
+| `cargo check --workspace`                 | Verification rapide des types pour tous les crates |
+| `cargo test --workspace`                  | Lancer tous les tests unitaires                    |
+| `cargo fmt --all`                         | Formater l'ensemble du workspace                   |
+| `cargo clippy --workspace -- -D warnings` | Lint avec warnings traites comme erreurs           |
+| `trunk serve` (dans le dossier exemple)   | Serveur de dev avec hot reload                     |
+
+:::tip
+`rs-grid-core` n'a aucune dependance WASM — ses tests unitaires s'executent
+avec un simple `cargo test`, sans navigateur.
+:::
 
 
 
@@ -3673,13 +3745,30 @@ par chemin local ou par git pour le moment.
 :::
 
 
+**Yew**
+
+Ajoutez les crates necessaires a votre `Cargo.toml` :
+```toml
+[dependencies]
+rs-grid-core  = { path = "../crates/rs-grid-core" }
+rs-grid-scene = { path = "../crates/rs-grid-scene" }
+rs-grid-web   = { path = "../crates/rs-grid-web" }
+rs-grid-yew   = { path = "../crates/rs-grid-yew" }
+```
+:::note
+rs-grid n'est pas encore publie sur crates.io. Utilisez des dependances
+par chemin local ou par git pour le moment.
+:::
+
+
 ## Graphe de dependances des crates
 
 Les dependances vont dans un seul sens -- n'introduisez jamais de dependance inverse :
 
 ```
 rs-grid-leptos → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
-rs-grid-dioxus ↗
+rs-grid-dioxus → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
+rs-grid-yew    → rs-grid-web → rs-grid-render-canvas → rs-grid-scene → rs-grid-core
 ```
 
 | Crate                   | Role                                                                                     |
@@ -3690,6 +3779,7 @@ rs-grid-dioxus ↗
 | `rs-grid-web`           | Integration navigateur : evenements, DPR, boucle rAF, theme CSS                          |
 | `rs-grid-leptos`        | Composant Leptos CSR (`<GridCanvas>`)                                                    |
 | `rs-grid-dioxus`        | Composant Dioxus CSR (`GridCanvas`)                                                      |
+| `rs-grid-yew`           | Composant Yew CSR (`GridCanvas`)                                                         |
 
 ## Verifier votre installation
 
@@ -3853,6 +3943,22 @@ rsx! {
 ```
 
 
+**Yew**
+
+`rs-grid-yew` fournit un composant fonction `GridCanvas` pour les applications
+Yew CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la gestion
+des evenements et le theming dans un seul composant.
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model};
+
+let model = wrap_model(my_model);
+html! {
+    <GridCanvas model={model}
+        width="100%" height="600px" />
+}
+```
+
+
 ## API du composant
 
 
@@ -3890,6 +3996,20 @@ rsx! {
 | `locale`              | `Option<Signal<Locale>>`              | `None`    | Signal de locale reactif optionnel                  |
 | `on_mount`            | `EventHandler<WebGridCanvas>`         | no-op     | Appele apres le montage avec le handle de la grille |
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Callback d'erreur de validation                     |
+
+
+**Yew**
+
+### Props
+| Prop                  | Type                              | Defaut    | Description                                         |
+| --------------------- | --------------------------------- | --------- | --------------------------------------------------- |
+| `model`               | `Rc<RefCell<Option<GridModel>>>`  | requis    | Modele de grille encapsule via `wrap_model()`       |
+| `width`               | `AttrValue`                       | `"100%"`  | Largeur CSS                                         |
+| `height`              | `AttrValue`                       | `"600px"` | Hauteur CSS                                         |
+| `theme`               | `Option<Theme>`                   | `None`    | Theme optionnel                                     |
+| `locale`              | `Option<Locale>`                  | `None`    | Locale optionnelle                                  |
+| `on_mount`            | `Option<Callback<WebGridCanvas>>` | `None`    | Appele apres le montage avec le handle de la grille |
+| `on_validation_error` | `Option<ValidationErrorCb>`       | `None`    | Callback d'erreur de validation                     |
 
 
 ## Thème
@@ -3948,6 +4068,25 @@ Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
 `index.html`.
 
 
+**Yew**
+
+Le composant lit sa palette de couleurs a partir des proprietes CSS
+personnalisees au moment du montage via `theme_from_css_vars`. Memes
+variables CSS que Leptos — definissez-les dans votre feuille de style :
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
+`index.html`.
+
+
 ## Événements
 
 
@@ -3976,6 +4115,21 @@ les écouteurs et arrêter la boucle d'animation.
 **Dioxus**
 
 Le composant Dioxus monte la grille via `rs-grid-web`, qui attache
+automatiquement les ecouteurs pointer, wheel et resize :
+| Evenement navigateur  | GridCommand                                 |
+| --------------------- | ------------------------------------------- |
+| `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection`                           |
+| `wheel`               | `ScrollTo`                                  |
+| `ResizeObserver`      | `Resize`                                    |
+Les evenements sont convertis en valeurs `GridCommand` et appliques a la
+prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
+d'evenements manuellement.
+
+
+**Yew**
+
+Le composant Yew monte la grille via `rs-grid-web`, qui attache
 automatiquement les ecouteurs pointer, wheel et resize :
 | Evenement navigateur  | GridCommand                                 |
 | --------------------- | ------------------------------------------- |
@@ -4075,6 +4229,34 @@ pour votre propre theme.
 :::
 
 
+**Yew**
+
+```rust title="src/main.rs"
+use yew::prelude::*;
+use rs_grid_yew::{GridCanvas, wrap_model};
+use rs_grid_core::model::GridModel;
+
+#[function_component]
+fn App() -> Html {
+    let model = wrap_model(GridModel::new(500_000, 20));
+    html! {
+        <main style="width:100vw;height:100vh;">
+            <GridCanvas model={model} />
+        </main>
+    }
+}
+
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+```
+:::tip
+Le fichier de theme de reference se trouve dans
+`examples/basic-leptos/rs-grid-theme.css`. Copiez-le comme point de depart
+pour votre propre theme.
+:::
+
+
 ## Limitations
 
 
@@ -4103,6 +4285,13 @@ par-dessus `rs-grid-web`.
 - rs-grid-dioxus est CSR uniquement — le SSR n'est pas supporte
 - Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
 - `GridModel` n'est pas `Clone` — utilisez `ModelSlot::new()` pour l'encapsuler
+
+
+**Yew**
+
+- rs-grid-yew est CSR uniquement — le SSR n'est pas supporte
+- Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
+- `GridModel` n'est pas `Clone` — utilisez `wrap_model()` pour l'encapsuler
 
 
 
@@ -4508,6 +4697,22 @@ theme.set(if current == Theme::light() {
 ```
 
 
+**Yew**
+
+```rust
+// Utilisez le callback on_mount pour obtenir le handle de la grille
+let on_mount = Callback::from(|gc: WebGridCanvas| {
+    // Basculer le theme via le handle de la grille
+    gc.set_theme(Theme::dark());
+});
+
+html! {
+    <GridCanvas model={model}
+        on_mount={Some(on_mount)} />
+}
+```
+
+
 ## Creer un theme personnalise
 
 Partez d'un theme integre et surchargez les champs souhaites :
@@ -4690,6 +4895,21 @@ theme.set(Theme::light());
 ```
 
 
+**Yew**
+
+Passez le theme comme prop, ou utilisez le callback `on_mount` pour des
+mises a jour dynamiques :
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, WebGridCanvas};
+use rs_grid_scene::Theme;
+
+html! {
+    <GridCanvas model={model}
+        theme={Some(Theme::dark())} />
+}
+```
+
+
 ## Quand les variables sont-elles lues ?
 
 Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
@@ -4713,6 +4933,13 @@ d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
 
 Utilisez un signal de theme — le composant se re-rendra automatiquement
 lorsque le signal est mis a jour. Meme comportement que Leptos.
+
+
+**Yew**
+
+Utilisez le callback `on_mount` pour obtenir le handle de la grille,
+puis appelez `gc.set_theme(theme_from_css_vars())` apres avoir modifie
+les proprietes CSS.
 
 
 ## Themes par defaut

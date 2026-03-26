@@ -1,0 +1,13 @@
+[package]
+name = "rs-grid-yew"
+version = "0.1.0"
+edition = "2021"
+description = "Yew CSR component wrapper for rs-grid"
+
+[dependencies]
+rs-grid-core  = { path = "../rs-grid-core" }
+rs-grid-scene = { path = "../rs-grid-scene" }
+rs-grid-web   = { path = "../rs-grid-web" }
+yew           = { version = "0.23", features = ["csr"] }
+wasm-bindgen  = { workspace = true }
+web-sys       = { workspace = true }

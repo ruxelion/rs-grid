@@ -2,7 +2,9 @@
 
 use example_common::build_model;
 use rs_grid_core::state::GridState;
-use rs_grid_web::{theme_from_css_vars, GridCanvas, Locale};
+use rs_grid_yew::{
+    theme_from_css_vars, WebGridCanvas, Locale,
+};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{Event, HtmlCanvasElement, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
@@ -52,7 +54,7 @@ fn App() -> Html {
     // use_node_ref: Yew's built-in typed reference to a DOM element.
     let canvas_ref = use_node_ref();
     // use_mut_ref: Rc<RefCell<T>> stored across renders, no Send required.
-    let grid_ref = use_mut_ref(|| None::<GridCanvas>);
+    let grid_ref = use_mut_ref(|| None::<WebGridCanvas>);
 
     // ── Effect: mount / remount on row or col count change ────────────────
     // use_effect_with fires after every render where the deps changed,
@@ -71,7 +73,7 @@ fn App() -> Html {
                 let w = canvas.client_width() as f64;
                 let h = canvas.client_height() as f64;
                 let state = GridState::new(model, w, h);
-                let gc = GridCanvas::mount(
+                let gc = WebGridCanvas::mount(
                     canvas,
                     state,
                     theme_from_css_vars(),

@@ -86,6 +86,22 @@ theme.set(Theme::light());
 ```
 
 </Tab>
+<Tab label="Yew">
+
+Passez le theme comme prop, ou utilisez le callback `on_mount` pour des
+mises a jour dynamiques :
+
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, WebGridCanvas};
+use rs_grid_scene::Theme;
+
+html! {
+    <GridCanvas model={model}
+        theme={Some(Theme::dark())} />
+}
+```
+
+</Tab>
 </Tabs>
 
 ## Quand les variables sont-elles lues ?
@@ -111,6 +127,13 @@ d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
 
 Utilisez un signal de theme — le composant se re-rendra automatiquement
 lorsque le signal est mis a jour. Meme comportement que Leptos.
+
+</Tab>
+<Tab label="Yew">
+
+Utilisez le callback `on_mount` pour obtenir le handle de la grille,
+puis appelez `gc.set_theme(theme_from_css_vars())` apres avoir modifie
+les proprietes CSS.
 
 </Tab>
 </Tabs>

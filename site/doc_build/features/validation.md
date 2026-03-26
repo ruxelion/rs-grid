@@ -84,6 +84,26 @@ rsx! {
 ```
 
 
+**Yew**
+
+Pass `on_validation_error` as an `Option<ValidationErrorCb>` to `GridCanvas`:
+```rust
+use std::rc::Rc;
+use rs_grid_yew::{GridCanvas, wrap_model, ValidationErrorCb};
+
+let error_cb: ValidationErrorCb = Rc::new(|_row, col, msg| {
+    web_sys::console::warn_1(
+        &format!("[{col}] {msg}").into()
+    );
+});
+
+html! {
+    <GridCanvas model={model}
+        on_validation_error={Some(error_cb)} />
+}
+```
+
+
 The callback fires synchronously after the edit is cancelled. Arguments:
 
 | Argument  | Type   | Description                             |

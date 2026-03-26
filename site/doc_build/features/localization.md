@@ -115,6 +115,24 @@ locale.set(Locale::de());
 ```
 
 
+**Yew**
+
+The `GridCanvas` component accepts an optional `locale` prop.
+Pass a `Locale` value at mount time.
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, Locale};
+
+let locale = Some(Locale::from_browser());
+
+html! {
+    <GridCanvas model={model}
+        locale={locale} />
+}
+```
+To switch language at runtime, use the `on_mount` callback to get the
+grid handle and call `gc.set_locale(Locale::de())`.
+
+
 ## Translated strings
 
 The `Locale` struct contains all UI chrome strings:

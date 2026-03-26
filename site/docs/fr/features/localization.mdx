@@ -126,6 +126,26 @@ locale.set(Locale::de());
 ```
 
 </Tab>
+<Tab label="Yew">
+
+Le composant `GridCanvas` accepte un prop `locale` optionnel.
+Passez une valeur `Locale` au montage.
+
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, Locale};
+
+let locale = Some(Locale::from_browser());
+
+html! {
+    <GridCanvas model={model}
+        locale={locale} />
+}
+```
+
+Pour changer de langue au runtime, utilisez le callback `on_mount` pour
+obtenir le handle de la grille et appelez `gc.set_locale(Locale::de())`.
+
+</Tab>
 </Tabs>
 
 ## Chaînes traduites

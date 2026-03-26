@@ -109,6 +109,22 @@ theme.set(if current == Theme::light() {
 ```
 
 </Tab>
+<Tab label="Yew">
+
+```rust
+// Use the on_mount callback to get the grid handle
+let on_mount = Callback::from(|gc: WebGridCanvas| {
+    // Toggle theme via the grid handle
+    gc.set_theme(Theme::dark());
+});
+
+html! {
+    <GridCanvas model={model}
+        on_mount={Some(on_mount)} />
+}
+```
+
+</Tab>
 </Tabs>
 
 ## Creating a custom theme

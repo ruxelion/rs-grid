@@ -103,6 +103,40 @@ trunk serve
 ```
 
 
+**Yew**
+
+Ajoutez `rs-grid-yew` a votre `Cargo.toml` :
+```toml title="Cargo.toml"
+[dependencies]
+rs-grid-yew = { path = "../rs-grid-yew" }
+```
+Importez le composant et montez-le dans une application Yew :
+```rust title="src/main.rs"
+use yew::prelude::*;
+use rs_grid_yew::{GridCanvas, wrap_model};
+use rs_grid_core::model::GridModel;
+
+#[function_component]
+fn App() -> Html {
+    let model = wrap_model(GridModel::new(1_000_000, 50));
+    html! {
+        <main style="width:100vw;height:100vh;">
+            <GridCanvas model={model} />
+        </main>
+    }
+}
+
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+```
+Lancez l'exemple :
+```bash
+cd examples/basic-yew
+trunk serve
+```
+
+
 Rendez-vous sur `http://localhost:8080`. Vous devriez voir un grid
 affichant 1 million de lignes a 60 fps.
 

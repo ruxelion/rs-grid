@@ -56,6 +56,23 @@ rsx! {
 ```
 
 </Tab>
+<Tab label="Yew">
+
+`rs-grid-yew` fournit un composant fonction `GridCanvas` pour les applications
+Yew CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la gestion
+des evenements et le theming dans un seul composant.
+
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model};
+
+let model = wrap_model(my_model);
+html! {
+    <GridCanvas model={model}
+        width="100%" height="600px" />
+}
+```
+
+</Tab>
 </Tabs>
 
 ## API du composant
@@ -98,6 +115,21 @@ rsx! {
 | `locale` | `Option<Signal<Locale>>` | `None` | Signal de locale reactif optionnel |
 | `on_mount` | `EventHandler<WebGridCanvas>` | no-op | Appele apres le montage avec le handle de la grille |
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op | Callback d'erreur de validation |
+
+</Tab>
+<Tab label="Yew">
+
+### Props
+
+| Prop | Type | Defaut | Description |
+|------|------|--------|-------------|
+| `model` | `Rc<RefCell<Option<GridModel>>>` | requis | Modele de grille encapsule via `wrap_model()` |
+| `width` | `AttrValue` | `"100%"` | Largeur CSS |
+| `height` | `AttrValue` | `"600px"` | Hauteur CSS |
+| `theme` | `Option<Theme>` | `None` | Theme optionnel |
+| `locale` | `Option<Locale>` | `None` | Locale optionnelle |
+| `on_mount` | `Option<Callback<WebGridCanvas>>` | `None` | Appele apres le montage avec le handle de la grille |
+| `on_validation_error` | `Option<ValidationErrorCb>` | `None` | Callback d'erreur de validation |
 
 </Tab>
 </Tabs>
@@ -164,6 +196,27 @@ Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
 `index.html`.
 
 </Tab>
+<Tab label="Yew">
+
+Le composant lit sa palette de couleurs a partir des proprietes CSS
+personnalisees au moment du montage via `theme_from_css_vars`. Memes
+variables CSS que Leptos — definissez-les dans votre feuille de style :
+
+```css title="rs-grid-theme.css"
+:root {
+  --rs-grid-bg:               #0d1117;
+  --rs-grid-header-bg:        #161b22;
+  --rs-grid-border:           #30363d;
+  --rs-grid-text:             #c9d1d9;
+  --rs-grid-selection-bg:     rgba(56, 139, 253, 0.15);
+  --rs-grid-selection-border: #388bfd;
+}
+```
+
+Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
+`index.html`.
+
+</Tab>
 </Tabs>
 
 ## Événements
@@ -196,6 +249,23 @@ les écouteurs et arrêter la boucle d'animation.
 <Tab label="Dioxus">
 
 Le composant Dioxus monte la grille via `rs-grid-web`, qui attache
+automatiquement les ecouteurs pointer, wheel et resize :
+
+| Evenement navigateur | GridCommand |
+|----------------------|-------------|
+| `pointerdown` | `SelectCell` / `SelectRow` / `SelectColumn` |
+| `pointerdown` + Shift | `ExtendSelection` |
+| `wheel` | `ScrollTo` |
+| `ResizeObserver` | `Resize` |
+
+Les evenements sont convertis en valeurs `GridCommand` et appliques a la
+prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
+d'evenements manuellement.
+
+</Tab>
+<Tab label="Yew">
+
+Le composant Yew monte la grille via `rs-grid-web`, qui attache
 automatiquement les ecouteurs pointer, wheel et resize :
 
 | Evenement navigateur | GridCommand |
@@ -301,6 +371,35 @@ pour votre propre theme.
 :::
 
 </Tab>
+<Tab label="Yew">
+
+```rust title="src/main.rs"
+use yew::prelude::*;
+use rs_grid_yew::{GridCanvas, wrap_model};
+use rs_grid_core::model::GridModel;
+
+#[function_component]
+fn App() -> Html {
+    let model = wrap_model(GridModel::new(500_000, 20));
+    html! {
+        <main style="width:100vw;height:100vh;">
+            <GridCanvas model={model} />
+        </main>
+    }
+}
+
+fn main() {
+    yew::Renderer::<App>::new().render();
+}
+```
+
+:::tip
+Le fichier de theme de reference se trouve dans
+`examples/basic-leptos/rs-grid-theme.css`. Copiez-le comme point de depart
+pour votre propre theme.
+:::
+
+</Tab>
 </Tabs>
 
 ## Limitations
@@ -332,6 +431,13 @@ pour votre propre theme.
 - rs-grid-dioxus est CSR uniquement — le SSR n'est pas supporte
 - Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
 - `GridModel` n'est pas `Clone` — utilisez `ModelSlot::new()` pour l'encapsuler
+
+</Tab>
+<Tab label="Yew">
+
+- rs-grid-yew est CSR uniquement — le SSR n'est pas supporte
+- Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
+- `GridModel` n'est pas `Clone` — utilisez `wrap_model()` pour l'encapsuler
 
 </Tab>
 </Tabs>

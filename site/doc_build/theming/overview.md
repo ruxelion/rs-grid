@@ -78,6 +78,20 @@ theme.set(Theme::light());
 ```
 
 
+**Yew**
+
+Pass the theme as a prop, or use the `on_mount` callback for dynamic updates:
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, WebGridCanvas};
+use rs_grid_scene::Theme;
+
+html! {
+    <GridCanvas model={model}
+        theme={Some(Theme::dark())} />
+}
+```
+
+
 ## When are variables read?
 
 CSS variables are read **once** at mount time. They are not re-read on
@@ -100,6 +114,12 @@ update the CSS properties, then create a new `JsGrid` instance.
 
 Use a theme signal — the component will re-render automatically when the
 signal updates. Same behaviour as Leptos.
+
+
+**Yew**
+
+Use the `on_mount` callback to get the grid handle, then call
+`gc.set_theme(theme_from_css_vars())` after updating CSS properties.
 
 
 ## Default themes

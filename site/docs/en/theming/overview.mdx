@@ -86,6 +86,21 @@ theme.set(Theme::light());
 ```
 
 </Tab>
+<Tab label="Yew">
+
+Pass the theme as a prop, or use the `on_mount` callback for dynamic updates:
+
+```rust
+use rs_grid_yew::{GridCanvas, wrap_model, WebGridCanvas};
+use rs_grid_scene::Theme;
+
+html! {
+    <GridCanvas model={model}
+        theme={Some(Theme::dark())} />
+}
+```
+
+</Tab>
 </Tabs>
 
 ## When are variables read?
@@ -110,6 +125,12 @@ update the CSS properties, then create a new `JsGrid` instance.
 
 Use a theme signal — the component will re-render automatically when the
 signal updates. Same behaviour as Leptos.
+
+</Tab>
+<Tab label="Yew">
+
+Use the `on_mount` callback to get the grid handle, then call
+`gc.set_theme(theme_from_css_vars())` after updating CSS properties.
 
 </Tab>
 </Tabs>
