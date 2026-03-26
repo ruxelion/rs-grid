@@ -1,6 +1,7 @@
 /// Identifies a built-in action that the grid knows how to
 /// execute from the context menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum BuiltinAction {
     /// Cut the selection to clipboard.
     Cut,
@@ -28,6 +29,7 @@ pub enum BuiltinAction {
 
 /// A single item in the context menu.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum ContextMenuItem {
     /// A built-in action with optional label/icon/shortcut
     /// overrides.

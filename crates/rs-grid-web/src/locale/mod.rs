@@ -148,8 +148,7 @@ impl Locale {
     /// Only the primary subtag is considered.  Falls back
     /// to English for unknown tags.
     pub fn from_language_tag(tag: &str) -> Self {
-        let primary =
-            tag.split('-').next().unwrap_or("en");
+        let primary = tag.split('-').next().unwrap_or("en");
         match primary {
             "fr" => Self::fr(),
             "de" => Self::de(),
@@ -240,10 +239,7 @@ fn parse_toml(src: &str) -> Locale {
 
 /// Strip surrounding `"` quotes from a TOML basic string.
 fn parse_toml_string(s: &str) -> String {
-    if s.len() >= 2
-        && s.starts_with('"')
-        && s.ends_with('"')
-    {
+    if s.len() >= 2 && s.starts_with('"') && s.ends_with('"') {
         s[1..s.len() - 1].to_string()
     } else {
         s.to_string()
@@ -259,10 +255,7 @@ mod tests {
         let loc = parse_toml(include_str!("en.toml"));
         assert_eq!(loc.cut, "Cut");
         assert_eq!(loc.copy, "Copy");
-        assert_eq!(
-            loc.copy_with_headers,
-            "Copy with headers"
-        );
+        assert_eq!(loc.copy_with_headers, "Copy with headers");
         assert_eq!(loc.paste, "Paste");
         assert_eq!(loc.shortcut_cut, "Ctrl+X");
         assert_eq!(loc.search_placeholder, "Find\u{2026}");
@@ -272,10 +265,7 @@ mod tests {
     fn parse_fr_toml() {
         let loc = parse_toml(include_str!("fr.toml"));
         assert_eq!(loc.cut, "Couper");
-        assert_eq!(
-            loc.search_placeholder,
-            "Rechercher\u{2026}"
-        );
+        assert_eq!(loc.search_placeholder, "Rechercher\u{2026}");
     }
 
     #[test]
@@ -298,14 +288,8 @@ mod tests {
             ("ko", include_str!("ko.toml")),
         ] {
             let loc = parse_toml(src);
-            assert!(
-                !loc.cut.is_empty(),
-                "{name}: cut is empty"
-            );
-            assert!(
-                !loc.copy.is_empty(),
-                "{name}: copy is empty"
-            );
+            assert!(!loc.cut.is_empty(), "{name}: cut is empty");
+            assert!(!loc.copy.is_empty(), "{name}: copy is empty");
             assert!(
                 !loc.search_placeholder.is_empty(),
                 "{name}: search_placeholder is empty"
@@ -315,22 +299,10 @@ mod tests {
 
     #[test]
     fn from_language_tag_matches() {
-        assert_eq!(
-            Locale::from_language_tag("fr-FR").cut,
-            "Couper"
-        );
-        assert_eq!(
-            Locale::from_language_tag("de").cut,
-            "Ausschneiden"
-        );
-        assert_eq!(
-            Locale::from_language_tag("ja").cut,
-            "切り取り"
-        );
+        assert_eq!(Locale::from_language_tag("fr-FR").cut, "Couper");
+        assert_eq!(Locale::from_language_tag("de").cut, "Ausschneiden");
+        assert_eq!(Locale::from_language_tag("ja").cut, "切り取り");
         // Unknown tag falls back to English
-        assert_eq!(
-            Locale::from_language_tag("xx").cut,
-            "Cut"
-        );
+        assert_eq!(Locale::from_language_tag("xx").cut, "Cut");
     }
 }

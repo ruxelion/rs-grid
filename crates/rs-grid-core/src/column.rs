@@ -66,6 +66,7 @@ pub struct SelectOption {
 /// to decide which DOM widget to create.
 /// `None` on [`ColumnDef`] = default text `<input>`.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum CellEditor {
     /// Plain `<input type="text">`.
     Text,

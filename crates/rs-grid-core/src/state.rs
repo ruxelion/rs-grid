@@ -31,16 +31,29 @@ use crate::{
 #[derive(Debug)]
 pub struct GridState {
     /// Column definitions, data source, and sizing constants.
+    ///
+    /// **Prefer [`apply(GridCommand)`](Self::apply) for
+    /// mutations.** Direct field mutation bypasses undo
+    /// history and may leave state inconsistent.
     pub model: GridModel,
     /// Scroll position and canvas dimensions.
+    ///
+    /// **Prefer [`apply(GridCommand)`](Self::apply) for
+    /// mutations** (e.g. `ScrollTo`, `ScrollBy`, `Resize`).
     pub viewport: ViewportState,
     /// Anchor/focus selection and clipboard state.
+    ///
+    /// **Prefer [`apply(GridCommand)`](Self::apply) for
+    /// mutations** (e.g. `SelectCell`, `ClearSelection`).
     pub selection: SelectionState,
-    /// Row index currently under the mouse cursor, for hover highlighting.
+    /// Row index currently under the mouse cursor, for hover
+    /// highlighting.
     pub hovered_row: Option<u64>,
-    /// Active sort column and direction (`None` = natural order).
+    /// Active sort column and direction (`None` = natural
+    /// order).
     pub sort: Option<SortState>,
-    /// Cell currently being edited (`None` = no edit in progress).
+    /// Cell currently being edited (`None` = no edit in
+    /// progress).
     pub edit: Option<EditCell>,
     /// Active search (empty query = inactive).
     pub search: SearchState,

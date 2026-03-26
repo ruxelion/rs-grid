@@ -10,6 +10,7 @@ impl GridState {
     pub(super) fn cmd_column(&mut self, cmd: GridCommand) -> CommandOutput {
         match cmd {
             GridCommand::ResizeColumn { col_idx, new_width } => {
+                /// Minimum column width in logical pixels.
                 const MIN_COL_WIDTH: f64 = 20.0;
                 if col_idx < self.model.columns.len() {
                     self.model.columns[col_idx].width =
@@ -41,7 +42,9 @@ impl GridState {
                 header_char_width,
                 cell_padding,
             } => {
+                // Minimum column width in logical pixels.
                 const MIN_COL_WIDTH: f64 = 20.0;
+                // Max rows sampled for auto-fit width.
                 const MAX_SAMPLE_ROWS: u64 = 1_000;
                 if col_idx < self.model.columns.len() {
                     let old_width = self.model.columns[col_idx].width;

@@ -3,8 +3,31 @@ use crate::{
     sort::SortDir,
 };
 
-/// All mutations that can be applied to a `GridState`.
+/// All mutations that can be applied to a
+/// [`GridState`](crate::state::GridState) via
+/// [`GridState::apply`](crate::state::GridState::apply).
+///
+/// # Index type convention
+///
+/// Row indices are `u64` (supports >4 billion rows on
+/// WASM32). Column indices are `usize` (columns are always
+/// a small count). See [`CellCoord`] for details.
+///
+/// # Variant categories
+///
+/// | Category | Variants |
+/// |---|---|
+/// | **Selection** | `SelectCell`, `ExtendSelection`, `SelectRow`, `ExtendRowSelection`, `SelectCol`, `ExtendColSelection`, `ClearSelection`, `MoveSelection` |
+/// | **Scroll** | `ScrollTo`, `ScrollBy`, `Resize` |
+/// | **Clipboard** | `CopySelection`, `CutSelection`, `PasteAt` |
+/// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters` |
+/// | **Columns** | `ResizeColumn`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
+/// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit` |
+/// | **Undo** | `Undo`, `Redo` |
+/// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
+/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum GridCommand {
     /// Set a new single-cell selection.
     SelectCell(CellCoord),
@@ -179,6 +202,7 @@ pub enum GridCommand {
 /// Value returned by [`crate::state::GridState::apply`]
 /// after processing a command.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum CommandOutput {
     /// Command produced no output.
     None,

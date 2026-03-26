@@ -162,6 +162,7 @@ impl CanvasRenderer {
                 ScenePrimitive::Line(l) => self.draw_line(l),
                 ScenePrimitive::Polygon(p) => self.draw_polygon(p),
                 ScenePrimitive::Image(img) => self.draw_image(img),
+                _ => {} // future primitives — skip gracefully
             }
         }
 

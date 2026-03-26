@@ -1,5 +1,14 @@
 //! Renderer-agnostic scene graph: converts a `GridState`
 //! into an ordered list of drawing primitives.
+//!
+//! Sits between `rs-grid-core` and the rendering backends
+//! in the dependency chain (`core → **scene** →
+//! render-canvas → web → leptos`).
+//!
+//! Key types: [`SceneBuilder`](builder::SceneBuilder),
+//! [`SceneFrame`](frame::SceneFrame),
+//! [`ScenePrimitive`](primitives::ScenePrimitive),
+//! [`Theme`].
 
 /// Scene builder — turns `GridState` + `Theme` into a frame.
 pub mod builder;

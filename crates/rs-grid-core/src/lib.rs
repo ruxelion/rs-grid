@@ -1,5 +1,15 @@
 //! Headless grid logic: data model, viewport, selection,
-//! hit-testing, and command processing. No WASM dependency.
+//! hit-testing, and command processing.
+//!
+//! **No WASM dependency.** This crate is at the bottom of the
+//! dependency chain (`leptos → web → render-canvas → scene →
+//! core`) and must remain testable with native `cargo test`.
+//!
+//! Key types: [`GridState`](state::GridState),
+//! [`GridCommand`](commands::GridCommand),
+//! [`GridModel`](model::GridModel),
+//! [`ColumnDef`](column::ColumnDef),
+//! [`DataSource`](datasource::DataSource).
 
 /// Column definitions, offsets, and cell formatting.
 pub mod column;

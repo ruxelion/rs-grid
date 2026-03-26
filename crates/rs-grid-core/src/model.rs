@@ -278,6 +278,7 @@ impl GridModel {
             self.filtered_indices.clear();
             return;
         }
+        // Same threshold as MAX_CLIENT_SORT_ROWS.
         const MAX: u64 = 1_000_000;
         let n = self.data.row_count();
         if n > MAX {
@@ -532,6 +533,93 @@ impl GridModel {
     /// Rebuild column offsets after columns are mutated.
     pub fn rebuild_offsets(&mut self) {
         self.column_offsets = ColumnOffsets::compute(&self.columns);
+    }
+}
+
+// ── builder ────────────────────────────────────────────
+
+/// Builder for constructing a [`GridModel`] with ergonomic
+/// defaults.
+///
+/// ```ignore
+/// let model = GridModelBuilder::new(columns, data)
+///     .row_height(40.0)
+///     .header_height(50.0)
+///     .pinned_count(2)
+///     .build();
+/// ```
+pub struct GridModelBuilder {
+    columns: Vec<ColumnDef>,
+    data: Box<dyn DataSource>,
+    row_height: f64,
+    header_height: f64,
+    pinned_count: usize,
+    mode: DataSourceMode,
+    scrollbar_size: f64,
+}
+
+impl GridModelBuilder {
+    /// Create a new builder with required parameters.
+    ///
+    /// Defaults: `row_height = 30.0`, `header_height = 40.0`,
+    /// `pinned_count = 0`, `mode = ClientSide`,
+    /// `scrollbar_size = 14.0`.
+    pub fn new(columns: Vec<ColumnDef>, data: Box<dyn DataSource>) -> Self {
+        Self {
+            columns,
+            data,
+            row_height: 30.0,
+            header_height: 40.0,
+            pinned_count: 0,
+            mode: DataSourceMode::ClientSide,
+            scrollbar_size: 14.0,
+        }
+    }
+
+    /// Set the data row height in logical pixels.
+    pub fn row_height(mut self, h: f64) -> Self {
+        self.row_height = h;
+        self
+    }
+
+    /// Set the header row height in logical pixels.
+    pub fn header_height(mut self, h: f64) -> Self {
+        self.header_height = h;
+        self
+    }
+
+    /// Set the number of leading columns to pin (freeze).
+    /// Clamped to `columns.len()` at build time.
+    pub fn pinned_count(mut self, n: usize) -> Self {
+        self.pinned_count = n;
+        self
+    }
+
+    /// Set the data source mode (client-side or server-side).
+    pub fn mode(mut self, m: DataSourceMode) -> Self {
+        self.mode = m;
+        self
+    }
+
+    /// Set the scrollbar reserved size in logical pixels.
+    pub fn scrollbar_size(mut self, s: f64) -> Self {
+        self.scrollbar_size = s;
+        self
+    }
+
+    /// Build the [`GridModel`].
+    pub fn build(self) -> GridModel {
+        let pinned = self.pinned_count.min(self.columns.len());
+        let mut model = GridModel::with_data_source(
+            self.columns,
+            self.data,
+            self.row_height,
+            self.header_height,
+        );
+        model.pinned_count = pinned;
+        model.mode = self.mode;
+        model.scrollbar_size = self.scrollbar_size;
+        model
     }
 }
 
@@ -847,5 +935,52 @@ mod tests {
         } else {
             panic!("expected Numeric cache for col b");
         }
+    }
+
+    // ── GridModelBuilder ──────────────────────────────
+
+    #[test]
+    fn builder_defaults() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![RowRecord::new(0)];
+        let m = GridModelBuilder::new(cols, Box::new(VecDataSource::new(rows)))
+            .build();
+        assert_eq!(m.row_height, 30.0);
+        assert_eq!(m.header_height, 40.0);
+        assert_eq!(m.pinned_count, 0);
+        assert_eq!(m.mode, DataSourceMode::ClientSide);
+        assert_eq!(m.scrollbar_size, 14.0);
+    }
+
+    #[test]
+    fn builder_overrides() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        let rows = vec![RowRecord::new(0)];
+        let m = GridModelBuilder::new(cols, Box::new(VecDataSource::new(rows)))
+            .row_height(50.0)
+            .header_height(60.0)
+            .pinned_count(1)
+            .mode(DataSourceMode::ServerSide)
+            .scrollbar_size(20.0)
+            .build();
+        assert_eq!(m.row_height, 50.0);
+        assert_eq!(m.header_height, 60.0);
+        assert_eq!(m.pinned_count, 1);
+        assert_eq!(m.mode, DataSourceMode::ServerSide);
+        assert_eq!(m.scrollbar_size, 20.0);
+    }
+
+    #[test]
+    fn builder_pinned_count_clamped() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![RowRecord::new(0)];
+        let m = GridModelBuilder::new(cols, Box::new(VecDataSource::new(rows)))
+            .pinned_count(999)
+            .build();
+        // Clamped to number of columns
+        assert_eq!(m.pinned_count, 1);
     }
 }

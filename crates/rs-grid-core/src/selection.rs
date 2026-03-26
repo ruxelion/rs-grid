@@ -1,9 +1,22 @@
 /// A (row, col) address of a cell.
+///
+/// Row indices are `u64` to support datasets exceeding
+/// 4 billion rows on WASM32 targets (where `usize` is only
+/// 32 bits). Column indices are `usize` because grids never
+/// have billions of columns — typically tens to hundreds.
+///
+/// This convention applies throughout the entire API:
+/// [`GridCommand`](crate::commands::GridCommand),
+/// [`GridModel`](crate::model::GridModel), hit-testing
+/// functions, etc. See `docs/row-count-limits.md` for
+/// details.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CellCoord {
-    /// Logical row index.
+    /// Logical row index (`u64` — supports >4B rows on
+    /// WASM32).
     pub row: u64,
-    /// Column index.
+    /// Column index (`usize` — columns are always a small
+    /// count).
     pub col: usize,
 }
 
@@ -54,7 +67,7 @@ impl SelectionState {
         self.anchor.is_some()
     }
 
-    /// Bounding rectangle normalisé (min/max).
+    /// Normalized bounding rectangle (min/max).
     pub fn range(&self) -> Option<(CellCoord, CellCoord)> {
         match (&self.anchor, &self.focus) {
             (Some(a), Some(f)) => Some((
@@ -71,7 +84,7 @@ impl SelectionState {
         }
     }
 
-    /// Sérialise la sélection en TSV (format RFC 4180 — compatible Excel/Sheets).
+    /// Serialize the selection as TSV (RFC 4180 — Excel/Sheets compatible).
     pub fn to_tsv(
         &self,
         model: &crate::model::GridModel,
@@ -93,7 +106,7 @@ impl SelectionState {
                 let cell = model
                     .get_cell(r, &model.columns[ci].key)
                     .unwrap_or_default();
-                // RFC 4180 : guillemets si la cellule contient tab, newline ou guillemet
+                // RFC 4180: quote if the field contains tab, newline, or double-quote
                 if cell.contains(['\t', '\n', '\r', '"']) {
                     out.push('"');
                     for ch in cell.chars() {
@@ -193,6 +206,7 @@ pub const MAX_COPY_ROWS: u64 = 10_000;
 
 /// Errors returned by [`SelectionState::to_tsv`].
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CopyError {
     /// No cells are selected.
     NoSelection,

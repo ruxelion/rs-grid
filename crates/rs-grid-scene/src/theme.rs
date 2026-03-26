@@ -145,15 +145,14 @@ impl Theme {
     /// Light theme — AG Grid-inspired palette.
     pub fn light() -> Self {
         Self {
+            // palette
             bg: Color::rgb(255, 255, 255),
-            cell_text: Color::rgb(0, 0, 0),
-            grid_line: Color::rgb(255, 255, 255),
             header_bg: Color::rgb(250, 250, 250),
             header_text: Color::rgb(0, 0, 0),
+            cell_text: Color::rgb(0, 0, 0),
+            grid_line: Color::rgb(255, 255, 255),
             header_border: Color::rgb(220, 220, 220),
             header_separator_inset: 15.0,
-            header_height: 50.0,
-            row_height: 40.0,
             header_separator_width: 2.0,
             selection_fill: Color::rgba(31, 119, 220, 46),
             selection_border: Color::rgba(31, 119, 220, 210),
@@ -161,18 +160,28 @@ impl Theme {
             scrollbar_thumb: Color::rgba(100, 100, 110, 160),
             row_alt_bg: Color::rgb(245, 245, 245),
             row_hover_bg: Color::rgba(0, 0, 0, 10),
-            flash_fill: Color::rgba(255, 193, 7, 180),
-            flash_border: Color::rgba(255, 193, 7, 210),
-            search_highlight: Color::rgba(255, 213, 0, 80),
-            search_current: Color::rgba(255, 165, 0, 140),
-            skeleton_fg: Color::rgba(200, 200, 200, 100),
+            // row / header dimensions
+            header_height: 50.0,
+            row_height: 40.0,
+            // typography
             font_size: 13.0,
             header_font_size: 13.0,
             header_font_bold: true,
+            // flash
+            flash_fill: Color::rgba(255, 193, 7, 180),
+            flash_border: Color::rgba(255, 193, 7, 210),
+            // search
+            search_highlight: Color::rgba(255, 213, 0, 80),
+            search_current: Color::rgba(255, 165, 0, 140),
+            // skeleton
+            skeleton_fg: Color::rgba(200, 200, 200, 100),
+            // spacing
             cell_padding: 10.0,
+            // scrollbar
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
             scrollbar_inset: 2.0,
+            // column drag
             drag_overlay: Color::rgba(128, 128, 128, 0),
             drag_ghost_bg: Color::rgba(248, 249, 250, 180),
             drag_ghost_text: Color::rgba(24, 29, 31, 200),
@@ -180,8 +189,10 @@ impl Theme {
             drag_ghost_radius: 4.0,
             drag_ghost_border_width: 1.0,
             drag_anim_alpha: 0.3,
+            // sort indicator
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
+            // column header menu icon
             header_menu_icon: Color::rgba(0, 0, 0, 255),
             header_menu_icon_hover_bg: Color::rgba(0, 0, 0, 15),
             header_menu_icon_radius: 3.0,
@@ -189,6 +200,7 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // row-number gutter
             gutter_bg: Color::rgb(250, 250, 250),
             gutter_text: Color::rgba(0, 0, 0, 255),
             gutter_font_size: 13.0,
@@ -200,11 +212,12 @@ impl Theme {
     /// Dark theme — Tokyo Night palette.
     pub fn dark() -> Self {
         Self {
+            // palette
             bg: Color::rgb(26, 27, 38),
-            cell_text: Color::rgb(192, 202, 245),
-            grid_line: Color::rgb(42, 47, 69),
             header_bg: Color::rgb(36, 40, 59),
             header_text: Color::rgb(169, 177, 214),
+            cell_text: Color::rgb(192, 202, 245),
+            grid_line: Color::rgb(42, 47, 69),
             header_border: Color::rgb(61, 68, 102),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -214,18 +227,28 @@ impl Theme {
             scrollbar_thumb: Color::rgba(169, 177, 214, 102),
             row_alt_bg: Color::rgb(30, 32, 48),
             row_hover_bg: Color::rgba(255, 255, 255, 10),
-            flash_fill: Color::rgba(255, 193, 7, 180),
-            flash_border: Color::rgba(255, 193, 7, 210),
-            search_highlight: Color::rgba(255, 213, 0, 80),
-            search_current: Color::rgba(255, 165, 0, 140),
-            skeleton_fg: Color::rgba(60, 65, 90, 100),
+            // row / header dimensions
+            header_height: 50.0,
+            row_height: 40.0,
+            // typography
             font_size: 14.0,
             header_font_size: 13.0,
             header_font_bold: true,
+            // flash
+            flash_fill: Color::rgba(255, 193, 7, 180),
+            flash_border: Color::rgba(255, 193, 7, 210),
+            // search
+            search_highlight: Color::rgba(255, 213, 0, 80),
+            search_current: Color::rgba(255, 165, 0, 140),
+            // skeleton
+            skeleton_fg: Color::rgba(60, 65, 90, 100),
+            // spacing
             cell_padding: 10.0,
+            // scrollbar
             scrollbar_width: 14.0,
             scrollbar_radius: 4.0,
             scrollbar_inset: 2.0,
+            // column drag
             drag_overlay: Color::rgba(128, 128, 128, 0),
             drag_ghost_bg: Color::rgba(36, 40, 59, 180),
             drag_ghost_text: Color::rgba(169, 177, 214, 200),
@@ -233,10 +256,10 @@ impl Theme {
             drag_ghost_radius: 4.0,
             drag_ghost_border_width: 1.0,
             drag_anim_alpha: 0.30,
+            // sort indicator
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
-            header_height: 50.0,
-            row_height: 40.0,
+            // column header menu icon
             header_menu_icon: Color::rgba(169, 177, 214, 100),
             header_menu_icon_hover_bg: Color::rgba(169, 177, 214, 30),
             header_menu_icon_radius: 4.0,
@@ -244,6 +267,7 @@ impl Theme {
             header_menu_icon_btn_w: 16.0,
             header_menu_icon_btn_h: 0.0,
             header_menu_icon_dot_r: 1.0,
+            // row-number gutter
             gutter_bg: Color::rgb(36, 40, 59),
             gutter_text: Color::rgba(169, 177, 214, 153),
             gutter_font_size: 12.0,

@@ -1,36 +1,36 @@
 # rs-grid-scene
 
-Couche de scene graph. Convertit un `GridState` en une liste de primitives de
-rendu indépendantes de tout backend.
+Scene graph layer. Converts a `GridState` into a list of renderer-agnostic
+drawing primitives.
 
 ## Modules
 
-| Module | Rôle |
+| Module | Role |
 |---|---|
-| `builder` | `SceneBuilder` : prend un `&GridState` + `Theme` et produit un `SceneFrame` |
-| `frame` | `SceneFrame` : liste ordonnée de `ScenePrimitive` pour une frame |
-| `primitives` | Types de primitives : `RectPrimitive`, `TextPrimitive`, `LinePrimitive`, `PolygonPrimitive` |
-| `theme` | `Theme` : couleurs et tailles pour le rendu |
+| `builder` | `SceneBuilder`: takes a `&GridState` + `Theme` and produces a `SceneFrame` |
+| `frame` | `SceneFrame`: ordered list of `ScenePrimitive` for one frame |
+| `primitives` | Primitive types: `RectPrimitive`, `TextPrimitive`, `LinePrimitive`, `PolygonPrimitive` |
+| `theme` | `Theme`: colours and sizes for rendering |
 
-## Invariants critiques
+## Critical invariants
 
-- Cette crate **ne connaît pas Canvas2D, WebGL, ni aucun renderer**. Elle produit
-  des données, elle ne dessine pas.
-- `SceneFrame` est une valeur immutable produite à chaque frame — pas d'état
-  interne mutable entre frames.
-- Toujours raisonner en **coordonnées logiques** (pixels indépendants du DPR).
-  C'est le renderer qui applique le `devicePixelRatio`.
-- L'ordre des primitives dans `SceneFrame` définit l'ordre de dessin (back-to-front).
+- This crate **knows nothing about Canvas2D, WebGL, or any renderer**. It
+  produces data — it does not draw.
+- `SceneFrame` is an immutable value produced each frame — no mutable internal
+  state between frames.
+- Always reason in **logical coordinates** (DPR-independent pixels).
+  The renderer applies the `devicePixelRatio`.
+- The order of primitives in `SceneFrame` defines the draw order (back-to-front).
 
-## Primitives disponibles
+## Available primitives
 
-- `ScenePrimitive::Rect` — rectangle rempli, stroke optionnel, coin arrondi optionnel
-- `ScenePrimitive::Text` — texte clippé, alignement gauche/droite
-- `ScenePrimitive::Line` — segment de droite
-- `ScenePrimitive::Polygon` — polygone convexe rempli, coin arrondi optionnel
+- `ScenePrimitive::Rect` — filled rectangle, optional stroke, optional rounded corners
+- `ScenePrimitive::Text` — clipped text, left/right alignment
+- `ScenePrimitive::Line` — line segment
+- `ScenePrimitive::Polygon` — filled convex polygon, optional rounded corners
 
-## Ajouter une primitive
+## Adding a primitive
 
-1. Ajouter la struct dans `primitives.rs`
-2. Ajouter la variante dans `ScenePrimitive`
-3. Implémenter le rendu dans `rs-grid-render-canvas/src/renderer.rs`
+1. Add the struct in `primitives.rs`
+2. Add the variant in `ScenePrimitive`
+3. Implement rendering in `rs-grid-render-canvas/src/renderer.rs`

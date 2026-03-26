@@ -142,6 +142,7 @@ pub struct ImagePrimitive {
 
 /// Sum type over all renderable primitives.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum ScenePrimitive {
     /// Filled rectangle with optional stroke.
     Rect(RectPrimitive),

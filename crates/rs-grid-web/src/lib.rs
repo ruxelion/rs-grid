@@ -1,5 +1,11 @@
 //! Browser integration for rs-grid: DOM events, rAF loop,
-//! CSS theme, and clipboard handling.
+//! CSS theme, localisation, and clipboard handling.
+//!
+//! Sits near the top of the dependency chain (`core → scene
+//! → render-canvas → **web** → leptos`).
+//!
+//! Key types: [`GridCanvas`], [`Locale`],
+//! [`ContextMenuConfig`], [`theme_from_css_vars`].
 
 mod canvas;
 mod css_theme;

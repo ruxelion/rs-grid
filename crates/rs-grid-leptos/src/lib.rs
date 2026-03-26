@@ -1,7 +1,12 @@
-//! Leptos component integration for rs-grid.
+//! Leptos CSR component integration for rs-grid.
 //!
-//! Provides a `<GridCanvas>` component that mounts a `GridCanvas` into the DOM
-//! and keeps it in sync with Leptos reactive signals.
+//! Provides a `<GridCanvas>` component that mounts a grid
+//! into the DOM and keeps it in sync with Leptos reactive
+//! signals. Top of the dependency chain (`core → scene →
+//! render-canvas → web → **leptos**`).
+//!
+//! Re-exports: [`WebGridCanvas`], [`Locale`],
+//! [`theme_from_css_vars`].
 
 pub use rs_grid_web::theme_from_css_vars;
 /// Re-exported so callers can name the type in `on_mount` closures without

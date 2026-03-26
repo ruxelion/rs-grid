@@ -1,33 +1,33 @@
 # rs-grid-render-canvas
 
-Backend de rendu Canvas2D. Consomme un `SceneFrame` et dessine sur un
+Canvas2D rendering backend. Consumes a `SceneFrame` and draws onto a
 `CanvasRenderingContext2d` via wasm-bindgen.
 
 ## Modules
 
-| Module | Rôle |
+| Module | Role |
 |---|---|
-| `renderer` | `CanvasRenderer` : itère sur `SceneFrame` et appelle les API Canvas2D |
+| `renderer` | `CanvasRenderer`: iterates over `SceneFrame` and calls Canvas2D APIs |
 
-## Invariants critiques
+## Critical invariants
 
-- Ce crate **ne contient pas de logique métier** — il traduit des primitives en
-  appels Canvas2D, c'est tout.
-- Les coordonnées reçues sont en **pixels logiques**. Le renderer applique lui-même
-  le `devicePixelRatio` via une transformation de contexte (`scale(dpr, dpr)`).
-- Toujours sauvegarder/restaurer le contexte Canvas (`save()`/`restore()`) autour
-  des opérations de clipping ou de transformation.
-- Les `PolygonPrimitive` avec `corner_radius > 0` nécessitent `arcTo` sur chaque
-  segment — vérifier le comportement sur les polygones non-convexes.
+- This crate **contains no business logic** — it translates primitives into
+  Canvas2D calls, nothing more.
+- Incoming coordinates are in **logical pixels**. The renderer applies the
+  `devicePixelRatio` itself via a context transform (`scale(dpr, dpr)`).
+- Always save/restore the Canvas context (`save()`/`restore()`) around
+  clipping or transform operations.
+- `PolygonPrimitive` with `corner_radius > 0` requires `arcTo` on each
+  segment — verify behaviour on non-convex polygons.
 
-## Ajouter le support d'une nouvelle primitive
+## Adding support for a new primitive
 
-Ajouter un `match` dans `renderer.rs` pour la nouvelle variante de `ScenePrimitive`.
-Ne pas modifier `rs-grid-scene` depuis cette crate.
+Add a `match` arm in `renderer.rs` for the new `ScenePrimitive` variant.
+Do not modify `rs-grid-scene` from this crate.
 
 ## Build
 
 ```sh
-# Cette crate ne se compile qu'en target WASM
+# This crate only compiles for WASM targets
 wasm-pack build --target web
 ```
