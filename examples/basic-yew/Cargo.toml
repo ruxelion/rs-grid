@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 rs-grid-core             = { path = "../../crates/rs-grid-core" }
 rs-grid-web              = { path = "../../crates/rs-grid-web" }
+rs-grid-yew              = { path = "../../crates/rs-grid-yew" }
 example-common           = { path = "../example-common" }
 yew                      = { version = "0.23", features = ["csr"] }
 wasm-bindgen             = { workspace = true }
