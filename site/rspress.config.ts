@@ -57,8 +57,7 @@ const sidebarEN = [
   {
     text: 'integrations',
     items: [
-      { text: 'Leptos', link: '/integrations/leptos' },
-      { text: 'Vanilla JS', link: '/integrations/vanilla-js' },
+      { text: 'Frameworks', link: '/integrations/frameworks' },
       { text: 'Custom Renderer', link: '/integrations/custom-renderer' },
     ],
   },
@@ -152,8 +151,7 @@ const sidebarFR = [
   {
     text: 'integrations',
     items: [
-      { text: 'Leptos', link: '/fr/integrations/leptos' },
-      { text: 'Vanilla JS', link: '/fr/integrations/vanilla-js' },
+      { text: 'Frameworks', link: '/fr/integrations/frameworks' },
       {
         text: 'Renderer personnalisé',
         link: '/fr/integrations/custom-renderer',

@@ -49,7 +49,14 @@ let theme = Theme {
 };
 ```
 
-In Leptos, pass it as a signal for reactive updates:
+import { Tabs, Tab } from '@rspress/core/theme';
+
+To apply the theme dynamically:
+
+<Tabs groupId="framework">
+<Tab label="Leptos">
+
+Pass the theme as a signal for reactive updates:
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::dark());
@@ -57,13 +64,38 @@ let (theme, set_theme) = create_signal(Theme::dark());
 set_theme.set(Theme::light());
 ```
 
+</Tab>
+<Tab label="Vanilla JS">
+
+Re-mount the grid with the new theme:
+
+```rust
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
+</Tab>
+</Tabs>
+
 ## When are variables read?
 
 CSS variables are read **once** at mount time. They are not re-read on
 every frame. To change the theme dynamically:
 
-- **Leptos**: use a theme signal
-- **Vanilla JS**: re-mount the grid after changing CSS variables
+<Tabs groupId="framework">
+<Tab label="Leptos">
+
+Use a theme signal — the component will re-render automatically when the
+signal updates.
+
+</Tab>
+<Tab label="Vanilla JS">
+
+Re-mount the grid after changing CSS variables. Call `detach()` first,
+update the CSS properties, then create a new `JsGrid` instance.
+
+</Tab>
+</Tabs>
 
 ## Default themes
 

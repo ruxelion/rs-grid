@@ -3660,17 +3660,19 @@ sequence — later primitives should paint over earlier ones.
 
 
 ---
-url: /integrations/leptos.md
+url: /integrations/frameworks.md
 ---
 
-# Leptos Integration
+# Framework Integration
+
+## Quick start
+
+
+**Leptos**
 
 `rs-grid-leptos` provides a `<GridCanvas>` component for Leptos CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
 theming in a single component.
-
-## Component API
-
 ```rust
 <GridCanvas
     rows=1_000_000_u64
@@ -3680,8 +3682,26 @@ theming in a single component.
 />
 ```
 
-### Props
 
+**Vanilla JS**
+
+rs-grid can be used without any framework via the `JsGrid` class exported
+by `rs-grid-web`. Build with `wasm-pack`:
+```bash
+cd crates/rs-grid-web
+wasm-pack build --target web
+```
+This produces an ES module in `pkg/`:
+- `rs_grid_web.js` — the JS glue
+- `rs_grid_web_bg.wasm` — the WASM binary
+
+
+## Component API
+
+
+**Leptos**
+
+### Props
 | Prop            | Type    | Default  | Description                           |
 | --------------- | ------- | -------- | ------------------------------------- |
 | `rows`          | `u64`   | required | Total number of data rows             |
@@ -3689,12 +3709,26 @@ theming in a single component.
 | `row_height`    | `f64`   | `32.0`   | Height of each data row in CSS pixels |
 | `header_height` | `f64`   | `40.0`   | Height of the column header row       |
 
+
+**Vanilla JS**
+
+### JsGrid API
+| Method                           | Description                          |
+| -------------------------------- | ------------------------------------ |
+| `new JsGrid(canvas, rows, cols)` | Mount a grid on a canvas element     |
+| `detach()`                       | Unmount and clean up event listeners |
+| `export_patches()`               | Export edited cell values as TSV     |
+| `import_patches(tsv)`            | Import TSV patches into the grid     |
+
+
 ## Theming
+
+
+**Leptos**
 
 The component reads its color palette from CSS custom properties at mount time
 via `rs-grid-web::theme_from_css_vars`. Define the variables in your
 stylesheet:
-
 ```css title="rs-grid-theme.css"
 :root {
   --rs-grid-bg:               #0d1117;
@@ -3705,24 +3739,50 @@ stylesheet:
   --rs-grid-selection-border: #388bfd;
 }
 ```
-
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
+
+
+**Vanilla JS**
+
+`JsGrid` reads CSS variables at mount time, just like the Leptos integration.
+Add `--rs-grid-*` variables to your stylesheet:
+```css
+:root {
+  --rs-grid-bg: #1e1e2e;
+  --rs-grid-cell-text: #cdd6f4;
+  /* ... */
+}
+```
+See [CSS Variables Reference](/theming/css-variables.md) for the full list.
+
 
 ## Events
 
-The Leptos component attaches pointer and wheel listeners to the canvas:
 
+**Leptos**
+
+The Leptos component attaches pointer and wheel listeners to the canvas:
 | Browser event         | GridCommand                                 |
 | --------------------- | ------------------------------------------- |
 | `pointerdown`         | `SelectCell` / `SelectRow` / `SelectColumn` |
 | `pointerdown` + Shift | `ExtendSelection`                           |
 | `wheel`               | `ScrollTo`                                  |
 | `ResizeObserver`      | `Resize`                                    |
-
 Events are translated to `GridCommand` values and applied on the next animation
 frame. You do not need to manage the event loop manually.
 
+
+**Vanilla JS**
+
+`JsGrid` automatically attaches pointer, wheel, and resize listeners to the
+canvas element at mount time. Events are translated to `GridCommand` values
+internally. Call `detach()` to remove all listeners and stop the animation loop.
+
+
 ## Full example
+
+
+**Leptos**
 
 ```rust title="src/main.rs"
 use leptos::*;
@@ -3744,40 +3804,15 @@ fn main() {
     leptos::mount_to_body(App);
 }
 ```
-
 :::tip
 The reference theme file is at `examples/basic-leptos/rs-grid-theme.css`.
 Copy it as a starting point for your own theme.
 :::
 
 
+**Vanilla JS**
 
----
-url: /integrations/vanilla-js.md
----
-
-# Vanilla JS Integration
-
-## Overview
-
-rs-grid can be used without any framework via the `JsGrid` class exported
-by `rs-grid-web`. This requires building with `wasm-pack`.
-
-## Build
-
-```bash
-cd crates/rs-grid-web
-wasm-pack build --target web
-```
-
-This produces an ES module in `pkg/`:
-
-- `rs_grid_web.js` — the JS glue
-- `rs_grid_web_bg.wasm` — the WASM binary
-
-## Usage
-
-```html
+```html title="index.html"
 <!DOCTYPE html>
 <html>
 <head>
@@ -3800,42 +3835,28 @@ This produces an ES module in `pkg/`:
 </html>
 ```
 
-## JsGrid API
-
-| Method                           | Description                          |
-| -------------------------------- | ------------------------------------ |
-| `new JsGrid(canvas, rows, cols)` | Mount a grid on a canvas element     |
-| `detach()`                       | Unmount and clean up event listeners |
-| `export_patches()`               | Export edited cell values as TSV     |
-| `import_patches(tsv)`            | Import TSV patches into the grid     |
-
-## Theming
-
-`JsGrid` reads CSS variables at mount time, just like the Leptos integration.
-Add `--rs-grid-*` variables to your stylesheet:
-
-```css
-:root {
-  --rs-grid-bg: #1e1e2e;
-  --rs-grid-cell-text: #cdd6f4;
-  /* ... */
-}
-```
-
-See [CSS Variables Reference](/theming/css-variables.md) for the full list.
 
 ## Limitations
+
+
+**Leptos**
+
+- rs-grid-leptos is CSR-only — SSR is not supported
+- The component expects to be rendered in a browser environment with `<canvas>` support
+
+
+**Vanilla JS**
 
 - Column definitions use default labels (`Column 0`, `Column 1`, etc.)
 - Data is generated with a hash function (demo mode)
 - For full control over columns and data, use the Rust API directly
-
 :::note
 The vanilla JS API is a lightweight entry point for demos and simple
 use cases. For production applications with custom data sources and
-column definitions, use the [Leptos integration](/integrations/leptos.md)
-or build a custom integration on top of `rs-grid-web`.
+column definitions, use the Leptos integration or build a custom
+integration on top of `rs-grid-web`.
 :::
+
 
 
 
@@ -4373,21 +4394,45 @@ let theme = Theme {
 };
 ```
 
-In Leptos, pass it as a signal for reactive updates:
+To apply the theme dynamically:
 
+
+**Leptos**
+
+Pass the theme as a signal for reactive updates:
 ```rust
 let (theme, set_theme) = create_signal(Theme::dark());
 // Update theme dynamically
 set_theme.set(Theme::light());
 ```
 
+
+**Vanilla JS**
+
+Re-mount the grid with the new theme:
+```rust
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
+
 ## When are variables read?
 
 CSS variables are read **once** at mount time. They are not re-read on
 every frame. To change the theme dynamically:
 
-- **Leptos**: use a theme signal
-- **Vanilla JS**: re-mount the grid after changing CSS variables
+
+**Leptos**
+
+Use a theme signal — the component will re-render automatically when the
+signal updates.
+
+
+**Vanilla JS**
+
+Re-mount the grid after changing CSS variables. Call `detach()` first,
+update the CSS properties, then create a new `JsGrid` instance.
+
 
 ## Default themes
 

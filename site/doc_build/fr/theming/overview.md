@@ -46,21 +46,46 @@ let theme = Theme {
 };
 ```
 
-Avec Leptos, passez-le en tant que signal pour des mises a jour reactives :
+Pour appliquer le theme dynamiquement :
 
+
+**Leptos**
+
+Passez le theme en tant que signal pour des mises a jour reactives :
 ```rust
 let (theme, set_theme) = create_signal(Theme::dark());
-// Update theme dynamically
+// Mise a jour dynamique du theme
 set_theme.set(Theme::light());
 ```
+
+
+**Vanilla JS**
+
+Remontez la grille avec le nouveau theme :
+```rust
+let theme = theme_from_css_vars(&canvas);
+let gc = GridCanvas::mount(canvas, state, theme, locale);
+```
+
 
 ## Quand les variables sont-elles lues ?
 
 Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
 relues a chaque frame. Pour changer le theme dynamiquement :
 
-- **Leptos** : utilisez un signal de theme
-- **Vanilla JS** : remontez la grille apres avoir modifie les variables CSS
+
+**Leptos**
+
+Utilisez un signal de theme — le composant se re-rendra automatiquement
+lorsque le signal est mis a jour.
+
+
+**Vanilla JS**
+
+Remontez la grille apres avoir modifie les variables CSS. Appelez `detach()`
+d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
+`JsGrid`.
+
 
 ## Themes par defaut
 

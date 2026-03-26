@@ -2,6 +2,10 @@
 
 > High-performance Rust/WASM data grid engine for the web
 
+## Docs
+
+- [Premiers pas](/fr/getting-started.md): Installez rs-grid et affichez votre premier data grid.
+
 ## Others
 
 - [API ColumnDef](/fr/api/column-def.md): Définition de colonne, formats de cellule et éditeurs de cellule.
@@ -38,11 +42,9 @@
 - [Tri](/fr/features/sorting.md): Tri par colonne avec les états croissant, décroissant et aucun.
 - [Annuler et Retablir](/fr/features/undo-redo.md): Actions reversibles avec une pile d'historique a capacite fixe.
 - [Validation](/fr/features/validation.md): Validation par colonne avec CellValidator — rejet des saisies invalides avant leur enregistrement.
-- [Premiers pas](/fr/getting-started.md): Installez rs-grid et affichez votre premier data grid.
 - [Installation](/fr/installation.md): Configurer votre toolchain Rust et ajouter rs-grid a votre projet.
 - [Renderer personnalisé](/fr/integrations/custom-renderer.md): Créer un nouveau backend de rendu en consommant les primitives SceneFrame.
-- [Integration Leptos](/fr/integrations/leptos.md): Composant GridCanvas pret a l'emploi pour les applications Leptos CSR.
-- [Intégration Vanilla JS](/fr/integrations/vanilla-js.md): Utiliser rs-grid en JavaScript pur avec wasm-pack.
+- [Intégration Framework](/fr/integrations/frameworks.md): Intégrer rs-grid avec Leptos ou JavaScript vanilla.
 - [Limites du nombre de lignes](/fr/row-count-limits.md): Historique des limites du nombre de lignes a travers les versions de rs-grid.
 - [Primitives de scène](/fr/scene/primitives.md): Les cinq types de primitives qui composent un SceneFrame.
 - [Scene Builder](/fr/scene/scene-builder.md): Conversion de GridState en SceneFrame prêt au rendu.
