@@ -1,0 +1,17 @@
+# Ukrainian — Українська
+
+cut                = "Вирізати"
+copy               = "Копіювати"
+copy_with_headers  = "Копіювати із заголовками"
+paste              = "Вставити"
+pin_column         = "Закріпити стовпець"
+unpin_column       = "Відкріпити стовпець"
+sort_ascending     = "Сортувати за зростанням"
+sort_descending    = "Сортувати за спаданням"
+clear_sort         = "Скинути сортування"
+autosize_this_column  = "Підігнати цей стовпець"
+autosize_all_columns  = "Підігнати всі стовпці"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Пошук…"

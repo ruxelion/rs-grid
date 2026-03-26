@@ -1,0 +1,17 @@
+# Polish — Polski
+
+cut                = "Wytnij"
+copy               = "Kopiuj"
+copy_with_headers  = "Kopiuj z nagłówkami"
+paste              = "Wklej"
+pin_column         = "Przypnij kolumnę"
+unpin_column       = "Odepnij kolumnę"
+sort_ascending     = "Sortuj rosnąco"
+sort_descending    = "Sortuj malejąco"
+clear_sort         = "Usuń sortowanie"
+autosize_this_column  = "Dopasuj tę kolumnę"
+autosize_all_columns  = "Dopasuj wszystkie kolumny"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Szukaj…"

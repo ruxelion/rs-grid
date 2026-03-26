@@ -73,6 +73,61 @@ impl Locale {
         parse_toml(include_str!("es.toml"))
     }
 
+    /// Italian.
+    pub fn it() -> Self {
+        parse_toml(include_str!("it.toml"))
+    }
+
+    /// Portuguese.
+    pub fn pt() -> Self {
+        parse_toml(include_str!("pt.toml"))
+    }
+
+    /// Dutch.
+    pub fn nl() -> Self {
+        parse_toml(include_str!("nl.toml"))
+    }
+
+    /// Polish.
+    pub fn pl() -> Self {
+        parse_toml(include_str!("pl.toml"))
+    }
+
+    /// Turkish.
+    pub fn tr() -> Self {
+        parse_toml(include_str!("tr.toml"))
+    }
+
+    /// Russian.
+    pub fn ru() -> Self {
+        parse_toml(include_str!("ru.toml"))
+    }
+
+    /// Ukrainian.
+    pub fn uk() -> Self {
+        parse_toml(include_str!("uk.toml"))
+    }
+
+    /// Arabic.
+    pub fn ar() -> Self {
+        parse_toml(include_str!("ar.toml"))
+    }
+
+    /// Japanese.
+    pub fn ja() -> Self {
+        parse_toml(include_str!("ja.toml"))
+    }
+
+    /// Chinese (Simplified).
+    pub fn zh() -> Self {
+        parse_toml(include_str!("zh.toml"))
+    }
+
+    /// Korean.
+    pub fn ko() -> Self {
+        parse_toml(include_str!("ko.toml"))
+    }
+
     /// Detect the browser language (`navigator.language`)
     /// and return the best matching built-in locale.
     ///
@@ -99,6 +154,17 @@ impl Locale {
             "fr" => Self::fr(),
             "de" => Self::de(),
             "es" => Self::es(),
+            "it" => Self::it(),
+            "pt" => Self::pt(),
+            "nl" => Self::nl(),
+            "pl" => Self::pl(),
+            "tr" => Self::tr(),
+            "ru" => Self::ru(),
+            "uk" => Self::uk(),
+            "ar" => Self::ar(),
+            "ja" => Self::ja(),
+            "zh" => Self::zh(),
+            "ko" => Self::ko(),
             _ => Self::en(),
         }
     }
@@ -219,6 +285,17 @@ mod tests {
             ("fr", include_str!("fr.toml")),
             ("de", include_str!("de.toml")),
             ("es", include_str!("es.toml")),
+            ("it", include_str!("it.toml")),
+            ("pt", include_str!("pt.toml")),
+            ("nl", include_str!("nl.toml")),
+            ("pl", include_str!("pl.toml")),
+            ("tr", include_str!("tr.toml")),
+            ("ru", include_str!("ru.toml")),
+            ("uk", include_str!("uk.toml")),
+            ("ar", include_str!("ar.toml")),
+            ("ja", include_str!("ja.toml")),
+            ("zh", include_str!("zh.toml")),
+            ("ko", include_str!("ko.toml")),
         ] {
             let loc = parse_toml(src);
             assert!(
@@ -248,6 +325,11 @@ mod tests {
         );
         assert_eq!(
             Locale::from_language_tag("ja").cut,
+            "切り取り"
+        );
+        // Unknown tag falls back to English
+        assert_eq!(
+            Locale::from_language_tag("xx").cut,
             "Cut"
         );
     }

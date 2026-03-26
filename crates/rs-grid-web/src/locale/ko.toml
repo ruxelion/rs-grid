@@ -1,0 +1,17 @@
+# Korean — 한국어
+
+cut                = "잘라내기"
+copy               = "복사"
+copy_with_headers  = "머리글 포함 복사"
+paste              = "붙여넣기"
+pin_column         = "열 고정"
+unpin_column       = "열 고정 해제"
+sort_ascending     = "오름차순 정렬"
+sort_descending    = "내림차순 정렬"
+clear_sort         = "정렬 해제"
+autosize_this_column  = "이 열 자동 맞춤"
+autosize_all_columns  = "모든 열 자동 맞춤"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "검색…"

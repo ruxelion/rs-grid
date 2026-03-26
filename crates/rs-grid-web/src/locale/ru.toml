@@ -1,0 +1,17 @@
+# Russian — Русский
+
+cut                = "Вырезать"
+copy               = "Копировать"
+copy_with_headers  = "Копировать с заголовками"
+paste              = "Вставить"
+pin_column         = "Закрепить столбец"
+unpin_column       = "Открепить столбец"
+sort_ascending     = "Сортировка по возрастанию"
+sort_descending    = "Сортировка по убыванию"
+clear_sort         = "Сбросить сортировку"
+autosize_this_column  = "Подогнать этот столбец"
+autosize_all_columns  = "Подогнать все столбцы"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Поиск…"

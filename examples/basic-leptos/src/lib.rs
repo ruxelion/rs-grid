@@ -297,6 +297,17 @@ fn App() -> impl IntoView {
                             <option value="fr">"Fran\u{e7}ais"</option>
                             <option value="de">"Deutsch"</option>
                             <option value="es">"Espa\u{f1}ol"</option>
+                            <option value="it">"Italiano"</option>
+                            <option value="pt">"Portugu\u{ea}s"</option>
+                            <option value="nl">"Nederlands"</option>
+                            <option value="pl">"Polski"</option>
+                            <option value="tr">"T\u{fc}rk\u{e7}e"</option>
+                            <option value="ru">"Русский"</option>
+                            <option value="uk">"Українська"</option>
+                            <option value="ar">"العربية"</option>
+                            <option value="ja">"日本語"</option>
+                            <option value="zh">"中文"</option>
+                            <option value="ko">"한국어"</option>
                         </select>
                     </div>
                 </div>

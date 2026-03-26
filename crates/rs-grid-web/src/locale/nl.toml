@@ -1,0 +1,17 @@
+# Dutch — Nederlands
+
+cut                = "Knippen"
+copy               = "Kopiëren"
+copy_with_headers  = "Kopiëren met koppen"
+paste              = "Plakken"
+pin_column         = "Kolom vastzetten"
+unpin_column       = "Kolom losmaken"
+sort_ascending     = "Oplopend sorteren"
+sort_descending    = "Aflopend sorteren"
+clear_sort         = "Sortering wissen"
+autosize_this_column  = "Deze kolom aanpassen"
+autosize_all_columns  = "Alle kolommen aanpassen"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Zoeken…"

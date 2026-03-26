@@ -1,0 +1,17 @@
+# Chinese Simplified — 简体中文
+
+cut                = "剪切"
+copy               = "复制"
+copy_with_headers  = "复制含表头"
+paste              = "粘贴"
+pin_column         = "固定列"
+unpin_column       = "取消固定列"
+sort_ascending     = "升序排列"
+sort_descending    = "降序排列"
+clear_sort         = "取消排序"
+autosize_this_column  = "自动调整此列"
+autosize_all_columns  = "自动调整所有列"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "搜索…"

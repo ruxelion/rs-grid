@@ -1,0 +1,17 @@
+# Japanese — 日本語
+
+cut                = "切り取り"
+copy               = "コピー"
+copy_with_headers  = "ヘッダー付きコピー"
+paste              = "貼り付け"
+pin_column         = "列を固定"
+unpin_column       = "列の固定を解除"
+sort_ascending     = "昇順で並べ替え"
+sort_descending    = "降順で並べ替え"
+clear_sort         = "並べ替えを解除"
+autosize_this_column  = "この列を自動調整"
+autosize_all_columns  = "すべての列を自動調整"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "検索…"

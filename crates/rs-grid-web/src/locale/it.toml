@@ -1,0 +1,17 @@
+# Italian — Italiano
+
+cut                = "Taglia"
+copy               = "Copia"
+copy_with_headers  = "Copia con intestazioni"
+paste              = "Incolla"
+pin_column         = "Blocca colonna"
+unpin_column       = "Sblocca colonna"
+sort_ascending     = "Ordine crescente"
+sort_descending    = "Ordine decrescente"
+clear_sort         = "Rimuovi ordinamento"
+autosize_this_column  = "Adatta questa colonna"
+autosize_all_columns  = "Adatta tutte le colonne"
+shortcut_cut       = "Ctrl+X"
+shortcut_copy      = "Ctrl+C"
+shortcut_paste     = "Ctrl+V"
+search_placeholder = "Cerca…"
