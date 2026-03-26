@@ -1,0 +1,108 @@
+# Colonnes
+
+## ColumnDef
+
+Chaque colonne est définie par un `ColumnDef` :
+
+```rust
+pub struct ColumnDef {
+    pub key: String,              // identifiant unique
+    pub label: String,            // texte affiché dans l'en-tête
+    pub width: f64,               // largeur en pixels logiques
+    pub format: Option<CellFormat>,  // format d'affichage (Number, Currency, etc.)
+    pub editor: Option<CellEditor>, // type d'éditeur (Text, Select)
+}
+```
+
+### Créer des colonnes
+
+```rust
+use rs_grid_core::column::ColumnDef;
+
+// Colonne simple
+let col = ColumnDef::new("name", "Name", 200.0);
+
+// Colonne avec format
+let mut price = ColumnDef::new("price", "Price", 120.0);
+price.format = Some(CellFormat::Currency {
+    symbol: "$".into(),
+    decimal_places: 2,
+    thousands_sep: Some(','),
+    symbol_after: false,
+});
+
+// Colonne avec éditeur
+let mut status = ColumnDef::new("status", "Status", 100.0);
+status.editor = Some(CellEditor::Select {
+    options: vec![
+        SelectOption { value: "active".into(), label: "Active".into(), icon: None },
+        SelectOption { value: "inactive".into(), label: "Inactive".into(), icon: None },
+    ],
+});
+```
+
+## Offsets de colonnes
+
+`ColumnOffsets` précalcule la position x du bord gauche de chaque colonne pour
+un accès O(1) lors du rendu et un hit-testing en O(log n) :
+
+```rust
+pub struct ColumnOffsets {
+    pub offsets: Vec<f64>,    // offsets[i] = bord gauche de la colonne i
+    pub total_width: f64,     // somme de toutes les largeurs de colonnes
+}
+```
+
+Les offsets sont automatiquement recalculés lorsque les colonnes changent (redimensionnement, déplacement, etc.).
+
+## Redimensionnement
+
+Faites glisser le séparateur de colonne pour redimensionner :
+
+```rust
+state.apply(GridCommand::ResizeColumn {
+    col_idx: 2,
+    new_width: 180.0,
+});
+```
+
+### Ajustement automatique au contenu
+
+Double-cliquez sur le séparateur de colonne pour ajuster automatiquement :
+
+```rust
+state.apply(GridCommand::AutoFitColumn {
+    col_idx: 2,
+    char_width: 8.4,          // largeur moyenne d'un caractère (depuis le renderer)
+    header_char_width: 8.4,   // largeur d'un caractère d'en-tête (possiblement en gras)
+    cell_padding: 10.0,       // padding horizontal par cellule
+});
+```
+
+L'ajustement automatique parcourt toutes les lignes visibles et l'en-tête
+pour trouver le contenu le plus large, puis dimensionne la colonne en conséquence.
+
+## Déplacement de colonnes
+
+Glissez-déposez pour réordonner les colonnes :
+
+```rust
+state.apply(GridCommand::MoveColumn {
+    from_idx: 3,
+    to_idx: 1,
+});
+```
+
+Cela réordonne physiquement le vecteur `columns` et recalcule les offsets.
+Les déplacements de colonnes sont enregistrés dans l'historique d'annulation.
+
+## Épinglage de colonnes
+
+Épinglez les premières colonnes pour qu'elles restent visibles lors du défilement horizontal :
+
+```rust
+state.apply(GridCommand::SetPinnedColumnCount { count: 2 });
+```
+
+Les colonnes épinglées sont rendues par-dessus la zone de défilement avec un
+fond opaque. La largeur épinglée est donnée par `model.pinned_width()`.

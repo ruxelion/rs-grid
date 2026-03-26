@@ -24,6 +24,7 @@ la meme interface.
 ## CellStatus
 
 ```rust
+#[non_exhaustive]
 pub enum CellStatus {
     Ready(String),  // value is available
     Loading,        // page not yet fetched (async sources)

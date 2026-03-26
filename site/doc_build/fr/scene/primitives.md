@@ -1,0 +1,102 @@
+# Primitives de scène
+
+## ScenePrimitive
+
+Chaque frame est une liste plate de valeurs `ScenePrimitive`. Il existe cinq variantes :
+
+```rust
+#[non_exhaustive]
+pub enum ScenePrimitive {
+    Rect(RectPrimitive),
+    Text(TextPrimitive),
+    Line(LinePrimitive),
+    Polygon(PolygonPrimitive),
+    Image(ImagePrimitive),
+}
+```
+
+> Les renderers personnalises doivent inclure un bras generique (`_ => {}`)
+> lors du matching de `ScenePrimitive`, car l'enum est `#[non_exhaustive]`.
+
+## RectPrimitive
+
+Rectangle rempli avec contour et coins arrondis optionnels.
+
+| Champ           | Type            | Description                                  |
+| --------------- | --------------- | -------------------------------------------- |
+| `x`             | `f64`           | Bord gauche (px logiques)                    |
+| `y`             | `f64`           | Bord supérieur (px logiques)                 |
+| `width`         | `f64`           | Largeur (px logiques)                        |
+| `height`        | `f64`           | Hauteur (px logiques)                        |
+| `fill`          | `Color`         | Couleur de remplissage                       |
+| `stroke`        | `Option<Color>` | Couleur de contour (`None` = pas de contour) |
+| `stroke_width`  | `f64`           | Épaisseur du contour (px logiques)           |
+| `corner_radius` | `f64`           | Rayon des coins (0 = angles vifs)            |
+
+Utilisé pour : arrière-plans de cellules, en-têtes, rectangles de sélection, éléments de la scrollbar.
+
+## TextPrimitive
+
+Texte avec découpage et alignement.
+
+| Champ       | Type               | Description                                  |
+| ----------- | ------------------ | -------------------------------------------- |
+| `x`         | `f64`              | Bord gauche (px logiques)                    |
+| `y`         | `f64`              | Position de la ligne de base y (px logiques) |
+| `text`      | `String`           | Contenu textuel                              |
+| `color`     | `Color`            | Couleur du texte                             |
+| `font_size` | `f64`              | Taille de police (px logiques)               |
+| `bold`      | `bool`             | Graisse de police 600                        |
+| `clip`      | `Option<[f64; 4]>` | Rectangle de découpage `[x, y, w, h]`        |
+| `align`     | `TextAlign`        | Left, Center ou Right                        |
+
+Utilisé pour : valeurs de cellules, en-têtes, numéros de lignes, surlignages de recherche.
+
+## LinePrimitive
+
+Segment de ligne droite.
+
+| Champ      | Type    | Description                         |
+| ---------- | ------- | ----------------------------------- |
+| `x1`, `y1` | `f64`   | Point de départ                     |
+| `x2`, `y2` | `f64`   | Point d'arrivée                     |
+| `color`    | `Color` | Couleur de la ligne                 |
+| `width`    | `f64`   | Épaisseur de la ligne (px logiques) |
+
+Utilisé pour : lignes de grille, bordures d'en-têtes, lignes de séparation.
+
+## PolygonPrimitive
+
+Polygone convexe rempli avec coins arrondis optionnels.
+
+| Champ           | Type            | Description                           |
+| --------------- | --------------- | ------------------------------------- |
+| `points`        | `Vec<[f64; 2]>` | Sommets sous forme de paires `[x, y]` |
+| `fill`          | `Color`         | Couleur de remplissage                |
+| `corner_radius` | `f64`           | Rayon des coins (0 = angles vifs)     |
+
+Utilisé pour : flèches d'indicateur de tri, boutons fléchés de la scrollbar.
+
+## ImagePrimitive
+
+Image chargée depuis une URL.
+
+| Champ             | Type               | Description            |
+| ----------------- | ------------------ | ---------------------- |
+| `url`             | `String`           | URL de l'image         |
+| `x`, `y`          | `f64`              | Position (px logiques) |
+| `width`, `height` | `f64`              | Espace disponible      |
+| `corner_radius`   | `f64`              | Découpage arrondi      |
+| `clip`            | `Option<[f64; 4]>` | Rectangle de découpage |
+
+Utilisé pour : cellules `CellFormat::Image` et `CellFormat::ImageText`.
+
+## Color
+
+```rust
+pub struct Color { pub r: u8, pub g: u8, pub b: u8, pub a: u8 }
+
+Color::rgb(255, 255, 255)      // blanc opaque
+Color::rgba(0, 0, 0, 128)      // noir 50% transparent
+color.to_css()                  // "rgba(255,255,255,1.0000)"
+```

@@ -3,6 +3,7 @@
 ## ScenePrimitive
 
 ```rust
+#[non_exhaustive]
 pub enum ScenePrimitive {
     Rect(RectPrimitive),
     Text(TextPrimitive),
@@ -11,6 +12,10 @@ pub enum ScenePrimitive {
     Image(ImagePrimitive),
 }
 ```
+
+> **Note:** `ScenePrimitive` is `#[non_exhaustive]` — custom renderers must
+> include a wildcard arm (`_ => {}`) when matching, so new primitives can be
+> added without breaking downstream code.
 
 ## RectPrimitive
 

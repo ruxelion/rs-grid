@@ -20,6 +20,7 @@ This abstraction allows rs-grid to work with in-memory data, virtual
 ## CellStatus
 
 ```rust
+#[non_exhaustive]
 pub enum CellStatus {
     Ready(String),  // value is available
     Loading,        // page not yet fetched (async sources)

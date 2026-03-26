@@ -36,6 +36,7 @@ Crée une colonne sans format et sans surcharge d'éditeur.
 ## CellFormat
 
 ```rust
+#[non_exhaustive]
 pub enum CellFormat {
     Number { decimal_places: u8, thousands_sep: Option<char>, decimal_sep: char },
     Percent { decimal_places: u8 },
@@ -101,6 +102,7 @@ Voir [Validation](/fr/features/validation) pour le guide complet.
 ## CellEditor
 
 ```rust
+#[non_exhaustive]
 pub enum CellEditor {
     Text,
     Select { options: Vec<SelectOption> },

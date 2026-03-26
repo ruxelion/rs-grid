@@ -9,16 +9,18 @@ pub struct ColumnDef {
     pub width: f64,
     pub format: Option<CellFormat>,
     pub editor: Option<CellEditor>,
+    pub validator: Option<CellValidator>,
 }
 ```
 
-| Field    | Type                 | Description                                    |
-| -------- | -------------------- | ---------------------------------------------- |
-| `key`    | `String`             | Unique identifier, used to look up cell values |
-| `label`  | `String`             | Display text in the column header              |
-| `width`  | `f64`                | Width in logical pixels                        |
-| `format` | `Option<CellFormat>` | Display format (`None` = raw text)             |
-| `editor` | `Option<CellEditor>` | Editor type (`None` = default text input)      |
+| Field       | Type                    | Description                                         |
+| ----------- | ----------------------- | --------------------------------------------------- |
+| `key`       | `String`                | Unique identifier, used to look up cell values      |
+| `label`     | `String`                | Display text in the column header                   |
+| `width`     | `f64`                   | Width in logical pixels                             |
+| `format`    | `Option<CellFormat>`    | Display format (`None` = raw text)                  |
+| `editor`    | `Option<CellEditor>`    | Editor type (`None` = default text input)           |
+| `validator` | `Option<CellValidator>` | Optional validator called before committing an edit |
 
 ### Constructor
 
@@ -31,6 +33,7 @@ Creates a column with no format and no editor override.
 ## CellFormat
 
 ```rust
+#[non_exhaustive]
 pub enum CellFormat {
     Number { decimal_places: u8, thousands_sep: Option<char>, decimal_sep: char },
     Percent { decimal_places: u8 },
@@ -70,9 +73,33 @@ pub enum CellAlign {
 }
 ```
 
+## CellValidator
+
+```rust
+pub struct CellValidator(pub Rc<dyn Fn(&str) -> Result<(), String>>);
+```
+
+A per-column validation callback. Call `CellValidator::new` to construct one:
+
+```rust
+CellValidator::new(|v| {
+    v.parse::<f64>()
+        .map(|_| ())
+        .map_err(|_| "not a number".to_string())
+})
+```
+
+| Method                  | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| `new(f)`                | Wrap a closure as a validator                         |
+| `validate(value: &str)` | Run the validator; returns `Ok(())` or `Err(message)` |
+
+See [Validation](/features/validation.md) for the full feature guide.
+
 ## CellEditor
 
 ```rust
+#[non_exhaustive]
 pub enum CellEditor {
     Text,
     Select { options: Vec<SelectOption> },

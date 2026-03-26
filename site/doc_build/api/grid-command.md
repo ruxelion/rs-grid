@@ -3,6 +3,7 @@
 ## Definition
 
 ```rust
+#[non_exhaustive]
 pub enum GridCommand { /* 30 variants */ }
 ```
 
@@ -91,12 +92,14 @@ SetTotalRowCount(u64)
 ## CommandOutput
 
 ```rust
+#[non_exhaustive]
 pub enum CommandOutput {
     None,
     CopyText(String),
     CopyError(CopyError),
 }
 
+#[non_exhaustive]
 pub enum CopyError {
     NoSelection,
     TooManyRows,

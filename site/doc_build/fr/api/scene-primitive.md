@@ -1,0 +1,136 @@
+# API ScenePrimitive
+
+## ScenePrimitive
+
+```rust
+#[non_exhaustive]
+pub enum ScenePrimitive {
+    Rect(RectPrimitive),
+    Text(TextPrimitive),
+    Line(LinePrimitive),
+    Polygon(PolygonPrimitive),
+    Image(ImagePrimitive),
+}
+```
+
+> **Note :** `ScenePrimitive` est `#[non_exhaustive]` — les renderers
+> personnalises doivent inclure un bras generique (`_ => {}`) dans leurs
+> `match`, afin que l'ajout de nouvelles primitives ne casse pas le code
+> existant.
+
+## RectPrimitive
+
+```rust
+pub struct RectPrimitive {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub fill: Color,
+    pub stroke: Option<Color>,
+    pub stroke_width: f64,
+    pub corner_radius: f64,
+}
+```
+
+## TextPrimitive
+
+```rust
+pub struct TextPrimitive {
+    pub x: f64,
+    pub y: f64,
+    pub text: String,
+    pub color: Color,
+    pub font_size: f64,
+    pub bold: bool,
+    pub clip: Option<[f64; 4]>,
+    pub align: TextAlign,
+}
+```
+
+## LinePrimitive
+
+```rust
+pub struct LinePrimitive {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub color: Color,
+    pub width: f64,
+}
+```
+
+## PolygonPrimitive
+
+```rust
+pub struct PolygonPrimitive {
+    pub points: Vec<[f64; 2]>,
+    pub fill: Color,
+    pub corner_radius: f64,
+}
+```
+
+## ImagePrimitive
+
+```rust
+pub struct ImagePrimitive {
+    pub url: String,
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub corner_radius: f64,
+    pub clip: Option<[f64; 4]>,
+}
+```
+
+## Types de support
+
+### Color
+
+```rust
+pub struct Color { pub r: u8, pub g: u8, pub b: u8, pub a: u8 }
+
+impl Color {
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self;
+    pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
+    pub fn to_css(self) -> String;  // "rgba(r,g,b,a)"
+}
+```
+
+### TextAlign
+
+```rust
+pub enum TextAlign {
+    Left,    // par défaut
+    Center,
+    Right,
+}
+```
+
+### SceneFrame
+
+```rust
+pub struct SceneFrame {
+    primitives: Vec<ScenePrimitive>,
+}
+
+impl SceneFrame {
+    pub fn primitives(&self) -> &[ScenePrimitive];
+}
+```
+
+## SceneBuilder
+
+```rust
+pub struct SceneBuilder {
+    dpr: f64,
+    theme: Theme,
+}
+
+impl SceneBuilder {
+    pub fn new(dpr: f64, theme: Theme) -> Self;
+    pub fn build(&self, state: &GridState, drag: Option<&ColumnDragHint>) -> SceneFrame;
+}
+```

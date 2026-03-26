@@ -8,6 +8,7 @@ description: Les cinq types de primitives qui composent un SceneFrame.
 Chaque frame est une liste plate de valeurs `ScenePrimitive`. Il existe cinq variantes :
 
 ```rust
+#[non_exhaustive]
 pub enum ScenePrimitive {
     Rect(RectPrimitive),
     Text(TextPrimitive),
@@ -16,6 +17,9 @@ pub enum ScenePrimitive {
     Image(ImagePrimitive),
 }
 ```
+
+> Les renderers personnalises doivent inclure un bras generique (`_ => {}`)
+> lors du matching de `ScenePrimitive`, car l'enum est `#[non_exhaustive]`.
 
 ## RectPrimitive
 

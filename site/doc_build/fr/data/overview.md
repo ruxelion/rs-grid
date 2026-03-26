@@ -1,0 +1,69 @@
+# Vue d'ensemble des sources de donnees
+
+## Le trait DataSource
+
+Toutes les donnees de lignes dans rs-grid sont accessibles via le trait `DataSource` :
+
+```rust
+pub trait DataSource: Debug {
+    fn row_count(&self) -> u64;
+    fn get_cell(&self, row: u64, col_key: &str) -> Option<String>;
+    fn clone_box(&self) -> Option<Box<dyn DataSource>>;
+    fn set_cell(&mut self, row: u64, col_key: &str, value: String) { }
+    fn cell_status(&self, row: u64, col_key: &str) -> CellStatus { ... }
+}
+```
+
+Cette abstraction permet a rs-grid de fonctionner avec des donnees en memoire,
+des donnees virtuelles (calculees) ou des donnees paginee cote serveur via
+la meme interface.
+
+## CellStatus
+
+```rust
+#[non_exhaustive]
+pub enum CellStatus {
+    Ready(String),  // value is available
+    Loading,        // page not yet fetched (async sources)
+    Absent,         // fetched but no value
+}
+```
+
+Le renderer utilise `CellStatus` pour decider s'il doit dessiner la valeur
+de la cellule, un placeholder de chargement (skeleton), ou rien.
+
+## Implementations integrees
+
+| Source                                          | Memoire  | Editable | Clonable | Ideal pour                          |
+| ----------------------------------------------- | -------- | -------- | -------- | ----------------------------------- |
+| [`VecDataSource`](/fr/data/vec-datasource.md)   | O(n)     | Oui      | Oui      | Jeux de donnees petits a moyens     |
+| [`FnDataSource`](/fr/data/fn-datasource.md)     | O(1)     | Non\*    | Non      | Donnees virtuelles/calculees, demos |
+| [`PageCacheDataSource`](/fr/data/page-cache.md) | O(pages) | Non      | Oui      | Donnees paginee cote serveur        |
+
+:::note
+\*`FnDataSource` est en lecture seule, mais l'edition fonctionne tout de meme
+via la couche de patches dans `GridModel`. Voir [Modele de donnees](/fr/concepts/data-model.md)
+pour plus de details.
+:::
+
+## Mode client-side vs server-side
+
+Definissez `model.mode` pour controler ou s'execute la logique de tri/filtrage :
+
+```rust
+model.mode = DataSourceMode::ServerSide;
+```
+
+|                  | ClientSide (par defaut)            | ServerSide                        |
+| ---------------- | ---------------------------------- | --------------------------------- |
+| Tri              | `apply_sort()` trie localement     | No-op (le serveur trie)           |
+| Filtre           | `apply_filter()` filtre localement | No-op (le serveur filtre)         |
+| Recherche        | Parcourt les cellules locales      | Parcourt les cellules locales     |
+| Nombre de lignes | `data.row_count()`                 | Mis a jour via `SetTotalRowCount` |
+
+En mode server-side, votre application est responsable de :
+
+1. Ecouter les changements de tri/filtre
+2. Recuperer les nouvelles donnees depuis le serveur
+3. Mettre a jour le `PageCacheDataSource`
+4. Envoyer `NotifyPageLoaded` pour declencher un nouveau rendu

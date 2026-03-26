@@ -1,0 +1,74 @@
+# Donnees virtuelles (FnDataSource)
+
+## Presentation
+
+`FnDataSource` genere les valeurs des cellules a la demande via une closure.
+Elle utilise O(1) en memoire quel que soit le nombre de lignes — ideal pour
+les donnees calculees, les demos ou les tres grands jeux de donnees.
+
+## Creation
+
+```rust
+use rs_grid_core::datasource::FnDataSource;
+
+let data = FnDataSource::new(1_000_000, |row, col_key| {
+    match col_key {
+        "id" => Some(format!("{row}")),
+        "name" => Some(format!("User {row}")),
+        "value" => Some(format!("{:.2}", row as f64 * 1.23)),
+        _ => None,
+    }
+});
+
+let model = GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+);
+```
+
+## Proprietes
+
+| Propriete     | Valeur                                          |
+| ------------- | ----------------------------------------------- |
+| Memoire       | O(1) — aucune donnee stockee                    |
+| Editable      | Non — `set_cell()` est un no-op\*               |
+| Clonable      | Non — `clone_box()` retourne `None`             |
+| `cell_status` | Toujours `Ready` ou `Absent` (jamais `Loading`) |
+
+:::note
+\*L'edition fonctionne tout de meme via la couche `patches` de `GridModel`.
+Le patch prend le dessus sur le resultat de la closure pour cette cellule.
+Voir [Modele de donnees](/fr/concepts/data-model.md).
+:::
+
+## Partage avec Rc
+
+Comme `FnDataSource` ne peut pas etre clone, encapsulez le `GridModel` dans
+un `Rc` si vous devez le partager :
+
+```rust
+use std::rc::Rc;
+use std::cell::RefCell;
+
+let model = Rc::new(RefCell::new(GridModel::with_data_source(
+    columns,
+    Box::new(data),
+    32.0,
+    36.0,
+)));
+```
+
+## Quand l'utiliser
+
+- Tres grands jeux de donnees (millions ou milliards de lignes)
+- Donnees deterministes/calculees (hachages, formules)
+- Scenarios de demo et de test
+- Lorsque la memoire est limitee
+
+## Quand NE PAS l'utiliser
+
+- Lorsque vous avez besoin de donnees mutables sans patches
+- Lorsque vous avez besoin de cloner la source de donnees
+- Donnees cote serveur avec chargement asynchrone — utilisez `PageCacheDataSource`

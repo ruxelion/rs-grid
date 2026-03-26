@@ -6,6 +6,7 @@ description: Référence de tous les types de primitives de scène utilisés par
 ## ScenePrimitive
 
 ```rust
+#[non_exhaustive]
 pub enum ScenePrimitive {
     Rect(RectPrimitive),
     Text(TextPrimitive),
@@ -14,6 +15,11 @@ pub enum ScenePrimitive {
     Image(ImagePrimitive),
 }
 ```
+
+> **Note :** `ScenePrimitive` est `#[non_exhaustive]` — les renderers
+> personnalises doivent inclure un bras generique (`_ => {}`) dans leurs
+> `match`, afin que l'ajout de nouvelles primitives ne casse pas le code
+> existant.
 
 ## RectPrimitive
 

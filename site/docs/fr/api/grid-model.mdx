@@ -64,6 +64,41 @@ pub fn with_data_source(columns: Vec<ColumnDef>, data: Box<dyn DataSource>, row_
 | `pinned_width` | `() -> f64` | Largeur totale des colonnes épinglées |
 | `compute_row_number_width` | `(row_count: u64) -> f64` | Calcul auto de la largeur du gutter |
 
+## GridModelBuilder
+
+Un builder ergonomique pour construire un `GridModel` avec des valeurs par defaut sensees :
+
+```rust
+pub struct GridModelBuilder { /* ... */ }
+
+impl GridModelBuilder {
+    pub fn new(
+        columns: Vec<ColumnDef>,
+        data: Box<dyn DataSource>,
+    ) -> Self;
+
+    pub fn row_height(self, h: f64) -> Self;       // defaut 30.0
+    pub fn header_height(self, h: f64) -> Self;     // defaut 40.0
+    pub fn pinned_count(self, n: usize) -> Self;    // defaut 0
+    pub fn mode(self, m: DataSourceMode) -> Self;   // defaut ClientSide
+    pub fn scrollbar_size(self, s: f64) -> Self;    // defaut 14.0
+    pub fn build(self) -> GridModel;
+}
+```
+
+### Exemple
+
+```rust
+let model = GridModelBuilder::new(columns, Box::new(data))
+    .row_height(40.0)
+    .pinned_count(2)
+    .build();
+```
+
+`pinned_count` est ramene au nombre de colonnes si la valeur depasse `columns.len()`.
+
+Les constructeurs existants `GridModel::new()` et `GridModel::with_data_source()` restent disponibles.
+
 ## DataSourceMode
 
 ```rust

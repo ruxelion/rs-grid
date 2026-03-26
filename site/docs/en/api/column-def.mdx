@@ -36,6 +36,7 @@ Creates a column with no format and no editor override.
 ## CellFormat
 
 ```rust
+#[non_exhaustive]
 pub enum CellFormat {
     Number { decimal_places: u8, thousands_sep: Option<char>, decimal_sep: char },
     Percent { decimal_places: u8 },
@@ -101,6 +102,7 @@ See [Validation](/features/validation) for the full feature guide.
 ## CellEditor
 
 ```rust
+#[non_exhaustive]
 pub enum CellEditor {
     Text,
     Select { options: Vec<SelectOption> },

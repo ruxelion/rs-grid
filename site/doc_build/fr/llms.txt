@@ -2,11 +2,53 @@
 
 > High-performance Rust/WASM data grid engine for the web
 
+## Docs
+
+- [Premiers pas](/fr/getting-started.md): Installez rs-grid et affichez votre premier data grid.
+
 ## Others
 
+- [API ColumnDef](/fr/api/column-def.md): Définition de colonne, formats de cellule et éditeurs de cellule.
+- [API GridCommand](/fr/api/grid-command.md): Référence complète de toutes les variantes de GridCommand.
+- [API GridModel](/fr/api/grid-model.md): Référence complète de la struct GridModel.
+- [API GridState](/fr/api/grid-state.md): Référence complète de la struct GridState.
+- [API ScenePrimitive](/fr/api/scene-primitive.md): Référence de tous les types de primitives de scène utilisés par les renderers.
+- [API Theme](/fr/api/theme.md): Référence complète de la struct Theme avec tous les champs et valeurs par défaut.
 - [Architecture](/fr/concepts/architecture.md): Pipeline unidirectionnel de GridState au canvas.
+- [Modele de donnees](/fr/concepts/data-model.md): Structure GridModel -- colonnes, sources de donnees, patches et correspondance des lignes.
+- [Etat de la grille et commandes](/fr/concepts/grid-state.md): La machine a etats centrale et le modele de mutations par commandes.
 - [Selection](/fr/concepts/selection.md): Modele de selection ancre/focus pour les cellules, lignes et colonnes.
 - [Viewport](/fr/concepts/viewport.md): Virtualisation du viewport — seules les cellules visibles sont rendues.
+- [Donnees virtuelles (FnDataSource)](/fr/data/fn-datasource.md): Source de donnees virtuelle basee sur une closure, avec une empreinte memoire nulle.
+- [Vue d'ensemble des sources de donnees](/fr/data/overview.md): Le trait DataSource et les trois implementations integrees.
+- [Donnees cote serveur (PageCacheDataSource)](/fr/data/page-cache.md): Chargement asynchrone par pages avec cache LRU et placeholders de chargement.
+- [Donnees en memoire (VecDataSource)](/fr/data/vec-datasource.md): Source de donnees basee sur Vec pour les jeux de donnees petits a moyens.
 - [Docker](/fr/deployment/docker.md): Compiler et deployer le site de documentation avec Docker.
-- [Premiers pas](/fr/getting-started.md): Installez rs-grid et affichez votre premier data grid.
+- [Tests](/fr/development/testing.md): Tests unitaires, tests end-to-end avec Playwright et régression visuelle.
+- [Workflow de développement](/fr/development/workspace.md): Structure du workspace, commandes de build et outils de développement.
+- [rs-grid](/fr/docs-overview.md): Moteur de data grid Rust/WASM haute performance pour le navigateur.
+- [Formatage des cellules](/fr/features/cell-formatting.md): Formats nombre, devise, pourcentage, booléen, image et formats personnalisés.
+- [Colonnes](/fr/features/columns.md): Définition des colonnes, redimensionnement, déplacement, épinglage et ajustement automatique.
+- [Menu contextuel](/fr/features/context-menu.md): Menu contextuel au clic droit avec actions integrees et personnalisees.
+- [Édition](/fr/features/editing.md): Édition de cellules en ligne avec champ texte et menu déroulant.
+- [Filtrage](/fr/features/filtering.md): Filtrage textuel par colonne avec correspondance insensible à la casse.
+- [Hit-Testing](/fr/features/hit-testing.md): Resolution pointeur-vers-cellule en O(log n) pour les clics et le survol.
+- [Navigation clavier](/fr/features/keyboard.md): Touches directionnelles, extension de selection, raccourcis d'edition et modele de focus.
+- [Localisation](/fr/features/localization.md): Traduisez l'interface de la grille dans n'importe quelle langue avec les fichiers de locale intégrés ou des traductions personnalisées.
+- [Lignes](/fr/features/rows.md): Enregistrements de lignes, hauteur de ligne, gouttière de numérotation, survol et fonds alternés.
+- [Barres de defilement](/fr/features/scrollbars.md): Barres de defilement rendues sur le canvas avec boutons fleches, glissement du curseur et clic sur la piste.
+- [Recherche](/fr/features/search.md): Recherche plein texte dans les cellules avec Ctrl+F, navigation entre les résultats et surlignage.
+- [Sélection et presse-papiers](/fr/features/selection-clipboard.md): Opérations copier, couper et coller au format TSV.
+- [Tri](/fr/features/sorting.md): Tri par colonne avec les états croissant, décroissant et aucun.
+- [Annuler et Retablir](/fr/features/undo-redo.md): Actions reversibles avec une pile d'historique a capacite fixe.
+- [Validation](/fr/features/validation.md): Validation par colonne avec CellValidator — rejet des saisies invalides avant leur enregistrement.
+- [Installation](/fr/installation.md): Configurer votre toolchain Rust et ajouter rs-grid a votre projet.
+- [Renderer personnalisé](/fr/integrations/custom-renderer.md): Créer un nouveau backend de rendu en consommant les primitives SceneFrame.
 - [Integration Leptos](/fr/integrations/leptos.md): Composant GridCanvas pret a l'emploi pour les applications Leptos CSR.
+- [Intégration Vanilla JS](/fr/integrations/vanilla-js.md): Utiliser rs-grid en JavaScript pur avec wasm-pack.
+- [Limites du nombre de lignes](/fr/row-count-limits.md): Historique des limites du nombre de lignes a travers les versions de rs-grid.
+- [Primitives de scène](/fr/scene/primitives.md): Les cinq types de primitives qui composent un SceneFrame.
+- [Scene Builder](/fr/scene/scene-builder.md): Conversion de GridState en SceneFrame prêt au rendu.
+- [Themes integres](/fr/theming/built-in-themes.md): Themes Light, Dark, Material 3 et Material 3 Dark.
+- [Reference des variables CSS](/fr/theming/css-variables.md): Reference complete de toutes les proprietes CSS personnalisees --rs-grid-*.
+- [Vue d'ensemble du theming](/fr/theming/overview.md): Fonctionnement du pipeline CSS vers Theme dans rs-grid.

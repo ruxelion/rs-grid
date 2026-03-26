@@ -5,6 +5,7 @@
 Every frame is a flat list of `ScenePrimitive` values. There are five variants:
 
 ```rust
+#[non_exhaustive]
 pub enum ScenePrimitive {
     Rect(RectPrimitive),
     Text(TextPrimitive),
@@ -13,6 +14,9 @@ pub enum ScenePrimitive {
     Image(ImagePrimitive),
 }
 ```
+
+> Custom renderers must include a wildcard arm (`_ => {}`) when matching
+> `ScenePrimitive`, since the enum is `#[non_exhaustive]`.
 
 ## RectPrimitive
 

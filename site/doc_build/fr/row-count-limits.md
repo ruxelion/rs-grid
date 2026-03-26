@@ -1,0 +1,75 @@
+# Limites du nombre de lignes -- historique
+
+## Resume
+
+| Version     | Type d'index | Type de coordonnee | Limite pratique          | Raison                     |
+| ----------- | ------------ | ------------------ | ------------------------ | -------------------------- |
+| v1 -- f32   | `usize`      | `f32`              | \~300 000 lignes         | precision `f32`            |
+| v2 -- usize | `usize`      | `f64`              | \~4,3 milliards (wasm32) | `usize` 32 bits sur wasm32 |
+| v3 -- u64   | `u64`        | `f64`              | \~9 x 10^14 lignes       | precision du scroll `f64`  |
+
+***
+
+## v1 -- Coordonnees `f32`
+
+Les positions de rendu (coordonnees canvas, `scroll_y`, `row_top`) etaient en `f32`.
+
+`f32` possede 23 bits de mantisse, representant les entiers exactement jusqu'a **2^24 = 16 777 216**.
+
+Au-dela, l'epsilon augmente :
+
+| `scroll_y` (f32) | epsilon | lignes (28 px/ligne) | resultat                |
+| ---------------- | ------- | -------------------- | ----------------------- |
+| 8 x 10^6         | \~1 px  | \~285 000            | limite de scroll fluide |
+| 4,7 x 10^8       | \~64 px | \~16,7 millions      | sauts importants        |
+
+**Limite pratique v1 : \~300 000 lignes.**
+
+***
+
+## v2 -- Indices `usize`, coordonnees `f64`
+
+Les coordonnees sont passees en `f64` (la precision de scroll est largement suffisante a cette echelle),
+mais les indices de lignes sont restes en `usize`.
+
+Sur **wasm32**, `usize` est en 32 bits, donc `usize::MAX = 4 294 967 295` (\~4,3 milliards).
+Ce plafond etait le goulot d'etranglement, pas la precision en virgule flottante.
+
+Sur x86-64, `usize` est en 64 bits donc il n'y a pas de limite en natif -- mais le code wasm32
+depassait `usize::MAX` silencieusement (overflow ou panic selon le mode de compilation).
+
+**Limite pratique v2 : \~4,3 milliards de lignes sur wasm32.**
+
+***
+
+## v3 -- Indices `u64`, coordonnees `f64` (2026-03-16)
+
+Les indices de lignes (`row_count`, `CellCoord.row`, `get_cell`, `row_top`,
+`visible_rows`) sont passes de `usize` a `u64`. Les indices de colonnes restent
+en `usize` (jamais plus de quelques centaines).
+
+Le plafond n'est plus le type d'index mais la precision de `scroll_y: f64`.
+`f64` possede 52 bits de mantisse, representant les entiers exactement jusqu'a **2^53**.
+
+| `scroll_y` (f64) | epsilon f64    | lignes (28 px/ligne) | resultat                  |
+| ---------------- | -------------- | -------------------- | ------------------------- |
+| 2,8 x 10^10      | \~6 x 10^-6 px | \~10^9               | parfait                   |
+| 2,8 x 10^13      | \~0,006 px     | \~10^12              | OK                        |
+| 2,8 x 10^15      | \~0,6 px       | \~10^14              | scintillement perceptible |
+| 2,8 x 10^16      | \~6 px         | \~10^15              | sauts de lignes           |
+
+### Test concret (2026-03-16, `row_height = 28`)
+
+| `count`                     | valeur             | resultat                  |
+| --------------------------- | ------------------ | ------------------------- |
+| `9_007_199_254_740_99_u64`  | \~9 x 10^14        | scroll et selection OK    |
+| `9_007_199_254_740_992_u64` | 2^53 (\~9 x 10^15) | chevauchement de cellules |
+
+**Limite maximale recommandee : `9_007_199_254_740_99_u64`** (\~9 x 10^14 lignes).
+
+***
+
+## Valeurs dans les exemples
+
+- `basic-web` : `10_000_000_000_u64` (10 milliards -- confortable)
+- `basic-leptos` : `9_007_199_254_740_99_u64` (limite maximale testee)

@@ -1,0 +1,102 @@
+# Modele de donnees
+
+## GridModel
+
+`GridModel` contient tout ce qui concerne les donnees et la disposition de la grille :
+
+```rust
+pub struct GridModel {
+    pub columns: Vec<ColumnDef>,
+    pub data: Box<dyn DataSource>,
+    pub row_height: f64,
+    pub header_height: f64,
+    pub column_offsets: ColumnOffsets,
+    pub patches: HashMap<(u64, String), String>,
+    pub row_number_width: f64,
+    pub sort_order: Vec<u64>,
+    pub pinned_count: usize,
+    pub filters: HashMap<String, String>,
+    pub filtered_indices: Vec<u64>,
+    pub mode: DataSourceMode,
+    pub scrollbar_size: f64,
+}
+```
+
+## Creer un modele
+
+### Donnees en memoire
+
+```rust
+let model = GridModel::new(columns, rows, 32.0, 36.0);
+```
+
+Cela encapsule le `Vec<RowRecord>` dans un `VecDataSource` en interne.
+
+### Source de donnees personnalisee
+
+```rust
+let data: Box<dyn DataSource> = Box::new(my_source);
+let model = GridModel::with_data_source(columns, data, 32.0, 36.0);
+```
+
+## Couche de patches
+
+Les valeurs de cellules editees sont stockees dans `patches` -- un `HashMap<(u64, String), String>`
+associant `(row_index, col_key)` a la nouvelle valeur. Les patches priment sur la
+source de donnees sous-jacente, ce qui signifie que l'edition fonctionne meme avec des
+sources en lecture seule comme `FnDataSource`.
+
+## DataSourceMode
+
+```rust
+pub enum DataSourceMode {
+    ClientSide,  // tri/filtrage effectue localement (par defaut)
+    ServerSide,  // tri/filtrage delegue au serveur
+}
+```
+
+En mode `ServerSide`, `apply_sort()` et `apply_filter()` deviennent des no-ops --
+c'est le serveur qui est responsable de renvoyer les donnees deja triees/filtrees.
+
+## Correspondance lignes logiques / lignes physiques
+
+Lorsqu'un tri ou un filtrage est actif, l'ordre d'affichage differe de
+l'ordre dans la source de donnees :
+
+```
+Ligne affichee 0 → ligne physique 42  (via sort_order ou filtered_indices)
+Ligne affichee 1 → ligne physique 7
+...
+```
+
+`model.logical_to_physical(logical_row)` resout cette correspondance :
+
+1. Si `filtered_indices` n'est pas vide → utiliser ces indices (deja tries)
+2. Sinon si `sort_order` n'est pas vide → utiliser cet ordre
+3. Sinon → identite (logique == physique)
+
+## Gouttiere des numeros de lignes
+
+La largeur de la gouttiere des numeros de lignes est calculee automatiquement
+en fonction du nombre de chiffres du plus grand numero de ligne :
+
+```
+largeur = max(chiffres × 9px + 24px de padding, 40px)
+```
+
+Cela garantit que la gouttiere est toujours assez large pour afficher tous
+les numeros de lignes sans troncature.
+
+## Methodes principales
+
+| Methode                                                      | Description                                                |
+| ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `new(columns, rows, row_height, header_height)`              | Creer avec des donnees en memoire                          |
+| `with_data_source(columns, data, row_height, header_height)` | Creer avec n'importe quel `DataSource`                     |
+| `get_cell(row, col_key)`                                     | Lire une cellule (patches d'abord, puis source de donnees) |
+| `set_cell(row, col_key, value)`                              | Ecrire une cellule dans la source de donnees               |
+| `logical_to_physical(logical)`                               | Associer une ligne affichee a une ligne de la source       |
+| `display_row_count()`                                        | Nombre de lignes visibles (tient compte des filtres)       |
+| `total_width()`                                              | Somme de toutes les largeurs de colonnes                   |
+| `total_height()`                                             | `row_count × row_height + header_height`                   |
+| `pinned_width()`                                             | Largeur totale des colonnes epinglees                      |

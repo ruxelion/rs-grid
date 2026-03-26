@@ -24,6 +24,7 @@ pub struct ContextMenuConfig {
 ## Elements du menu
 
 ```rust
+#[non_exhaustive]
 pub enum ContextMenuItem {
     Builtin(BuiltinAction),
     Separator,

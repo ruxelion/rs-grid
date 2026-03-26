@@ -1,0 +1,76 @@
+# Menu contextuel
+
+## Apercu
+
+Faites un clic droit sur la grille pour ouvrir un menu contextuel. Le menu
+propose des actions integrees (copier, coller, epingler) ainsi que des
+elements personnalises.
+
+## Configuration
+
+```rust
+pub struct ContextMenuConfig {
+    pub cell_items: Vec<ContextMenuItem>,
+    pub col_header_items: Vec<ContextMenuItem>,
+}
+```
+
+- `cell_items` — affiche lors d'un clic droit sur une cellule de donnees
+- `col_header_items` — affiche lors d'un clic droit sur un en-tete de colonne
+
+## Elements du menu
+
+```rust
+#[non_exhaustive]
+pub enum ContextMenuItem {
+    Builtin(BuiltinAction),
+    Separator,
+}
+```
+
+### Actions integrees
+
+| Action                           | Description                            |
+| -------------------------------- | -------------------------------------- |
+| `BuiltinAction::Cut`             | Couper la selection (Ctrl+X)           |
+| `BuiltinAction::Copy`            | Copier la selection (Ctrl+C)           |
+| `BuiltinAction::CopyWithHeaders` | Copier avec les en-tetes de colonnes   |
+| `BuiltinAction::Paste`           | Coller a l'ancre (Ctrl+V)              |
+| `BuiltinAction::PinColumn`       | Epingler les colonnes jusqu'a celle-ci |
+| `BuiltinAction::UnpinColumn`     | Desepingler toutes les colonnes        |
+
+### Separateur
+
+`ContextMenuItem::Separator` affiche un trait de separation visuel entre les groupes d'elements.
+
+## Personnalisation
+
+Les actions integrees disposent de methodes builder pour personnaliser :
+
+- `label` — texte affiche
+- `icon` — URL de l'icone
+- `shortcut` — texte indicatif du raccourci clavier
+
+## Exemple
+
+```rust
+let menu = ContextMenuConfig {
+    cell_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::Copy),
+        ContextMenuItem::Builtin(BuiltinAction::CopyWithHeaders),
+        ContextMenuItem::Separator,
+        ContextMenuItem::Builtin(BuiltinAction::Cut),
+        ContextMenuItem::Builtin(BuiltinAction::Paste),
+    ],
+    col_header_items: vec![
+        ContextMenuItem::Builtin(BuiltinAction::PinColumn),
+        ContextMenuItem::Builtin(BuiltinAction::UnpinColumn),
+    ],
+};
+```
+
+## Rendu
+
+Le menu contextuel est rendu sous forme de surcouche DOM (et non sur le canvas),
+positionne aux coordonnees du clic droit. Il se ferme lors d'un clic a
+l'exterieur ou en appuyant sur Echap.
