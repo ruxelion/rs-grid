@@ -1,0 +1,22 @@
+{
+  "name": "rs-grid-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing rs-grid documentation to AI agents",
+  "type": "module",
+  "bin": {
+    "rs-grid-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

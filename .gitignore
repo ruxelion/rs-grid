@@ -13,3 +13,5 @@ site/node_modules/
 site/docs/public/wasm/
 *-original.mp4
 .certs/
+mcp/node_modules/
+mcp/dist/
