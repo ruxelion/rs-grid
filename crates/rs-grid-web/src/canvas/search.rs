@@ -50,7 +50,7 @@ impl GridCanvas {
             .dyn_into()
             .expect("cast");
 
-        input.set_placeholder("Find\u{2026}");
+        input.set_placeholder(&self.0.locale.borrow().search_placeholder);
 
         let style = input.style();
         let _ = style.set_property("position", "fixed");

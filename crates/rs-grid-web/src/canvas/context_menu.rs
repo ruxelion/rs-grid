@@ -6,6 +6,7 @@ use super::context_menu_config::{BuiltinAction, ContextMenuItem};
 use super::dom_helpers::{document, make_el, set_styles};
 use super::GridCanvas;
 use crate::css_theme;
+use crate::locale::Locale;
 
 // ── context-menu icons (Feather Icons) ──────────────────
 
@@ -248,27 +249,27 @@ fn builtin_icon(action: BuiltinAction) -> &'static str {
     }
 }
 
-fn builtin_label(action: BuiltinAction) -> &'static str {
+fn builtin_label(action: BuiltinAction, locale: &Locale) -> &str {
     match action {
-        BuiltinAction::Cut => "Cut",
-        BuiltinAction::Copy => "Copy",
-        BuiltinAction::CopyWithHeaders => "Copy with headers",
-        BuiltinAction::Paste => "Paste",
-        BuiltinAction::PinColumn => "Pin Column",
-        BuiltinAction::UnpinColumn => "Unpin Column",
-        BuiltinAction::SortAsc => "Sort Ascending",
-        BuiltinAction::SortDesc => "Sort Descending",
-        BuiltinAction::ClearSort => "Clear Sort",
-        BuiltinAction::AutoSizeColumn => "Autosize This Column",
-        BuiltinAction::AutoSizeAllColumns => "Autosize All Columns",
+        BuiltinAction::Cut => &locale.cut,
+        BuiltinAction::Copy => &locale.copy,
+        BuiltinAction::CopyWithHeaders => &locale.copy_with_headers,
+        BuiltinAction::Paste => &locale.paste,
+        BuiltinAction::PinColumn => &locale.pin_column,
+        BuiltinAction::UnpinColumn => &locale.unpin_column,
+        BuiltinAction::SortAsc => &locale.sort_ascending,
+        BuiltinAction::SortDesc => &locale.sort_descending,
+        BuiltinAction::ClearSort => &locale.clear_sort,
+        BuiltinAction::AutoSizeColumn => &locale.autosize_this_column,
+        BuiltinAction::AutoSizeAllColumns => &locale.autosize_all_columns,
     }
 }
 
-fn builtin_shortcut(action: BuiltinAction) -> &'static str {
+fn builtin_shortcut(action: BuiltinAction, locale: &Locale) -> &str {
     match action {
-        BuiltinAction::Cut => "Ctrl+X",
-        BuiltinAction::Copy => "Ctrl+C",
-        BuiltinAction::Paste => "Ctrl+V",
+        BuiltinAction::Cut => &locale.shortcut_cut,
+        BuiltinAction::Copy => &locale.shortcut_copy,
+        BuiltinAction::Paste => &locale.shortcut_paste,
         _ => "",
     }
 }
@@ -459,6 +460,7 @@ impl GridCanvas {
             }
         };
 
+        let locale = self.0.locale.borrow();
         for item_cfg in items {
             match item_cfg {
                 ContextMenuItem::Separator => {
@@ -486,13 +488,13 @@ impl GridCanvas {
                     };
                     let lbl = label
                         .as_deref()
-                        .unwrap_or(builtin_label(effective_action));
+                        .unwrap_or(builtin_label(effective_action, &locale));
                     let ico = icon
                         .as_deref()
                         .unwrap_or(builtin_icon(effective_action));
                     let sc = shortcut
                         .as_deref()
-                        .unwrap_or(builtin_shortcut(effective_action));
+                        .unwrap_or(builtin_shortcut(effective_action, &locale));
 
                     let el = make_menu_item(&doc, ico, lbl, sc, true, &colors);
                     self.wire_builtin(&el, effective_action, col_idx);
@@ -526,6 +528,7 @@ impl GridCanvas {
             }
         };
 
+        let locale = self.0.locale.borrow();
         for item_cfg in items {
             match item_cfg {
                 ContextMenuItem::Separator => {
@@ -549,10 +552,13 @@ impl GridCanvas {
                         BuiltinAction::Paste => has_selection && secure,
                         _ => true,
                     };
-                    let lbl = label.as_deref().unwrap_or(builtin_label(action));
+                    let lbl = label
+                        .as_deref()
+                        .unwrap_or(builtin_label(action, &locale));
                     let ico = icon.as_deref().unwrap_or(builtin_icon(action));
-                    let sc =
-                        shortcut.as_deref().unwrap_or(builtin_shortcut(action));
+                    let sc = shortcut
+                        .as_deref()
+                        .unwrap_or(builtin_shortcut(action, &locale));
 
                     let el =
                         make_menu_item(&doc, ico, lbl, sc, enabled, &colors);

@@ -18,8 +18,7 @@ impl GridState {
                         dir: SortDir::Asc,
                     }),
                     Some(s)
-                        if s.col_key == col_key
-                            && s.dir == SortDir::Asc =>
+                        if s.col_key == col_key && s.dir == SortDir::Asc =>
                     {
                         Some(SortState {
                             col_key: col_key.clone(),
@@ -33,9 +32,7 @@ impl GridState {
                     }),
                 };
                 let sorted = match &new_sort {
-                    Some(s) => {
-                        self.model.apply_sort(&s.col_key, &s.dir)
-                    }
+                    Some(s) => self.model.apply_sort(&s.col_key, &s.dir),
                     None => {
                         self.model.sort_order.clear();
                         self.model.invalidate_sort_cache();

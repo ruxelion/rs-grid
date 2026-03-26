@@ -2,8 +2,8 @@ mod cmd_clipboard;
 mod cmd_column;
 mod cmd_edit;
 mod cmd_meta;
-mod cmd_search;
 mod cmd_scroll;
+mod cmd_search;
 mod cmd_selection;
 mod cmd_sort_filter;
 mod cmd_undo;
@@ -93,9 +93,7 @@ impl GridState {
             | GridCommand::ExtendRowSelection(_)
             | GridCommand::ExtendColSelection(_)
             | GridCommand::ClearSelection
-            | GridCommand::MoveSelection { .. } => {
-                self.cmd_selection(cmd)
-            }
+            | GridCommand::MoveSelection { .. } => self.cmd_selection(cmd),
 
             GridCommand::ScrollTo { .. }
             | GridCommand::ScrollBy { .. }
@@ -115,17 +113,13 @@ impl GridState {
             | GridCommand::SetPinnedColumnCount { .. }
             | GridCommand::MoveColumn { .. }
             | GridCommand::AutoFitColumn { .. }
-            | GridCommand::AutoFitAllColumns { .. } => {
-                self.cmd_column(cmd)
-            }
+            | GridCommand::AutoFitAllColumns { .. } => self.cmd_column(cmd),
 
             GridCommand::StartEdit { .. }
             | GridCommand::CommitEdit { .. }
             | GridCommand::CancelEdit => self.cmd_edit(cmd),
 
-            GridCommand::Undo | GridCommand::Redo => {
-                self.cmd_undo(cmd)
-            }
+            GridCommand::Undo | GridCommand::Redo => self.cmd_undo(cmd),
 
             GridCommand::Search { .. }
             | GridCommand::SearchNext

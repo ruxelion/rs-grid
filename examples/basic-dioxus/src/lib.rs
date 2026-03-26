@@ -5,7 +5,7 @@ use std::{cell::RefCell, rc::Rc};
 use dioxus::prelude::*;
 use example_common::build_model;
 use rs_grid_core::state::GridState;
-use rs_grid_web::{theme_from_css_vars, GridCanvas};
+use rs_grid_web::{theme_from_css_vars, GridCanvas, Locale};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::HtmlCanvasElement;
 
@@ -59,7 +59,12 @@ fn remount(canvas_ref: &CanvasRef, grid_ref: &GridRef, rows: u64, cols: usize) {
     let w = canvas.client_width() as f64;
     let h = canvas.client_height() as f64;
     let state = GridState::new(model, w, h);
-    let gc = GridCanvas::mount(canvas, state, theme_from_css_vars());
+    let gc = GridCanvas::mount(
+        canvas,
+        state,
+        theme_from_css_vars(),
+        Locale::default(),
+    );
     if let Some(s) = local_storage() {
         if let Ok(Some(data)) = s.get_item(LS_KEY) {
             gc.import_patches(&data);

@@ -2,7 +2,7 @@
 
 use example_common::build_model;
 use rs_grid_core::state::GridState;
-use rs_grid_web::{theme_from_css_vars, GridCanvas};
+use rs_grid_web::{theme_from_css_vars, GridCanvas, Locale};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::{Event, HtmlCanvasElement, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
@@ -71,8 +71,12 @@ fn App() -> Html {
                 let w = canvas.client_width() as f64;
                 let h = canvas.client_height() as f64;
                 let state = GridState::new(model, w, h);
-                let gc =
-                    GridCanvas::mount(canvas, state, theme_from_css_vars());
+                let gc = GridCanvas::mount(
+                    canvas,
+                    state,
+                    theme_from_css_vars(),
+                    Locale::default(),
+                );
                 // Restore patches from localStorage
                 if let Some(s) = local_storage() {
                     if let Ok(Some(data)) = s.get_item(LS_KEY) {
