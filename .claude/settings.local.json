@@ -81,7 +81,13 @@
       "WebFetch(domain:ghiscoding.gitbook.io)",
       "WebFetch(domain:js.devexpress.com)",
       "WebFetch(domain:devexpress.github.io)",
-      "WebFetch(domain:blog.ag-grid.com)"
+      "WebFetch(domain:blog.ag-grid.com)",
+      "Bash(wc -l /e/Dev/rs-grid/site/doc_build/llms*.txt)",
+      "Bash(find /e/Dev/rs-grid/site/docs/en -type f -name *.md)",
+      "Bash(find /e/Dev/rs-grid/site/docs -type f -name *.md)",
+      "Bash(done)",
+      "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-core/src/*.rs)",
+      "Bash(wc -l /e/Dev/rs-grid/crates/rs-grid-web/src/canvas/*.rs)"
     ]
   }
 }
