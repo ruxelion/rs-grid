@@ -3,7 +3,7 @@
 ## Démarrage rapide
 
 
-**Leptos**
+**[object Object]**
 
 `rs-grid-leptos` fournit un composant `<GridCanvas>` pour les applications
 Leptos CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la
@@ -18,7 +18,7 @@ gestion des événements et le theming dans un seul composant.
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 rs-grid peut être utilisé sans framework via la classe `JsGrid` exportée
 par `rs-grid-web`. Compilez avec `wasm-pack` :
@@ -31,7 +31,7 @@ Cela produit un module ES dans `pkg/` :
 - `rs_grid_web_bg.wasm` — le binaire WASM
 
 
-**Dioxus**
+**[object Object]**
 
 `rs-grid-dioxus` fournit un composant `GridCanvas` pour les applications
 Dioxus CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la
@@ -47,7 +47,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 `rs-grid-yew` fournit un composant fonction `GridCanvas` pour les applications
 Yew CSR. Il encapsule le runtime WASM, le cycle de vie du canvas, la gestion
@@ -66,7 +66,7 @@ html! {
 ## API du composant
 
 
-**Leptos**
+**[object Object]**
 
 ### Props
 | Prop            | Type    | Défaut | Description                                      |
@@ -77,7 +77,7 @@ html! {
 | `header_height` | `f64`   | `40.0` | Hauteur de la ligne d'en-tête des colonnes       |
 
 
-**Vanilla JS**
+**[object Object]**
 
 ### API JsGrid
 | Méthode                          | Description                                              |
@@ -88,7 +88,7 @@ html! {
 | `import_patches(tsv)`            | Importe des modifications TSV dans la grille             |
 
 
-**Dioxus**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                                  | Defaut    | Description                                         |
@@ -102,7 +102,7 @@ html! {
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Callback d'erreur de validation                     |
 
 
-**Yew**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                              | Defaut    | Description                                         |
@@ -119,7 +119,7 @@ html! {
 ## Thème
 
 
-**Leptos**
+**[object Object]**
 
 Le composant lit sa palette de couleurs à partir des propriétés CSS
 personnalisées au moment du montage via
@@ -139,7 +139,7 @@ Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
 `index.html`.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` lit les variables CSS au moment du montage, tout comme l'intégration
 Leptos. Ajoutez les variables `--rs-grid-*` à votre feuille de styles :
@@ -153,7 +153,7 @@ Leptos. Ajoutez les variables `--rs-grid-*` à votre feuille de styles :
 Consultez la [Référence des variables CSS](/fr/theming/css-variables.md) pour la liste complète.
 
 
-**Dioxus**
+**[object Object]**
 
 Le composant lit sa palette de couleurs a partir des proprietes CSS
 personnalisees au moment du montage via `theme_from_css_vars`. Memes
@@ -172,7 +172,7 @@ Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
 `index.html`.
 
 
-**Yew**
+**[object Object]**
 
 Le composant lit sa palette de couleurs a partir des proprietes CSS
 personnalisees au moment du montage via `theme_from_css_vars`. Memes
@@ -194,7 +194,7 @@ Incluez le fichier via votre `Trunk.toml` ou une balise `<link>` dans
 ## Événements
 
 
-**Leptos**
+**[object Object]**
 
 Le composant Leptos attache des écouteurs pointer et wheel au canvas :
 | Événement navigateur  | GridCommand                                 |
@@ -208,7 +208,7 @@ prochaine frame d'animation. Vous n'avez pas besoin de gérer la boucle
 d'événements manuellement.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` attache automatiquement les écouteurs pointer, wheel et resize à
 l'élément canvas au moment du montage. Les événements sont convertis en
@@ -216,7 +216,7 @@ valeurs `GridCommand` en interne. Appelez `detach()` pour supprimer tous
 les écouteurs et arrêter la boucle d'animation.
 
 
-**Dioxus**
+**[object Object]**
 
 Le composant Dioxus monte la grille via `rs-grid-web`, qui attache
 automatiquement les ecouteurs pointer, wheel et resize :
@@ -231,7 +231,7 @@ prochaine frame d'animation. Vous n'avez pas besoin de gerer la boucle
 d'evenements manuellement.
 
 
-**Yew**
+**[object Object]**
 
 Le composant Yew monte la grille via `rs-grid-web`, qui attache
 automatiquement les ecouteurs pointer, wheel et resize :
@@ -249,7 +249,7 @@ d'evenements manuellement.
 ## Exemple complet
 
 
-**Leptos**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use leptos::*;
@@ -278,7 +278,7 @@ pour votre propre thème.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```html title="index.html"
 <!DOCTYPE html>
@@ -304,7 +304,7 @@ pour votre propre thème.
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use dioxus::prelude::*;
@@ -333,7 +333,7 @@ pour votre propre theme.
 :::
 
 
-**Yew**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use yew::prelude::*;
@@ -364,13 +364,13 @@ pour votre propre theme.
 ## Limitations
 
 
-**Leptos**
+**[object Object]**
 
 - rs-grid-leptos est CSR uniquement — le SSR n'est pas supporté
 - Le composant s'attend à être rendu dans un environnement navigateur avec support `<canvas>`
 
 
-**Vanilla JS**
+**[object Object]**
 
 - Les définitions de colonnes utilisent des libellés par défaut (`Column 0`, `Column 1`, etc.)
 - Les données sont générées par une fonction de hachage (mode démo)
@@ -384,14 +384,14 @@ par-dessus `rs-grid-web`.
 :::
 
 
-**Dioxus**
+**[object Object]**
 
 - rs-grid-dioxus est CSR uniquement — le SSR n'est pas supporte
 - Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`
 - `GridModel` n'est pas `Clone` — utilisez `ModelSlot::new()` pour l'encapsuler
 
 
-**Yew**
+**[object Object]**
 
 - rs-grid-yew est CSR uniquement — le SSR n'est pas supporte
 - Le composant s'attend a etre rendu dans un environnement navigateur avec support `<canvas>`

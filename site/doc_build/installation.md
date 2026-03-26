@@ -29,7 +29,7 @@
 ## Add rs-grid to your project
 
 
-**Leptos**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml
@@ -45,7 +45,7 @@ or git dependencies for now.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 Build the WASM package with `wasm-pack`:
 ```bash
@@ -62,7 +62,7 @@ Then import the ES module in your HTML:
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml
@@ -78,7 +78,7 @@ or git dependencies for now.
 :::
 
 
-**Yew**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml

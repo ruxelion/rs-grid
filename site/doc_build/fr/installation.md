@@ -29,7 +29,7 @@
 ## Ajouter rs-grid a votre projet
 
 
-**Leptos**
+**[object Object]**
 
 Ajoutez les crates necessaires a votre `Cargo.toml` :
 ```toml
@@ -45,7 +45,7 @@ par chemin local ou par git pour le moment.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 Compilez le package WASM avec `wasm-pack` :
 ```bash
@@ -62,7 +62,7 @@ Puis importez le module ES dans votre HTML :
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Ajoutez les crates necessaires a votre `Cargo.toml` :
 ```toml
@@ -78,7 +78,7 @@ par chemin local ou par git pour le moment.
 :::
 
 
-**Yew**
+**[object Object]**
 
 Ajoutez les crates necessaires a votre `Cargo.toml` :
 ```toml

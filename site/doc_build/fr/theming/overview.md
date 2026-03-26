@@ -49,7 +49,7 @@ let theme = Theme {
 Pour appliquer le theme dynamiquement :
 
 
-**Leptos**
+**[object Object]**
 
 Passez le theme en tant que signal pour des mises a jour reactives :
 ```rust
@@ -59,7 +59,7 @@ set_theme.set(Theme::light());
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Remontez la grille avec le nouveau theme :
 ```rust
@@ -68,7 +68,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Passez le theme en tant que signal pour des mises a jour reactives :
 ```rust
@@ -78,7 +78,7 @@ theme.set(Theme::light());
 ```
 
 
-**Yew**
+**[object Object]**
 
 Passez le theme comme prop, ou utilisez le callback `on_mount` pour des
 mises a jour dynamiques :
@@ -99,26 +99,26 @@ Les variables CSS sont lues **une seule fois** au montage. Elles ne sont pas
 relues a chaque frame. Pour changer le theme dynamiquement :
 
 
-**Leptos**
+**[object Object]**
 
 Utilisez un signal de theme — le composant se re-rendra automatiquement
 lorsque le signal est mis a jour.
 
 
-**Vanilla JS**
+**[object Object]**
 
 Remontez la grille apres avoir modifie les variables CSS. Appelez `detach()`
 d'abord, mettez a jour les proprietes CSS, puis creez une nouvelle instance
 `JsGrid`.
 
 
-**Dioxus**
+**[object Object]**
 
 Utilisez un signal de theme — le composant se re-rendra automatiquement
 lorsque le signal est mis a jour. Meme comportement que Leptos.
 
 
-**Yew**
+**[object Object]**
 
 Utilisez le callback `on_mount` pour obtenir le handle de la grille,
 puis appelez `gc.set_theme(theme_from_css_vars())` apres avoir modifie

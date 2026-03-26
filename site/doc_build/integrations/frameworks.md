@@ -3,7 +3,7 @@
 ## Quick start
 
 
-**Leptos**
+**[object Object]**
 
 `rs-grid-leptos` provides a `<GridCanvas>` component for Leptos CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -18,7 +18,7 @@ theming in a single component.
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 rs-grid can be used without any framework via the `JsGrid` class exported
 by `rs-grid-web`. Build with `wasm-pack`:
@@ -31,7 +31,7 @@ This produces an ES module in `pkg/`:
 - `rs_grid_web_bg.wasm` — the WASM binary
 
 
-**Dioxus**
+**[object Object]**
 
 `rs-grid-dioxus` provides a `GridCanvas` component for Dioxus CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -47,7 +47,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 `rs-grid-yew` provides a `GridCanvas` function component for Yew CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -66,7 +66,7 @@ html! {
 ## Component API
 
 
-**Leptos**
+**[object Object]**
 
 ### Props
 | Prop            | Type    | Default  | Description                           |
@@ -77,7 +77,7 @@ html! {
 | `header_height` | `f64`   | `40.0`   | Height of the column header row       |
 
 
-**Vanilla JS**
+**[object Object]**
 
 ### JsGrid API
 | Method                           | Description                          |
@@ -88,7 +88,7 @@ html! {
 | `import_patches(tsv)`            | Import TSV patches into the grid     |
 
 
-**Dioxus**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                                  | Default   | Description                              |
@@ -102,7 +102,7 @@ html! {
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Validation error callback                |
 
 
-**Yew**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                              | Default   | Description                             |
@@ -119,7 +119,7 @@ html! {
 ## Theming
 
 
-**Leptos**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `rs-grid-web::theme_from_css_vars`. Define the variables in your
@@ -137,7 +137,7 @@ stylesheet:
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` reads CSS variables at mount time, just like the Leptos integration.
 Add `--rs-grid-*` variables to your stylesheet:
@@ -151,7 +151,7 @@ Add `--rs-grid-*` variables to your stylesheet:
 See [CSS Variables Reference](/theming/css-variables.md) for the full list.
 
 
-**Dioxus**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `theme_from_css_vars`. Same CSS variables as Leptos — define them in
@@ -169,7 +169,7 @@ your stylesheet:
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 
 
-**Yew**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `theme_from_css_vars`. Same CSS variables as Leptos — define them in
@@ -190,7 +190,7 @@ Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 ## Events
 
 
-**Leptos**
+**[object Object]**
 
 The Leptos component attaches pointer and wheel listeners to the canvas:
 | Browser event         | GridCommand                                 |
@@ -203,14 +203,14 @@ Events are translated to `GridCommand` values and applied on the next animation
 frame. You do not need to manage the event loop manually.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` automatically attaches pointer, wheel, and resize listeners to the
 canvas element at mount time. Events are translated to `GridCommand` values
 internally. Call `detach()` to remove all listeners and stop the animation loop.
 
 
-**Dioxus**
+**[object Object]**
 
 The Dioxus component mounts the grid via `rs-grid-web`, which attaches
 pointer, wheel, and resize listeners automatically:
@@ -224,7 +224,7 @@ Events are translated to `GridCommand` values and applied on the next animation
 frame. You do not need to manage the event loop manually.
 
 
-**Yew**
+**[object Object]**
 
 The Yew component mounts the grid via `rs-grid-web`, which attaches
 pointer, wheel, and resize listeners automatically:
@@ -241,7 +241,7 @@ frame. You do not need to manage the event loop manually.
 ## Full example
 
 
-**Leptos**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use leptos::*;
@@ -269,7 +269,7 @@ Copy it as a starting point for your own theme.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```html title="index.html"
 <!DOCTYPE html>
@@ -295,7 +295,7 @@ Copy it as a starting point for your own theme.
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use dioxus::prelude::*;
@@ -323,7 +323,7 @@ Copy it as a starting point for your own theme.
 :::
 
 
-**Yew**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use yew::prelude::*;
@@ -353,13 +353,13 @@ Copy it as a starting point for your own theme.
 ## Limitations
 
 
-**Leptos**
+**[object Object]**
 
 - rs-grid-leptos is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
 
 
-**Vanilla JS**
+**[object Object]**
 
 - Column definitions use default labels (`Column 0`, `Column 1`, etc.)
 - Data is generated with a hash function (demo mode)
@@ -372,14 +372,14 @@ integration on top of `rs-grid-web`.
 :::
 
 
-**Dioxus**
+**[object Object]**
 
 - rs-grid-dioxus is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
 - `GridModel` is not `Clone` — use `ModelSlot::new()` to wrap it
 
 
-**Yew**
+**[object Object]**
 
 - rs-grid-yew is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support

@@ -14,7 +14,7 @@ cargo install trunk
 ## Quick start
 
 
-**Leptos**
+**[object Object]**
 
 Add `rs-grid-leptos` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
@@ -49,7 +49,7 @@ trunk serve
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Build the WASM package:
 ```bash
@@ -68,7 +68,7 @@ Use it in your HTML:
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Add `rs-grid-dioxus` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
@@ -103,7 +103,7 @@ trunk serve
 ```
 
 
-**Yew**
+**[object Object]**
 
 Add `rs-grid-yew` to your `Cargo.toml`:
 ```toml title="Cargo.toml"

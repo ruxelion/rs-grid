@@ -39,7 +39,7 @@ La closure reçoit la valeur brute de la cellule et doit retourner :
 ## Écouter les erreurs de validation
 
 
-**Leptos**
+**[object Object]**
 
 Passez `on_validation_error` comme prop à `<GridCanvas>` :
 ```rust
@@ -56,7 +56,7 @@ view! {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Enregistrez un callback sur le handle web du canvas :
 ```rust
@@ -68,7 +68,7 @@ gc.set_on_validation_error(|row, col_key, message| {
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Passez `on_validation_error` comme `EventHandler` a `GridCanvas` :
 ```rust
@@ -85,7 +85,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 Passez `on_validation_error` comme `Option<ValidationErrorCb>` a `GridCanvas` :
 ```rust

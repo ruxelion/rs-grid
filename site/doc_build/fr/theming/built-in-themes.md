@@ -64,7 +64,7 @@ html.dark {
 ### Via le code
 
 
-**Leptos**
+**[object Object]**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -80,7 +80,7 @@ set_theme.update(|t| {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```rust
 // Remonter la grille avec un nouveau theme
@@ -89,7 +89,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust
 let mut theme = use_signal(|| Theme::light());
@@ -104,7 +104,7 @@ theme.set(if current == Theme::light() {
 ```
 
 
-**Yew**
+**[object Object]**
 
 ```rust
 // Utilisez le callback on_mount pour obtenir le handle de la grille

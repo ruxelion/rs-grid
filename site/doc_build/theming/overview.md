@@ -49,7 +49,7 @@ let theme = Theme {
 To apply the theme dynamically:
 
 
-**Leptos**
+**[object Object]**
 
 Pass the theme as a signal for reactive updates:
 ```rust
@@ -59,7 +59,7 @@ set_theme.set(Theme::light());
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Re-mount the grid with the new theme:
 ```rust
@@ -68,7 +68,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Pass the theme as a signal for reactive updates:
 ```rust
@@ -78,7 +78,7 @@ theme.set(Theme::light());
 ```
 
 
-**Yew**
+**[object Object]**
 
 Pass the theme as a prop, or use the `on_mount` callback for dynamic updates:
 ```rust
@@ -98,25 +98,25 @@ CSS variables are read **once** at mount time. They are not re-read on
 every frame. To change the theme dynamically:
 
 
-**Leptos**
+**[object Object]**
 
 Use a theme signal — the component will re-render automatically when the
 signal updates.
 
 
-**Vanilla JS**
+**[object Object]**
 
 Re-mount the grid after changing CSS variables. Call `detach()` first,
 update the CSS properties, then create a new `JsGrid` instance.
 
 
-**Dioxus**
+**[object Object]**
 
 Use a theme signal — the component will re-render automatically when the
 signal updates. Same behaviour as Leptos.
 
 
-**Yew**
+**[object Object]**
 
 Use the `on_mount` callback to get the grid handle, then call
 `gc.set_theme(theme_from_css_vars())` after updating CSS properties.

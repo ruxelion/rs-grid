@@ -18,7 +18,7 @@ cargo install trunk
 ## Quick start
 
 
-**Leptos**
+**[object Object]**
 
 Add `rs-grid-leptos` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
@@ -53,7 +53,7 @@ trunk serve
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Build the WASM package:
 ```bash
@@ -72,7 +72,7 @@ Use it in your HTML:
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Add `rs-grid-dioxus` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
@@ -107,7 +107,7 @@ trunk serve
 ```
 
 
-**Yew**
+**[object Object]**
 
 Add `rs-grid-yew` to your `Cargo.toml`:
 ```toml title="Cargo.toml"
@@ -2760,7 +2760,7 @@ let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ## Framework usage
 
 
-**Leptos**
+**[object Object]**
 
 The `<GridCanvas>` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
@@ -2784,7 +2784,7 @@ locale.set(Locale::de());
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -2802,7 +2802,7 @@ gc.set_locale(Locale::es());
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 The `GridCanvas` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
@@ -2825,7 +2825,7 @@ locale.set(Locale::de());
 ```
 
 
-**Yew**
+**[object Object]**
 
 The `GridCanvas` component accepts an optional `locale` prop.
 Pass a `Locale` value at mount time.
@@ -3436,7 +3436,7 @@ The closure receives the raw cell string and must return:
 ## Listening to validation errors
 
 
-**Leptos**
+**[object Object]**
 
 Pass `on_validation_error` as a prop to `<GridCanvas>`:
 ```rust
@@ -3453,7 +3453,7 @@ view! {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Register a callback on the web canvas handle:
 ```rust
@@ -3465,7 +3465,7 @@ gc.set_on_validation_error(|row, col_key, message| {
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Pass `on_validation_error` as an `EventHandler` to `GridCanvas`:
 ```rust
@@ -3482,7 +3482,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 Pass `on_validation_error` as an `Option<ValidationErrorCb>` to `GridCanvas`:
 ```rust
@@ -3650,7 +3650,7 @@ url: /installation.md
 ## Add rs-grid to your project
 
 
-**Leptos**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml
@@ -3666,7 +3666,7 @@ or git dependencies for now.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 Build the WASM package with `wasm-pack`:
 ```bash
@@ -3683,7 +3683,7 @@ Then import the ES module in your HTML:
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml
@@ -3699,7 +3699,7 @@ or git dependencies for now.
 :::
 
 
-**Yew**
+**[object Object]**
 
 Add the required crates to your `Cargo.toml`:
 ```toml
@@ -3851,7 +3851,7 @@ url: /integrations/frameworks.md
 ## Quick start
 
 
-**Leptos**
+**[object Object]**
 
 `rs-grid-leptos` provides a `<GridCanvas>` component for Leptos CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -3866,7 +3866,7 @@ theming in a single component.
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 rs-grid can be used without any framework via the `JsGrid` class exported
 by `rs-grid-web`. Build with `wasm-pack`:
@@ -3879,7 +3879,7 @@ This produces an ES module in `pkg/`:
 - `rs_grid_web_bg.wasm` — the WASM binary
 
 
-**Dioxus**
+**[object Object]**
 
 `rs-grid-dioxus` provides a `GridCanvas` component for Dioxus CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -3895,7 +3895,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 `rs-grid-yew` provides a `GridCanvas` function component for Yew CSR
 applications. It wraps the WASM runtime, canvas lifecycle, event handling, and
@@ -3914,7 +3914,7 @@ html! {
 ## Component API
 
 
-**Leptos**
+**[object Object]**
 
 ### Props
 | Prop            | Type    | Default  | Description                           |
@@ -3925,7 +3925,7 @@ html! {
 | `header_height` | `f64`   | `40.0`   | Height of the column header row       |
 
 
-**Vanilla JS**
+**[object Object]**
 
 ### JsGrid API
 | Method                           | Description                          |
@@ -3936,7 +3936,7 @@ html! {
 | `import_patches(tsv)`            | Import TSV patches into the grid     |
 
 
-**Dioxus**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                                  | Default   | Description                              |
@@ -3950,7 +3950,7 @@ html! {
 | `on_validation_error` | `EventHandler<(u64, String, String)>` | no-op     | Validation error callback                |
 
 
-**Yew**
+**[object Object]**
 
 ### Props
 | Prop                  | Type                              | Default   | Description                             |
@@ -3967,7 +3967,7 @@ html! {
 ## Theming
 
 
-**Leptos**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `rs-grid-web::theme_from_css_vars`. Define the variables in your
@@ -3985,7 +3985,7 @@ stylesheet:
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` reads CSS variables at mount time, just like the Leptos integration.
 Add `--rs-grid-*` variables to your stylesheet:
@@ -3999,7 +3999,7 @@ Add `--rs-grid-*` variables to your stylesheet:
 See [CSS Variables Reference](/theming/css-variables.md) for the full list.
 
 
-**Dioxus**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `theme_from_css_vars`. Same CSS variables as Leptos — define them in
@@ -4017,7 +4017,7 @@ your stylesheet:
 Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 
 
-**Yew**
+**[object Object]**
 
 The component reads its color palette from CSS custom properties at mount time
 via `theme_from_css_vars`. Same CSS variables as Leptos — define them in
@@ -4038,7 +4038,7 @@ Include the file via your `Trunk.toml` or a `<link>` tag in `index.html`.
 ## Events
 
 
-**Leptos**
+**[object Object]**
 
 The Leptos component attaches pointer and wheel listeners to the canvas:
 | Browser event         | GridCommand                                 |
@@ -4051,14 +4051,14 @@ Events are translated to `GridCommand` values and applied on the next animation
 frame. You do not need to manage the event loop manually.
 
 
-**Vanilla JS**
+**[object Object]**
 
 `JsGrid` automatically attaches pointer, wheel, and resize listeners to the
 canvas element at mount time. Events are translated to `GridCommand` values
 internally. Call `detach()` to remove all listeners and stop the animation loop.
 
 
-**Dioxus**
+**[object Object]**
 
 The Dioxus component mounts the grid via `rs-grid-web`, which attaches
 pointer, wheel, and resize listeners automatically:
@@ -4072,7 +4072,7 @@ Events are translated to `GridCommand` values and applied on the next animation
 frame. You do not need to manage the event loop manually.
 
 
-**Yew**
+**[object Object]**
 
 The Yew component mounts the grid via `rs-grid-web`, which attaches
 pointer, wheel, and resize listeners automatically:
@@ -4089,7 +4089,7 @@ frame. You do not need to manage the event loop manually.
 ## Full example
 
 
-**Leptos**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use leptos::*;
@@ -4117,7 +4117,7 @@ Copy it as a starting point for your own theme.
 :::
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```html title="index.html"
 <!DOCTYPE html>
@@ -4143,7 +4143,7 @@ Copy it as a starting point for your own theme.
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use dioxus::prelude::*;
@@ -4171,7 +4171,7 @@ Copy it as a starting point for your own theme.
 :::
 
 
-**Yew**
+**[object Object]**
 
 ```rust title="src/main.rs"
 use yew::prelude::*;
@@ -4201,13 +4201,13 @@ Copy it as a starting point for your own theme.
 ## Limitations
 
 
-**Leptos**
+**[object Object]**
 
 - rs-grid-leptos is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
 
 
-**Vanilla JS**
+**[object Object]**
 
 - Column definitions use default labels (`Column 0`, `Column 1`, etc.)
 - Data is generated with a hash function (demo mode)
@@ -4220,14 +4220,14 @@ integration on top of `rs-grid-web`.
 :::
 
 
-**Dioxus**
+**[object Object]**
 
 - rs-grid-dioxus is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
 - `GridModel` is not `Clone` — use `ModelSlot::new()` to wrap it
 
 
-**Yew**
+**[object Object]**
 
 - rs-grid-yew is CSR-only — SSR is not supported
 - The component expects to be rendered in a browser environment with `<canvas>` support
@@ -4596,7 +4596,7 @@ html.dark {
 ### Via code
 
 
-**Leptos**
+**[object Object]**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -4612,7 +4612,7 @@ set_theme.update(|t| {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```rust
 // Re-mount the grid with a new theme
@@ -4621,7 +4621,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust
 let mut theme = use_signal(|| Theme::light());
@@ -4636,7 +4636,7 @@ theme.set(if current == Theme::light() {
 ```
 
 
-**Yew**
+**[object Object]**
 
 ```rust
 // Use the on_mount callback to get the grid handle
@@ -4804,7 +4804,7 @@ let theme = Theme {
 To apply the theme dynamically:
 
 
-**Leptos**
+**[object Object]**
 
 Pass the theme as a signal for reactive updates:
 ```rust
@@ -4814,7 +4814,7 @@ set_theme.set(Theme::light());
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Re-mount the grid with the new theme:
 ```rust
@@ -4823,7 +4823,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Pass the theme as a signal for reactive updates:
 ```rust
@@ -4833,7 +4833,7 @@ theme.set(Theme::light());
 ```
 
 
-**Yew**
+**[object Object]**
 
 Pass the theme as a prop, or use the `on_mount` callback for dynamic updates:
 ```rust
@@ -4853,25 +4853,25 @@ CSS variables are read **once** at mount time. They are not re-read on
 every frame. To change the theme dynamically:
 
 
-**Leptos**
+**[object Object]**
 
 Use a theme signal — the component will re-render automatically when the
 signal updates.
 
 
-**Vanilla JS**
+**[object Object]**
 
 Re-mount the grid after changing CSS variables. Call `detach()` first,
 update the CSS properties, then create a new `JsGrid` instance.
 
 
-**Dioxus**
+**[object Object]**
 
 Use a theme signal — the component will re-render automatically when the
 signal updates. Same behaviour as Leptos.
 
 
-**Yew**
+**[object Object]**
 
 Use the `on_mount` callback to get the grid handle, then call
 `gc.set_theme(theme_from_css_vars())` after updating CSS properties.

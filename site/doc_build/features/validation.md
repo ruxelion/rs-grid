@@ -38,7 +38,7 @@ The closure receives the raw cell string and must return:
 ## Listening to validation errors
 
 
-**Leptos**
+**[object Object]**
 
 Pass `on_validation_error` as a prop to `<GridCanvas>`:
 ```rust
@@ -55,7 +55,7 @@ view! {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 Register a callback on the web canvas handle:
 ```rust
@@ -67,7 +67,7 @@ gc.set_on_validation_error(|row, col_key, message| {
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 Pass `on_validation_error` as an `EventHandler` to `GridCanvas`:
 ```rust
@@ -84,7 +84,7 @@ rsx! {
 ```
 
 
-**Yew**
+**[object Object]**
 
 Pass `on_validation_error` as an `Option<ValidationErrorCb>` to `GridCanvas`:
 ```rust

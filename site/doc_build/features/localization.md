@@ -50,7 +50,7 @@ let locale = Locale::from_language_tag("pt-BR"); // → Locale::pt()
 ## Framework usage
 
 
-**Leptos**
+**[object Object]**
 
 The `<GridCanvas>` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
@@ -74,7 +74,7 @@ locale.set(Locale::de());
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```rust
 use rs_grid_web::{GridCanvas, Locale};
@@ -92,7 +92,7 @@ gc.set_locale(Locale::es());
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 The `GridCanvas` component accepts an optional reactive `locale` prop.
 When the signal changes, the grid updates its UI strings in place without
@@ -115,7 +115,7 @@ locale.set(Locale::de());
 ```
 
 
-**Yew**
+**[object Object]**
 
 The `GridCanvas` component accepts an optional `locale` prop.
 Pass a `Locale` value at mount time.

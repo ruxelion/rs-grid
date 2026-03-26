@@ -64,7 +64,7 @@ html.dark {
 ### Via code
 
 
-**Leptos**
+**[object Object]**
 
 ```rust
 let (theme, set_theme) = create_signal(Theme::light());
@@ -80,7 +80,7 @@ set_theme.update(|t| {
 ```
 
 
-**Vanilla JS**
+**[object Object]**
 
 ```rust
 // Re-mount the grid with a new theme
@@ -89,7 +89,7 @@ let gc = GridCanvas::mount(canvas, state, theme, locale);
 ```
 
 
-**Dioxus**
+**[object Object]**
 
 ```rust
 let mut theme = use_signal(|| Theme::light());
@@ -104,7 +104,7 @@ theme.set(if current == Theme::light() {
 ```
 
 
-**Yew**
+**[object Object]**
 
 ```rust
 // Use the on_mount callback to get the grid handle
