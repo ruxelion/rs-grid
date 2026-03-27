@@ -10,6 +10,7 @@ use crate::{
 /// Whether sort/filter are performed client-side or
 /// delegated to the server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum DataSourceMode {
     /// All data is in memory. Sort/filter/search done locally.
     #[default]

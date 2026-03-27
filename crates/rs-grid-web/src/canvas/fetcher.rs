@@ -5,6 +5,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// Server response for a single page of data.
+#[derive(Debug, Clone)]
 pub struct PageFetchResponse {
     /// Rows returned for this page.
     pub rows: Vec<RowRecord>,
@@ -13,6 +14,7 @@ pub struct PageFetchResponse {
 }
 
 /// Parameters sent to the server for a page request.
+#[derive(Debug, Clone)]
 pub struct PageFetchRequest {
     /// Zero-based page number to fetch.
     pub page_num: u64,
