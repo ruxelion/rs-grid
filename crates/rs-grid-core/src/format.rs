@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 /// Horizontal alignment override for a formatted cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum CellAlign {
     /// Left-aligned (default).
     #[default]

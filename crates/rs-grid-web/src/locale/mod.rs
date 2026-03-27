@@ -21,6 +21,7 @@
 /// Users can also construct a custom `Locale { .. }` for
 /// any other language.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct Locale {
     // ── Context menu — clipboard ────────────────────────
     pub cut: String,

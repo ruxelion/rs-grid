@@ -1,5 +1,6 @@
 /// Sort direction for a column.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SortDir {
     /// Ascending (A → Z, 0 → 9).
     Asc,

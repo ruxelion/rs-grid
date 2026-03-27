@@ -72,144 +72,126 @@ pub fn theme_from_css_vars() -> Theme {
         }
     };
 
-    Theme {
-        bg: color("--rs-grid-bg", fallback.bg),
-        header_bg: color("--rs-grid-header-bg", fallback.header_bg),
-        header_text: color("--rs-grid-header-text", fallback.header_text),
-        cell_text: color("--rs-grid-cell-text", fallback.cell_text),
-        grid_line: color("--rs-grid-grid-line", fallback.grid_line),
-        header_border: color("--rs-grid-header-border", fallback.header_border),
-        header_separator_inset: px(
-            "--rs-grid-header-separator-inset",
-            fallback.header_separator_inset,
-        ),
-        header_separator_width: px(
-            "--rs-grid-header-separator-width",
-            fallback.header_separator_width,
-        ),
-        selection_fill: color(
-            "--rs-grid-selection-fill",
-            fallback.selection_fill,
-        ),
-        selection_border: color(
-            "--rs-grid-selection-border",
-            fallback.selection_border,
-        ),
-        scrollbar_track: color(
-            "--rs-grid-scrollbar-track",
-            fallback.scrollbar_track,
-        ),
-        scrollbar_thumb: color(
-            "--rs-grid-scrollbar-thumb",
-            fallback.scrollbar_thumb,
-        ),
-        row_alt_bg: color("--rs-grid-row-alt-bg", fallback.row_alt_bg),
-        row_hover_bg: color("--rs-grid-row-hover-bg", fallback.row_hover_bg),
-        scrollbar_width: px(
-            "--rs-grid-scrollbar-width",
-            fallback.scrollbar_width,
-        ),
-        scrollbar_radius: px(
-            "--rs-grid-scrollbar-radius",
-            fallback.scrollbar_radius,
-        ),
-        scrollbar_inset: px(
-            "--rs-grid-scrollbar-inset",
-            fallback.scrollbar_inset,
-        ),
-        font_size: px("--rs-grid-font-size", fallback.font_size),
-        header_font_size: px(
-            "--rs-grid-header-font-size",
-            fallback.header_font_size,
-        ),
-        header_font_bold: bool_var(
-            "--rs-grid-header-font-bold",
-            fallback.header_font_bold,
-        ),
-        cell_padding: px("--rs-grid-cell-padding", fallback.cell_padding),
-        flash_fill: color("--rs-grid-flash-fill", fallback.flash_fill),
-        flash_border: color("--rs-grid-flash-border", fallback.flash_border),
-        search_highlight: color(
-            "--rs-grid-search-highlight",
-            fallback.search_highlight,
-        ),
-        search_current: color(
-            "--rs-grid-search-current",
-            fallback.search_current,
-        ),
-        skeleton_fg: color("--rs-grid-skeleton-fg", fallback.skeleton_fg),
-        drag_overlay: color("--rs-grid-drag-overlay", fallback.drag_overlay),
-        drag_ghost_bg: color("--rs-grid-drag-ghost-bg", fallback.drag_ghost_bg),
-        drag_ghost_text: color(
-            "--rs-grid-drag-ghost-text",
-            fallback.drag_ghost_text,
-        ),
-        drag_insert_line_width: px(
-            "--rs-grid-drag-insert-line-width",
-            fallback.drag_insert_line_width,
-        ),
-        drag_ghost_radius: px(
-            "--rs-grid-drag-ghost-radius",
-            fallback.drag_ghost_radius,
-        ),
-        drag_ghost_border_width: px(
-            "--rs-grid-drag-ghost-border-width",
-            fallback.drag_ghost_border_width,
-        ),
-        drag_anim_alpha: px(
-            "--rs-grid-drag-anim-alpha",
-            fallback.drag_anim_alpha,
-        ),
-        sort_arrow_width: px(
-            "--rs-grid-sort-arrow-width",
-            fallback.sort_arrow_width,
-        ),
-        sort_arrow_height: px(
-            "--rs-grid-sort-arrow-height",
-            fallback.sort_arrow_height,
-        ),
-        header_height: px("--rs-grid-header-height", fallback.header_height),
-        row_height: px("--rs-grid-row-height", fallback.row_height),
-        header_menu_icon: color(
-            "--rs-grid-header-menu-icon",
-            fallback.header_menu_icon,
-        ),
-        header_menu_icon_hover_bg: color(
-            "--rs-grid-header-menu-icon-hover-bg",
-            fallback.header_menu_icon_hover_bg,
-        ),
-        header_menu_icon_radius: px(
-            "--rs-grid-header-menu-icon-radius",
-            fallback.header_menu_icon_radius,
-        ),
-        header_menu_icon_margin_r: px(
-            "--rs-grid-header-menu-icon-margin-r",
-            fallback.header_menu_icon_margin_r,
-        ),
-        header_menu_icon_btn_w: px(
-            "--rs-grid-header-menu-icon-btn-w",
-            fallback.header_menu_icon_btn_w,
-        ),
-        header_menu_icon_btn_h: px(
-            "--rs-grid-header-menu-icon-btn-h",
-            fallback.header_menu_icon_btn_h,
-        ),
-        header_menu_icon_dot_r: px(
-            "--rs-grid-header-menu-icon-dot-r",
-            fallback.header_menu_icon_dot_r,
-        ),
-        gutter_bg: color("--rs-grid-gutter-bg", fallback.gutter_bg),
-        gutter_text: color("--rs-grid-gutter-text", fallback.gutter_text),
-        gutter_font_size: px(
-            "--rs-grid-gutter-font-size",
-            fallback.gutter_font_size,
-        ),
-        gutter_font_bold: bool_var(
-            "--rs-grid-gutter-font-bold",
-            fallback.gutter_font_bold,
-        ),
-        gutter_border: color("--rs-grid-gutter-border", fallback.gutter_border),
-    }
+    let mut t = fallback;
+    t.bg = color("--rs-grid-bg", t.bg);
+    t.header_bg = color("--rs-grid-header-bg", t.header_bg);
+    t.header_text = color("--rs-grid-header-text", t.header_text);
+    t.cell_text = color("--rs-grid-cell-text", t.cell_text);
+    t.grid_line = color("--rs-grid-grid-line", t.grid_line);
+    t.header_border = color("--rs-grid-header-border", t.header_border);
+    t.header_separator_inset = px(
+        "--rs-grid-header-separator-inset",
+        t.header_separator_inset,
+    );
+    t.header_separator_width = px(
+        "--rs-grid-header-separator-width",
+        t.header_separator_width,
+    );
+    t.selection_fill = color("--rs-grid-selection-fill", t.selection_fill);
+    t.selection_border = color(
+        "--rs-grid-selection-border",
+        t.selection_border,
+    );
+    t.scrollbar_track = color(
+        "--rs-grid-scrollbar-track",
+        t.scrollbar_track,
+    );
+    t.scrollbar_thumb = color(
+        "--rs-grid-scrollbar-thumb",
+        t.scrollbar_thumb,
+    );
+    t.row_alt_bg = color("--rs-grid-row-alt-bg", t.row_alt_bg);
+    t.row_hover_bg = color("--rs-grid-row-hover-bg", t.row_hover_bg);
+    t.scrollbar_width = px("--rs-grid-scrollbar-width", t.scrollbar_width);
+    t.scrollbar_radius = px(
+        "--rs-grid-scrollbar-radius",
+        t.scrollbar_radius,
+    );
+    t.scrollbar_inset = px("--rs-grid-scrollbar-inset", t.scrollbar_inset);
+    t.font_size = px("--rs-grid-font-size", t.font_size);
+    t.header_font_size = px(
+        "--rs-grid-header-font-size",
+        t.header_font_size,
+    );
+    t.header_font_bold = bool_var(
+        "--rs-grid-header-font-bold",
+        t.header_font_bold,
+    );
+    t.cell_padding = px("--rs-grid-cell-padding", t.cell_padding);
+    t.flash_fill = color("--rs-grid-flash-fill", t.flash_fill);
+    t.flash_border = color("--rs-grid-flash-border", t.flash_border);
+    t.search_highlight = color(
+        "--rs-grid-search-highlight",
+        t.search_highlight,
+    );
+    t.search_current = color("--rs-grid-search-current", t.search_current);
+    t.skeleton_fg = color("--rs-grid-skeleton-fg", t.skeleton_fg);
+    t.drag_overlay = color("--rs-grid-drag-overlay", t.drag_overlay);
+    t.drag_ghost_bg = color("--rs-grid-drag-ghost-bg", t.drag_ghost_bg);
+    t.drag_ghost_text = color(
+        "--rs-grid-drag-ghost-text",
+        t.drag_ghost_text,
+    );
+    t.drag_insert_line_width = px(
+        "--rs-grid-drag-insert-line-width",
+        t.drag_insert_line_width,
+    );
+    t.drag_ghost_radius = px(
+        "--rs-grid-drag-ghost-radius",
+        t.drag_ghost_radius,
+    );
+    t.drag_ghost_border_width = px(
+        "--rs-grid-drag-ghost-border-width",
+        t.drag_ghost_border_width,
+    );
+    t.drag_anim_alpha = px("--rs-grid-drag-anim-alpha", t.drag_anim_alpha);
+    t.sort_arrow_width = px(
+        "--rs-grid-sort-arrow-width",
+        t.sort_arrow_width,
+    );
+    t.sort_arrow_height = px(
+        "--rs-grid-sort-arrow-height",
+        t.sort_arrow_height,
+    );
+    t.header_height = px("--rs-grid-header-height", t.header_height);
+    t.row_height = px("--rs-grid-row-height", t.row_height);
+    t.header_menu_icon = color(
+        "--rs-grid-header-menu-icon",
+        t.header_menu_icon,
+    );
+    t.header_menu_icon_hover_bg = color(
+        "--rs-grid-header-menu-icon-hover-bg",
+        t.header_menu_icon_hover_bg,
+    );
+    t.header_menu_icon_radius = px(
+        "--rs-grid-header-menu-icon-radius",
+        t.header_menu_icon_radius,
+    );
+    t.header_menu_icon_margin_r = px(
+        "--rs-grid-header-menu-icon-margin-r",
+        t.header_menu_icon_margin_r,
+    );
+    t.header_menu_icon_btn_w = px(
+        "--rs-grid-header-menu-icon-btn-w",
+        t.header_menu_icon_btn_w,
+    );
+    t.header_menu_icon_btn_h = px(
+        "--rs-grid-header-menu-icon-btn-h",
+        t.header_menu_icon_btn_h,
+    );
+    t.header_menu_icon_dot_r = px(
+        "--rs-grid-header-menu-icon-dot-r",
+        t.header_menu_icon_dot_r,
+    );
+    t.gutter_bg = color("--rs-grid-gutter-bg", t.gutter_bg);
+    t.gutter_text = color("--rs-grid-gutter-text", t.gutter_text);
+    t.gutter_font_size = px("--rs-grid-gutter-font-size", t.gutter_font_size);
+    t.gutter_font_bold = bool_var(
+        "--rs-grid-gutter-font-bold",
+        t.gutter_font_bold,
+    );
+    t.gutter_border = color("--rs-grid-gutter-border", t.gutter_border);
+    t
 }
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────

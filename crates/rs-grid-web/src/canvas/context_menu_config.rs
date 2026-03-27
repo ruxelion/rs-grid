@@ -207,7 +207,7 @@ impl ContextMenuItem {
 ///
 /// When a field is `None`, the grid uses its default built-in
 /// menu items.
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ContextMenuConfig {
     /// Items shown on right-click in the cell/row area.
     /// Default: Cut, Copy, Copy with Headers, ---, Paste.

@@ -145,6 +145,7 @@ pub(super) fn emit_cell(
                         CellAlign::Left => TextAlign::Left,
                         CellAlign::Right => TextAlign::Right,
                         CellAlign::Center => TextAlign::Center,
+                        _ => TextAlign::Left,
                     };
                     let c = fc
                         .color

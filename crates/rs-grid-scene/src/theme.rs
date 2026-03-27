@@ -6,6 +6,7 @@ use crate::primitives::Color;
 /// `dpr` (device pixel ratio) is intentionally absent — it is a
 /// hardware property, not a theme property, and stays on `SceneBuilder`.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct Theme {
     // ── palette ──────────────────────────────────────────────────────────────
     /// Default cell background.

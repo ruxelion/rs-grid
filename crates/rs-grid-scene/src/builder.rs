@@ -23,6 +23,7 @@ use crate::{
 /// single frame render cycle. Computed by the web layer,
 /// consumed by the scene builder to render a dimmed source
 /// header, an insertion line, and a ghost.
+#[derive(Debug, Clone)]
 pub struct ColumnDragHint {
     /// Index of the column being dragged.
     pub source_col: usize,
@@ -47,6 +48,7 @@ pub struct ColumnDragHint {
 /// single frame render cycle. Computed by the web layer
 /// from elapsed time; consumed by the scene builder to
 /// render a fading overlay on selected cells.
+#[derive(Debug, Clone, Copy)]
 pub struct FlashHint {
     /// Normalised intensity: 1.0 = full flash, 0.0 = invisible.
     pub alpha_factor: f64,
