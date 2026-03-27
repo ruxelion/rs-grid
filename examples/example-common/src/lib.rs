@@ -8,8 +8,9 @@
 pub mod fake_data;
 
 use rs_grid_core::{
-    column::{CellEditor, CellFormat, CellValidator, ColumnDef, SelectOption},
+    column::{CellEditor, CellValidator, ColumnDef, SelectOption},
     datasource::FnDataSource,
+    format::CellFormat,
     model::GridModel,
 };
 

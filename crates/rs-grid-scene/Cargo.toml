@@ -2,6 +2,7 @@
 name = "rs-grid-scene"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Scene graph: converts GridState into renderer-agnostic primitives"
 
 [dependencies]

@@ -2,6 +2,7 @@
 name = "rs-grid-render-canvas"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Canvas2D renderer: converts SceneFrame into CanvasRenderingContext2d calls"
 
 [dependencies]

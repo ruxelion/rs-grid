@@ -1,8 +1,6 @@
 use std::{fmt, rc::Rc};
 
-// Re-export formatting types so existing imports from
-// `rs_grid_core::column` keep working.
-pub use crate::format::{format_cell, CellAlign, CellFormat, FormattedCell};
+use crate::format::CellFormat;
 
 // ── cell validator ──────────────────────────────────────
 

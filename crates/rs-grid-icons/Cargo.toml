@@ -2,6 +2,7 @@
 name = "rs-grid-icons"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Embedded SVG country flags and icons"
 
 [dependencies]

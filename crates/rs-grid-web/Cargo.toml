@@ -2,6 +2,7 @@
 name = "rs-grid-web"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Browser event handling, canvas sizing, and rAF loop for rs-grid"
 
 [dependencies]

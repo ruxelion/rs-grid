@@ -2,6 +2,7 @@
 name = "rs-grid-dioxus"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Dioxus CSR component wrapper for rs-grid"
 
 [dependencies]

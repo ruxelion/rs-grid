@@ -2,6 +2,7 @@
 name = "rs-grid-yew"
 version = "0.1.0"
 edition = "2021"
+publish = false
 description = "Yew CSR component wrapper for rs-grid"
 
 [dependencies]
