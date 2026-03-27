@@ -387,4 +387,73 @@ mod tests {
             Err(CopyError::NoSelection)
         );
     }
+
+    #[test]
+    fn to_tsv_quotes_tab_and_newline() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![{
+            let mut r = RowRecord::new(0);
+            r.set("a", "has\ttab");
+            r
+        }, {
+            let mut r = RowRecord::new(1);
+            r.set("a", "has\nnewline");
+            r
+        }];
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = SelectionState::default();
+        s.select_cell(0, 0);
+        let tsv = s.to_tsv(&model).unwrap();
+        assert_eq!(tsv, "\"has\ttab\"\n");
+        s.select_cell(1, 0);
+        let tsv = s.to_tsv(&model).unwrap();
+        assert_eq!(tsv, "\"has\nnewline\"\n");
+    }
+
+    #[test]
+    fn to_tsv_escapes_double_quotes() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![{
+            let mut r = RowRecord::new(0);
+            r.set("a", "say \"hello\"");
+            r
+        }];
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = SelectionState::default();
+        s.select_cell(0, 0);
+        let tsv = s.to_tsv(&model).unwrap();
+        assert_eq!(tsv, "\"say \"\"hello\"\"\"\n");
+    }
+
+    #[test]
+    fn to_tsv_too_many_rows_error() {
+        use crate::datasource::FnDataSource;
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let ds = FnDataSource::new(
+            MAX_COPY_ROWS + 1,
+            |row, _col| Some(format!("r{row}")),
+        );
+        let model = GridModel::with_data_source(
+            cols,
+            Box::new(ds),
+            30.0,
+            40.0,
+        );
+        let mut s = SelectionState::default();
+        s.select_cell(0, 0);
+        s.extend_to(MAX_COPY_ROWS, 0);
+        assert_eq!(
+            s.to_tsv(&model),
+            Err(CopyError::TooManyRows {
+                actual: MAX_COPY_ROWS + 1,
+                max: MAX_COPY_ROWS,
+            })
+        );
+    }
+
+    #[test]
+    fn parse_tsv_quoted_newline() {
+        let r = parse_tsv("\"line1\nline2\"\tother\n");
+        assert_eq!(r, vec![vec!["line1\nline2", "other"]]);
+    }
 }

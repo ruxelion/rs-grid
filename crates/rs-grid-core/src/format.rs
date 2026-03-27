@@ -632,4 +632,38 @@ mod tests {
             } if border_radius == 8.0 && padding == 3.0
         ));
     }
+
+    #[test]
+    fn format_number_zero() {
+        let fmt = CellFormat::Number {
+            decimal_places: 2,
+            thousands_sep: Some(' '),
+            decimal_sep: '.',
+        };
+        let fc = format_cell("0", &fmt);
+        assert_eq!(fc.text, "0.00");
+    }
+
+    #[test]
+    fn format_number_very_large() {
+        let fmt = CellFormat::Number {
+            decimal_places: 2,
+            thousands_sep: Some(' '),
+            decimal_sep: '.',
+        };
+        let fc = format_cell("1234567.89", &fmt);
+        assert_eq!(fc.text, "1 234 567.89");
+    }
+
+    #[test]
+    fn format_currency_non_numeric_fallback() {
+        let fmt = CellFormat::Currency {
+            symbol: "$".into(),
+            decimal_places: 2,
+            thousands_sep: None,
+            symbol_after: false,
+        };
+        let fc = format_cell("N/A", &fmt);
+        assert_eq!(fc.text, "N/A");
+    }
 }
