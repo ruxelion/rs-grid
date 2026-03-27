@@ -791,4 +791,294 @@ mod tests {
         });
         assert!(s.search.matches.is_empty());
     }
+
+    // ── CutSelection ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn cut_selection_returns_tsv_and_clears_cells() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord {
+            row: 0,
+            col: 1,
+        }));
+        let out = s.apply(GridCommand::CutSelection);
+        assert!(matches!(out, CommandOutput::CopyText(_)));
+        // Cells should be cleared.
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some(String::new()),
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b"),
+            Some(String::new()),
+        );
+    }
+
+    #[test]
+    fn cut_selection_is_undoable() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::CutSelection);
+        assert_eq!(s.model.get_cell(0, "a"), Some(String::new()));
+        s.apply(GridCommand::Undo);
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("a0".to_string()),
+        );
+    }
+
+    // ── ToggleSort ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn toggle_sort_cycles_none_asc_desc_none() {
+        use crate::sort::{SortDir, SortState};
+        let mut s = make_state();
+        // None → Asc
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert_eq!(
+            s.sort,
+            Some(SortState {
+                col_key: "a".into(),
+                dir: SortDir::Asc,
+            }),
+        );
+        // Asc → Desc
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert_eq!(s.sort.as_ref().unwrap().dir, SortDir::Desc);
+        // Desc → None
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert!(s.sort.is_none());
+    }
+
+    #[test]
+    fn toggle_sort_resets_scroll_y() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = GridState::new(model, 200.0, 200.0);
+        s.apply(GridCommand::ScrollTo { x: 0.0, y: 500.0 });
+        assert!(s.viewport.scroll_y > 0.0);
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert_eq!(s.viewport.scroll_y, 0.0);
+    }
+
+    // ── SetSort ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn set_sort_explicit_direction() {
+        use crate::sort::{SortDir, SortState};
+        let mut s = make_state();
+        s.apply(GridCommand::SetSort {
+            col_key: "b".into(),
+            dir: SortDir::Desc,
+        });
+        assert_eq!(
+            s.sort,
+            Some(SortState {
+                col_key: "b".into(),
+                dir: SortDir::Desc,
+            }),
+        );
+    }
+
+    // ── ResizeColumn ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn resize_column_updates_width() {
+        let mut s = make_state();
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 200.0,
+        });
+        assert_eq!(s.model.columns[0].width, 200.0);
+    }
+
+    #[test]
+    fn resize_column_clamps_to_min_width() {
+        let mut s = make_state();
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 5.0,
+        });
+        assert_eq!(s.model.columns[0].width, 20.0);
+    }
+
+    #[test]
+    fn resize_column_out_of_bounds_noop() {
+        let mut s = make_state();
+        let w = s.model.columns[0].width;
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 99,
+            new_width: 200.0,
+        });
+        assert_eq!(s.model.columns[0].width, w);
+    }
+
+    // ── ExtendRowSelection / ExtendColSelection ──────────────────────────────
+
+    #[test]
+    fn extend_row_selection_spans_all_columns() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectRow(2));
+        s.apply(GridCommand::ExtendRowSelection(5));
+        let (tl, br) = s.selection.range().unwrap();
+        assert_eq!(tl.row, 2);
+        assert_eq!(br.row, 5);
+        assert_eq!(tl.col, 0);
+        assert_eq!(br.col, 2); // 3 columns
+    }
+
+    #[test]
+    fn extend_col_selection_spans_all_rows() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCol(0));
+        s.apply(GridCommand::ExtendColSelection(2));
+        let (tl, br) = s.selection.range().unwrap();
+        assert_eq!(tl.row, 0);
+        assert_eq!(br.row, 9); // 10 rows
+        assert_eq!(tl.col, 0);
+        assert_eq!(br.col, 2);
+    }
+
+    // ── Meta commands ────────────────────────────────────────────────────────
+
+    #[test]
+    fn set_hovered_row() {
+        let mut s = make_state();
+        assert!(s.hovered_row.is_none());
+        s.apply(GridCommand::SetHoveredRow(Some(5)));
+        assert_eq!(s.hovered_row, Some(5));
+        s.apply(GridCommand::SetHoveredRow(None));
+        assert!(s.hovered_row.is_none());
+    }
+
+    #[test]
+    fn set_header_height_positive() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetHeaderHeight(60.0));
+        assert_eq!(s.model.header_height, 60.0);
+    }
+
+    #[test]
+    fn set_header_height_zero_ignored() {
+        let mut s = make_state();
+        let old = s.model.header_height;
+        s.apply(GridCommand::SetHeaderHeight(0.0));
+        assert_eq!(s.model.header_height, old);
+    }
+
+    #[test]
+    fn set_row_height_positive() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowHeight(50.0));
+        assert_eq!(s.model.row_height, 50.0);
+    }
+
+    #[test]
+    fn set_row_height_negative_ignored() {
+        let mut s = make_state();
+        let old = s.model.row_height;
+        s.apply(GridCommand::SetRowHeight(-10.0));
+        assert_eq!(s.model.row_height, old);
+    }
+
+    // ── Edit guard edge cases ────────────────────────────────────────────────
+
+    #[test]
+    fn commit_edit_without_start_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "new".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("a0".to_string()),
+        );
+    }
+
+    #[test]
+    fn cancel_edit_without_start_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::CancelEdit);
+        assert!(s.edit.is_none());
+    }
+
+    // ── MoveColumn same index ────────────────────────────────────────────────
+
+    #[test]
+    fn move_column_same_index_noop() {
+        let mut s = make_state();
+        let keys: Vec<_> = s
+            .model
+            .columns
+            .iter()
+            .map(|c| c.key.clone())
+            .collect();
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 1,
+            to_idx: 1,
+        });
+        let after: Vec<_> = s
+            .model
+            .columns
+            .iter()
+            .map(|c| c.key.clone())
+            .collect();
+        assert_eq!(keys, after);
+    }
+
+    // ── Paste empty text ─────────────────────────────────────────────────────
+
+    #[test]
+    fn paste_empty_text_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::PasteAt {
+            text: String::new(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("a0".to_string()),
+        );
+    }
+
+    // ── MoveSelection no selection ───────────────────────────────────────────
+
+    #[test]
+    fn move_selection_no_selection_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 1,
+            delta_col: 0,
+            extend: false,
+        });
+        assert!(!s.selection.has_selection());
+    }
+
+    // ── SearchNext/Prev on empty matches ─────────────────────────────────────
+
+    #[test]
+    fn search_next_empty_matches_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SearchNext);
+        assert_eq!(s.search.current, 0);
+    }
+
+    #[test]
+    fn search_prev_empty_matches_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SearchPrev);
+        assert_eq!(s.search.current, 0);
+    }
 }
