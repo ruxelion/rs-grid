@@ -67,3 +67,80 @@ impl UndoHistory {
         self.undo_stack.push(entry);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy() -> UndoEntry {
+        UndoEntry::SetCell {
+            row: 0,
+            col_key: "a".into(),
+            old_value: None,
+        }
+    }
+
+    fn numbered(n: u64) -> UndoEntry {
+        UndoEntry::SetCell {
+            row: n,
+            col_key: "a".into(),
+            old_value: None,
+        }
+    }
+
+    #[test]
+    fn push_clears_redo_stack() {
+        let mut h = UndoHistory::default();
+        h.push_redo(dummy());
+        assert_eq!(h.redo_stack.len(), 1);
+        h.push(dummy());
+        assert!(h.redo_stack.is_empty());
+    }
+
+    #[test]
+    fn push_fifo_eviction_at_capacity() {
+        let mut h = UndoHistory::default();
+        for i in 0..=MAX_UNDO as u64 {
+            h.push(numbered(i));
+        }
+        assert_eq!(h.undo_stack.len(), MAX_UNDO);
+        // First entry (row=0) was evicted; oldest is row=1.
+        match &h.undo_stack[0] {
+            UndoEntry::SetCell { row, .. } => assert_eq!(*row, 1),
+            _ => panic!("expected SetCell"),
+        }
+    }
+
+    #[test]
+    fn push_undo_keep_redo_preserves_redo() {
+        let mut h = UndoHistory::default();
+        h.push_redo(dummy());
+        h.push_undo_keep_redo(dummy());
+        assert_eq!(h.redo_stack.len(), 1);
+    }
+
+    #[test]
+    fn push_undo_keep_redo_also_evicts() {
+        let mut h = UndoHistory::default();
+        for i in 0..=MAX_UNDO as u64 {
+            h.push_undo_keep_redo(numbered(i));
+        }
+        assert_eq!(h.undo_stack.len(), MAX_UNDO);
+        match &h.undo_stack[0] {
+            UndoEntry::SetCell { row, .. } => assert_eq!(*row, 1),
+            _ => panic!("expected SetCell"),
+        }
+    }
+
+    #[test]
+    fn pop_undo_empty_returns_none() {
+        let mut h = UndoHistory::default();
+        assert!(h.pop_undo().is_none());
+    }
+
+    #[test]
+    fn pop_redo_empty_returns_none() {
+        let mut h = UndoHistory::default();
+        assert!(h.pop_redo().is_none());
+    }
+}

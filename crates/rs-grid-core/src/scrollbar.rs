@@ -405,4 +405,47 @@ mod tests {
         let delta = g.drag_to_scroll(10.0, 2000.0, 800.0, 50.0, 16.0);
         assert!(delta > 0.0);
     }
+
+    #[test]
+    fn vscroll_track_click_scroll() {
+        let g = make_vscroll(0.0);
+        // Click at top of track → scroll ≈ 0
+        let s0 = g.track_click_scroll(g.track_y, 3000.0, 600.0, 40.0);
+        assert!(s0 < 50.0, "click at track top → near zero scroll");
+        // Click at bottom of track → scroll near max
+        let max_scroll = 3000.0 - (600.0 - 40.0);
+        let s1 = g.track_click_scroll(
+            g.track_y + g.track_h,
+            3000.0,
+            600.0,
+            40.0,
+        );
+        assert!(
+            (s1 - max_scroll).abs() < 50.0,
+            "click at track bottom → near max scroll"
+        );
+    }
+
+    #[test]
+    fn hscroll_hit_right_arrow() {
+        let g = make_hscroll(0.0);
+        let mid_y = g.track_y + g.track_h / 2.0;
+        assert!(g.hit_right_arrow(g.right_btn_x + 5.0, mid_y));
+        assert!(!g.hit_right_arrow(100.0, mid_y)); // wrong x
+    }
+
+    #[test]
+    fn min_thumb_size_enforced() {
+        // Very large content → thumb should still be >= MIN_THUMB_H
+        let g = ScrollbarGeom::compute(
+            0.0, 800.0, 600.0, 40.0, 100_000.0, 16.0,
+        )
+        .unwrap();
+        assert!(
+            g.thumb_h >= MIN_THUMB_H,
+            "thumb_h={} < MIN_THUMB_H={}",
+            g.thumb_h,
+            MIN_THUMB_H,
+        );
+    }
 }
