@@ -220,4 +220,51 @@ mod tests {
         let (first, _) = vp.visible_columns(&offsets, &widths);
         assert_eq!(first, 1);
     }
+
+    // ── visible_scrollable_columns ───────────────────────────────────────────
+
+    #[test]
+    fn scrollable_columns_no_pinned() {
+        let vp = ViewportState::new(800.0, 600.0);
+        let (offsets, widths) = make_offsets();
+        let (first, last) =
+            vp.visible_scrollable_columns(&offsets, &widths, 0, 0.0, 40.0);
+        assert_eq!(first, 0);
+        assert_eq!(last, 3);
+    }
+
+    #[test]
+    fn scrollable_columns_with_pinned() {
+        // 5 columns of 100px each = 500px total.
+        let cols: Vec<ColumnDef> = (0..5)
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .collect();
+        let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
+        let offsets = ColumnOffsets::compute(&cols);
+        // viewport=350, gutter=40, pinned=1 col (100px).
+        // avail = 350 - 40 - 100 = 210, shows c1..c3
+        let vp = ViewportState::new(350.0, 600.0);
+        let (first, last) =
+            vp.visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0);
+        assert!(first >= 1, "pinned col excluded, first={first}");
+        assert!(last <= 5);
+    }
+
+    #[test]
+    fn scrollable_columns_pinned_fills_viewport() {
+        // pinned_width > viewport → avail = 0, no scrollable columns
+        let cols = vec![
+            ColumnDef::new("a", "A", 200.0),
+            ColumnDef::new("b", "B", 200.0),
+            ColumnDef::new("c", "C", 100.0),
+        ];
+        let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
+        let offsets = ColumnOffsets::compute(&cols);
+        // viewport=300, gutter=40, pinned=2 cols (400px).
+        // avail = (300 - 40 - 400).max(0) = 0
+        let vp = ViewportState::new(300.0, 600.0);
+        let (first, last) =
+            vp.visible_scrollable_columns(&offsets, &widths, 2, 400.0, 40.0);
+        assert_eq!(first, last, "no room for scrollable columns");
+    }
 }
