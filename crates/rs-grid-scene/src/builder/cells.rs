@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
-    column::{format_cell, CellAlign, CellFormat, ColumnDef},
+    column::ColumnDef,
     datasource::CellStatus,
+    format::{format_cell, CellAlign, CellFormat},
     selection::SelectionState,
 };
 
