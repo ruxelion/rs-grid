@@ -271,6 +271,7 @@ fn App() -> impl IntoView {
                         >
                             <option value="" selected=true>"Light"</option>
                             <option value="dark">"Dark"</option>
+                            <option value="dimmed">"Dimmed"</option>
                             <option value="material">"Material 3"</option>
                             <option value="material-dark">"Material 3 Dark"</option>
                         </select>

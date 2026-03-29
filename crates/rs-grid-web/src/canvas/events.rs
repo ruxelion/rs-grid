@@ -624,9 +624,15 @@ impl GridCanvas {
                 }
                 None => {
                     drop(drag);
-                    // Skip hover while an edit overlay is open
-                    // (e.g. the custom dropdown).
+                    // Skip hover while an edit overlay or the
+                    // context menu is open.
                     if gc.0.edit_input.borrow().is_some() {
+                        return;
+                    }
+                    if super::dom_helpers::document()
+                        .get_element_by_id("rs-grid-ctx-menu")
+                        .is_some()
+                    {
                         return;
                     }
                     let (x, y) = gc.canvas_xy(&evt);
