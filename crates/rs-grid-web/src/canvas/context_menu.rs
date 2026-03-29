@@ -112,11 +112,11 @@ fn read_ctx_colors() -> CtxColors {
         text_disabled: v("--rs-grid-ctx-text-disabled", "#9ca3af"),
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
-        radius: v("--rs-grid-ctx-radius", "6px"),
+        radius: v("--rs-grid-ctx-radius", "8px"),
         font_size: v("--rs-grid-ctx-font-size", "13px"),
-        min_width: v("--rs-grid-ctx-min-width", "160px"),
+        min_width: v("--rs-grid-ctx-min-width", "180px"),
         shortcut_font_size: v("--rs-grid-ctx-shortcut-font-size", "11px"),
-        item_gap: v("--rs-grid-ctx-item-gap", "8px"),
+        item_gap: v("--rs-grid-ctx-item-gap", "10px"),
     }
 }
 
@@ -128,7 +128,7 @@ fn make_menu_separator(
 ) -> HtmlElement {
     let sep = make_el(doc, "div");
     let border = format!("1px solid {}", colors.separator);
-    set_styles(&sep, &[("border-top", &border), ("margin", "4px 0")]);
+    set_styles(&sep, &[("border-top", &border), ("margin", "6px 0")]);
     sep
 }
 
@@ -148,7 +148,7 @@ fn make_menu_item(
             ("display", "flex"),
             ("align-items", "center"),
             ("gap", &colors.item_gap),
-            ("padding", "6px 12px"),
+            ("padding", "8px 16px"),
         ],
     );
     let icon_el = make_el(doc, "span");
@@ -348,7 +348,7 @@ fn create_menu_shell(
             ("border", &border_val),
             ("border-radius", &colors.radius),
             ("box-shadow", &colors.shadow),
-            ("padding", "4px 0"),
+            ("padding", "6px 0"),
             ("font", &font_val),
             ("min-width", &colors.min_width),
             ("user-select", "none"),
@@ -369,6 +369,8 @@ impl GridCanvas {
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             evt.prevent_default();
             let _ = gc.0.canvas.focus();
+            // Clear row hover while the context menu is open.
+            gc.dispatch(GridCommand::SetHoveredRow(None));
 
             let (cx, cy) = gc.canvas_xy(&evt);
 
@@ -383,17 +385,14 @@ impl GridCanvas {
                 return;
             }
 
-            // Select cell under right-click if needed.
-            let has_sel = gc.0.state.borrow().selection.has_selection();
-            if !has_sel {
-                let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
-                if let Some(row) = row {
-                    gc.dispatch(GridCommand::SelectRow(row));
-                } else {
-                    let coord = gc.0.state.borrow().hit_test(cx, cy);
-                    if let Some(coord) = coord {
-                        gc.dispatch(GridCommand::SelectCell(coord));
-                    }
+            // Always select the cell/row under the right-click.
+            let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
+            if let Some(row) = row {
+                gc.dispatch(GridCommand::SelectRow(row));
+            } else {
+                let coord = gc.0.state.borrow().hit_test(cx, cy);
+                if let Some(coord) = coord {
+                    gc.dispatch(GridCommand::SelectCell(coord));
                 }
             }
 

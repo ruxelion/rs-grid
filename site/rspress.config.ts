@@ -44,6 +44,7 @@ const sidebarEN = [
       { text: 'VecDataSource', link: '/data/vec-datasource' },
       { text: 'FnDataSource', link: '/data/fn-datasource' },
       { text: 'PageCache', link: '/data/page-cache' },
+      { text: 'Extracting Data', link: '/data/extracting-data' },
     ],
   },
   {
@@ -138,6 +139,7 @@ const sidebarFR = [
       { text: 'VecDataSource', link: '/fr/data/vec-datasource' },
       { text: 'FnDataSource', link: '/fr/data/fn-datasource' },
       { text: 'PageCache', link: '/fr/data/page-cache' },
+      { text: 'Extraction des données', link: '/fr/data/extracting-data' },
     ],
   },
   {
