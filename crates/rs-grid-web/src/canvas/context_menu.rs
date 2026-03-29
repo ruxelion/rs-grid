@@ -11,29 +11,29 @@ use crate::locale::Locale;
 // ── context-menu icons (Feather Icons) ──────────────────
 
 const ICON_SORT_ASC: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<line x1="12" y1="19" x2="12" y2="5"/>"#,
     r#"<polyline points="5 12 12 5 19 12"/></svg>"#
 );
 const ICON_SORT_DESC: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<line x1="12" y1="5" x2="12" y2="19"/>"#,
     r#"<polyline points="19 12 12 19 5 12"/></svg>"#
 );
 const ICON_CLEAR_SORT: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<line x1="18" y1="6" x2="6" y2="18"/>"#,
     r#"<line x1="6" y1="6" x2="18" y2="18"/></svg>"#
 );
 const ICON_AUTOSIZE: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<polyline points="15 3 21 3 21 9"/>"#,
     r#"<polyline points="9 21 3 21 3 15"/>"#,
@@ -41,16 +41,16 @@ const ICON_AUTOSIZE: &str = concat!(
     r#"<line x1="3" y1="21" x2="10" y2="14"/></svg>"#
 );
 const ICON_PIN: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<path d="M12 17v5"/>"#,
     r#"<path d="M9 11V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7"/>"#,
     r#"<path d="M5 17h14l-1.5-6H6.5L5 17z"/></svg>"#
 );
 const ICON_CUT: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>"#,
     r#"<line x1="20" y1="4" x2="8.12" y2="15.88"/>"#,
@@ -58,16 +58,16 @@ const ICON_CUT: &str = concat!(
     r#"<line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>"#
 );
 const ICON_COPY: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>"#,
     r#"<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>"#,
     r#"</svg>"#
 );
 const ICON_PASTE: &str = concat!(
-    r#"<svg width="14" height="14" viewBox="0 0 24 24" fill="none" "#,
-    r#"stroke="currentColor" stroke-width="2" "#,
+    r#"<svg width="16" height="16" viewBox="0 0 24 24" fill="none" "#,
+    r#"stroke="currentColor" stroke-width="2.5" "#,
     r#"stroke-linecap="round" stroke-linejoin="round">"#,
     r#"<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6"#,
     r#" a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>"#,
@@ -113,7 +113,7 @@ fn read_ctx_colors() -> CtxColors {
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
         radius: v("--rs-grid-ctx-radius", "8px"),
-        font_size: v("--rs-grid-ctx-font-size", "13px"),
+        font_size: v("--rs-grid-ctx-font-size", "14px"),
         min_width: v("--rs-grid-ctx-min-width", "180px"),
         shortcut_font_size: v("--rs-grid-ctx-shortcut-font-size", "11px"),
         item_gap: v("--rs-grid-ctx-item-gap", "10px"),
@@ -155,18 +155,18 @@ fn make_menu_item(
     set_styles(
         &icon_el,
         &[
-            ("width", "16px"),
-            ("height", "16px"),
+            ("width", "18px"),
+            ("height", "18px"),
             ("display", "flex"),
             ("align-items", "center"),
             ("justify-content", "center"),
             ("flex-shrink", "0"),
-            ("opacity", "0.6"),
+            ("opacity", "0.75"),
         ],
     );
     icon_el.set_inner_html(icon);
     let label_el = make_el(doc, "span");
-    set_styles(&label_el, &[("flex", "1")]);
+    set_styles(&label_el, &[("flex", "1"), ("font-weight", "600")]);
     label_el.set_text_content(Some(label));
     let sc_el = make_el(doc, "span");
     set_styles(
