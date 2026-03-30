@@ -162,41 +162,41 @@ pub struct Theme {
 }
 
 impl Theme {
-    /// Light theme — AG Grid-inspired palette.
+    /// Light theme — matches rs-grid-theme.css `:root` block.
     pub fn light() -> Self {
         Self {
             // palette
             bg: Color::rgb(255, 255, 255),
-            header_bg: Color::rgb(250, 250, 250),
+            header_bg: Color::rgb(249, 249, 249),
             header_text: Color::rgb(0, 0, 0),
             cell_text: Color::rgb(0, 0, 0),
-            grid_line: Color::rgb(255, 255, 255),
-            header_border: Color::rgb(220, 220, 220),
+            grid_line: Color::rgb(224, 224, 224),
+            header_border: Color::rgb(224, 224, 224),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
-            selection_fill: Color::rgba(31, 119, 220, 46),
-            selection_border: Color::rgba(31, 119, 220, 210),
-            header_selection_fill: Color::rgba(31, 119, 220, 46),
-            gutter_selection_fill: Color::rgba(31, 119, 220, 46),
+            selection_fill: Color::rgba(50, 190, 250, 51),
+            selection_border: Color::rgba(50, 190, 250, 204),
+            header_selection_fill: Color::rgba(0, 0, 0, 18),
+            gutter_selection_fill: Color::rgba(0, 0, 0, 18),
             scrollbar_track: Color::rgb(241, 241, 241),
-            scrollbar_thumb: Color::rgba(100, 100, 110, 160),
-            row_alt_bg: Color::rgb(245, 245, 245),
-            row_hover_bg: Color::rgba(0, 0, 0, 10),
+            scrollbar_thumb: Color::rgba(100, 100, 110, 166),
+            row_alt_bg: Color::rgb(255, 255, 255),
+            row_hover_bg: Color::rgba(50, 190, 250, 20),
             // row / header dimensions
             header_height: 50.0,
             row_height: 40.0,
             // typography
-            font_size: 13.0,
-            header_font_size: 13.0,
+            font_size: 14.0,
+            header_font_size: 14.0,
             header_font_bold: true,
             // flash
-            flash_fill: Color::rgba(255, 193, 7, 180),
-            flash_border: Color::rgba(255, 193, 7, 210),
+            flash_fill: Color::rgba(255, 220, 0, 255),
+            flash_border: Color::rgba(255, 220, 0, 255),
             // search
-            search_highlight: Color::rgba(255, 213, 0, 80),
+            search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
             // skeleton
-            skeleton_fg: Color::rgba(200, 200, 200, 100),
+            skeleton_fg: Color::rgba(200, 200, 200, 77),
             // spacing
             cell_padding: 10.0,
             // scrollbar
@@ -204,13 +204,13 @@ impl Theme {
             scrollbar_radius: 4.0,
             scrollbar_inset: 2.0,
             // column drag
-            drag_overlay: Color::rgba(128, 128, 128, 0),
-            drag_ghost_bg: Color::rgba(248, 249, 250, 180),
-            drag_ghost_text: Color::rgba(24, 29, 31, 200),
-            drag_insert_line_width: 3.0,
+            drag_overlay: Color::rgba(0, 0, 0, 8),
+            drag_ghost_bg: Color::rgb(249, 249, 249),
+            drag_ghost_text: Color::rgb(0, 0, 0),
+            drag_insert_line_width: 1.0,
             drag_ghost_radius: 4.0,
             drag_ghost_border_width: 1.0,
-            drag_anim_alpha: 0.3,
+            drag_anim_alpha: 0.5,
             // sort indicator
             sort_arrow_width: 4.0,
             sort_arrow_height: 3.5,
@@ -224,13 +224,13 @@ impl Theme {
             header_menu_icon_dot_r: 1.2,
             // pinned columns
             pinned_bg: Color::rgb(255, 255, 255),
-            pinned_header_bg: Color::rgb(250, 250, 250),
-            pinned_separator_color: Color::rgb(220, 220, 220),
+            pinned_header_bg: Color::rgb(249, 249, 249),
+            pinned_separator_color: Color::rgb(224, 224, 224),
             pinned_separator_width: 1.0,
             // row-number gutter
-            gutter_bg: Color::rgb(250, 250, 250),
+            gutter_bg: Color::rgb(249, 249, 249),
             gutter_text: Color::rgba(0, 0, 0, 255),
-            gutter_font_size: 13.0,
+            gutter_font_size: 14.0,
             gutter_font_bold: true,
             gutter_border: Color::rgb(220, 220, 220),
         }

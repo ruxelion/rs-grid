@@ -1441,10 +1441,13 @@ mod tests {
         };
         let frame = b.build(&state, Some(&drag), None, None);
 
-        // Ghost badge rect (drag_ghost_bg fill).
+        // Ghost badge rect (drag_ghost_bg fill + rounded corners).
         let ghost_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
-            .filter(|r| r.fill == t.drag_ghost_bg)
+            .filter(|r| {
+                r.fill == t.drag_ghost_bg
+                    && r.corner_radius > 0.0
+            })
             .collect();
         assert_eq!(
             ghost_rects.len(),
