@@ -391,7 +391,7 @@ impl GridCanvas {
                     start_width,
                     start_flex,
                 });
-                gc.set_cursor("col-resize");
+                gc.set_cursor("w-resize");
                 return;
             }
 
@@ -639,8 +639,10 @@ impl GridCanvas {
                         return;
                     }
                     let (x, y) = gc.canvas_xy(&evt);
-                    if gc.hit_col_resize_separator(x, y).is_some() {
-                        gc.set_cursor("col-resize");
+                    if gc.hit_header_menu_icon(x, y).is_some() {
+                        gc.set_cursor("pointer");
+                    } else if gc.hit_col_resize_separator(x, y).is_some() {
+                        gc.set_cursor("w-resize");
                     } else {
                         gc.set_cursor("default");
                     }
