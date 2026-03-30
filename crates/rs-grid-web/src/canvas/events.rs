@@ -75,6 +75,9 @@ impl GridCanvas {
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: WheelEvent| {
             evt.prevent_default();
 
+            // Close any active cell editor on scroll.
+            gc.cancel_and_close_edit();
+
             // Convert delta to logical pixels regardless of unit.
             let (dx, dy) = {
                 let state = gc.0.state.borrow();
