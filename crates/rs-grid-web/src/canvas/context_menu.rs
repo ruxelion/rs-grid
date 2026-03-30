@@ -377,6 +377,20 @@ fn create_menu_shell(
     body.append_child(&backdrop).expect("append backdrop");
     body.append_child(&menu).expect("append menu");
 
+    // Clamp position so the menu stays within the canvas bounds.
+    let rect = canvas.get_bounding_client_rect();
+    let mw = menu.offset_width();
+    let mh = menu.offset_height();
+    let max_x = (rect.right() as i32 - mw).max(rect.left() as i32);
+    let max_y =
+        (rect.bottom() as i32 - mh).max(rect.top() as i32);
+    let cx = x.min(max_x).max(rect.left() as i32);
+    let cy = y.min(max_y).max(rect.top() as i32);
+    let _ =
+        menu.style().set_property("left", &format!("{}px", cx));
+    let _ =
+        menu.style().set_property("top", &format!("{}px", cy));
+
     (backdrop, menu)
 }
 
