@@ -2,6 +2,7 @@
 # Usage: just <recipe>
 
 set shell := ["cmd.exe", "/C"]
+set dotenv-load
 
 tls_cert := ".certs\\localhost+2.pem"
 tls_key  := ".certs\\localhost+2-key.pem"
@@ -126,6 +127,22 @@ e2e:
 e2e-update-snapshots:
     just _build-leptos
     cd e2e && npm run update-snapshots
+
+# ── MCP (Model Context Protocol) ────────────────────────
+
+# Build le serveur MCP (TypeScript → dist/ + copie des docs)
+mcp-build: build-site
+    cd mcp && npm install
+    cd mcp && npm run build
+
+# Lancer le serveur MCP en mode développement (tsx, sans build)
+mcp-dev:
+    cd mcp && npm run dev
+
+# Publier le serveur MCP sur npm (NPM_TOKEN requis)
+# Usage: NPM_TOKEN=xxx just mcp-publish
+mcp-publish: mcp-build
+    cd mcp && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
 
 # ── Site (RSPress) ───────────────────────────────────────
 

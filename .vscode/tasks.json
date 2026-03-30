@@ -127,6 +127,29 @@
       "group": "build",
       "problemMatcher": [],
       "detail": "Build site RSPress (avec démo WASM)"
+    },
+    {
+      "label": "just: mcp-build",
+      "type": "shell",
+      "command": "just mcp-build",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Build site + MCP (TypeScript → dist/ + copie docs)"
+    },
+    {
+      "label": "just: mcp-dev",
+      "type": "shell",
+      "command": "just mcp-dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Serveur MCP en mode développement (tsx)"
+    },
+    {
+      "label": "just: mcp-publish",
+      "type": "shell",
+      "command": "just mcp-publish",
+      "problemMatcher": [],
+      "detail": "Publier rs-grid-mcp sur npm (nécessite npm login)"
     }
   ],
   "inputs": [
