@@ -578,6 +578,8 @@ mod tests {
             key: "country".into(),
             label: "Country".into(),
             width: 100.0,
+            min_width: None,
+            max_width: None,
             format: Some(CellFormat::ImageText {
                 base_url: String::new(),
                 suffix: String::new(),
@@ -915,6 +917,31 @@ mod tests {
             new_width: 200.0,
         });
         assert_eq!(s.model.columns[0].width, w);
+    }
+
+    #[test]
+    fn resize_column_respects_min_max_width() {
+        let mut s = make_state();
+        s.model.columns[0].min_width = Some(60.0);
+        s.model.columns[0].max_width = Some(300.0);
+        // Below min
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 30.0,
+        });
+        assert_eq!(s.model.columns[0].width, 60.0);
+        // Above max
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 500.0,
+        });
+        assert_eq!(s.model.columns[0].width, 300.0);
+        // Within range
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 150.0,
+        });
+        assert_eq!(s.model.columns[0].width, 150.0);
     }
 
     // ── ExtendRowSelection / ExtendColSelection ──────────────────────────────

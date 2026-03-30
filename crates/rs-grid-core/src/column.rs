@@ -77,6 +77,14 @@ pub enum CellEditor {
 
 // ── column definition ───────────────────────────────────
 
+/// Default column width used by [`ColumnDef::simple`].
+pub const DEFAULT_COL_WIDTH: f64 = 150.0;
+
+/// Absolute minimum column width in logical pixels.
+///
+/// Applied as a floor even when [`ColumnDef::min_width`] is `None`.
+pub const MIN_COL_WIDTH: f64 = 20.0;
+
 /// Definition of a single grid column.
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
@@ -86,6 +94,13 @@ pub struct ColumnDef {
     pub label: String,
     /// Width in logical (CSS) pixels.
     pub width: f64,
+    /// Optional minimum width in logical pixels.
+    /// Enforced during resize and auto-fit.
+    /// Falls back to [`MIN_COL_WIDTH`] when `None`.
+    pub min_width: Option<f64>,
+    /// Optional maximum width in logical pixels.
+    /// Enforced during resize and auto-fit.
+    pub max_width: Option<f64>,
     /// Optional display format for cell values.
     pub format: Option<CellFormat>,
     /// Optional editor override for inline editing.
@@ -107,9 +122,34 @@ impl ColumnDef {
             key: key.into(),
             label: label.into(),
             width,
+            min_width: None,
+            max_width: None,
             format: None,
             editor: None,
             validator: None,
+        }
+    }
+
+    /// Create a column with the default width
+    /// ([`DEFAULT_COL_WIDTH`] = 150 px).
+    pub fn simple(
+        key: impl Into<String>,
+        label: impl Into<String>,
+    ) -> Self {
+        Self::new(key, label, DEFAULT_COL_WIDTH)
+    }
+
+    /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
+    /// range, with [`MIN_COL_WIDTH`] as the absolute floor.
+    pub fn clamp_width(&self, w: f64) -> f64 {
+        let floor = self
+            .min_width
+            .unwrap_or(MIN_COL_WIDTH)
+            .max(MIN_COL_WIDTH);
+        let w = w.max(floor);
+        match self.max_width {
+            Some(max) => w.min(max.max(floor)),
+            None => w,
         }
     }
 }
@@ -219,5 +259,69 @@ mod tests {
     fn columndef_format_default_none() {
         let col = ColumnDef::new("a", "A", 100.0);
         assert!(col.format.is_none());
+    }
+
+    // ── simple constructor ────────────────────────────
+
+    #[test]
+    fn simple_uses_default_width() {
+        let col = ColumnDef::simple("a", "A");
+        assert_eq!(col.width, DEFAULT_COL_WIDTH);
+        assert!(col.min_width.is_none());
+        assert!(col.max_width.is_none());
+    }
+
+    // ── clamp_width ───────────────────────────────────
+
+    #[test]
+    fn clamp_width_no_constraints() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert_eq!(col.clamp_width(200.0), 200.0);
+        // Absolute floor at MIN_COL_WIDTH
+        assert_eq!(col.clamp_width(5.0), MIN_COL_WIDTH);
+    }
+
+    #[test]
+    fn clamp_width_with_min() {
+        let mut col = ColumnDef::new("a", "A", 100.0);
+        col.min_width = Some(50.0);
+        assert_eq!(col.clamp_width(30.0), 50.0);
+        assert_eq!(col.clamp_width(80.0), 80.0);
+    }
+
+    #[test]
+    fn clamp_width_with_max() {
+        let mut col = ColumnDef::new("a", "A", 100.0);
+        col.max_width = Some(200.0);
+        assert_eq!(col.clamp_width(300.0), 200.0);
+        assert_eq!(col.clamp_width(150.0), 150.0);
+    }
+
+    #[test]
+    fn clamp_width_min_and_max() {
+        let mut col = ColumnDef::new("a", "A", 100.0);
+        col.min_width = Some(60.0);
+        col.max_width = Some(200.0);
+        assert_eq!(col.clamp_width(30.0), 60.0);
+        assert_eq!(col.clamp_width(150.0), 150.0);
+        assert_eq!(col.clamp_width(300.0), 200.0);
+    }
+
+    #[test]
+    fn clamp_width_min_below_absolute_floor() {
+        // min_width < MIN_COL_WIDTH → absolute floor wins
+        let mut col = ColumnDef::new("a", "A", 100.0);
+        col.min_width = Some(5.0);
+        assert_eq!(col.clamp_width(10.0), MIN_COL_WIDTH);
+    }
+
+    #[test]
+    fn clamp_width_max_below_min() {
+        // max_width < min_width → min wins (max is raised)
+        let mut col = ColumnDef::new("a", "A", 100.0);
+        col.min_width = Some(100.0);
+        col.max_width = Some(50.0);
+        assert_eq!(col.clamp_width(30.0), 100.0);
+        assert_eq!(col.clamp_width(200.0), 100.0);
     }
 }
