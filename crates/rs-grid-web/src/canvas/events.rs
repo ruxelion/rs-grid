@@ -161,19 +161,13 @@ impl GridCanvas {
             let (x, y) = gc.canvas_xy(&evt);
             // Double-click on column separator → auto-fit width
             if let Some(col_idx) = gc.hit_col_resize_separator(x, y) {
-                let theme = &gc.0.builder.borrow().theme;
-                let char_width = theme.font_size * 0.6;
-                let header_char_width = if theme.header_font_bold {
-                    theme.header_font_size * 0.65
-                } else {
-                    theme.header_font_size * 0.6
-                };
-                let cell_padding = theme.cell_padding;
+                let (cw, hcw, cp, hrr) = gc.autofit_params();
                 gc.dispatch(GridCommand::AutoFitColumn {
                     col_idx,
-                    char_width,
-                    header_char_width,
-                    cell_padding,
+                    char_width: cw,
+                    header_char_width: hcw,
+                    cell_padding: cp,
+                    header_right_reserve: hrr,
                 });
                 return;
             }

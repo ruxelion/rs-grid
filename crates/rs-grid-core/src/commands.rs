@@ -200,6 +200,9 @@ pub enum GridCommand {
         header_char_width: f64,
         /// Horizontal cell padding (both sides).
         cell_padding: f64,
+        /// Extra space reserved at the right of the header for the
+        /// menu icon button, sort arrow, and their margins.
+        header_right_reserve: f64,
     },
     /// Auto-fit all column widths to their content.
     AutoFitAllColumns {
@@ -209,6 +212,9 @@ pub enum GridCommand {
         header_char_width: f64,
         /// Horizontal cell padding (both sides).
         cell_padding: f64,
+        /// Extra space reserved at the right of the header for the
+        /// menu icon button, sort arrow, and their margins.
+        header_right_reserve: f64,
     },
 }
 

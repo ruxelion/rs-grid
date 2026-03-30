@@ -153,9 +153,10 @@ impl GridCanvas {
         best_idx
     }
 
-    /// Returns `(char_width, header_char_width, cell_padding)` derived
-    /// from the current theme — same values used by double-click auto-fit.
-    pub(super) fn autofit_params(&self) -> (f64, f64, f64) {
+    /// Returns `(char_width, header_char_width, cell_padding,
+    /// header_right_reserve)` derived from the current theme —
+    /// same values used by double-click auto-fit.
+    pub(super) fn autofit_params(&self) -> (f64, f64, f64, f64) {
         let b = self.0.builder.borrow();
         let t = &b.theme;
         let char_width = t.font_size * 0.6;
@@ -164,7 +165,14 @@ impl GridCanvas {
         } else {
             t.header_font_size * 0.6
         };
-        (char_width, header_char_width, t.cell_padding)
+        // Space reserved at the right of the header for the
+        // sort arrow, menu icon button, and their margins.
+        let sort_zone =
+            t.sort_arrow_width * 2.0 + t.cell_padding;
+        let icon_zone =
+            t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
+        let header_right_reserve = sort_zone + icon_zone;
+        (char_width, header_char_width, t.cell_padding, header_right_reserve)
     }
 
     /// Minimum column width that keeps the menu icon and sort arrow
