@@ -804,3 +804,1081 @@ impl SceneBuilder {
         frame
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::primitives::{
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive,
+        ScenePrimitive, TextPrimitive,
+    };
+    use rs_grid_core::{
+        column::ColumnDef,
+        commands::GridCommand,
+        model::GridModel,
+        row::RowRecord,
+        selection::CellCoord,
+        sort::{SortDir, SortState},
+        state::GridState,
+    };
+
+    // ── helpers ──────────────────────────────────────────────
+
+    /// Build a small 3-column × 10-row grid state.
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "Alpha", 100.0),
+            ColumnDef::new("b", "Beta", 150.0),
+            ColumnDef::new("c", "Gamma", 200.0),
+        ];
+        let rows: Vec<RowRecord> = (0..10)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    /// Extract all Text primitives from a frame.
+    fn text_primitives(
+        frame: &crate::frame::SceneFrame,
+    ) -> Vec<&TextPrimitive> {
+        frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Text(t) => Some(t),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Extract all Rect primitives from a frame.
+    fn rect_primitives(
+        frame: &crate::frame::SceneFrame,
+    ) -> Vec<&RectPrimitive> {
+        frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Rect(r) => Some(r),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Extract all Line primitives from a frame.
+    fn line_primitives(
+        frame: &crate::frame::SceneFrame,
+    ) -> Vec<&LinePrimitive> {
+        frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Line(l) => Some(l),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Extract all Polygon primitives from a frame.
+    fn polygon_primitives(
+        frame: &crate::frame::SceneFrame,
+    ) -> Vec<&PolygonPrimitive> {
+        frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Polygon(pg) => Some(pg),
+                _ => None,
+            })
+            .collect()
+    }
+
+    // ── SceneBuilder construction ────────────────────────────
+
+    #[test]
+    fn builder_default() {
+        let b = SceneBuilder::default();
+        assert_eq!(b.dpr, 1.0);
+        assert_eq!(b.theme, Theme::default());
+    }
+
+    #[test]
+    fn builder_new_stores_dpr() {
+        let b = SceneBuilder::new(2.0);
+        assert_eq!(b.dpr, 2.0);
+    }
+
+    #[test]
+    fn builder_with_theme() {
+        let dark = Theme::dark();
+        let b = SceneBuilder::with_theme(1.5, dark.clone());
+        assert_eq!(b.dpr, 1.5);
+        assert_eq!(b.theme, dark);
+    }
+
+    // ── basic build ──────────────────────────────────────────
+
+    #[test]
+    fn build_produces_nonempty_frame() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        assert!(frame.primitive_count() > 0);
+    }
+
+    #[test]
+    fn build_frame_dimensions_match_viewport() {
+        let state = make_state();
+        let b = SceneBuilder::new(2.0);
+        let frame = b.build(&state, None, None, None);
+        assert_eq!(frame.viewport_width, 800.0);
+        assert_eq!(frame.viewport_height, 600.0);
+        assert_eq!(frame.dpr, 2.0);
+    }
+
+    #[test]
+    fn build_first_primitive_is_background_rect() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.x, 0.0);
+                assert_eq!(r.y, 0.0);
+                assert_eq!(r.width, 800.0);
+                assert_eq!(r.height, 600.0);
+                assert_eq!(r.fill, Theme::light().bg);
+            }
+            _ => panic!("first primitive should be background Rect"),
+        }
+    }
+
+    // ── header ───────────────────────────────────────────────
+
+    #[test]
+    fn build_contains_header_background() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let t = Theme::light();
+        let header_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.y == 0.0
+                    && r.height == 40.0
+                    && r.fill == t.header_bg
+            })
+            .collect();
+        assert!(
+            !header_rects.is_empty(),
+            "should have a header background rect"
+        );
+    }
+
+    #[test]
+    fn build_contains_column_header_labels() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let texts = text_primitives(&frame);
+        let labels: Vec<&str> =
+            texts.iter().map(|t| t.text.as_str()).collect();
+        assert!(labels.contains(&"Alpha"), "missing header Alpha");
+        assert!(labels.contains(&"Beta"), "missing header Beta");
+        assert!(labels.contains(&"Gamma"), "missing header Gamma");
+    }
+
+    #[test]
+    fn build_header_bottom_border() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        let hh = 40.0;
+        let header_border = lines.iter().any(|l| {
+            (l.y1 - (hh - 0.5)).abs() < 0.01
+                && (l.y2 - (hh - 0.5)).abs() < 0.01
+                && l.x1 == 0.0
+        });
+        assert!(header_border, "should have header bottom border");
+    }
+
+    // ── data rows ────────────────────────────────────────────
+
+    #[test]
+    fn build_contains_cell_text() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let texts = text_primitives(&frame);
+        // Row 0 data should appear.
+        assert!(
+            texts.iter().any(|t| t.text == "a0"),
+            "should render cell a0"
+        );
+        assert!(
+            texts.iter().any(|t| t.text == "b0"),
+            "should render cell b0"
+        );
+    }
+
+    #[test]
+    fn build_alternating_row_backgrounds() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let t = Theme::light();
+        let alt_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.row_alt_bg && r.height == 30.0)
+            .collect();
+        // Odd rows should have alt-bg (rows 1, 3, 5, 7, 9).
+        assert!(
+            !alt_rects.is_empty(),
+            "should have alternating row backgrounds"
+        );
+    }
+
+    #[test]
+    fn build_horizontal_grid_lines() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        // Horizontal grid lines span full viewport width.
+        let h_lines: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                l.x1 == 0.0
+                    && (l.x2 - 800.0).abs() < 0.01
+                    && (l.y1 - l.y2).abs() < 0.01
+                    && l.y1 > 40.0 // below header
+            })
+            .collect();
+        assert!(
+            !h_lines.is_empty(),
+            "should have horizontal grid lines"
+        );
+    }
+
+    // ── column separators ────────────────────────────────────
+
+    #[test]
+    fn build_column_separators_in_header() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        // Vertical separators in header (x1 == x2, within header
+        // height range, with inset).
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - l.x2).abs() < 0.01
+                    && l.y1 >= t.header_separator_inset - 0.01
+                    && l.y2 <= 40.0 - t.header_separator_inset + 0.01
+                    && l.y1 < l.y2
+            })
+            .collect();
+        // 3 columns → 3 separators.
+        assert_eq!(
+            seps.len(),
+            3,
+            "expected 3 column separators, got {}",
+            seps.len()
+        );
+    }
+
+    // ── menu icon dots ───────────────────────────────────────
+
+    #[test]
+    fn build_menu_icon_dots_per_column() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        // Each column header has 3 dots (small rects with
+        // corner_radius == dot_r).
+        let dot_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                (r.corner_radius - t.header_menu_icon_dot_r).abs()
+                    < 0.01
+                    && r.fill == t.header_menu_icon
+            })
+            .collect();
+        // 3 columns × 3 dots = 9.
+        assert_eq!(
+            dot_rects.len(),
+            9,
+            "expected 9 menu dots, got {}",
+            dot_rects.len()
+        );
+    }
+
+    // ── hovered menu icon ────────────────────────────────────
+
+    #[test]
+    fn build_hovered_menu_shows_hover_bg() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame_no_hover = b.build(&state, None, None, None);
+        let frame_hover = b.build(&state, None, None, Some(1));
+
+        let hover_rects = |f: &crate::frame::SceneFrame| {
+            rect_primitives(f)
+                .into_iter()
+                .filter(|r| r.fill == t.header_menu_icon_hover_bg)
+                .count()
+        };
+        assert_eq!(hover_rects(&frame_no_hover), 0);
+        assert_eq!(hover_rects(&frame_hover), 1);
+    }
+
+    // ── selection ────────────────────────────────────────────
+
+    #[test]
+    fn build_selection_adds_fill_and_border() {
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord {
+            row: 1,
+            col: 1,
+        }));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Selection fill rect.
+        let sel_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.selection_fill)
+            .collect();
+        assert!(
+            !sel_rects.is_empty(),
+            "should have selection fill rects"
+        );
+
+        // Selection border (4 lines).
+        let border_lines: Vec<_> = line_primitives(&frame)
+            .into_iter()
+            .filter(|l| l.color == t.selection_border)
+            .collect();
+        assert_eq!(
+            border_lines.len(),
+            4,
+            "selection should produce 4 border lines"
+        );
+    }
+
+    #[test]
+    fn build_no_selection_no_border_lines() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let border_lines: Vec<_> = line_primitives(&frame)
+            .into_iter()
+            .filter(|l| l.color == t.selection_border)
+            .collect();
+        assert!(
+            border_lines.is_empty(),
+            "no selection → no border lines"
+        );
+    }
+
+    #[test]
+    fn build_multi_cell_selection() {
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord {
+            row: 0,
+            col: 0,
+        }));
+        state.apply(GridCommand::ExtendSelection(CellCoord {
+            row: 2,
+            col: 1,
+        }));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Multiple cells selected → multiple fill rects.
+        let sel_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.selection_fill)
+            .collect();
+        // 3 rows × 2 cols = 6 cell fills + possibly header
+        // highlight.
+        assert!(
+            sel_rects.len() >= 6,
+            "multi-cell selection should produce ≥6 fill rects, \
+             got {}",
+            sel_rects.len()
+        );
+    }
+
+    // ── hover row ────────────────────────────────────────────
+
+    #[test]
+    fn build_hovered_row_overlay() {
+        let mut state = make_state();
+        state.hovered_row = Some(2);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let hover_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.row_hover_bg)
+            .collect();
+        assert!(
+            !hover_rects.is_empty(),
+            "hovered row should produce hover overlay"
+        );
+    }
+
+    #[test]
+    fn build_no_hover_no_overlay() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let hover_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.row_hover_bg)
+            .collect();
+        assert!(
+            hover_rects.is_empty(),
+            "no hover → no hover overlay"
+        );
+    }
+
+    // ── sort indicator ───────────────────────────────────────
+
+    #[test]
+    fn build_sort_indicator_polygon() {
+        let mut state = make_state();
+        state.sort = Some(SortState {
+            col_key: "a".into(),
+            dir: SortDir::Asc,
+        });
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let polys = polygon_primitives(&frame);
+        // At least one polygon for the sort arrow.
+        assert!(
+            !polys.is_empty(),
+            "sort should produce a polygon arrow"
+        );
+    }
+
+    #[test]
+    fn build_no_sort_no_polygon() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let polys = polygon_primitives(&frame);
+        // No sort → no polygons in data area (scrollbar arrows
+        // may still produce polygons).
+        // Check: no polygon has the header_text fill.
+        let t = Theme::light();
+        let sort_polys: Vec<_> = polys
+            .iter()
+            .filter(|p| p.fill == t.header_text)
+            .collect();
+        assert!(
+            sort_polys.is_empty(),
+            "no sort → no sort indicator polygon"
+        );
+    }
+
+    #[test]
+    fn build_sort_desc_different_points() {
+        let mut state = make_state();
+        state.sort = Some(SortState {
+            col_key: "b".into(),
+            dir: SortDir::Desc,
+        });
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let t = Theme::light();
+        let polys: Vec<_> = polygon_primitives(&frame)
+            .into_iter()
+            .filter(|p| p.fill == t.header_text)
+            .collect();
+        assert_eq!(polys.len(), 1, "one sort polygon");
+        // Desc: tip points downward (max y among vertices is
+        // the tip).
+        let pts = &polys[0].points;
+        assert_eq!(pts.len(), 3);
+    }
+
+    // ── flash ────────────────────────────────────────────────
+
+    #[test]
+    fn build_flash_changes_selection_border_color() {
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord {
+            row: 0,
+            col: 0,
+        }));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let flash = FlashHint { alpha_factor: 0.5 };
+        let frame = b.build(&state, None, Some(&flash), None);
+
+        // Border lines should use flash_border color (alpha-adjusted).
+        let expected_a =
+            (t.flash_border.a as f64 * 0.5).round() as u8;
+        let expected_color = Color::rgba(
+            t.flash_border.r,
+            t.flash_border.g,
+            t.flash_border.b,
+            expected_a,
+        );
+        let flash_borders: Vec<_> = line_primitives(&frame)
+            .into_iter()
+            .filter(|l| l.color == expected_color)
+            .collect();
+        assert_eq!(
+            flash_borders.len(),
+            4,
+            "flash should produce 4 border lines with flash color"
+        );
+    }
+
+    #[test]
+    fn build_flash_overlay_on_selected_cells() {
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord {
+            row: 0,
+            col: 0,
+        }));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let flash = FlashHint { alpha_factor: 1.0 };
+        let frame = b.build(&state, None, Some(&flash), None);
+
+        // Should have a flash fill rect on the selected cell.
+        let flash_fill = Color::rgba(
+            t.flash_fill.r,
+            t.flash_fill.g,
+            t.flash_fill.b,
+            t.flash_fill.a,
+        );
+        let flash_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == flash_fill)
+            .collect();
+        assert!(
+            !flash_rects.is_empty(),
+            "flash should produce overlay rects on selected cells"
+        );
+    }
+
+    // ── zero row height early return ─────────────────────────
+
+    #[test]
+    fn build_zero_row_height_returns_early() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![];
+        let model = GridModel::new(cols, rows, 0.0, 40.0);
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        // Only the background rect should be present.
+        assert_eq!(
+            frame.primitive_count(),
+            1,
+            "zero row_height → only background"
+        );
+    }
+
+    // ── empty grid ───────────────────────────────────────────
+
+    #[test]
+    fn build_empty_grid_no_data_rows() {
+        let cols = vec![
+            ColumnDef::new("x", "X", 100.0),
+        ];
+        let rows: Vec<RowRecord> = vec![];
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        // Should still have background + header, but no cell text.
+        let texts = text_primitives(&frame);
+        let data_texts: Vec<_> = texts
+            .iter()
+            .filter(|t| t.text != "X")
+            .collect();
+        assert!(
+            data_texts.is_empty(),
+            "empty grid should have no data cell text"
+        );
+    }
+
+    // ── column drag ──────────────────────────────────────────
+
+    #[test]
+    fn build_column_drag_shows_ghost() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let drag = ColumnDragHint {
+            source_col: 0,
+            insert_before: 2,
+            cursor_vx: 300.0,
+            cursor_vy: 20.0,
+            animated_offsets: vec![],
+        };
+        let frame = b.build(&state, Some(&drag), None, None);
+
+        // Ghost badge rect (drag_ghost_bg fill).
+        let ghost_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.drag_ghost_bg)
+            .collect();
+        assert_eq!(
+            ghost_rects.len(),
+            1,
+            "drag should show one ghost badge"
+        );
+
+        // Ghost label text.
+        let texts = text_primitives(&frame);
+        let ghost_labels: Vec<_> = texts
+            .iter()
+            .filter(|t| t.color == Theme::light().drag_ghost_text)
+            .collect();
+        assert!(
+            !ghost_labels.is_empty(),
+            "ghost badge should have a label"
+        );
+    }
+
+    #[test]
+    fn build_column_drag_overlay() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let drag = ColumnDragHint {
+            source_col: 1,
+            insert_before: 0,
+            cursor_vx: 100.0,
+            cursor_vy: 20.0,
+            animated_offsets: vec![],
+        };
+        let frame = b.build(&state, Some(&drag), None, None);
+
+        // Dim overlay on source column.
+        let overlay_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.drag_overlay
+                    && r.y == 0.0
+                    && (r.height - 600.0).abs() < 0.01
+            })
+            .collect();
+        assert!(
+            !overlay_rects.is_empty(),
+            "drag should show dim overlay on source column"
+        );
+    }
+
+    #[test]
+    fn build_column_drag_out_of_bounds_no_panic() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let drag = ColumnDragHint {
+            source_col: 999,
+            insert_before: 0,
+            cursor_vx: 100.0,
+            cursor_vy: 20.0,
+            animated_offsets: vec![],
+        };
+        // Should not panic.
+        let _ = b.build(&state, Some(&drag), None, None);
+    }
+
+    #[test]
+    fn build_column_drag_with_animated_offsets() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        let drag = ColumnDragHint {
+            source_col: 0,
+            insert_before: 2,
+            cursor_vx: 200.0,
+            cursor_vy: 20.0,
+            animated_offsets: vec![150.0, 0.0, 250.0],
+        };
+        let frame = b.build(&state, Some(&drag), None, None);
+        // Should not panic and produce valid output.
+        assert!(frame.primitive_count() > 0);
+    }
+
+    // ── scrolled viewport ────────────────────────────────────
+
+    #[test]
+    fn build_scrolled_viewport_still_has_header() {
+        let mut state = make_state();
+        state.apply(GridCommand::ScrollTo {
+            x: 0.0,
+            y: 200.0,
+        });
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        // Header is sticky — should always be present.
+        let header_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.y == 0.0
+                    && (r.height - 40.0).abs() < 0.01
+                    && r.fill == t.header_bg
+            })
+            .collect();
+        assert!(
+            !header_rects.is_empty(),
+            "scrolled viewport should still show header"
+        );
+    }
+
+    // ── row number gutter ────────────────────────────────────
+
+    #[test]
+    fn build_with_row_numbers() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+        ];
+        let rows: Vec<RowRecord> = (0..5)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("v{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.row_number_width = 50.0;
+        let state = GridState::new(model, 800.0, 600.0);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Gutter background rect.
+        let gutter_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.x == 0.0
+                    && (r.width - 50.0).abs() < 0.01
+                    && r.fill == t.gutter_bg
+            })
+            .collect();
+        assert!(
+            !gutter_rects.is_empty(),
+            "should have gutter background"
+        );
+
+        // Row numbers as text (1-indexed).
+        let texts = text_primitives(&frame);
+        assert!(
+            texts.iter().any(|t| t.text == "1"),
+            "should show row number 1"
+        );
+        assert!(
+            texts.iter().any(|t| t.text == "5"),
+            "should show row number 5"
+        );
+    }
+
+    #[test]
+    fn build_without_row_numbers_no_gutter() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let mut model = GridModel::new(cols, vec![], 30.0, 40.0);
+        model.row_number_width = 0.0;
+        let state = GridState::new(model, 800.0, 600.0);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        // Gutter border line at x ≈ rnw-0.5 should not exist.
+        let lines = line_primitives(&frame);
+        let gutter_border = lines.iter().any(|l| {
+            l.color == t.gutter_border
+                && (l.x1 - l.x2).abs() < 0.01
+                && l.y1 == 0.0
+        });
+        assert!(
+            !gutter_border,
+            "no row numbers → no gutter border"
+        );
+    }
+
+    // ── pinned columns ───────────────────────────────────────
+
+    #[test]
+    fn build_pinned_columns_solid_background() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows: Vec<RowRecord> = (0..5)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 1;
+        let rnw = model.row_number_width;
+        let state = GridState::new(model, 800.0, 600.0);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Pinned data overlay background at x=rnw,
+        // y=header_height, width=100 (first col width).
+        let pinned_bg: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                (r.x - rnw).abs() < 0.01
+                    && (r.y - 40.0).abs() < 0.01
+                    && (r.width - 100.0).abs() < 0.01
+                    && r.fill == t.bg
+            })
+            .collect();
+        assert!(
+            !pinned_bg.is_empty(),
+            "pinned columns should have solid background overlay"
+        );
+    }
+
+    #[test]
+    fn build_pinned_columns_separator_line() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows: Vec<RowRecord> = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 1;
+        let rnw = model.row_number_width;
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+
+        // Separator line at x ≈ rnw + pinned_width - 0.5.
+        let sep_x = rnw + 100.0 - 0.5;
+        let lines = line_primitives(&frame);
+        let sep = lines.iter().any(|l| {
+            (l.x1 - sep_x).abs() < 0.01
+                && (l.x2 - sep_x).abs() < 0.01
+                && l.y1 >= 39.0
+        });
+        assert!(sep, "should have pinned column separator line");
+    }
+
+    // ── scrollbars ───────────────────────────────────────────
+
+    #[test]
+    fn build_scrollbar_primitives_present_when_content_overflows()
+    {
+        // Make content taller than viewport.
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows: Vec<RowRecord> = (0..100)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("v{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        // Viewport height 600 < total height = 40 + 100*30 = 3040.
+        let state = GridState::new(model, 800.0, 600.0);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Scrollbar thumb (a rect with scrollbar_thumb fill and
+        // scrollbar_radius corner_radius).
+        let thumb_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.scrollbar_thumb
+                    && (r.corner_radius - t.scrollbar_radius).abs()
+                        < 0.01
+            })
+            .collect();
+        assert!(
+            !thumb_rects.is_empty(),
+            "overflowing content should show scrollbar thumb"
+        );
+    }
+
+    #[test]
+    fn build_scrollbar_arrows_as_polygons() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows: Vec<RowRecord> = (0..100)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("v{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let state = GridState::new(model, 800.0, 600.0);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Scrollbar arrows are polygons with scrollbar_thumb fill.
+        let arrow_polys: Vec<_> = polygon_primitives(&frame)
+            .into_iter()
+            .filter(|p| p.fill == t.scrollbar_thumb)
+            .collect();
+        // At least 2 arrows (up + down) for vertical scrollbar.
+        assert!(
+            arrow_polys.len() >= 2,
+            "should have scrollbar arrow polygons, got {}",
+            arrow_polys.len()
+        );
+    }
+
+    // ── dark theme produces different colors ─────────────────
+
+    #[test]
+    fn build_dark_theme_different_background() {
+        let state = make_state();
+        let b_light = SceneBuilder::new(1.0);
+        let b_dark =
+            SceneBuilder::with_theme(1.0, Theme::dark());
+        let f_light = b_light.build(&state, None, None, None);
+        let f_dark = b_dark.build(&state, None, None, None);
+
+        // Background rects should differ.
+        let bg_light = match &f_light.primitives[0] {
+            ScenePrimitive::Rect(r) => r.fill,
+            _ => panic!("expected Rect"),
+        };
+        let bg_dark = match &f_dark.primitives[0] {
+            ScenePrimitive::Rect(r) => r.fill,
+            _ => panic!("expected Rect"),
+        };
+        assert_ne!(bg_light, bg_dark);
+    }
+
+    // ── high DPR ─────────────────────────────────────────────
+
+    #[test]
+    fn build_high_dpr_frame_stores_dpr() {
+        let state = make_state();
+        let b = SceneBuilder::new(3.0);
+        let frame = b.build(&state, None, None, None);
+        assert_eq!(frame.dpr, 3.0);
+    }
+
+    // ── ColumnDragHint / FlashHint constructors ──────────────
+
+    #[test]
+    fn column_drag_hint_debug() {
+        let h = ColumnDragHint {
+            source_col: 0,
+            insert_before: 1,
+            cursor_vx: 50.0,
+            cursor_vy: 25.0,
+            animated_offsets: vec![],
+        };
+        let s = format!("{:?}", h);
+        assert!(s.contains("ColumnDragHint"));
+    }
+
+    #[test]
+    fn flash_hint_debug_and_copy() {
+        let f = FlashHint { alpha_factor: 0.75 };
+        let f2 = f; // Copy
+        assert_eq!(f.alpha_factor, f2.alpha_factor);
+        let s = format!("{:?}", f);
+        assert!(s.contains("FlashHint"));
+    }
+
+    // ── drag same position is no-op offset ───────────────────
+
+    #[test]
+    fn build_drag_same_position_no_preview_offset() {
+        let state = make_state();
+        let b = SceneBuilder::new(1.0);
+        // source_col == insert_before → no reorder needed.
+        let drag = ColumnDragHint {
+            source_col: 1,
+            insert_before: 1,
+            cursor_vx: 100.0,
+            cursor_vy: 20.0,
+            animated_offsets: vec![],
+        };
+        let frame = b.build(&state, Some(&drag), None, None);
+        // Should still render without panic.
+        assert!(frame.primitive_count() > 0);
+    }
+
+    // ── search highlights ────────────────────────────────────
+
+    #[test]
+    fn build_search_highlights_matching_cells() {
+        let mut state = make_state();
+        state.apply(GridCommand::Search {
+            query: "a0".into(),
+        });
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Should have search highlight rects.
+        let highlight_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.search_highlight
+                    || r.fill == t.search_current
+            })
+            .collect();
+        assert!(
+            !highlight_rects.is_empty(),
+            "search should highlight matching cells"
+        );
+    }
+
+    #[test]
+    fn build_no_search_no_highlights() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let highlight_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.search_highlight
+                    || r.fill == t.search_current
+            })
+            .collect();
+        assert!(
+            highlight_rects.is_empty(),
+            "no search → no highlights"
+        );
+    }
+}

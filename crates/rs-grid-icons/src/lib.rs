@@ -59,7 +59,7 @@ pub fn all_gender_icons() -> impl Iterator<Item = (&'static str, &'static str)>
 mod tests {
     use super::*;
 
-    // ── flags ────────────────────────────────────
+    // ── flags — lookup ──────────────────────────
 
     #[test]
     fn flag_known() {
@@ -69,31 +69,149 @@ mod tests {
     }
 
     #[test]
-    fn flag_unknown() {
+    fn flag_unknown_code_returns_none() {
         assert!(flag_data_uri("XX").is_none());
+        assert!(flag_data_uri("ZZ").is_none());
+    }
+
+    #[test]
+    fn flag_empty_code_returns_none() {
         assert!(flag_data_uri("").is_none());
     }
 
     #[test]
-    fn flag_data_uri_format() {
+    fn flag_lowercase_returns_none() {
+        // Keys are uppercase; lowercase must not match.
+        assert!(flag_data_uri("fr").is_none());
+        assert!(flag_data_uri("us").is_none());
+    }
+
+    #[test]
+    fn flag_too_long_code_returns_none() {
+        assert!(flag_data_uri("FRA").is_none());
+        assert!(flag_data_uri("FRANCE").is_none());
+    }
+
+    #[test]
+    fn flag_single_char_returns_none() {
+        assert!(flag_data_uri("F").is_none());
+    }
+
+    // ── flags — data URI format ─────────────────
+
+    #[test]
+    fn flag_data_uri_prefix() {
         let uri = flag_data_uri("FR").unwrap();
         assert!(uri.starts_with("data:image/svg+xml;base64,"));
     }
 
     #[test]
-    fn flag_count_check() {
-        assert!(flag_count() >= 250);
+    fn flag_data_uri_non_empty_payload() {
+        let uri = flag_data_uri("DE").unwrap();
+        let payload =
+            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(
+            !payload.is_empty(),
+            "base64 payload must not be empty"
+        );
+    }
+
+    #[test]
+    fn flag_data_uri_valid_base64_chars() {
+        let uri = flag_data_uri("GB").unwrap();
+        let payload =
+            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(
+            payload
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric()
+                    || c == '+'
+                    || c == '/'
+                    || c == '='),
+            "payload contains invalid base64 characters"
+        );
+    }
+
+    // ── flags — collection ──────────────────────
+
+    #[test]
+    fn flag_count_matches_expected() {
+        assert_eq!(flag_count(), 254);
     }
 
     #[test]
     fn flags_sorted() {
-        let codes: Vec<&str> = FLAGS.iter().map(|(k, _)| *k).collect();
+        let codes: Vec<&str> =
+            FLAGS.iter().map(|(k, _)| *k).collect();
         for w in codes.windows(2) {
-            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
+            assert!(
+                w[0] < w[1],
+                "not sorted: {} >= {}",
+                w[0],
+                w[1]
+            );
         }
     }
 
-    // ── genders ──────────────────────────────────
+    #[test]
+    fn flags_no_duplicate_codes() {
+        let codes: Vec<&str> =
+            FLAGS.iter().map(|(k, _)| *k).collect();
+        for w in codes.windows(2) {
+            assert_ne!(
+                w[0], w[1],
+                "duplicate flag code: {}",
+                w[0]
+            );
+        }
+    }
+
+    #[test]
+    fn all_flags_iterator_count() {
+        assert_eq!(all_flags().count(), flag_count());
+    }
+
+    #[test]
+    fn all_flags_yields_valid_uris() {
+        for (code, uri) in all_flags() {
+            assert!(
+                !code.is_empty(),
+                "flag code must not be empty"
+            );
+            assert!(
+                uri.starts_with("data:image/svg+xml;base64,"),
+                "bad URI for flag {code}"
+            );
+        }
+    }
+
+    #[test]
+    fn all_flags_roundtrip_lookup() {
+        for (code, uri) in all_flags() {
+            assert_eq!(
+                flag_data_uri(code),
+                Some(uri),
+                "roundtrip failed for {code}"
+            );
+        }
+    }
+
+    // ── flags — well-known codes ────────────────
+
+    #[test]
+    fn flag_all_continents_represented() {
+        // One country per continent (excl. Antarctica).
+        let samples =
+            ["US", "BR", "FR", "ZA", "CN", "AU"];
+        for code in samples {
+            assert!(
+                flag_data_uri(code).is_some(),
+                "missing flag: {code}"
+            );
+        }
+    }
+
+    // ── genders — lookup ────────────────────────
 
     #[test]
     fn gender_known() {
@@ -102,26 +220,148 @@ mod tests {
     }
 
     #[test]
-    fn gender_unknown() {
+    fn gender_unknown_returns_none() {
         assert!(gender_icon_uri("XXX").is_none());
+        assert!(gender_icon_uri("OTHER").is_none());
     }
 
     #[test]
-    fn gender_data_uri_format() {
+    fn gender_empty_key_returns_none() {
+        assert!(gender_icon_uri("").is_none());
+    }
+
+    #[test]
+    fn gender_lowercase_returns_none() {
+        assert!(gender_icon_uri("male").is_none());
+        assert!(gender_icon_uri("female").is_none());
+    }
+
+    // ── genders — data URI format ───────────────
+
+    #[test]
+    fn gender_data_uri_prefix() {
         let uri = gender_icon_uri("MALE").unwrap();
         assert!(uri.starts_with("data:image/svg+xml;base64,"));
     }
 
     #[test]
-    fn gender_count_check() {
+    fn gender_data_uri_non_empty_payload() {
+        let uri = gender_icon_uri("FEMALE").unwrap();
+        let payload =
+            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(
+            !payload.is_empty(),
+            "base64 payload must not be empty"
+        );
+    }
+
+    #[test]
+    fn gender_data_uri_valid_base64_chars() {
+        let uri = gender_icon_uri("MALE").unwrap();
+        let payload =
+            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(
+            payload
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric()
+                    || c == '+'
+                    || c == '/'
+                    || c == '='),
+            "payload contains invalid base64 characters"
+        );
+    }
+
+    // ── genders — collection ────────────────────
+
+    #[test]
+    fn gender_count_is_two() {
         assert_eq!(gender_icon_count(), 2);
     }
 
     #[test]
     fn genders_sorted() {
-        let keys: Vec<&str> = GENDERS.iter().map(|(k, _)| *k).collect();
+        let keys: Vec<&str> =
+            GENDERS.iter().map(|(k, _)| *k).collect();
         for w in keys.windows(2) {
-            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
+            assert!(
+                w[0] < w[1],
+                "not sorted: {} >= {}",
+                w[0],
+                w[1]
+            );
         }
+    }
+
+    #[test]
+    fn genders_no_duplicate_keys() {
+        let keys: Vec<&str> =
+            GENDERS.iter().map(|(k, _)| *k).collect();
+        for w in keys.windows(2) {
+            assert_ne!(
+                w[0], w[1],
+                "duplicate gender key: {}",
+                w[0]
+            );
+        }
+    }
+
+    #[test]
+    fn all_gender_icons_iterator_count() {
+        assert_eq!(all_gender_icons().count(), gender_icon_count());
+    }
+
+    #[test]
+    fn all_gender_icons_yields_valid_uris() {
+        for (key, uri) in all_gender_icons() {
+            assert!(
+                !key.is_empty(),
+                "gender key must not be empty"
+            );
+            assert!(
+                uri.starts_with("data:image/svg+xml;base64,"),
+                "bad URI for gender {key}"
+            );
+        }
+    }
+
+    #[test]
+    fn all_gender_icons_roundtrip_lookup() {
+        for (key, uri) in all_gender_icons() {
+            assert_eq!(
+                gender_icon_uri(key),
+                Some(uri),
+                "roundtrip failed for {key}"
+            );
+        }
+    }
+
+    // ── cross-category ──────────────────────────
+
+    #[test]
+    fn flag_and_gender_uris_are_distinct() {
+        for (_, flag_uri) in all_flags() {
+            for (_, gender_uri) in all_gender_icons() {
+                assert_ne!(
+                    flag_uri, gender_uri,
+                    "a flag URI should never equal a gender URI"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn most_flags_have_distinct_uris() {
+        // A few territories may share the exact same SVG,
+        // but the vast majority must be unique.
+        let uris: Vec<&str> =
+            all_flags().map(|(_, v)| v).collect();
+        let mut sorted = uris.clone();
+        sorted.sort();
+        sorted.dedup();
+        let duplicates = uris.len() - sorted.len();
+        assert!(
+            duplicates <= 10,
+            "too many duplicate flag URIs: {duplicates}"
+        );
     }
 }
