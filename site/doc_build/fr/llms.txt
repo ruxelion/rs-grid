@@ -15,6 +15,7 @@
 - [Etat de la grille et commandes](/fr/concepts/grid-state.md): La machine a etats centrale et le modele de mutations par commandes.
 - [Selection](/fr/concepts/selection.md): Modele de selection ancre/focus pour les cellules, lignes et colonnes.
 - [Viewport](/fr/concepts/viewport.md): Virtualisation du viewport — seules les cellules visibles sont rendues.
+- [Extraction des donnees](/fr/data/extracting-data.md): Comment iterer sur GridModel pour exporter des donnees (CSV, JSON, presse-papier, etc.).
 - [Donnees virtuelles (FnDataSource)](/fr/data/fn-datasource.md): Source de donnees virtuelle basee sur une closure, avec une empreinte memoire nulle.
 - [Vue d'ensemble des sources de donnees](/fr/data/overview.md): Le trait DataSource et les trois implementations integrees.
 - [Donnees cote serveur (PageCacheDataSource)](/fr/data/page-cache.md): Chargement asynchrone par pages avec cache LRU et placeholders de chargement.
@@ -42,6 +43,7 @@
 - [Installation](/fr/installation.md): Configurer votre toolchain Rust et ajouter rs-grid a votre projet.
 - [Renderer personnalisé](/fr/integrations/custom-renderer.md): Créer un nouveau backend de rendu en consommant les primitives SceneFrame.
 - [Intégration Framework](/fr/integrations/frameworks.md): Intégrer rs-grid avec Leptos ou JavaScript vanilla.
+- [Serveur MCP](/fr/integrations/mcp.md): Exposer la documentation rs-grid aux agents IA via le Model Context Protocol.
 - [Limites du nombre de lignes](/fr/row-count-limits.md): Historique des limites du nombre de lignes a travers les versions de rs-grid.
 - [Primitives de scène](/fr/scene/primitives.md): Les cinq types de primitives qui composent un SceneFrame.
 - [Scene Builder](/fr/scene/scene-builder.md): Conversion de GridState en SceneFrame prêt au rendu.

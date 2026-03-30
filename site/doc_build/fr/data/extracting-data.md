@@ -6,15 +6,15 @@ en quelques lignes de code.
 
 ## Surface API cle
 
-| Champ / Methode             | Ce qu'il fournit                                    |
-| --------------------------- | --------------------------------------------------- |
-| `model.columns`             | `Vec<ColumnDef>` — definitions de colonnes ordonnees |
-| `model.data.row_count()`    | Nombre total de lignes physiques                    |
-| `model.data.get_cell(r, k)` | Valeur de cellule par index physique et cle colonne |
-| `model.data.get_cell_ref()` | Variante zero-copy `Cow<str>` (sources en memoire)  |
-| `model.sort_order`          | Indices physiques dans l'ordre de tri actuel (vide = ordre naturel) |
+| Champ / Methode             | Ce qu'il fournit                                                         |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `model.columns`             | `Vec<ColumnDef>` — definitions de colonnes ordonnees                     |
+| `model.data.row_count()`    | Nombre total de lignes physiques                                         |
+| `model.data.get_cell(r, k)` | Valeur de cellule par index physique et cle colonne                      |
+| `model.data.get_cell_ref()` | Variante zero-copy `Cow<str>` (sources en memoire)                       |
+| `model.sort_order`          | Indices physiques dans l'ordre de tri actuel (vide = ordre naturel)      |
 | `model.filtered_indices`    | Indices physiques passant tous les filtres actifs (vide = pas de filtre) |
-| `model.patches`             | Valeurs editees `(row, col_key) → value`            |
+| `model.patches`             | Valeurs editees `(row, col_key) → value`                                 |
 
 ## Exemple de base : exporter toutes les lignes
 
@@ -93,5 +93,5 @@ match model.data.cell_status(row, &col.key) {
 }
 ```
 
-Pour un export complet de donnees server-side, recuperez toutes les pages
+Pour un export complet de donnees server-side, recupérez toutes les pages
 directement depuis votre backend plutot que de lire a travers la grille.

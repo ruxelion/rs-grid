@@ -108,7 +108,8 @@
       "Bash(do echo:*)",
       "Read(//e/Dev/rs-grid/**)",
       "Bash(do sed:*)",
-      "Bash(echo \"OK: $f\")"
+      "Bash(echo \"OK: $f\")",
+      "Bash(grep -ri mcp e:/Dev/rs-grid/site/ --include=*.md -l)"
     ]
   }
 }

@@ -19,6 +19,7 @@
 - [Grid State & Commands](/concepts/grid-state.md): The central state machine and command-driven mutation model.
 - [Selection](/concepts/selection.md): Anchor/focus selection model for cells, rows, and columns.
 - [Viewport](/concepts/viewport.md): Viewport virtualization — only visible cells are rendered.
+- [Extracting Data](/data/extracting-data.md): How to iterate over GridModel to export data (CSV, JSON, clipboard, etc.).
 - [Virtual Data (FnDataSource)](/data/fn-datasource.md): Closure-based virtual data source with zero memory footprint.
 - [Data Sources Overview](/data/overview.md): The DataSource trait and the three built-in implementations.
 - [Server-Side Data (PageCacheDataSource)](/data/page-cache.md): Async page-based data loading with LRU caching and skeleton placeholders.
@@ -45,6 +46,7 @@
 - [Installation](/installation.md): Set up your Rust toolchain and add rs-grid to your project.
 - [Custom Renderer](/integrations/custom-renderer.md): Build a new rendering backend by consuming SceneFrame primitives.
 - [Framework Integration](/integrations/frameworks.md): Integrate rs-grid with Leptos, Dioxus, Yew, or vanilla JavaScript.
+- [MCP Server](/integrations/mcp.md): Expose rs-grid documentation to AI agents via the Model Context Protocol.
 - [Row Count Limits](/row-count-limits.md): History of row count limits across rs-grid versions.
 - [Scene Primitives](/scene/primitives.md): The five primitive types that make up a SceneFrame.
 - [Scene Builder](/scene/scene-builder.md): Converting GridState into a renderable SceneFrame.

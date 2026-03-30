@@ -60,6 +60,7 @@ const sidebarEN = [
     items: [
       { text: 'Frameworks', link: '/integrations/frameworks' },
       { text: 'Custom Renderer', link: '/integrations/custom-renderer' },
+      { text: 'MCP Server', link: '/integrations/mcp' },
     ],
   },
   {
@@ -158,6 +159,7 @@ const sidebarFR = [
         text: 'Renderer personnalisé',
         link: '/fr/integrations/custom-renderer',
       },
+      { text: 'Serveur MCP', link: '/fr/integrations/mcp' },
     ],
   },
   {

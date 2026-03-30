@@ -5,15 +5,15 @@ exposes all the data you need to build your own export in a few lines of code.
 
 ## Key API surface
 
-| Field / Method              | What it gives you                                  |
-| --------------------------- | -------------------------------------------------- |
-| `model.columns`             | `Vec<ColumnDef>` — ordered column definitions      |
-| `model.data.row_count()`    | Total number of physical rows                      |
-| `model.data.get_cell(r, k)` | Cell value by physical row index and column key    |
-| `model.data.get_cell_ref()` | Zero-copy `Cow<str>` variant (for in-memory sources) |
-| `model.sort_order`          | Physical indices in current sort order (empty = natural order) |
+| Field / Method              | What it gives you                                               |
+| --------------------------- | --------------------------------------------------------------- |
+| `model.columns`             | `Vec<ColumnDef>` — ordered column definitions                   |
+| `model.data.row_count()`    | Total number of physical rows                                   |
+| `model.data.get_cell(r, k)` | Cell value by physical row index and column key                 |
+| `model.data.get_cell_ref()` | Zero-copy `Cow<str>` variant (for in-memory sources)            |
+| `model.sort_order`          | Physical indices in current sort order (empty = natural order)  |
 | `model.filtered_indices`    | Physical indices passing all active filters (empty = no filter) |
-| `model.patches`             | Edited cell overrides `(row, col_key) → value`     |
+| `model.patches`             | Edited cell overrides `(row, col_key) → value`                  |
 
 ## Basic example: export all rows
 
