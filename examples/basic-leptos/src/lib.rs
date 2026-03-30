@@ -7,8 +7,7 @@ use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use send_wrapper::SendWrapper;
-use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::js_sys;
+use wasm_bindgen::prelude::*;
 
 fn fmt_rows(n: u64) -> &'static str {
     match n {
@@ -63,10 +62,7 @@ fn App() -> impl IntoView {
         Rc::new(RefCell::new(None));
     // The view closure and event handlers all need Send captures in Leptos 0.7.
     let gc_for_mount = SendWrapper::new(gc_ref.clone());
-    let gc_for_export = SendWrapper::new(gc_ref.clone());
-    let gc_for_import = SendWrapper::new(gc_ref.clone());
-    let gc_for_pinned = SendWrapper::new(gc_ref.clone());
-    let gc_for_filter = SendWrapper::new(gc_ref.clone());
+
 
     let theme_memo = Memo::<Theme>::new(move |_| {
         let _ = theme_class.get();
@@ -82,8 +78,6 @@ fn App() -> impl IntoView {
             root.set_class_name(&cls);
         }
     });
-
-    let file_input_ref = NodeRef::<leptos::html::Input>::new();
 
     view! {
         <main class="app-layout">
@@ -132,132 +126,6 @@ fn App() -> impl IntoView {
                             <option value="100">"100 columns"</option>
                             <option value="1000">"1 000 columns"</option>
                         </select>
-                    </div>
-
-                    // ── Export / Import ───────────────────────────────────────
-                    // Hidden file input driven by the Import button
-                    <input
-                        type="file"
-                        accept=".tsv,.txt"
-                        node_ref=file_input_ref
-                        style="display:none"
-                        on:change=move |e| {
-                            let file = e.target()
-                                .and_then(|t| {
-                                    t.dyn_into::<web_sys::HtmlInputElement>()
-                                        .ok()
-                                })
-                                .and_then(|i| i.files())
-                                .and_then(|fl| fl.get(0));
-                            if let Some(file) = file {
-                                let reader =
-                                    web_sys::FileReader::new().unwrap();
-                                let reader2 = reader.clone();
-                                let gc =
-                                    gc_for_import.borrow().clone().unwrap();
-                                let cb = Closure::once(move || {
-                                    if let Ok(result) = reader2.result() {
-                                        if let Some(text) =
-                                            result.as_string()
-                                        {
-                                            gc.import_patches(&text);
-                                            if let Some(s) = local_storage() {
-                                                let _ = s.set_item(
-                                                    LS_KEY,
-                                                    &gc.export_patches(),
-                                                );
-                                            }
-                                        }
-                                    }
-                                });
-                                reader.set_onloadend(Some(
-                                    cb.as_ref().unchecked_ref(),
-                                ));
-                                reader.read_as_text(&file).unwrap();
-                                cb.forget();
-                            }
-                        }
-                    />
-
-                    <button
-                        class="app-btn"
-                        on:click=move |_| {
-                            let Some(gc) = gc_for_export.borrow().clone()
-                            else {
-                                return;
-                            };
-                            let data = gc.export_patches();
-                            let encoded =
-                                js_sys::encode_uri_component(&data);
-                            let url = format!(
-                                "data:text/tab-separated-values;\
-                                 charset=utf-8,{encoded}"
-                            );
-                            let doc = web_sys::window()
-                                .unwrap()
-                                .document()
-                                .unwrap();
-                            let a = doc
-                                .create_element("a")
-                                .unwrap()
-                                .dyn_into::<web_sys::HtmlAnchorElement>()
-                                .unwrap();
-                            a.set_href(&url);
-                            a.set_download("rs-grid-patches.tsv");
-                            doc.body().unwrap().append_child(&a).unwrap();
-                            a.click();
-                            doc.body().unwrap().remove_child(&a).unwrap();
-                        }
-                    >
-                        "Export"
-                    </button>
-
-                    <button
-                        class="app-btn"
-                        on:click=move |_| {
-                            if let Some(input) = file_input_ref.get() {
-                                input.click();
-                            }
-                        }
-                    >
-                        "Import"
-                    </button>
-
-                    // ── Pinned columns ────────────────────────────────────
-                    <div class="app-control">
-                        <span class="app-control-label">"Pinned cols"</span>
-                        <select
-                            class="app-control-select"
-                            on:change=move |e| {
-                                let v = event_target_value(&e)
-                                    .parse::<usize>()
-                                    .unwrap_or(0);
-                                if let Some(gc) = gc_for_pinned.borrow().as_ref() {
-                                    gc.set_pinned_count(v);
-                                }
-                            }
-                        >
-                            <option value="0" selected=true>"None"</option>
-                            <option value="1">"1"</option>
-                            <option value="2">"2"</option>
-                            <option value="3">"3"</option>
-                        </select>
-                    </div>
-
-                    // ── Filter ────────────────────────────────────────────
-                    <div class="app-control">
-                        <span class="app-control-label">"Filter Name"</span>
-                        <input
-                            type="text"
-                            class="app-control-select"
-                            placeholder="type to filter…"
-                            on:input=move |e| {
-                                let text = event_target_value(&e);
-                                if let Some(gc) = gc_for_filter.borrow().as_ref() {
-                                    gc.set_filter("name", &text);
-                                }
-                            }
-                        />
                     </div>
 
                     // Theme selector
