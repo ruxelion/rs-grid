@@ -4,6 +4,13 @@ use crate::format::CellFormat;
 
 // ── cell validator ──────────────────────────────────────
 
+/// Validation callback type alias.
+///
+/// Wrapped in [`Rc`] for the same reason as [`CellFormat::Custom`]:
+/// the grid is single-threaded. [`Clone`] on [`CellValidator`] is a
+/// cheap `Rc::clone`.
+pub type ValidateFn = dyn Fn(&str) -> Result<(), String>;
+
 /// Per-column validation callback.
 ///
 /// Called before a cell edit is committed. Returns `Ok(())` to
@@ -15,9 +22,13 @@ use crate::format::CellFormat;
 ///     v.parse::<u32>().map(|_| ()).map_err(|_| "not a number".into())
 /// })
 /// ```
-/// Validation callback type alias.
-pub type ValidateFn = dyn Fn(&str) -> Result<(), String>;
-
+///
+/// # Thread safety
+///
+/// `CellValidator` is `!Send + !Sync` (it wraps an `Rc`). This is
+/// intentional — the grid targets single-threaded WASM / browser
+/// environments where atomic reference counting would be unnecessary
+/// overhead.
 pub struct CellValidator(pub Rc<ValidateFn>);
 
 impl CellValidator {
@@ -86,6 +97,7 @@ pub const DEFAULT_COL_WIDTH: f64 = 150.0;
 pub const MIN_COL_WIDTH: f64 = 20.0;
 
 /// Definition of a single grid column.
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct ColumnDef {
     /// Unique key used to look up cell values in a row.
@@ -153,6 +165,38 @@ impl ColumnDef {
     /// Set the flex factor. Returns `self` for chaining.
     pub fn with_flex(mut self, flex: f64) -> Self {
         self.flex = Some(flex);
+        self
+    }
+
+    /// Set the minimum width in logical pixels. Returns `self`
+    /// for chaining.
+    pub fn with_min_width(mut self, min: f64) -> Self {
+        self.min_width = Some(min);
+        self
+    }
+
+    /// Set the maximum width in logical pixels. Returns `self`
+    /// for chaining.
+    pub fn with_max_width(mut self, max: f64) -> Self {
+        self.max_width = Some(max);
+        self
+    }
+
+    /// Set the display format. Returns `self` for chaining.
+    pub fn with_format(mut self, format: CellFormat) -> Self {
+        self.format = Some(format);
+        self
+    }
+
+    /// Set the editor override. Returns `self` for chaining.
+    pub fn with_editor(mut self, editor: CellEditor) -> Self {
+        self.editor = Some(editor);
+        self
+    }
+
+    /// Set the validator. Returns `self` for chaining.
+    pub fn with_validator(mut self, validator: CellValidator) -> Self {
+        self.validator = Some(validator);
         self
     }
 
@@ -355,5 +399,16 @@ mod tests {
         let col = ColumnDef::simple("a", "A").with_flex(2.0);
         assert_eq!(col.flex, Some(2.0));
         assert_eq!(col.width, DEFAULT_COL_WIDTH);
+    }
+
+    #[test]
+    fn builder_chain() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_min_width(50.0)
+            .with_max_width(300.0)
+            .with_flex(1.0);
+        assert_eq!(col.min_width, Some(50.0));
+        assert_eq!(col.max_width, Some(300.0));
+        assert_eq!(col.flex, Some(1.0));
     }
 }
