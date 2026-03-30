@@ -503,13 +503,13 @@ impl SceneBuilder {
                         }));
                     }
 
-                    // Text must end before the icon dots (which
-                    // are at the horizontal center of the button).
-                    // icon_center_offset = margin_r + btn_w / 2
-                    let icon_center_offset = t.header_menu_icon_margin_r
-                        + t.header_menu_icon_btn_w / 2.0;
+                    // Text must end before the left edge of the
+                    // menu icon button to prevent the ellipsis
+                    // from overlapping the button.
+                    let icon_btn_offset = t.header_menu_icon_margin_r
+                        + t.header_menu_icon_btn_w;
                     let label_max_w =
-                        (col.width - t.cell_padding - icon_center_offset)
+                        (col.width - t.cell_padding - icon_btn_offset)
                             .max(0.0);
                     frame.push(ScenePrimitive::Text(TextPrimitive {
                         x: cx + t.cell_padding,

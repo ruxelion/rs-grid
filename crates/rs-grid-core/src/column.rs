@@ -101,6 +101,16 @@ pub struct ColumnDef {
     /// Optional maximum width in logical pixels.
     /// Enforced during resize and auto-fit.
     pub max_width: Option<f64>,
+    /// Optional flex factor for proportional sizing.
+    ///
+    /// When set, the column shares remaining viewport space
+    /// proportionally with other flex columns. The `width`
+    /// field is overwritten by the flex computation on each
+    /// viewport resize. Cleared when the user manually
+    /// resizes or auto-fits the column.
+    ///
+    /// `None` = fixed-width column (default).
+    pub flex: Option<f64>,
     /// Optional display format for cell values.
     pub format: Option<CellFormat>,
     /// Optional editor override for inline editing.
@@ -124,6 +134,7 @@ impl ColumnDef {
             width,
             min_width: None,
             max_width: None,
+            flex: None,
             format: None,
             editor: None,
             validator: None,
@@ -137,6 +148,12 @@ impl ColumnDef {
         label: impl Into<String>,
     ) -> Self {
         Self::new(key, label, DEFAULT_COL_WIDTH)
+    }
+
+    /// Set the flex factor. Returns `self` for chaining.
+    pub fn with_flex(mut self, flex: f64) -> Self {
+        self.flex = Some(flex);
+        self
     }
 
     /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
@@ -323,5 +340,20 @@ mod tests {
         col.max_width = Some(50.0);
         assert_eq!(col.clamp_width(30.0), 100.0);
         assert_eq!(col.clamp_width(200.0), 100.0);
+    }
+
+    // ── flex ──────────────────────────────────────────
+
+    #[test]
+    fn flex_default_none() {
+        assert!(ColumnDef::new("a", "A", 100.0).flex.is_none());
+        assert!(ColumnDef::simple("a", "A").flex.is_none());
+    }
+
+    #[test]
+    fn with_flex_builder() {
+        let col = ColumnDef::simple("a", "A").with_flex(2.0);
+        assert_eq!(col.flex, Some(2.0));
+        assert_eq!(col.width, DEFAULT_COL_WIDTH);
     }
 }

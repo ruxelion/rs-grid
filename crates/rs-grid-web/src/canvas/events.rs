@@ -381,12 +381,15 @@ impl GridCanvas {
 
             // ── column resize separator ───────────────────
             if let Some(col_idx) = gc.hit_col_resize_separator(x, y) {
-                let start_width =
-                    gc.0.state.borrow().model.columns[col_idx].width;
+                let state = gc.0.state.borrow();
+                let start_width = state.model.columns[col_idx].width;
+                let start_flex = state.model.columns[col_idx].flex;
+                drop(state);
                 *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColumnResize {
                     col_idx,
                     start_client_x: evt.client_x() as f64,
                     start_width,
+                    start_flex,
                 });
                 gc.set_cursor("col-resize");
                 return;
@@ -611,13 +614,15 @@ impl GridCanvas {
                     col_idx,
                     start_client_x,
                     start_width,
+                    ..
                 }) => {
                     let (ci, scx, sw) = (col_idx, start_client_x, start_width);
                     drop(drag);
                     let dx = evt.client_x() as f64 - scx;
+                    let min_w = gc.header_min_col_width();
                     gc.dispatch(GridCommand::ResizeColumn {
                         col_idx: ci,
-                        new_width: sw + dx,
+                        new_width: (sw + dx).max(min_w),
                     });
                 }
                 None => {
@@ -713,11 +718,13 @@ impl GridCanvas {
                 Some(ActiveDrag::ColumnResize {
                     col_idx,
                     start_width,
+                    start_flex,
                     ..
                 }) => {
                     gc.dispatch(GridCommand::CommitColumnResize {
                         col_idx,
                         old_width: start_width,
+                        old_flex: start_flex,
                     });
                     gc.set_cursor("default");
                 }

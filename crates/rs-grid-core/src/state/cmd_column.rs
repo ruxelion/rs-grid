@@ -11,19 +11,29 @@ impl GridState {
         match cmd {
             GridCommand::ResizeColumn { col_idx, new_width } => {
                 if col_idx < self.model.columns.len() {
+                    self.model.columns[col_idx].flex = None;
                     self.model.columns[col_idx].width =
                         self.model.columns[col_idx].clamp_width(new_width);
                     self.model.rebuild_offsets();
                 }
                 CommandOutput::None
             }
-            GridCommand::CommitColumnResize { col_idx, old_width } => {
+            GridCommand::CommitColumnResize {
+                col_idx,
+                old_width,
+                old_flex,
+            } => {
                 if col_idx < self.model.columns.len() {
                     let cur = self.model.columns[col_idx].width;
-                    if (cur - old_width).abs() > f64::EPSILON {
+                    let flex_changed = old_flex
+                        != self.model.columns[col_idx].flex;
+                    if (cur - old_width).abs() > f64::EPSILON
+                        || flex_changed
+                    {
                         self.history.push(UndoEntry::ResizeColumn {
                             col_idx,
                             old_width,
+                            old_flex,
                         });
                     }
                 }
@@ -57,6 +67,7 @@ impl GridState {
                 const MAX_SAMPLE_ROWS: u64 = 1_000;
                 if col_idx < self.model.columns.len() {
                     let old_width = self.model.columns[col_idx].width;
+                    let old_flex = self.model.columns[col_idx].flex;
                     let col_key = self.model.columns[col_idx].key.clone();
                     let label = &self.model.columns[col_idx].label;
                     let header_w = label.chars().count() as f64
@@ -103,11 +114,15 @@ impl GridState {
                             }
                         }
                     }
+                    self.model.columns[col_idx].flex = None;
                     self.model.columns[col_idx].width =
                         self.model.columns[col_idx].clamp_width(max_w);
                     self.model.rebuild_offsets();
-                    self.history
-                        .push(UndoEntry::ResizeColumn { col_idx, old_width });
+                    self.history.push(UndoEntry::ResizeColumn {
+                        col_idx,
+                        old_width,
+                        old_flex,
+                    });
                 }
                 CommandOutput::None
             }

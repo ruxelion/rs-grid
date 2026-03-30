@@ -147,6 +147,7 @@ enum ActiveDrag {
         col_idx: usize,
         start_client_x: f64,
         start_width: f64,
+        start_flex: Option<f64>,
     },
 }
 

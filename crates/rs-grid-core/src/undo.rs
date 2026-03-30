@@ -9,8 +9,12 @@ pub(crate) enum UndoEntry {
     },
     /// Restore multiple cells (batch paste/cut).
     SetCells(Vec<(u64, String, Option<String>)>),
-    /// Restore a column width.
-    ResizeColumn { col_idx: usize, old_width: f64 },
+    /// Restore a column width (and flex factor).
+    ResizeColumn {
+        col_idx: usize,
+        old_width: f64,
+        old_flex: Option<f64>,
+    },
     /// Reverse a column move.
     MoveColumn { from_idx: usize, to_idx: usize },
 }
