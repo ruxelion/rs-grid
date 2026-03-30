@@ -62,13 +62,24 @@ impl GridState {
                 }
                 UndoEntry::SetCells(inverse)
             }
-            UndoEntry::ResizeColumn { col_idx, old_width } => {
-                let current_width = self.model.columns[*col_idx].width;
+            UndoEntry::ResizeColumn {
+                col_idx,
+                old_width,
+                old_flex,
+            } => {
+                let cur_width = self.model.columns[*col_idx].width;
+                let cur_flex = self.model.columns[*col_idx].flex;
                 self.model.columns[*col_idx].width = *old_width;
+                self.model.columns[*col_idx].flex = *old_flex;
+                if old_flex.is_some() {
+                    self.model
+                        .recalculate_flex_widths(self.viewport.width);
+                }
                 self.model.rebuild_offsets();
                 UndoEntry::ResizeColumn {
                     col_idx: *col_idx,
-                    old_width: current_width,
+                    old_width: cur_width,
+                    old_flex: cur_flex,
                 }
             }
             UndoEntry::MoveColumn { from_idx, to_idx } => {

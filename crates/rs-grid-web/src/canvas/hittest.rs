@@ -153,6 +153,20 @@ impl GridCanvas {
         best_idx
     }
 
+    /// Minimum column width that keeps all header UI elements
+    /// (padding, sort arrows, menu icon) visible.
+    ///
+    /// Used as a floor during interactive resize so a column
+    /// can never be dragged smaller than its own chrome.
+    pub(super) fn header_min_col_width(&self) -> f64 {
+        let b = self.0.builder.borrow();
+        let t = &b.theme;
+        let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
+        let icon_zone =
+            t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
+        t.cell_padding + sort_zone + icon_zone
+    }
+
     /// Returns `(char_width, header_char_width, cell_padding,
     /// header_right_reserve)` derived from the current theme —
     /// same values used by double-click auto-fit.

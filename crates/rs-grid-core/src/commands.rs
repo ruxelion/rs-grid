@@ -188,6 +188,8 @@ pub enum GridCommand {
         col_idx: usize,
         /// Width before the drag started.
         old_width: f64,
+        /// Flex factor before the drag started (`None` if fixed).
+        old_flex: Option<f64>,
     },
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {

@@ -535,6 +535,93 @@ impl GridModel {
     pub fn rebuild_offsets(&mut self) {
         self.column_offsets = ColumnOffsets::compute(&self.columns);
     }
+
+    /// Recalculate widths of flex columns to fill the viewport.
+    ///
+    /// Available space =
+    ///   `viewport_width − row_number_width − scrollbar_size − fixed_sum`.
+    /// Each flex column gets `available × (flex / total_flex)`,
+    /// clamped by `min_width` / `max_width`.
+    ///
+    /// When available space is zero or negative, flex columns
+    /// collapse to their minimum width.
+    ///
+    /// Call [`rebuild_offsets`](Self::rebuild_offsets) after this.
+    pub fn recalculate_flex_widths(
+        &mut self,
+        viewport_width: f64,
+    ) {
+        let mut fixed_sum = 0.0_f64;
+        let mut total_flex = 0.0_f64;
+        let mut flex_indices: Vec<usize> = Vec::new();
+
+        for (i, col) in self.columns.iter().enumerate() {
+            match col.flex {
+                Some(f) if f > 0.0 => {
+                    total_flex += f;
+                    flex_indices.push(i);
+                }
+                _ => {
+                    fixed_sum += col.width;
+                }
+            }
+        }
+
+        if flex_indices.is_empty() {
+            return;
+        }
+
+        let available = viewport_width
+            - self.row_number_width
+            - self.scrollbar_size
+            - fixed_sum;
+
+        // Iterative distribution: when a column hits its
+        // min or max, lock it in and redistribute the rest.
+        let mut remaining = available;
+        let mut remaining_flex = total_flex;
+        let mut settled = vec![false; self.columns.len()];
+
+        for _ in 0..flex_indices.len() {
+            let mut changed = false;
+            for &i in &flex_indices {
+                if settled[i] {
+                    continue;
+                }
+                let f = self.columns[i].flex.unwrap_or(0.0);
+                let raw = if remaining_flex > 0.0 {
+                    remaining * (f / remaining_flex)
+                } else {
+                    0.0
+                };
+                let clamped = self.columns[i].clamp_width(raw);
+                if (clamped - raw).abs() > f64::EPSILON {
+                    settled[i] = true;
+                    self.columns[i].width = clamped;
+                    remaining -= clamped;
+                    remaining_flex -= f;
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+
+        // Assign remaining unsettled flex columns.
+        for &i in &flex_indices {
+            if settled[i] {
+                continue;
+            }
+            let f = self.columns[i].flex.unwrap_or(0.0);
+            let raw = if remaining_flex > 0.0 {
+                remaining * (f / remaining_flex)
+            } else {
+                0.0
+            };
+            self.columns[i].width = self.columns[i].clamp_width(raw);
+        }
+    }
 }
 
 // ── builder ────────────────────────────────────────────
@@ -983,5 +1070,143 @@ mod tests {
             .build();
         // Clamped to number of columns
         assert_eq!(m.pinned_count, 1);
+    }
+
+    // ── recalculate_flex_widths ─────────────────────
+
+    fn flex_model(cols: Vec<ColumnDef>) -> GridModel {
+        let rows = vec![RowRecord::new(0)];
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn flex_basic_distribution() {
+        // 1 fixed (100) + 2 flex:1
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::simple("b", "B").with_flex(1.0),
+            ColumnDef::simple("c", "C").with_flex(1.0),
+        ];
+        let mut m = flex_model(cols);
+        // viewport=600, rnw=m.row_number_width, sb=14
+        let vp = 600.0;
+        let avail = vp - m.row_number_width - m.scrollbar_size - 100.0;
+        m.recalculate_flex_widths(vp);
+        let half = avail / 2.0;
+        assert!(
+            (m.columns[1].width - half).abs() < 0.01,
+            "col1={}, expected {half}",
+            m.columns[1].width
+        );
+        assert!(
+            (m.columns[2].width - half).abs() < 0.01,
+            "col2={}, expected {half}",
+            m.columns[2].width
+        );
+        // Fixed column unchanged
+        assert_eq!(m.columns[0].width, 100.0);
+    }
+
+    #[test]
+    fn flex_weighted_distribution() {
+        // flex:1 and flex:2 → 1/3 and 2/3
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::simple("b", "B").with_flex(1.0),
+            ColumnDef::simple("c", "C").with_flex(2.0),
+        ];
+        let mut m = flex_model(cols);
+        let vp = 600.0;
+        let avail = vp - m.row_number_width - m.scrollbar_size - 100.0;
+        m.recalculate_flex_widths(vp);
+        let third = avail / 3.0;
+        assert!(
+            (m.columns[1].width - third).abs() < 0.01,
+            "col1={}, expected {third}",
+            m.columns[1].width
+        );
+        assert!(
+            (m.columns[2].width - third * 2.0).abs() < 0.01,
+            "col2={}, expected {}",
+            m.columns[2].width,
+            third * 2.0
+        );
+    }
+
+    #[test]
+    fn flex_with_max_redistributes() {
+        // flex:1 with max=80 + flex:1 unconstrained
+        let mut col_b = ColumnDef::simple("b", "B").with_flex(1.0);
+        col_b.max_width = Some(80.0);
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            col_b,
+            ColumnDef::simple("c", "C").with_flex(1.0),
+        ];
+        let mut m = flex_model(cols);
+        let vp = 600.0;
+        let avail = vp - m.row_number_width - m.scrollbar_size - 100.0;
+        m.recalculate_flex_widths(vp);
+        // col_b clamped to 80, remainder goes to col_c
+        assert_eq!(m.columns[1].width, 80.0);
+        let expected_c = avail - 80.0;
+        assert!(
+            (m.columns[2].width - expected_c).abs() < 0.01,
+            "col2={}, expected {expected_c}",
+            m.columns[2].width
+        );
+    }
+
+    #[test]
+    fn flex_negative_available_collapses_to_min() {
+        // Fixed columns exceed viewport → flex gets min
+        let cols = vec![
+            ColumnDef::new("a", "A", 500.0),
+            ColumnDef::new("b", "B", 500.0),
+            ColumnDef::simple("c", "C").with_flex(1.0),
+        ];
+        let mut m = flex_model(cols);
+        m.recalculate_flex_widths(200.0); // way too small
+        assert_eq!(
+            m.columns[2].width,
+            crate::column::MIN_COL_WIDTH,
+            "flex col should collapse to min"
+        );
+    }
+
+    #[test]
+    fn flex_all_columns() {
+        // All flex, no fixed columns
+        let cols = vec![
+            ColumnDef::simple("a", "A").with_flex(1.0),
+            ColumnDef::simple("b", "B").with_flex(1.0),
+        ];
+        let mut m = flex_model(cols);
+        let vp = 400.0;
+        let avail = vp - m.row_number_width - m.scrollbar_size;
+        m.recalculate_flex_widths(vp);
+        let half = avail / 2.0;
+        assert!(
+            (m.columns[0].width - half).abs() < 0.01,
+            "col0={}, expected {half}",
+            m.columns[0].width
+        );
+        assert!(
+            (m.columns[1].width - half).abs() < 0.01,
+            "col1={}, expected {half}",
+            m.columns[1].width
+        );
+    }
+
+    #[test]
+    fn flex_no_flex_columns_is_noop() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 200.0),
+        ];
+        let mut m = flex_model(cols);
+        m.recalculate_flex_widths(800.0);
+        assert_eq!(m.columns[0].width, 100.0);
+        assert_eq!(m.columns[1].width, 200.0);
     }
 }

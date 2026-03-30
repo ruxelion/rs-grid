@@ -170,7 +170,9 @@ pub(super) fn emit_cell(
                     bold,
                     clip: Some([cx, ry, col.width, row_height]),
                     align,
-                    max_width: None,
+                    max_width: Some(
+                        (col.width - 2.0 * t.cell_padding).max(0.0),
+                    ),
                 }));
             }
         }
@@ -245,7 +247,10 @@ fn emit_image_text(
             bold: false,
             clip: Some([cx, ry, col_width, row_height]),
             align: TextAlign::Left,
-            max_width: None,
+            max_width: Some(
+                (col_width - 2.0 * t.cell_padding - image_size - gap)
+                    .max(0.0),
+            ),
         }));
     }
 }

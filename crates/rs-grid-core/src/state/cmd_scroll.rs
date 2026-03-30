@@ -25,6 +25,8 @@ impl GridState {
             GridCommand::Resize { width, height } => {
                 self.viewport.width = width;
                 self.viewport.height = height;
+                self.model.recalculate_flex_widths(width);
+                self.model.rebuild_offsets();
                 CommandOutput::None
             }
             _ => unreachable!(),

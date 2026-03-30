@@ -80,10 +80,12 @@ impl GridState {
     /// Create a grid state from a model and initial viewport
     /// dimensions.
     pub fn new(
-        model: GridModel,
+        mut model: GridModel,
         viewport_width: f64,
         viewport_height: f64,
     ) -> Self {
+        model.recalculate_flex_widths(viewport_width);
+        model.rebuild_offsets();
         Self {
             model,
             viewport: ViewportState::new(viewport_width, viewport_height),
@@ -580,6 +582,7 @@ mod tests {
             width: 100.0,
             min_width: None,
             max_width: None,
+            flex: None,
             format: Some(CellFormat::ImageText {
                 base_url: String::new(),
                 suffix: String::new(),
@@ -1325,6 +1328,7 @@ mod tests {
         s.apply(GridCommand::CommitColumnResize {
             col_idx: 0,
             old_width: orig,
+            old_flex: None,
         });
         assert_eq!(s.model.columns[0].width, 250.0);
         // Undo restores the width before the drag
@@ -1340,6 +1344,7 @@ mod tests {
         s.apply(GridCommand::CommitColumnResize {
             col_idx: 0,
             old_width: orig,
+            old_flex: None,
         });
         // Undo should be a no-op (nothing was pushed)
         s.apply(GridCommand::Undo);
@@ -1501,5 +1506,78 @@ mod tests {
         });
         assert_eq!(s.viewport.scroll_x, 0.0);
         assert_eq!(s.viewport.scroll_y, 0.0);
+    }
+
+    // ── Flex integration ────────────────────────────
+
+    fn make_flex_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::simple("b", "B").with_flex(1.0),
+            ColumnDef::simple("c", "C").with_flex(1.0),
+        ];
+        let rows: Vec<RowRecord> =
+            (0..5).map(|i| RowRecord::new(i)).collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn flex_applied_at_init() {
+        let s = make_flex_state();
+        // Fixed col unchanged
+        assert_eq!(s.model.columns[0].width, 100.0);
+        // Flex cols share remaining space equally
+        let avail = 800.0
+            - s.model.row_number_width
+            - s.model.scrollbar_size
+            - 100.0;
+        let half = avail / 2.0;
+        assert!(
+            (s.model.columns[1].width - half).abs() < 0.01,
+            "flex col b={}, expected {half}",
+            s.model.columns[1].width
+        );
+    }
+
+    #[test]
+    fn flex_recalculated_on_resize() {
+        let mut s = make_flex_state();
+        let w1 = s.model.columns[1].width;
+        s.apply(GridCommand::Resize {
+            width: 1200.0,
+            height: 600.0,
+        });
+        let w2 = s.model.columns[1].width;
+        assert!(
+            w2 > w1,
+            "flex col should grow on wider viewport: {w2} > {w1}"
+        );
+    }
+
+    #[test]
+    fn flex_cleared_on_resize_column() {
+        let mut s = make_flex_state();
+        assert!(s.model.columns[1].flex.is_some());
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 1,
+            new_width: 200.0,
+        });
+        assert!(s.model.columns[1].flex.is_none());
+        assert_eq!(s.model.columns[1].width, 200.0);
+    }
+
+    #[test]
+    fn flex_cleared_on_autofit() {
+        let mut s = make_flex_state();
+        assert!(s.model.columns[1].flex.is_some());
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 1,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+            header_right_reserve: 0.0,
+        });
+        assert!(s.model.columns[1].flex.is_none());
     }
 }
