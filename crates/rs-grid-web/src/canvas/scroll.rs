@@ -21,24 +21,7 @@ impl GridCanvas {
     }
 
     pub(super) fn pan_cursor() -> &'static str {
-        concat!(
-            "url(\"data:image/svg+xml,",
-            "%3Csvg xmlns='http://www.w3.org/2000/svg' ",
-            "width='32' height='32'%3E",
-            "%3Ccircle cx='16' cy='16' r='5' fill='none' ",
-            "stroke='%23555' stroke-width='1.5'/%3E",
-            "%3Ccircle cx='16' cy='16' r='2' ",
-            "fill='%23555'/%3E",
-            "%3Cpolygon points='16,3 12.5,10 19.5,10' ",
-            "fill='%23555'/%3E",
-            "%3Cpolygon points='16,29 12.5,22 19.5,22' ",
-            "fill='%23555'/%3E",
-            "%3Cpolygon points='3,16 10,12.5 10,19.5' ",
-            "fill='%23555'/%3E",
-            "%3Cpolygon points='29,16 22,12.5 22,19.5' ",
-            "fill='%23555'/%3E",
-            "%3C/svg%3E\") 16 16, all-scroll",
-        )
+        "all-scroll"
     }
 
     pub(super) fn stop_pan(&self) {
