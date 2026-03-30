@@ -400,10 +400,13 @@ impl GridCanvas {
             if let Some(col) = col {
                 // Three-dot icon at right edge → open header menu.
                 if gc.hit_header_menu_icon(x, y).is_some() {
+                    let (ax, ay) = gc.menu_icon_anchor(col);
+                    let rect =
+                        gc.0.canvas.get_bounding_client_rect();
                     gc.show_col_header_menu(
                         col,
-                        evt.client_x(),
-                        evt.client_y(),
+                        (rect.left() + ax) as i32,
+                        (rect.top() + ay) as i32,
                     );
                     return;
                 }

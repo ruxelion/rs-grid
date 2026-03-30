@@ -220,6 +220,40 @@ impl GridCanvas {
         }
     }
 
+    /// Returns the bottom-left corner of the menu icon button
+    /// for `col_idx` in canvas-local coordinates, suitable for
+    /// anchoring the context menu at a fixed position.
+    pub(super) fn menu_icon_anchor(
+        &self,
+        col_idx: usize,
+    ) -> (f64, f64) {
+        let theme = self.0.builder.borrow();
+        let mr = theme.theme.header_menu_icon_margin_r;
+        let bw = theme.theme.header_menu_icon_btn_w;
+        let bh_cfg = theme.theme.header_menu_icon_btn_h;
+        drop(theme);
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let btn_h = if bh_cfg > 0.0 {
+            bh_cfg
+        } else {
+            (model.header_height - 12.0).max(8.0)
+        };
+        let btn_ty = (model.header_height - btn_h) / 2.0;
+        let off = model.column_offsets.offsets[col_idx];
+        let sx = state.viewport.scroll_x;
+        let rnw = model.row_number_width;
+        let col_left_vx = if col_idx < model.pinned_count {
+            off + rnw
+        } else {
+            off - sx + rnw
+        };
+        let col_right_vx =
+            col_left_vx + model.columns[col_idx].width;
+        let btn_left_vx = col_right_vx - mr - bw;
+        (btn_left_vx, btn_ty + btn_h)
+    }
+
     /// Build a `ColumnDragHint` from the current drag state,
     /// or `None` if no column drag is active.
     pub(super) fn column_drag_hint(&self) -> Option<ColumnDragHint> {

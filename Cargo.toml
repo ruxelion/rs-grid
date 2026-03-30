@@ -32,6 +32,7 @@ features = [
   "Element",
   "EventTarget",
   "MouseEvent",
+  "MouseEventInit",
   "WheelEvent",
   "DomRect",
   "ResizeObserver",
