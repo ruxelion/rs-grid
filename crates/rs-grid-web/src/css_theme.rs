@@ -49,6 +49,10 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-gutter-font-size`       | `Theme::gutter_font_size`        |
 /// | `--rs-grid-gutter-font-bold`       | `Theme::gutter_font_bold`        |
 /// | `--rs-grid-gutter-border`          | `Theme::gutter_border`           |
+/// | `--rs-grid-pinned-bg`              | `Theme::pinned_bg`               |
+/// | `--rs-grid-pinned-header-bg`       | `Theme::pinned_header_bg`        |
+/// | `--rs-grid-pinned-separator-color` | `Theme::pinned_separator_color`  |
+/// | `--rs-grid-pinned-separator-width` | `Theme::pinned_separator_width`  |
 pub fn theme_from_css_vars() -> Theme {
     let fallback = Theme::light();
 
@@ -192,6 +196,19 @@ pub fn theme_from_css_vars() -> Theme {
     t.header_menu_icon_dot_r = px(
         "--rs-grid-header-menu-icon-dot-r",
         t.header_menu_icon_dot_r,
+    );
+    t.pinned_bg = color("--rs-grid-pinned-bg", t.pinned_bg);
+    t.pinned_header_bg = color(
+        "--rs-grid-pinned-header-bg",
+        t.pinned_header_bg,
+    );
+    t.pinned_separator_color = color(
+        "--rs-grid-pinned-separator-color",
+        t.pinned_separator_color,
+    );
+    t.pinned_separator_width = px(
+        "--rs-grid-pinned-separator-width",
+        t.pinned_separator_width,
     );
     t.gutter_bg = color("--rs-grid-gutter-bg", t.gutter_bg);
     t.gutter_text = color("--rs-grid-gutter-text", t.gutter_text);

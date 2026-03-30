@@ -135,6 +135,19 @@ pub struct Theme {
     /// Radius of each dot in the three-dot icon, in logical pixels.
     pub header_menu_icon_dot_r: f64,
 
+    // ── pinned columns ────────────────────────────────────────────────────────
+    /// Background of the pinned-column data band.
+    /// Defaults to `bg`.
+    pub pinned_bg: Color,
+    /// Background of the pinned-column header band.
+    /// Defaults to `header_bg`.
+    pub pinned_header_bg: Color,
+    /// Color of the vertical separator at the right edge of the
+    /// pinned band. Defaults to `header_border`.
+    pub pinned_separator_color: Color,
+    /// Width of the pinned-column separator line in logical pixels.
+    pub pinned_separator_width: f64,
+
     // ── row-number gutter ─────────────────────────────────────────────────────
     /// Background of the row-number gutter column.
     pub gutter_bg: Color,
@@ -209,6 +222,11 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // pinned columns
+            pinned_bg: Color::rgb(255, 255, 255),
+            pinned_header_bg: Color::rgb(250, 250, 250),
+            pinned_separator_color: Color::rgb(220, 220, 220),
+            pinned_separator_width: 1.0,
             // row-number gutter
             gutter_bg: Color::rgb(250, 250, 250),
             gutter_text: Color::rgba(0, 0, 0, 255),
@@ -278,6 +296,11 @@ impl Theme {
             header_menu_icon_btn_w: 16.0,
             header_menu_icon_btn_h: 0.0,
             header_menu_icon_dot_r: 1.0,
+            // pinned columns
+            pinned_bg: Color::rgb(26, 27, 38),
+            pinned_header_bg: Color::rgb(36, 40, 59),
+            pinned_separator_color: Color::rgb(61, 68, 102),
+            pinned_separator_width: 1.0,
             // row-number gutter
             gutter_bg: Color::rgb(36, 40, 59),
             gutter_text: Color::rgba(169, 177, 214, 153),
