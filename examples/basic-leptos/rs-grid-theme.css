@@ -185,6 +185,37 @@ body {
   --rs-grid-header-font-size: 14px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
+  --rs-grid-header-separator-inset: 15px;
+  --rs-grid-header-separator-width: 2px;
+  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-header-height: 50px;
+  --rs-grid-row-height: 40px;
+  --rs-grid-flash-fill: rgba(255, 193, 7, 0.71);
+  --rs-grid-flash-border: rgba(255, 193, 7, 0.82);
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-search-current: rgba(255, 165, 0, 0.55);
+  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.39);
+  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
+  --rs-grid-drag-ghost-bg: rgba(248, 249, 250, 0.71);
+  --rs-grid-drag-ghost-text: rgba(24, 29, 31, 0.78);
+  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-drag-ghost-radius: 4px;
+  --rs-grid-drag-ghost-border-width: 1px;
+  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-sort-arrow-width: 4px;
+  --rs-grid-sort-arrow-height: 3.5px;
+  --rs-grid-header-menu-icon: rgba(0, 0, 0, 1);
+  --rs-grid-header-menu-icon-hover-bg: rgba(0, 0, 0, 0.06);
+  --rs-grid-header-menu-icon-radius: 3px;
+  --rs-grid-header-menu-icon-margin-r: 10px;
+  --rs-grid-header-menu-icon-btn-w: 22px;
+  --rs-grid-header-menu-icon-btn-h: 22px;
+  --rs-grid-header-menu-icon-dot-r: 1.2px;
+  --rs-grid-gutter-bg: var(--rs-grid-header-bg);
+  --rs-grid-gutter-text: rgba(0, 0, 0, 1);
+  --rs-grid-gutter-font-size: 14px;
+  --rs-grid-gutter-font-bold: 1;
+  --rs-grid-gutter-border: #dcdcdc;
 
   /* context menu */
   --rs-grid-ctx-bg: #ffffff;
@@ -216,6 +247,37 @@ body {
   --rs-grid-header-font-size: 13px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
+  --rs-grid-header-separator-inset: 15px;
+  --rs-grid-header-separator-width: 2px;
+  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-header-height: 50px;
+  --rs-grid-row-height: 40px;
+  --rs-grid-flash-fill: rgba(255, 193, 7, 0.71);
+  --rs-grid-flash-border: rgba(255, 193, 7, 0.82);
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-search-current: rgba(255, 165, 0, 0.55);
+  --rs-grid-skeleton-fg: rgba(60, 65, 90, 0.39);
+  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
+  --rs-grid-drag-ghost-bg: rgba(36, 40, 59, 0.71);
+  --rs-grid-drag-ghost-text: rgba(169, 177, 214, 0.78);
+  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-drag-ghost-radius: 4px;
+  --rs-grid-drag-ghost-border-width: 1px;
+  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-sort-arrow-width: 4px;
+  --rs-grid-sort-arrow-height: 3.5px;
+  --rs-grid-header-menu-icon: rgba(169, 177, 214, 0.39);
+  --rs-grid-header-menu-icon-hover-bg: rgba(169, 177, 214, 0.12);
+  --rs-grid-header-menu-icon-radius: 4px;
+  --rs-grid-header-menu-icon-margin-r: 2px;
+  --rs-grid-header-menu-icon-btn-w: 16px;
+  --rs-grid-header-menu-icon-btn-h: 0px;
+  --rs-grid-header-menu-icon-dot-r: 1px;
+  --rs-grid-gutter-bg: var(--rs-grid-header-bg);
+  --rs-grid-gutter-text: rgba(176, 176, 176, 1);
+  --rs-grid-gutter-font-size: 13px;
+  --rs-grid-gutter-font-bold: 0;
+  --rs-grid-gutter-border: #333335;
 
   /* context menu */
   --rs-grid-ctx-bg: #252527;
@@ -323,6 +385,37 @@ body {
   --rs-grid-header-font-size: 14px; /* Title Small        */
   --rs-grid-header-font-bold: 1; /* Title = weight 500 */
   --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
+  --rs-grid-header-separator-inset: 15px;
+  --rs-grid-header-separator-width: 2px;
+  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-header-height: 56px; /* M3 data table 56dp */
+  --rs-grid-row-height: 52px; /* M3 data table 52dp */
+  --rs-grid-flash-fill: rgba(103, 80, 164, 0.5); /* Primary @ 50%      */
+  --rs-grid-flash-border: rgba(103, 80, 164, 0.7); /* Primary @ 70%      */
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-search-current: rgba(255, 165, 0, 0.55);
+  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.39);
+  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
+  --rs-grid-drag-ghost-bg: rgba(231, 224, 236, 0.85); /* Surface Variant    */
+  --rs-grid-drag-ghost-text: rgba(28, 27, 31, 0.78); /* On Surface         */
+  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-drag-ghost-radius: 12px; /* Shape Medium       */
+  --rs-grid-drag-ghost-border-width: 1px;
+  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-sort-arrow-width: 4px;
+  --rs-grid-sort-arrow-height: 3.5px;
+  --rs-grid-header-menu-icon: rgba(28, 27, 31, 1); /* On Surface         */
+  --rs-grid-header-menu-icon-hover-bg: rgba(28, 27, 31, 0.08);
+  --rs-grid-header-menu-icon-radius: 4px;
+  --rs-grid-header-menu-icon-margin-r: 10px;
+  --rs-grid-header-menu-icon-btn-w: 22px;
+  --rs-grid-header-menu-icon-btn-h: 22px;
+  --rs-grid-header-menu-icon-dot-r: 1.2px;
+  --rs-grid-gutter-bg: #e7e0ec; /* Surface Variant    */
+  --rs-grid-gutter-text: #1c1b1f; /* On Surface         */
+  --rs-grid-gutter-font-size: 14px;
+  --rs-grid-gutter-font-bold: 1;
+  --rs-grid-gutter-border: #79747e; /* Outline            */
 
   /* context menu — M3 Elevation 2 surface */
   --rs-grid-ctx-bg: #fffbfe; /* Surface            */
@@ -433,6 +526,37 @@ body {
   --rs-grid-header-font-size: 14px; /* Title Small        */
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
+  --rs-grid-header-separator-inset: 15px;
+  --rs-grid-header-separator-width: 2px;
+  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-header-height: 56px; /* M3 data table 56dp */
+  --rs-grid-row-height: 52px; /* M3 data table 52dp */
+  --rs-grid-flash-fill: rgba(208, 188, 255, 0.5); /* Primary @ 50%      */
+  --rs-grid-flash-border: rgba(208, 188, 255, 0.7); /* Primary @ 70%      */
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-search-current: rgba(255, 165, 0, 0.55);
+  --rs-grid-skeleton-fg: rgba(60, 65, 90, 0.39);
+  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
+  --rs-grid-drag-ghost-bg: rgba(73, 69, 78, 0.85); /* Surface Variant    */
+  --rs-grid-drag-ghost-text: rgba(230, 225, 230, 0.78); /* On Surface         */
+  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-drag-ghost-radius: 12px; /* Shape Medium       */
+  --rs-grid-drag-ghost-border-width: 1px;
+  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-sort-arrow-width: 4px;
+  --rs-grid-sort-arrow-height: 3.5px;
+  --rs-grid-header-menu-icon: rgba(230, 225, 230, 0.39); /* On Surface       */
+  --rs-grid-header-menu-icon-hover-bg: rgba(230, 225, 230, 0.08);
+  --rs-grid-header-menu-icon-radius: 4px;
+  --rs-grid-header-menu-icon-margin-r: 2px;
+  --rs-grid-header-menu-icon-btn-w: 16px;
+  --rs-grid-header-menu-icon-btn-h: 0px;
+  --rs-grid-header-menu-icon-dot-r: 1px;
+  --rs-grid-gutter-bg: #49454e; /* Surface Variant    */
+  --rs-grid-gutter-text: #e6e1e6; /* On Surface         */
+  --rs-grid-gutter-font-size: 14px;
+  --rs-grid-gutter-font-bold: 0;
+  --rs-grid-gutter-border: #938f99; /* Outline            */
 
   /* context menu — M3 Elevation 2 dark */
   --rs-grid-ctx-bg: #2b2930;
