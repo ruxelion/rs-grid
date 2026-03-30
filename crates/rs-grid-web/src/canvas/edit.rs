@@ -58,24 +58,59 @@ impl GridCanvas {
                 .filter(|v| !v.is_empty())
                 .unwrap_or_else(|| fb.to_string())
         };
-        let border_color = var("--rs-grid-editor-border", "#2563eb");
+        let border_color =
+            var("--rs-grid-editor-border", "#2563eb");
+        let border_width =
+            var("--rs-grid-editor-border-width", "2px");
+        let border_radius =
+            var("--rs-grid-editor-border-radius", "0");
         let bg = var("--rs-grid-editor-bg", "#ffffff");
+        let padding = var("--rs-grid-editor-padding", "0 4px");
+        let font_size =
+            var("--rs-grid-editor-font-size", "inherit");
+        let shadow = var("--rs-grid-editor-shadow", "none");
+
+        // Parse border width to offset the editor so the border
+        // wraps around the cell rather than clipping inside it.
+        let bw: f64 = border_width
+            .trim_end_matches("px")
+            .parse()
+            .unwrap_or(2.0);
 
         let style = el.style();
         let _ = style.set_property("position", "fixed");
-        let _ = style.set_property("left", &format!("{left}px"));
-        let _ = style.set_property("top", &format!("{top}px"));
-        let _ = style.set_property("width", &format!("{w}px"));
-        let _ = style.set_property("height", &format!("{h}px"));
+        let _ = style.set_property(
+            "left",
+            &format!("{}px", left - bw),
+        );
+        let _ = style.set_property(
+            "top",
+            &format!("{}px", top - bw),
+        );
+        let _ = style.set_property(
+            "width",
+            &format!("{}px", w + 2.0 * bw),
+        );
+        let _ = style.set_property(
+            "height",
+            &format!("{}px", h + 2.0 * bw),
+        );
         let _ = style.set_property("z-index", "10000");
+        let _ = style.set_property(
+            "border",
+            &format!("{border_width} solid {border_color}"),
+        );
         let _ =
-            style.set_property("border", &format!("2px solid {border_color}"));
+            style.set_property("border-radius", &border_radius);
         let _ = style.set_property("outline", "none");
-        let _ = style.set_property("padding", "0 4px");
+        let _ = style.set_property("padding", &padding);
         let _ = style.set_property("margin", "0");
         let _ = style.set_property("box-sizing", "border-box");
-        let _ = style.set_property("font", "inherit");
+        let _ =
+            style.set_property("font-size", &font_size);
+        let _ = style.set_property("font-family", "inherit");
         let _ = style.set_property("background", &bg);
+        let _ = style.set_property("box-shadow", &shadow);
     }
 
     /// Create the appropriate DOM overlay for inline
