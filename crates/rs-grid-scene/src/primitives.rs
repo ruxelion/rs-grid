@@ -155,3 +155,228 @@ pub enum ScenePrimitive {
     /// Image loaded from a URL.
     Image(ImagePrimitive),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Color ────────────────────────────────────────────────
+
+    #[test]
+    fn color_rgba_stores_all_channels() {
+        let c = Color::rgba(10, 20, 30, 40);
+        assert_eq!((c.r, c.g, c.b, c.a), (10, 20, 30, 40));
+    }
+
+    #[test]
+    fn color_rgb_is_fully_opaque() {
+        let c = Color::rgb(100, 150, 200);
+        assert_eq!(c.a, 255);
+        assert_eq!((c.r, c.g, c.b), (100, 150, 200));
+    }
+
+    #[test]
+    fn color_to_css_opaque() {
+        let c = Color::rgb(255, 128, 0);
+        assert_eq!(c.to_css(), "rgba(255,128,0,1.0000)");
+    }
+
+    #[test]
+    fn color_to_css_transparent() {
+        let c = Color::rgba(10, 20, 30, 0);
+        assert_eq!(c.to_css(), "rgba(10,20,30,0.0000)");
+    }
+
+    #[test]
+    fn color_to_css_half_alpha() {
+        let c = Color::rgba(0, 0, 0, 128);
+        let css = c.to_css();
+        // 128/255 ≈ 0.5020
+        assert!(css.starts_with("rgba(0,0,0,0.50"));
+    }
+
+    #[test]
+    fn color_equality() {
+        let a = Color::rgb(1, 2, 3);
+        let b = Color::rgba(1, 2, 3, 255);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn color_copy_semantics() {
+        let a = Color::rgb(10, 20, 30);
+        let b = a; // Copy
+        assert_eq!(a, b);
+    }
+
+    // ── TextAlign ───────────────────────────────────────────
+
+    #[test]
+    fn text_align_default_is_left() {
+        assert_eq!(TextAlign::default(), TextAlign::Left);
+    }
+
+    #[test]
+    fn text_align_variants_distinct() {
+        assert_ne!(TextAlign::Left, TextAlign::Center);
+        assert_ne!(TextAlign::Center, TextAlign::Right);
+        assert_ne!(TextAlign::Left, TextAlign::Right);
+    }
+
+    // ── RectPrimitive ───────────────────────────────────────
+
+    #[test]
+    fn rect_primitive_no_stroke() {
+        let r = RectPrimitive {
+            x: 10.0,
+            y: 20.0,
+            width: 100.0,
+            height: 50.0,
+            fill: Color::rgb(255, 0, 0),
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+        };
+        assert!(r.stroke.is_none());
+        assert_eq!(r.x, 10.0);
+    }
+
+    #[test]
+    fn rect_primitive_with_stroke() {
+        let r = RectPrimitive {
+            x: 0.0,
+            y: 0.0,
+            width: 50.0,
+            height: 50.0,
+            fill: Color::rgb(0, 0, 0),
+            stroke: Some(Color::rgb(255, 0, 0)),
+            stroke_width: 2.0,
+            corner_radius: 4.0,
+        };
+        assert!(r.stroke.is_some());
+        assert_eq!(r.stroke_width, 2.0);
+        assert_eq!(r.corner_radius, 4.0);
+    }
+
+    // ── TextPrimitive ───────────────────────────────────────
+
+    #[test]
+    fn text_primitive_fields() {
+        let t = TextPrimitive {
+            x: 5.0,
+            y: 15.0,
+            text: "Hello".into(),
+            color: Color::rgb(0, 0, 0),
+            font_size: 14.0,
+            bold: true,
+            clip: Some([0.0, 0.0, 100.0, 50.0]),
+            align: TextAlign::Center,
+            max_width: Some(80.0),
+        };
+        assert_eq!(t.text, "Hello");
+        assert!(t.bold);
+        assert_eq!(t.align, TextAlign::Center);
+        assert_eq!(t.max_width, Some(80.0));
+    }
+
+    #[test]
+    fn text_primitive_no_clip_no_max_width() {
+        let t = TextPrimitive {
+            x: 0.0,
+            y: 0.0,
+            text: String::new(),
+            color: Color::rgb(0, 0, 0),
+            font_size: 12.0,
+            bold: false,
+            clip: None,
+            align: TextAlign::Left,
+            max_width: None,
+        };
+        assert!(t.clip.is_none());
+        assert!(t.max_width.is_none());
+    }
+
+    // ── LinePrimitive ───────────────────────────────────────
+
+    #[test]
+    fn line_primitive_fields() {
+        let l = LinePrimitive {
+            x1: 0.0,
+            y1: 0.0,
+            x2: 100.0,
+            y2: 100.0,
+            color: Color::rgb(128, 128, 128),
+            width: 1.5,
+        };
+        assert_eq!(l.x2, 100.0);
+        assert_eq!(l.width, 1.5);
+    }
+
+    // ── PolygonPrimitive ────────────────────────────────────
+
+    #[test]
+    fn polygon_primitive_triangle() {
+        let p = PolygonPrimitive {
+            points: vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]],
+            fill: Color::rgb(0, 255, 0),
+            corner_radius: 0.0,
+        };
+        assert_eq!(p.points.len(), 3);
+    }
+
+    // ── ImagePrimitive ──────────────────────────────────────
+
+    #[test]
+    fn image_primitive_fields() {
+        let img = ImagePrimitive {
+            url: "https://example.com/img.png".into(),
+            x: 10.0,
+            y: 20.0,
+            width: 32.0,
+            height: 32.0,
+            corner_radius: 4.0,
+            clip: Some([10.0, 20.0, 32.0, 32.0]),
+            placeholder_color: Color::rgba(200, 200, 200, 100),
+        };
+        assert_eq!(img.url, "https://example.com/img.png");
+        assert!(img.clip.is_some());
+    }
+
+    // ── ScenePrimitive enum ─────────────────────────────────
+
+    #[test]
+    fn scene_primitive_rect_variant() {
+        let p = ScenePrimitive::Rect(RectPrimitive {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+            fill: Color::rgb(0, 0, 0),
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+        });
+        assert!(matches!(p, ScenePrimitive::Rect(_)));
+    }
+
+    #[test]
+    fn scene_primitive_clone() {
+        let p = ScenePrimitive::Text(TextPrimitive {
+            x: 0.0,
+            y: 0.0,
+            text: "clone me".into(),
+            color: Color::rgb(0, 0, 0),
+            font_size: 12.0,
+            bold: false,
+            clip: None,
+            align: TextAlign::Left,
+            max_width: None,
+        });
+        let p2 = p.clone();
+        if let ScenePrimitive::Text(t) = p2 {
+            assert_eq!(t.text, "clone me");
+        } else {
+            panic!("expected Text variant");
+        }
+    }
+}

@@ -180,10 +180,217 @@ pub fn GridCanvas(
         drop(gc_for_cleanup);
     });
 
+    let style = canvas_style(&width, &height);
+
     view! {
         <canvas
             node_ref=canvas_ref
-            style=format!("width:{};height:{};display:block", width, height)
+            style=style
         />
+    }
+}
+
+/// Build the inline CSS style applied to the `<canvas>`
+/// element.
+fn canvas_style(width: &str, height: &str) -> String {
+    format!("width:{};height:{};display:block", width, height)
+}
+
+// ── Unit tests ───────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── canvas_style ─────────────────────────────────
+
+    #[test]
+    fn canvas_style_defaults() {
+        assert_eq!(
+            canvas_style("100%", "600px"),
+            "width:100%;height:600px;display:block"
+        );
+    }
+
+    #[test]
+    fn canvas_style_fixed_dimensions() {
+        assert_eq!(
+            canvas_style("800px", "400px"),
+            "width:800px;height:400px;display:block"
+        );
+    }
+
+    #[test]
+    fn canvas_style_empty_strings() {
+        assert_eq!(canvas_style("", ""), "width:;height:;display:block");
+    }
+
+    #[test]
+    fn canvas_style_viewport_units() {
+        let s = canvas_style("50vw", "80vh");
+        assert!(s.contains("50vw"));
+        assert!(s.contains("80vh"));
+        assert!(s.ends_with("display:block"));
+    }
+
+    // ── Re-export: Locale ────────────────────────────
+
+    #[test]
+    fn locale_default_is_english() {
+        let loc = Locale::default();
+        assert_eq!(loc.cut, "Cut");
+        assert_eq!(loc.copy, "Copy");
+        assert_eq!(loc.paste, "Paste");
+    }
+
+    #[test]
+    fn locale_en() {
+        let loc = Locale::en();
+        assert_eq!(loc.cut, "Cut");
+        assert_eq!(loc.copy_with_headers, "Copy with headers");
+        assert!(!loc.search_placeholder.is_empty());
+    }
+
+    #[test]
+    fn locale_fr() {
+        let loc = Locale::fr();
+        assert_eq!(loc.cut, "Couper");
+        assert_eq!(loc.copy, "Copier");
+    }
+
+    #[test]
+    fn locale_from_language_tag_exact() {
+        let loc = Locale::from_language_tag("de");
+        assert_eq!(loc.cut, "Ausschneiden");
+    }
+
+    #[test]
+    fn locale_from_language_tag_with_region() {
+        let loc = Locale::from_language_tag("es-MX");
+        assert_eq!(loc.cut, "Cortar");
+    }
+
+    #[test]
+    fn locale_from_language_tag_unknown_fallback() {
+        let loc = Locale::from_language_tag("xx-ZZ");
+        // Unknown tags fall back to English
+        assert_eq!(loc.cut, "Cut");
+    }
+
+    #[test]
+    fn locale_all_builtins_non_empty() {
+        let locales: Vec<(&str, Locale)> = vec![
+            ("en", Locale::en()),
+            ("fr", Locale::fr()),
+            ("de", Locale::de()),
+            ("es", Locale::es()),
+            ("it", Locale::it()),
+            ("pt", Locale::pt()),
+            ("nl", Locale::nl()),
+            ("pl", Locale::pl()),
+            ("tr", Locale::tr()),
+            ("ru", Locale::ru()),
+            ("uk", Locale::uk()),
+            ("ar", Locale::ar()),
+            ("ja", Locale::ja()),
+            ("zh", Locale::zh()),
+            ("ko", Locale::ko()),
+        ];
+        for (name, loc) in &locales {
+            assert!(!loc.cut.is_empty(), "{name}: cut empty");
+            assert!(!loc.copy.is_empty(), "{name}: copy empty");
+            assert!(!loc.paste.is_empty(), "{name}: paste empty");
+            assert!(
+                !loc.search_placeholder.is_empty(),
+                "{name}: search_placeholder empty"
+            );
+            assert!(
+                !loc.sort_ascending.is_empty(),
+                "{name}: sort_ascending empty"
+            );
+            assert!(!loc.pin_column.is_empty(), "{name}: pin_column empty");
+        }
+    }
+
+    // ── Re-export: Theme ─────────────────────────────
+
+    #[test]
+    fn theme_light_defaults() {
+        let t = Theme::light();
+        assert!(t.font_size > 0.0);
+        assert!(t.row_height > 0.0);
+        assert!(t.header_height > 0.0);
+        assert!(t.cell_padding > 0.0);
+    }
+
+    #[test]
+    fn theme_dark_defaults() {
+        let t = Theme::dark();
+        assert!(t.font_size > 0.0);
+        assert!(t.row_height > 0.0);
+        assert!(t.header_height > 0.0);
+    }
+
+    #[test]
+    fn theme_light_dark_differ() {
+        let l = Theme::light();
+        let d = Theme::dark();
+        // Background colors must differ between themes
+        assert_ne!(l.bg, d.bg);
+        assert_ne!(l.header_bg, d.header_bg);
+    }
+
+    // ── GridModel / GridState construction ────────────
+
+    #[test]
+    fn grid_state_new_default_viewport() {
+        use rs_grid_core::{column::ColumnDef, model::GridModel};
+
+        let cols = vec![
+            ColumnDef::new("a", "Col A", 100.0),
+            ColumnDef::new("b", "Col B", 150.0),
+        ];
+        let model = GridModel::new(cols, vec![], 30.0, 40.0);
+        let state = GridState::new(model, 800.0, 600.0);
+
+        assert_eq!(state.viewport.width, 800.0);
+        assert_eq!(state.viewport.height, 600.0);
+        assert_eq!(state.viewport.scroll_x, 0.0);
+        assert_eq!(state.viewport.scroll_y, 0.0);
+    }
+
+    #[test]
+    fn grid_state_with_rows() {
+        use rs_grid_core::{
+            column::ColumnDef, model::GridModel, row::RowRecord,
+        };
+
+        let cols = vec![ColumnDef::new("name", "Name", 120.0)];
+        let mut r1 = RowRecord::new(0);
+        r1.set("name", "Alice");
+        let mut r2 = RowRecord::new(1);
+        r2.set("name", "Bob");
+        let mut r3 = RowRecord::new(2);
+        r3.set("name", "Carol");
+        let model = GridModel::new(cols, vec![r1, r2, r3], 30.0, 40.0);
+        let state = GridState::new(model, 500.0, 300.0);
+
+        assert_eq!(state.model.data.row_count(), 3);
+    }
+
+    // ── Type alias ───────────────────────────────────
+
+    #[test]
+    fn validation_error_cb_callable() {
+        let called = Rc::new(Cell::new(false));
+        let called_c = called.clone();
+        let cb: ValidationErrorCb = Box::new(move |row, col, msg| {
+            assert_eq!(row, 42);
+            assert_eq!(col, "price");
+            assert_eq!(msg, "negative value");
+            called_c.set(true);
+        });
+        cb(42, "price".into(), "negative value".into());
+        assert!(called.get());
     }
 }

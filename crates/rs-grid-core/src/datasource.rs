@@ -128,3 +128,171 @@ impl<F: Fn(u64, &str) -> Option<String>> std::fmt::Debug for FnDataSource<F> {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::row::RowRecord;
+
+    fn make_rows() -> Vec<RowRecord> {
+        let mut r0 = RowRecord::new(0);
+        r0.set("a", "hello");
+        r0.set("b", "world");
+        let mut r1 = RowRecord::new(1);
+        r1.set("a", "foo");
+        r1.set("b", "bar");
+        vec![r0, r1]
+    }
+
+    // ── VecDataSource ────────────────────────────────
+
+    #[test]
+    fn vec_row_count() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(ds.row_count(), 2);
+    }
+
+    #[test]
+    fn vec_get_cell() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(ds.get_cell(0, "a"), Some("hello".into()));
+        assert_eq!(ds.get_cell(1, "b"), Some("bar".into()));
+    }
+
+    #[test]
+    fn vec_get_cell_missing_key() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(ds.get_cell(0, "z"), None);
+    }
+
+    #[test]
+    fn vec_get_cell_out_of_range() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(ds.get_cell(99, "a"), None);
+    }
+
+    #[test]
+    fn vec_get_cell_ref_borrows() {
+        let ds = VecDataSource::new(make_rows());
+        let val = ds.get_cell_ref(0, "a");
+        assert_eq!(val.as_deref(), Some("hello"));
+        // Should be Borrowed, not Owned
+        assert!(matches!(val, Some(std::borrow::Cow::Borrowed(_))));
+    }
+
+    #[test]
+    fn vec_set_cell() {
+        let mut ds = VecDataSource::new(make_rows());
+        ds.set_cell(0, "a", "updated".into());
+        assert_eq!(ds.get_cell(0, "a"), Some("updated".into()));
+        // Other row unchanged
+        assert_eq!(ds.get_cell(1, "a"), Some("foo".into()));
+    }
+
+    #[test]
+    fn vec_set_cell_out_of_range_noop() {
+        let mut ds = VecDataSource::new(make_rows());
+        ds.set_cell(99, "a", "nope".into());
+        assert_eq!(ds.row_count(), 2);
+    }
+
+    #[test]
+    fn vec_clone_box() {
+        let ds = VecDataSource::new(make_rows());
+        let cloned = ds.clone_box();
+        assert!(cloned.is_some());
+        let cloned = cloned.unwrap();
+        assert_eq!(cloned.row_count(), 2);
+        assert_eq!(cloned.get_cell(0, "a"), Some("hello".into()));
+    }
+
+    #[test]
+    fn vec_cell_status_ready() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(
+            ds.cell_status(0, "a"),
+            CellStatus::Ready("hello".into())
+        );
+    }
+
+    #[test]
+    fn vec_cell_status_absent() {
+        let ds = VecDataSource::new(make_rows());
+        assert_eq!(ds.cell_status(0, "missing"), CellStatus::Absent);
+    }
+
+    #[test]
+    fn vec_empty_data_source() {
+        let ds = VecDataSource::new(vec![]);
+        assert_eq!(ds.row_count(), 0);
+        assert_eq!(ds.get_cell(0, "a"), None);
+    }
+
+    // ── FnDataSource ─────────────────────────────────
+
+    #[test]
+    fn fn_row_count() {
+        let ds = FnDataSource::new(1000, |_r, _c| None);
+        assert_eq!(ds.row_count(), 1000);
+    }
+
+    #[test]
+    fn fn_get_cell() {
+        let ds = FnDataSource::new(10, |row, col| {
+            Some(format!("{col}_{row}"))
+        });
+        assert_eq!(
+            ds.get_cell(3, "name"),
+            Some("name_3".into())
+        );
+    }
+
+    #[test]
+    fn fn_get_cell_returns_none() {
+        let ds = FnDataSource::new(10, |_r, _c| None);
+        assert_eq!(ds.get_cell(0, "a"), None);
+    }
+
+    #[test]
+    fn fn_clone_box_returns_none() {
+        let ds = FnDataSource::new(10, |_r, _c| None);
+        assert!(ds.clone_box().is_none());
+    }
+
+    #[test]
+    fn fn_cell_status_ready() {
+        let ds =
+            FnDataSource::new(10, |_r, _c| Some("val".into()));
+        assert_eq!(
+            ds.cell_status(0, "x"),
+            CellStatus::Ready("val".into())
+        );
+    }
+
+    #[test]
+    fn fn_cell_status_absent() {
+        let ds = FnDataSource::new(10, |_r, _c| None);
+        assert_eq!(ds.cell_status(0, "x"), CellStatus::Absent);
+    }
+
+    #[test]
+    fn fn_debug_format() {
+        let ds = FnDataSource::new(42, |_r, _c| None);
+        let dbg = format!("{ds:?}");
+        assert!(dbg.contains("FnDataSource"));
+        assert!(dbg.contains("42"));
+    }
+
+    // ── CellStatus ───────────────────────────────────
+
+    #[test]
+    fn cell_status_eq() {
+        assert_eq!(
+            CellStatus::Ready("x".into()),
+            CellStatus::Ready("x".into())
+        );
+        assert_eq!(CellStatus::Loading, CellStatus::Loading);
+        assert_eq!(CellStatus::Absent, CellStatus::Absent);
+        assert_ne!(CellStatus::Loading, CellStatus::Absent);
+    }
+}

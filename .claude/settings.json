@@ -9,7 +9,8 @@
       "Bash(just tls-setup:*)",
       "Bash(mkcert localhost:*)",
       "Bash(wc -l /d/Dev/rs-grid/site/docs/en/features/*.mdx)",
-      "Bash(cargo clippy:*)"
+      "Bash(cargo clippy:*)",
+      "Bash(npx playwright:*)"
     ]
   }
 }

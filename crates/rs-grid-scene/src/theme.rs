@@ -283,3 +283,133 @@ impl Default for Theme {
         Self::light()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_is_light() {
+        assert_eq!(Theme::default(), Theme::light());
+    }
+
+    #[test]
+    fn light_and_dark_differ() {
+        assert_ne!(Theme::light(), Theme::dark());
+    }
+
+    // ── light theme sanity checks ───────────────────────────
+
+    #[test]
+    fn light_bg_is_white() {
+        let t = Theme::light();
+        assert_eq!(t.bg, Color::rgb(255, 255, 255));
+    }
+
+    #[test]
+    fn light_header_height_positive() {
+        let t = Theme::light();
+        assert!(t.header_height > 0.0);
+    }
+
+    #[test]
+    fn light_row_height_positive() {
+        let t = Theme::light();
+        assert!(t.row_height > 0.0);
+    }
+
+    #[test]
+    fn light_font_sizes_positive() {
+        let t = Theme::light();
+        assert!(t.font_size > 0.0);
+        assert!(t.header_font_size > 0.0);
+    }
+
+    #[test]
+    fn light_cell_padding_positive() {
+        let t = Theme::light();
+        assert!(t.cell_padding > 0.0);
+    }
+
+    #[test]
+    fn light_scrollbar_dimensions_positive() {
+        let t = Theme::light();
+        assert!(t.scrollbar_width > 0.0);
+        assert!(t.scrollbar_radius > 0.0);
+        assert!(t.scrollbar_inset >= 0.0);
+    }
+
+    #[test]
+    fn light_selection_fill_is_semi_transparent() {
+        let t = Theme::light();
+        assert!(t.selection_fill.a > 0);
+        assert!(t.selection_fill.a < 255);
+    }
+
+    #[test]
+    fn light_header_font_bold() {
+        assert!(Theme::light().header_font_bold);
+    }
+
+    #[test]
+    fn light_drag_anim_alpha_in_range() {
+        let t = Theme::light();
+        assert!(t.drag_anim_alpha > 0.0);
+        assert!(t.drag_anim_alpha <= 1.0);
+    }
+
+    #[test]
+    fn light_sort_arrow_dimensions_positive() {
+        let t = Theme::light();
+        assert!(t.sort_arrow_width > 0.0);
+        assert!(t.sort_arrow_height > 0.0);
+    }
+
+    // ── dark theme sanity checks ────────────────────────────
+
+    #[test]
+    fn dark_bg_is_dark() {
+        let t = Theme::dark();
+        // All channels below 50 indicates a dark background.
+        assert!(t.bg.r < 50 && t.bg.g < 50 && t.bg.b < 50);
+    }
+
+    #[test]
+    fn dark_header_height_positive() {
+        assert!(Theme::dark().header_height > 0.0);
+    }
+
+    #[test]
+    fn dark_row_height_positive() {
+        assert!(Theme::dark().row_height > 0.0);
+    }
+
+    #[test]
+    fn dark_cell_text_is_light() {
+        let t = Theme::dark();
+        // At least one channel above 150 to be readable on dark bg.
+        assert!(t.cell_text.r > 150 || t.cell_text.g > 150 || t.cell_text.b > 150);
+    }
+
+    #[test]
+    fn dark_font_sizes_positive() {
+        let t = Theme::dark();
+        assert!(t.font_size > 0.0);
+        assert!(t.header_font_size > 0.0);
+    }
+
+    // ── clone / equality ────────────────────────────────────
+
+    #[test]
+    fn theme_clone_equals_original() {
+        let t = Theme::light();
+        let t2 = t.clone();
+        assert_eq!(t, t2);
+    }
+
+    #[test]
+    fn theme_debug_does_not_panic() {
+        let _ = format!("{:?}", Theme::light());
+        let _ = format!("{:?}", Theme::dark());
+    }
+}
