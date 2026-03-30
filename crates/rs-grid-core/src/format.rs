@@ -75,6 +75,14 @@ pub enum CellFormat {
         false_label: String,
     },
     /// User-provided formatting callback.
+    ///
+    /// Uses [`Rc`] rather than [`Arc`] because the grid runs on a
+    /// single thread (WASM / browser event loop). This makes
+    /// `CellFormat` — and by extension `ColumnDef` and `GridState`
+    /// — `!Send + !Sync`, which is intentional.
+    ///
+    /// [`Clone`] is implemented manually via `Rc::clone` (cheap
+    /// reference-count bump, no deep copy of the closure).
     Custom(Rc<dyn Fn(&str) -> FormattedCell>),
     /// Image: cell value is a URL rendered as an image.
     Image {
