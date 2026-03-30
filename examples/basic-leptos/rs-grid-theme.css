@@ -257,16 +257,18 @@ body {
   --rs-grid-cell-text: #d0d0d0;
   --rs-grid-grid-line: #333335;
   --rs-grid-header-border: #333335;
-  --rs-grid-selection-fill: rgba(60, 130, 245, 0.3);
-  --rs-grid-selection-border: rgba(60, 130, 245, 0.9);
-  --rs-grid-header-selection-fill: rgba(255, 255, 255, 0.05);
-  --rs-grid-gutter-selection-fill: rgba(255, 255, 255, 0.05);
+  --rs-grid-selection-fill: rgba(50, 190, 250, 0.25);
+  --rs-grid-selection-border: rgba(50, 190, 250, 0.8);
+  --rs-grid-header-selection-fill: rgba(255, 255, 255, 0.07);
+  --rs-grid-gutter-selection-fill: rgba(255, 255, 255, 0.07);
   --rs-grid-scrollbar-track: #222224;
   --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
-  --rs-grid-row-alt-bg: #212123;
-  --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.05);
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 4px;
+  --rs-grid-row-alt-bg: var(--rs-grid-bg);
+  --rs-grid-row-hover-bg: rgba(50, 190, 250, 0.08);
   --rs-grid-font-size: 14px;
-  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-size: 14px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
   --rs-grid-header-separator-inset: 15px;
@@ -274,31 +276,31 @@ body {
   --rs-grid-scrollbar-inset: 2px;
   --rs-grid-header-height: 50px;
   --rs-grid-row-height: 40px;
-  --rs-grid-flash-fill: rgba(255, 193, 7, 0.71);
-  --rs-grid-flash-border: rgba(255, 193, 7, 0.82);
-  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-flash-fill: rgb(255, 220, 0, 1);
+  --rs-grid-flash-border: rgba(255, 220, 0, 1);
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.3);
   --rs-grid-search-current: rgba(255, 165, 0, 0.55);
-  --rs-grid-skeleton-fg: rgba(60, 65, 90, 0.39);
-  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
-  --rs-grid-drag-ghost-bg: rgba(36, 40, 59, 0.71);
-  --rs-grid-drag-ghost-text: rgba(169, 177, 214, 0.78);
-  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.15);
+  --rs-grid-drag-overlay: rgba(0, 0, 0, 0.03);
+  --rs-grid-drag-ghost-bg: var(--rs-grid-header-bg);
+  --rs-grid-drag-ghost-text: var(--rs-grid-header-text);
+  --rs-grid-drag-insert-line-width: 1px;
   --rs-grid-drag-ghost-radius: 4px;
   --rs-grid-drag-ghost-border-width: 1px;
-  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-drag-anim-alpha: 0.5;
   --rs-grid-sort-arrow-width: 4px;
   --rs-grid-sort-arrow-height: 3.5px;
-  --rs-grid-header-menu-icon: rgba(169, 177, 214, 0.39);
-  --rs-grid-header-menu-icon-hover-bg: rgba(169, 177, 214, 0.12);
-  --rs-grid-header-menu-icon-radius: 4px;
-  --rs-grid-header-menu-icon-margin-r: 2px;
-  --rs-grid-header-menu-icon-btn-w: 16px;
-  --rs-grid-header-menu-icon-btn-h: 0px;
-  --rs-grid-header-menu-icon-dot-r: 1px;
+  --rs-grid-header-menu-icon: rgba(255, 255, 255, 0.6);
+  --rs-grid-header-menu-icon-hover-bg: rgba(255, 255, 255, 0.06);
+  --rs-grid-header-menu-icon-radius: 3px;
+  --rs-grid-header-menu-icon-margin-r: 10px;
+  --rs-grid-header-menu-icon-btn-w: 22px;
+  --rs-grid-header-menu-icon-btn-h: 22px;
+  --rs-grid-header-menu-icon-dot-r: 1.2px;
   --rs-grid-gutter-bg: var(--rs-grid-header-bg);
-  --rs-grid-gutter-text: rgba(176, 176, 176, 1);
-  --rs-grid-gutter-font-size: 13px;
-  --rs-grid-gutter-font-bold: 0;
+  --rs-grid-gutter-text: rgba(255, 255, 255, 0.6);
+  --rs-grid-gutter-font-size: 14px;
+  --rs-grid-gutter-font-bold: 1;
   --rs-grid-gutter-border: #333335;
   --rs-grid-pinned-bg: var(--rs-grid-bg);
   --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
@@ -306,22 +308,22 @@ body {
   --rs-grid-pinned-separator-width: 1px;
 
   /* context menu */
-  --rs-grid-ctx-bg: #252527;
+  --rs-grid-ctx-bg: var(--rs-grid-header-bg);
   --rs-grid-ctx-border: #3a3a3c;
-  --rs-grid-ctx-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --rs-grid-ctx-text: #d0d0d0;
+  --rs-grid-ctx-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  --rs-grid-ctx-text: var(--rs-grid-cell-text);
   --rs-grid-ctx-text-disabled: #666668;
-  --rs-grid-ctx-hover-bg: #2c2c2e;
-  --rs-grid-ctx-separator: #333335;
-  --rs-grid-ctx-radius: 8px;
-  --rs-grid-ctx-min-width: 180px;
+  --rs-grid-ctx-hover-bg: var(--rs-grid-row-hover-bg);
+  --rs-grid-ctx-separator: var(--rs-grid-ctx-border);
+  --rs-grid-ctx-radius: 4px;
+  --rs-grid-ctx-min-width: 260px;
   --rs-grid-ctx-font-size: 14px;
-  --rs-grid-ctx-shortcut-font-size: 11px;
-  --rs-grid-ctx-item-gap: 10px;
+  --rs-grid-ctx-shortcut-font-size: 12px;
+  --rs-grid-ctx-item-gap: 12px;
 
   /* cell editor */
-  --rs-grid-editor-border: rgba(60, 130, 245, 1);
-  --rs-grid-editor-bg: #1c1c1e;
+  --rs-grid-editor-border: rgba(50, 190, 250, 1);
+  --rs-grid-editor-bg: var(--rs-grid-bg);
   --rs-grid-editor-border-width: 2px;
   --rs-grid-editor-border-radius: 0;
   --rs-grid-editor-padding: 0 4px;
@@ -400,103 +402,89 @@ body {
   border-color: #555558;
 }
 
-/* ── Material Design 3 Light — <html class="material"> ─────────────────────── */
-/*                                                                              */
-/* M3 baseline palette — https://m3.material.io/styles/color/roles              */
-/*   Primary        #6750A4    On Surface         #1C1B1F                       */
-/*   Surface        #FFFBFE    On Surface Variant #49454E                       */
-/*   Surface Variant#E7E0EC    Outline            #79747E                       */
-/*   Outline Variant#CAC4D0    Primary Container  #EADDFF                       */
-/*                                                                              */
-/* Shape: Extra-small 4dp, Small 8dp, Medium 12dp, Large 16dp, XL 28dp         */
-/* Elevation 1: 0 1px 2px rgb(0 0 0/30%), 0 1px 3px 1px rgb(0 0 0/15%)        */
-/* Elevation 2: 0 1px 2px rgb(0 0 0/30%), 0 2px 6px 2px rgb(0 0 0/15%)        */
-/* Data table: header 56dp, row 52dp, cell padding 16dp                        */
-
-:root.material {
-  /* grid — mapped to M3 color roles */
-  --rs-grid-bg: #fffbfe; /* Surface            */
-  --rs-grid-header-bg: #e7e0ec; /* Surface Variant    */
-  --rs-grid-header-text: #1c1b1f; /* On Surface         */
-  --rs-grid-cell-text: #1c1b1f; /* On Surface         */
-  --rs-grid-grid-line: #cac4d0; /* Outline Variant    */
-  --rs-grid-header-border: #79747e; /* Outline            */
-  --rs-grid-selection-fill: rgba(103, 80, 164, 0.14); /* Primary @ 14%      */
-  --rs-grid-selection-border: rgba(103, 80, 164, 0.8); /* Primary @ 80%      */
-  --rs-grid-header-selection-fill: rgba(103, 80, 164, 0.14);
-  --rs-grid-gutter-selection-fill: rgba(103, 80, 164, 0.14);
-  --rs-grid-scrollbar-track: #e7e0ec; /* Surface Variant    */
-  --rs-grid-scrollbar-thumb: rgba(73, 69, 79, 0.5); /* On Surface Var @50%*/
+/* ── dimmed theme — active when <html class="dimmed"> ────────────────────────── */
+:root.dimmed {
+  --rs-grid-bg: #2a2a2d;
+  --rs-grid-header-bg: #333336;
+  --rs-grid-header-text: #c0c0c0;
+  --rs-grid-cell-text: #b8b8b8;
+  --rs-grid-grid-line: #3a3a3d;
+  --rs-grid-header-border: #3a3a3d;
+  --rs-grid-selection-fill: rgba(50, 190, 250, 0.2);
+  --rs-grid-selection-border: rgba(50, 190, 250, 0.8);
+  --rs-grid-header-selection-fill: rgba(255, 255, 255, 0.05);
+  --rs-grid-gutter-selection-fill: rgba(255, 255, 255, 0.05);
+  --rs-grid-scrollbar-track: #2e2e31;
+  --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.3);
   --rs-grid-scrollbar-width: 14px;
-  --rs-grid-scrollbar-radius: 8px; /* Full (pill)        */
-  --rs-grid-row-alt-bg: #f5eefa; /* Surface tint       */
-  --rs-grid-row-hover-bg: rgba(103, 80, 164, 0.08); /* Primary @ 8%       */
-  --rs-grid-font-size: 14px; /* Body Medium        */
-  --rs-grid-header-font-size: 14px; /* Title Small        */
-  --rs-grid-header-font-bold: 1; /* Title = weight 500 */
-  --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
+  --rs-grid-scrollbar-radius: 4px;
+  --rs-grid-row-alt-bg: var(--rs-grid-bg);
+  --rs-grid-row-hover-bg: rgba(50, 190, 250, 0.06);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 14px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
   --rs-grid-header-separator-inset: 15px;
   --rs-grid-header-separator-width: 2px;
   --rs-grid-scrollbar-inset: 2px;
-  --rs-grid-header-height: 56px; /* M3 data table 56dp */
-  --rs-grid-row-height: 52px; /* M3 data table 52dp */
-  --rs-grid-flash-fill: rgba(103, 80, 164, 0.5); /* Primary @ 50%      */
-  --rs-grid-flash-border: rgba(103, 80, 164, 0.7); /* Primary @ 70%      */
-  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-header-height: 50px;
+  --rs-grid-row-height: 40px;
+  --rs-grid-flash-fill: rgb(255, 220, 0, 1);
+  --rs-grid-flash-border: rgba(255, 220, 0, 1);
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.3);
   --rs-grid-search-current: rgba(255, 165, 0, 0.55);
-  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.39);
-  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
-  --rs-grid-drag-ghost-bg: rgba(231, 224, 236, 0.85); /* Surface Variant    */
-  --rs-grid-drag-ghost-text: rgba(28, 27, 31, 0.78); /* On Surface         */
-  --rs-grid-drag-insert-line-width: 3px;
-  --rs-grid-drag-ghost-radius: 12px; /* Shape Medium       */
+  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.12);
+  --rs-grid-drag-overlay: rgba(0, 0, 0, 0.03);
+  --rs-grid-drag-ghost-bg: var(--rs-grid-header-bg);
+  --rs-grid-drag-ghost-text: var(--rs-grid-header-text);
+  --rs-grid-drag-insert-line-width: 1px;
+  --rs-grid-drag-ghost-radius: 4px;
   --rs-grid-drag-ghost-border-width: 1px;
-  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-drag-anim-alpha: 0.5;
   --rs-grid-sort-arrow-width: 4px;
   --rs-grid-sort-arrow-height: 3.5px;
-  --rs-grid-header-menu-icon: rgba(28, 27, 31, 1); /* On Surface         */
-  --rs-grid-header-menu-icon-hover-bg: rgba(28, 27, 31, 0.08);
-  --rs-grid-header-menu-icon-radius: 4px;
+  --rs-grid-header-menu-icon: rgba(255, 255, 255, 0.5);
+  --rs-grid-header-menu-icon-hover-bg: rgba(255, 255, 255, 0.06);
+  --rs-grid-header-menu-icon-radius: 3px;
   --rs-grid-header-menu-icon-margin-r: 10px;
   --rs-grid-header-menu-icon-btn-w: 22px;
   --rs-grid-header-menu-icon-btn-h: 22px;
   --rs-grid-header-menu-icon-dot-r: 1.2px;
-  --rs-grid-gutter-bg: #e7e0ec; /* Surface Variant    */
-  --rs-grid-gutter-text: #1c1b1f; /* On Surface         */
+  --rs-grid-gutter-bg: var(--rs-grid-header-bg);
+  --rs-grid-gutter-text: rgba(255, 255, 255, 0.5);
   --rs-grid-gutter-font-size: 14px;
   --rs-grid-gutter-font-bold: 1;
-  --rs-grid-gutter-border: #79747e; /* Outline            */
+  --rs-grid-gutter-border: #3a3a3d;
   --rs-grid-pinned-bg: var(--rs-grid-bg);
   --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
-  --rs-grid-pinned-separator-color: #79747e;             /* Outline            */
+  --rs-grid-pinned-separator-color: var(--rs-grid-header-border);
   --rs-grid-pinned-separator-width: 1px;
 
-  /* context menu — M3 Elevation 2 surface */
-  --rs-grid-ctx-bg: #fffbfe; /* Surface            */
-  --rs-grid-ctx-border: #cac4d0; /* Outline Variant    */
-  --rs-grid-ctx-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
-  --rs-grid-ctx-text: #1c1b1f; /* On Surface         */
-  --rs-grid-ctx-text-disabled: #1c1b1f66; /* On Surface @ 40%   */
-  --rs-grid-ctx-hover-bg: #e7e0ec; /* Surface Variant    */
-  --rs-grid-ctx-separator: #cac4d0; /* Outline Variant    */
-  --rs-grid-ctx-radius: 12px; /* Shape Medium       */
-  --rs-grid-ctx-min-width: 180px;
+  /* context menu */
+  --rs-grid-ctx-bg: var(--rs-grid-header-bg);
+  --rs-grid-ctx-border: #444447;
+  --rs-grid-ctx-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --rs-grid-ctx-text: var(--rs-grid-cell-text);
+  --rs-grid-ctx-text-disabled: #707073;
+  --rs-grid-ctx-hover-bg: var(--rs-grid-row-hover-bg);
+  --rs-grid-ctx-separator: var(--rs-grid-ctx-border);
+  --rs-grid-ctx-radius: 4px;
+  --rs-grid-ctx-min-width: 260px;
   --rs-grid-ctx-font-size: 14px;
-  --rs-grid-ctx-shortcut-font-size: 11px;
-  --rs-grid-ctx-item-gap: 10px;
+  --rs-grid-ctx-shortcut-font-size: 12px;
+  --rs-grid-ctx-item-gap: 12px;
 
   /* cell editor */
-  --rs-grid-editor-border: rgba(103, 80, 164, 1);         /* Primary            */
-  --rs-grid-editor-bg: #fffbfe;                            /* Surface            */
+  --rs-grid-editor-border: rgba(50, 190, 250, 1);
+  --rs-grid-editor-bg: var(--rs-grid-bg);
   --rs-grid-editor-border-width: 2px;
-  --rs-grid-editor-border-radius: 4px;                     /* Shape Extra-small  */
+  --rs-grid-editor-border-radius: 0;
   --rs-grid-editor-padding: 0 4px;
   --rs-grid-editor-font-size: inherit;
   --rs-grid-editor-shadow: none;
 
   /* dropdown overlay */
-  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-overlay-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   --rs-grid-dropdown-min-width: 220;
   --rs-grid-dropdown-max-height: 240px;
 
@@ -506,239 +494,63 @@ body {
   --rs-grid-search-radius: 4px;
 }
 
-/* ── M3 app shell overrides ──────────────────────────────────────────────────── */
+/* ── dimmed app shell overrides ─────────────────────────────────────────────── */
 
-:root.material body {
-  background: #fffbfe; /* Surface            */
-  font-family: "Roboto", system-ui, sans-serif;
+:root.dimmed body {
+  background: #222225;
 }
 
-:root.material .app-title {
-  color: #1c1b1f; /* On Surface         */
+:root.dimmed .app-title {
+  color: #c0c0c0;
 }
 
-:root.material .app-subtitle {
-  color: #49454e; /* On Surface Variant */
+:root.dimmed .app-subtitle {
+  color: #808083;
 }
 
-:root.material .app-highlight {
-  color: #6750a4; /* Primary            */
+:root.dimmed .app-highlight {
+  color: #5cb8e6;
 }
 
-:root.material .app-control {
-  background: #e7e0ec; /* Surface Variant    */
-  border-color: #cac4d0; /* Outline Variant    */
-  border-radius: 12px; /* Shape Medium       */
+:root.dimmed .app-control {
+  background: #333336;
+  border-color: #444447;
 }
 
-:root.material .app-control-label {
-  color: #49454e; /* On Surface Variant */
+:root.dimmed .app-control-label {
+  color: #a0a0a3;
 }
 
-:root.material .app-control-select {
-  background-color: #fffbfe; /* Surface            */
-  border-color: #79747e; /* Outline            */
-  color: #1c1b1f; /* On Surface         */
-  border-radius: 4px; /* Shape Extra-small  */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2349454e'/%3E%3C/svg%3E");
+:root.dimmed .app-control-select {
+  background-color: #2a2a2d;
+  border-color: #444447;
+  color: #b8b8b8;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a0a0a3'/%3E%3C/svg%3E");
 }
 
-:root.material .app-control-select:hover {
-  border-color: #1c1b1f; /* On Surface (hover) */
+:root.dimmed .app-control-select:hover {
+  border-color: #5a5a5d;
 }
 
-:root.material .app-control-select:focus {
-  border-color: #6750a4; /* Primary            */
-  box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.2);
+:root.dimmed .app-control-select:focus {
+  border-color: #5cb8e6;
+  box-shadow: 0 0 0 3px rgba(92, 184, 230, 0.15);
 }
 
-:root.material .app-grid-wrapper {
-  background: #fffbfe; /* Surface            */
-  border-color: #cac4d0; /* Outline Variant    */
-  border-radius: 12px; /* Shape Medium       */
-  box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%),
-    0 1px 3px 1px rgb(0 0 0 / 15%);
+:root.dimmed .app-grid-wrapper {
+  background: #2a2a2d;
+  border-color: #444447;
 }
 
-:root.material .app-btn {
-  background: #eaddff; /* Primary Container  */
-  border-color: transparent;
-  color: #21005d; /* On Primary Cont.   */
-  border-radius: 20px; /* Full               */
-  font-weight: 500; /* Label Large        */
+:root.dimmed .app-btn {
+  background: #333336;
+  border-color: #444447;
+  color: #a0a0a3;
 }
 
-:root.material .app-btn:hover {
-  box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%),
-    0 1px 3px 1px rgb(0 0 0 / 15%);
+:root.dimmed .app-btn:hover {
+  border-color: #5a5a5d;
 }
 
-/* ── Material Design 3 Dark — <html class="material-dark"> ─────────────────── */
-/*                                                                              */
-/* M3 dark baseline palette                                                     */
-/*   Primary        #D0BCFF    On Surface         #E6E1E6                       */
-/*   Surface        #1C1B1F    On Surface Variant #CAC4D0                       */
-/*   Surface Variant#49454E    Outline            #938F99                       */
-/*   Outline Variant#49454E    Primary Container  #4F378B                       */
+/* ── end of themes ──────────────────────────────────────────────────────────── */
 
-:root.material-dark {
-  --rs-grid-bg: #1c1b1f; /* Surface            */
-  --rs-grid-header-bg: #49454e; /* Surface Variant    */
-  --rs-grid-header-text: #e6e1e6; /* On Surface         */
-  --rs-grid-cell-text: #e6e1e6; /* On Surface         */
-  --rs-grid-grid-line: #49454e; /* Outline Variant    */
-  --rs-grid-header-border: #938f99; /* Outline            */
-  --rs-grid-selection-fill: rgba(208, 188, 255, 0.18); /* Primary @ 18%      */
-  --rs-grid-selection-border: rgba(208, 188, 255, 0.8); /* Primary @ 80%      */
-  --rs-grid-header-selection-fill: rgba(208, 188, 255, 0.18);
-  --rs-grid-gutter-selection-fill: rgba(208, 188, 255, 0.18);
-  --rs-grid-scrollbar-track: #2b2930; /* Surface +1 tint    */
-  --rs-grid-scrollbar-thumb: rgba(202, 196, 208, 0.35); /* On Surf Var @ 35%  */
-  --rs-grid-scrollbar-width: 14px;
-  --rs-grid-scrollbar-radius: 8px;
-  --rs-grid-row-alt-bg: #211f26; /* Surface +1 tint    */
-  --rs-grid-row-hover-bg: rgba(208, 188, 255, 0.08); /* Primary @ 8%       */
-  --rs-grid-font-size: 14px; /* Body Medium        */
-  --rs-grid-header-font-size: 14px; /* Title Small        */
-  --rs-grid-header-font-bold: 1;
-  --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
-  --rs-grid-header-separator-inset: 15px;
-  --rs-grid-header-separator-width: 2px;
-  --rs-grid-scrollbar-inset: 2px;
-  --rs-grid-header-height: 56px; /* M3 data table 56dp */
-  --rs-grid-row-height: 52px; /* M3 data table 52dp */
-  --rs-grid-flash-fill: rgba(208, 188, 255, 0.5); /* Primary @ 50%      */
-  --rs-grid-flash-border: rgba(208, 188, 255, 0.7); /* Primary @ 70%      */
-  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
-  --rs-grid-search-current: rgba(255, 165, 0, 0.55);
-  --rs-grid-skeleton-fg: rgba(60, 65, 90, 0.39);
-  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
-  --rs-grid-drag-ghost-bg: rgba(73, 69, 78, 0.85); /* Surface Variant    */
-  --rs-grid-drag-ghost-text: rgba(230, 225, 230, 0.78); /* On Surface         */
-  --rs-grid-drag-insert-line-width: 3px;
-  --rs-grid-drag-ghost-radius: 12px; /* Shape Medium       */
-  --rs-grid-drag-ghost-border-width: 1px;
-  --rs-grid-drag-anim-alpha: 0.3;
-  --rs-grid-sort-arrow-width: 4px;
-  --rs-grid-sort-arrow-height: 3.5px;
-  --rs-grid-header-menu-icon: rgba(230, 225, 230, 0.39); /* On Surface       */
-  --rs-grid-header-menu-icon-hover-bg: rgba(230, 225, 230, 0.08);
-  --rs-grid-header-menu-icon-radius: 4px;
-  --rs-grid-header-menu-icon-margin-r: 2px;
-  --rs-grid-header-menu-icon-btn-w: 16px;
-  --rs-grid-header-menu-icon-btn-h: 0px;
-  --rs-grid-header-menu-icon-dot-r: 1px;
-  --rs-grid-gutter-bg: #49454e; /* Surface Variant    */
-  --rs-grid-gutter-text: #e6e1e6; /* On Surface         */
-  --rs-grid-gutter-font-size: 14px;
-  --rs-grid-gutter-font-bold: 0;
-  --rs-grid-gutter-border: #938f99; /* Outline            */
-  --rs-grid-pinned-bg: var(--rs-grid-bg);
-  --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
-  --rs-grid-pinned-separator-color: #938f99;             /* Outline            */
-  --rs-grid-pinned-separator-width: 1px;
-
-  /* context menu — M3 Elevation 2 dark */
-  --rs-grid-ctx-bg: #2b2930;
-  --rs-grid-ctx-border: #49454e; /* Outline Variant    */
-  --rs-grid-ctx-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
-  --rs-grid-ctx-text: #e6e1e6; /* On Surface         */
-  --rs-grid-ctx-text-disabled: #e6e1e640; /* On Surface @ 25%   */
-  --rs-grid-ctx-hover-bg: #49454e; /* Surface Variant    */
-  --rs-grid-ctx-separator: #49454e; /* Outline Variant    */
-  --rs-grid-ctx-radius: 12px; /* Shape Medium       */
-  --rs-grid-ctx-min-width: 180px;
-  --rs-grid-ctx-font-size: 14px;
-  --rs-grid-ctx-shortcut-font-size: 11px;
-  --rs-grid-ctx-item-gap: 10px;
-
-  /* cell editor */
-  --rs-grid-editor-border: rgba(208, 188, 255, 1);        /* Primary            */
-  --rs-grid-editor-bg: #1c1b1f;                            /* Surface            */
-  --rs-grid-editor-border-width: 2px;
-  --rs-grid-editor-border-radius: 4px;                     /* Shape Extra-small  */
-  --rs-grid-editor-padding: 0 4px;
-  --rs-grid-editor-font-size: inherit;
-  --rs-grid-editor-shadow: none;
-
-  /* dropdown overlay */
-  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
-  --rs-grid-dropdown-min-width: 220;
-  --rs-grid-dropdown-max-height: 240px;
-
-  /* search bar */
-  --rs-grid-search-width: 250px;
-  --rs-grid-search-height: 28px;
-  --rs-grid-search-radius: 4px;
-}
-
-/* ── M3 dark app shell overrides ─────────────────────────────────────────────── */
-
-:root.material-dark body {
-  background: #1c1b1f; /* Surface            */
-  font-family: "Roboto", system-ui, sans-serif;
-}
-
-:root.material-dark .app-title {
-  color: #e6e1e6; /* On Surface         */
-}
-
-:root.material-dark .app-subtitle {
-  color: #cac4d0; /* On Surface Variant */
-}
-
-:root.material-dark .app-highlight {
-  color: #d0bcff; /* Primary            */
-}
-
-:root.material-dark .app-control {
-  background: #2b2930; /* Surface +1 tint    */
-  border-color: #49454e; /* Outline Variant    */
-  border-radius: 12px; /* Shape Medium       */
-}
-
-:root.material-dark .app-control-label {
-  color: #cac4d0; /* On Surface Variant */
-}
-
-:root.material-dark .app-control-select {
-  background-color: #1c1b1f; /* Surface            */
-  border-color: #938f99; /* Outline            */
-  color: #e6e1e6; /* On Surface         */
-  border-radius: 4px; /* Shape Extra-small  */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23cac4d0'/%3E%3C/svg%3E");
-}
-
-:root.material-dark .app-control-select:hover {
-  border-color: #e6e1e6; /* On Surface (hover) */
-}
-
-:root.material-dark .app-control-select:focus {
-  border-color: #d0bcff; /* Primary            */
-  box-shadow: 0 0 0 2px rgba(208, 188, 255, 0.2);
-}
-
-:root.material-dark .app-grid-wrapper {
-  background: #1c1b1f; /* Surface            */
-  border-color: #49454e; /* Outline Variant    */
-  border-radius: 12px; /* Shape Medium       */
-  box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%),
-    0 1px 3px 1px rgb(0 0 0 / 15%);
-}
-
-:root.material-dark .app-btn {
-  background: #4f378b; /* Primary Container  */
-  border-color: transparent;
-  color: #eaddff; /* On Primary Cont.   */
-  border-radius: 20px; /* Full               */
-}
-
-:root.material-dark .app-btn:hover {
-  box-shadow:
-    0 1px 2px 0 rgb(0 0 0 / 30%),
-    0 1px 3px 1px rgb(0 0 0 / 15%);
-}
