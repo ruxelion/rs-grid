@@ -385,14 +385,38 @@ impl GridCanvas {
                 return;
             }
 
-            // Always select the cell/row under the right-click.
-            let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
+            // Select the cell/row under the right-click, but
+            // preserve the existing selection when the click
+            // lands inside it (so right-clicking a range keeps
+            // the whole range selected).
+            let row =
+                gc.0.state.borrow().hit_test_row_header(cx, cy);
             if let Some(row) = row {
-                gc.dispatch(GridCommand::SelectRow(row));
+                let already = {
+                    let st = gc.0.state.borrow();
+                    st.selection.has_selection()
+                        && st.model.columns.iter().enumerate().all(
+                            |(ci, _)| st.selection.is_selected(row, ci),
+                        )
+                };
+                if !already {
+                    gc.dispatch(GridCommand::SelectRow(row));
+                }
             } else {
-                let coord = gc.0.state.borrow().hit_test(cx, cy);
+                let coord =
+                    gc.0.state.borrow().hit_test(cx, cy);
                 if let Some(coord) = coord {
-                    gc.dispatch(GridCommand::SelectCell(coord));
+                    let already = gc
+                        .0
+                        .state
+                        .borrow()
+                        .selection
+                        .is_selected(coord.row, coord.col);
+                    if !already {
+                        gc.dispatch(
+                            GridCommand::SelectCell(coord),
+                        );
+                    }
                 }
             }
 
