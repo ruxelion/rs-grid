@@ -166,7 +166,7 @@ body {
 /* ── light theme (default) ─────────────────────────────────────────────────── */
 :root {
   --rs-grid-bg: #ffffff;
-  --rs-grid-header-bg: #ffffff;
+  --rs-grid-header-bg: #f9f9f9;
   --rs-grid-header-text: #000000;
   --rs-grid-cell-text: #000000;
   --rs-grid-grid-line: #e0e0e0;
@@ -179,7 +179,7 @@ body {
   --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.65);
   --rs-grid-scrollbar-width: 14px;
   --rs-grid-scrollbar-radius: 4px;
-  --rs-grid-row-alt-bg: var(--rs-grid-header-bg);
+  --rs-grid-row-alt-bg: var(--rs-grid-bg);
   --rs-grid-row-hover-bg: rgba(50, 190, 250, 0.08);
   --rs-grid-font-size: 14px;
   --rs-grid-header-font-size: 14px;
@@ -218,13 +218,18 @@ body {
   --rs-grid-gutter-border: #dcdcdc;
 
   /* context menu */
-  --rs-grid-ctx-bg: #ffffff;
-  --rs-grid-ctx-border: #d1d5db;
-  --rs-grid-ctx-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  --rs-grid-ctx-text: #000000;
+  --rs-grid-ctx-bg: var(--rs-grid-header-bg);
+  --rs-grid-ctx-border: #cfcfcf;
+  --rs-grid-ctx-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  --rs-grid-ctx-text: var(--rs-grid-cell-text);
   --rs-grid-ctx-text-disabled: #9ca3af;
   --rs-grid-ctx-hover-bg: var(--rs-grid-row-hover-bg);
-  --rs-grid-ctx-separator: #e5e7eb;
+  --rs-grid-ctx-separator: var(--rs-grid-ctx-border);
+  --rs-grid-ctx-radius: 4px;
+  --rs-grid-ctx-min-width: 260px;
+  --rs-grid-ctx-font-size: 14px;
+  --rs-grid-ctx-shortcut-font-size: 12px;
+  --rs-grid-ctx-item-gap: 12px;
 }
 
 /* ── dark theme — active when <html class="dark"> ───────────────────────────── */
@@ -287,6 +292,11 @@ body {
   --rs-grid-ctx-text-disabled: #666668;
   --rs-grid-ctx-hover-bg: #2c2c2e;
   --rs-grid-ctx-separator: #333335;
+  --rs-grid-ctx-radius: 8px;
+  --rs-grid-ctx-min-width: 180px;
+  --rs-grid-ctx-font-size: 14px;
+  --rs-grid-ctx-shortcut-font-size: 11px;
+  --rs-grid-ctx-item-gap: 10px;
 }
 
 /* ── dark app shell overrides ────────────────────────────────────────────────── */
@@ -426,6 +436,11 @@ body {
   --rs-grid-ctx-text-disabled: #1c1b1f66; /* On Surface @ 40%   */
   --rs-grid-ctx-hover-bg: #e7e0ec; /* Surface Variant    */
   --rs-grid-ctx-separator: #cac4d0; /* Outline Variant    */
+  --rs-grid-ctx-radius: 12px; /* Shape Medium       */
+  --rs-grid-ctx-min-width: 180px;
+  --rs-grid-ctx-font-size: 14px;
+  --rs-grid-ctx-shortcut-font-size: 11px;
+  --rs-grid-ctx-item-gap: 10px;
 }
 
 /* ── M3 app shell overrides ──────────────────────────────────────────────────── */
@@ -567,6 +582,11 @@ body {
   --rs-grid-ctx-text-disabled: #e6e1e640; /* On Surface @ 25%   */
   --rs-grid-ctx-hover-bg: #49454e; /* Surface Variant    */
   --rs-grid-ctx-separator: #49454e; /* Outline Variant    */
+  --rs-grid-ctx-radius: 12px; /* Shape Medium       */
+  --rs-grid-ctx-min-width: 180px;
+  --rs-grid-ctx-font-size: 14px;
+  --rs-grid-ctx-shortcut-font-size: 11px;
+  --rs-grid-ctx-item-gap: 10px;
 }
 
 /* ── M3 dark app shell overrides ─────────────────────────────────────────────── */
