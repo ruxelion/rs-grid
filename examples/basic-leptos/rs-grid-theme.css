@@ -228,6 +228,25 @@ body {
   --rs-grid-ctx-font-size: 14px;
   --rs-grid-ctx-shortcut-font-size: 12px;
   --rs-grid-ctx-item-gap: 12px;
+
+  /* cell editor */
+  --rs-grid-editor-border: rgba(50, 190, 250, 1);
+  --rs-grid-editor-bg: #ffffff;
+  --rs-grid-editor-border-width: 2px;
+  --rs-grid-editor-border-radius: 0;
+  --rs-grid-editor-padding: 0 4px;
+  --rs-grid-editor-font-size: inherit;
+  --rs-grid-editor-shadow: none;
+
+  /* dropdown overlay */
+  --rs-grid-overlay-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --rs-grid-dropdown-min-width: 220;
+  --rs-grid-dropdown-max-height: 240px;
+
+  /* search bar */
+  --rs-grid-search-width: 250px;
+  --rs-grid-search-height: 28px;
+  --rs-grid-search-radius: 4px;
 }
 
 /* ── dark theme — active when <html class="dark"> ───────────────────────────── */
@@ -299,6 +318,25 @@ body {
   --rs-grid-ctx-font-size: 14px;
   --rs-grid-ctx-shortcut-font-size: 11px;
   --rs-grid-ctx-item-gap: 10px;
+
+  /* cell editor */
+  --rs-grid-editor-border: rgba(60, 130, 245, 1);
+  --rs-grid-editor-bg: #1c1c1e;
+  --rs-grid-editor-border-width: 2px;
+  --rs-grid-editor-border-radius: 0;
+  --rs-grid-editor-padding: 0 4px;
+  --rs-grid-editor-font-size: inherit;
+  --rs-grid-editor-shadow: none;
+
+  /* dropdown overlay */
+  --rs-grid-overlay-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --rs-grid-dropdown-min-width: 220;
+  --rs-grid-dropdown-max-height: 240px;
+
+  /* search bar */
+  --rs-grid-search-width: 250px;
+  --rs-grid-search-height: 28px;
+  --rs-grid-search-radius: 4px;
 }
 
 /* ── dark app shell overrides ────────────────────────────────────────────────── */
@@ -447,6 +485,25 @@ body {
   --rs-grid-ctx-font-size: 14px;
   --rs-grid-ctx-shortcut-font-size: 11px;
   --rs-grid-ctx-item-gap: 10px;
+
+  /* cell editor */
+  --rs-grid-editor-border: rgba(103, 80, 164, 1);         /* Primary            */
+  --rs-grid-editor-bg: #fffbfe;                            /* Surface            */
+  --rs-grid-editor-border-width: 2px;
+  --rs-grid-editor-border-radius: 4px;                     /* Shape Extra-small  */
+  --rs-grid-editor-padding: 0 4px;
+  --rs-grid-editor-font-size: inherit;
+  --rs-grid-editor-shadow: none;
+
+  /* dropdown overlay */
+  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-dropdown-min-width: 220;
+  --rs-grid-dropdown-max-height: 240px;
+
+  /* search bar */
+  --rs-grid-search-width: 250px;
+  --rs-grid-search-height: 28px;
+  --rs-grid-search-radius: 4px;
 }
 
 /* ── M3 app shell overrides ──────────────────────────────────────────────────── */
@@ -597,6 +654,25 @@ body {
   --rs-grid-ctx-font-size: 14px;
   --rs-grid-ctx-shortcut-font-size: 11px;
   --rs-grid-ctx-item-gap: 10px;
+
+  /* cell editor */
+  --rs-grid-editor-border: rgba(208, 188, 255, 1);        /* Primary            */
+  --rs-grid-editor-bg: #1c1b1f;                            /* Surface            */
+  --rs-grid-editor-border-width: 2px;
+  --rs-grid-editor-border-radius: 4px;                     /* Shape Extra-small  */
+  --rs-grid-editor-padding: 0 4px;
+  --rs-grid-editor-font-size: inherit;
+  --rs-grid-editor-shadow: none;
+
+  /* dropdown overlay */
+  --rs-grid-overlay-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-dropdown-min-width: 220;
+  --rs-grid-dropdown-max-height: 240px;
+
+  /* search bar */
+  --rs-grid-search-width: 250px;
+  --rs-grid-search-height: 28px;
+  --rs-grid-search-radius: 4px;
 }
 
 /* ── M3 dark app shell overrides ─────────────────────────────────────────────── */
