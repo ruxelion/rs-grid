@@ -609,6 +609,14 @@ impl GridCanvas {
     ///
     /// Explicitly calls `removeEventListener` before removal to avoid
     /// dangling Rust closure references on the JS side.
+    /// Cancel the current edit and remove the overlay.
+    pub(super) fn cancel_and_close_edit(&self) {
+        if self.0.state.borrow().edit.is_some() {
+            self.dispatch(GridCommand::CancelEdit);
+        }
+        self.remove_edit_input();
+    }
+
     pub(super) fn remove_edit_input(&self) {
         if let Some(el) = self.0.edit_input.borrow().as_ref() {
             for (event, func) in self.0.edit_listener_refs.borrow().iter() {
