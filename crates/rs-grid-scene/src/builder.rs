@@ -333,7 +333,7 @@ impl SceneBuilder {
                 y: model.header_height,
                 width: pinned_width,
                 height: vp.height - model.header_height,
-                fill: t.bg,
+                fill: t.pinned_bg,
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
@@ -401,8 +401,8 @@ impl SceneBuilder {
                 y1: model.header_height,
                 x2: rnw + pinned_width - 0.5,
                 y2: vp.height,
-                color: t.header_border,
-                width: 1.0,
+                color: t.pinned_separator_color,
+                width: t.pinned_separator_width,
             }));
         }
 
@@ -629,7 +629,7 @@ impl SceneBuilder {
                 y: 0.0,
                 width: pinned_width,
                 height: model.header_height,
-                fill: t.header_bg,
+                fill: t.pinned_header_bg,
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,

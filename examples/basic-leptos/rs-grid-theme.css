@@ -210,6 +210,10 @@ body {
   --rs-grid-gutter-font-size: 14px;
   --rs-grid-gutter-font-bold: 1;
   --rs-grid-gutter-border: #dcdcdc;
+  --rs-grid-pinned-bg: var(--rs-grid-bg);
+  --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
+  --rs-grid-pinned-separator-color: var(--rs-grid-header-border);
+  --rs-grid-pinned-separator-width: 1px;
 
   /* context menu */
   --rs-grid-ctx-bg: var(--rs-grid-header-bg);
@@ -277,6 +281,10 @@ body {
   --rs-grid-gutter-font-size: 13px;
   --rs-grid-gutter-font-bold: 0;
   --rs-grid-gutter-border: #333335;
+  --rs-grid-pinned-bg: var(--rs-grid-bg);
+  --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
+  --rs-grid-pinned-separator-color: var(--rs-grid-header-border);
+  --rs-grid-pinned-separator-width: 1px;
 
   /* context menu */
   --rs-grid-ctx-bg: #252527;
@@ -420,6 +428,10 @@ body {
   --rs-grid-gutter-font-size: 14px;
   --rs-grid-gutter-font-bold: 1;
   --rs-grid-gutter-border: #79747e; /* Outline            */
+  --rs-grid-pinned-bg: var(--rs-grid-bg);
+  --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
+  --rs-grid-pinned-separator-color: #79747e;             /* Outline            */
+  --rs-grid-pinned-separator-width: 1px;
 
   /* context menu — M3 Elevation 2 surface */
   --rs-grid-ctx-bg: #fffbfe; /* Surface            */
@@ -566,6 +578,10 @@ body {
   --rs-grid-gutter-font-size: 14px;
   --rs-grid-gutter-font-bold: 0;
   --rs-grid-gutter-border: #938f99; /* Outline            */
+  --rs-grid-pinned-bg: var(--rs-grid-bg);
+  --rs-grid-pinned-header-bg: var(--rs-grid-header-bg);
+  --rs-grid-pinned-separator-color: #938f99;             /* Outline            */
+  --rs-grid-pinned-separator-width: 1px;
 
   /* context menu — M3 Elevation 2 dark */
   --rs-grid-ctx-bg: #2b2930;
