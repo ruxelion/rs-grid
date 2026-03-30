@@ -53,6 +53,7 @@ impl GridState {
                 char_width,
                 header_char_width,
                 cell_padding,
+                header_right_reserve,
             } => {
                 // Minimum column width in logical pixels.
                 const MIN_COL_WIDTH: f64 = 20.0;
@@ -64,7 +65,8 @@ impl GridState {
                     let label = &self.model.columns[col_idx].label;
                     let header_w = label.chars().count() as f64
                         * header_char_width
-                        + cell_padding * 2.0;
+                        + cell_padding * 2.0
+                        + header_right_reserve;
                     let col_format = self.model.columns[col_idx].format.clone();
                     let row_count =
                         self.model.display_row_count().min(MAX_SAMPLE_ROWS);
@@ -117,6 +119,7 @@ impl GridState {
                 char_width,
                 header_char_width,
                 cell_padding,
+                header_right_reserve,
             } => {
                 let n = self.model.columns.len();
                 for col_idx in 0..n {
@@ -125,6 +128,7 @@ impl GridState {
                         char_width,
                         header_char_width,
                         cell_padding,
+                        header_right_reserve,
                     });
                 }
                 CommandOutput::None

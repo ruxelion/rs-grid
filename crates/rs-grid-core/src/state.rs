@@ -531,6 +531,7 @@ mod tests {
             char_width: 8.4,
             header_char_width: 8.45,
             cell_padding: 10.0,
+            header_right_reserve: 0.0,
         });
         let new_width = s.model.columns[0].width;
         assert!(
@@ -548,6 +549,7 @@ mod tests {
             char_width: 0.1,
             header_char_width: 0.1,
             cell_padding: 0.1,
+            header_right_reserve: 0.0,
         });
         assert!(
             s.model.columns[0].width >= 20.0,
@@ -565,6 +567,7 @@ mod tests {
             char_width: 8.4,
             header_char_width: 8.45,
             cell_padding: 10.0,
+            header_right_reserve: 0.0,
         });
         assert_eq!(s.model.columns[0].width, old_width);
     }
@@ -595,6 +598,7 @@ mod tests {
             char_width: 8.0,
             header_char_width: 8.0,
             cell_padding: 10.0,
+            header_right_reserve: 0.0,
         });
         let w = s.model.columns[0].width;
         // image_size(20) + gap(6) + "France".len(6)*8 + pad*2(20) = 94
@@ -679,6 +683,7 @@ mod tests {
             char_width: 8.4,
             header_char_width: 8.45,
             cell_padding: 10.0,
+            header_right_reserve: 0.0,
         });
         assert_ne!(s.model.columns[0].width, 100.0);
         s.apply(GridCommand::Undo);
@@ -1342,6 +1347,7 @@ mod tests {
             char_width: 8.4,
             header_char_width: 8.45,
             cell_padding: 10.0,
+            header_right_reserve: 0.0,
         });
         for (i, old_w) in widths_before.iter().enumerate() {
             assert_ne!(
