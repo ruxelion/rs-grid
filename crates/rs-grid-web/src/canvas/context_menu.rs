@@ -1,6 +1,8 @@
 use rs_grid_core::{commands::GridCommand, sort::SortDir};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{HtmlElement, MouseEvent};
+use web_sys::{
+    HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit,
+};
 
 use super::context_menu_config::{BuiltinAction, ContextMenuItem};
 use super::dom_helpers::{document, make_el, set_styles};
@@ -296,6 +298,7 @@ fn create_menu_shell(
     x: i32,
     y: i32,
     colors: &CtxColors,
+    canvas: &HtmlCanvasElement,
 ) -> (HtmlElement, HtmlElement) {
     let doc = document();
     let body = doc.body().expect("no body");
@@ -320,9 +323,25 @@ fn create_menu_shell(
         cb.forget();
     }
     {
+        let canvas_el = canvas.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: MouseEvent| {
             evt.prevent_default();
             remove_ctx_menu();
+            // Re-dispatch to canvas so it opens a new menu
+            // at the right-clicked cell in a single click.
+            let init = MouseEventInit::new();
+            init.set_client_x(evt.client_x());
+            init.set_client_y(evt.client_y());
+            init.set_button(evt.button());
+            init.set_bubbles(true);
+            init.set_cancelable(true);
+            let re = MouseEvent::new_with_mouse_event_init_dict(
+                "contextmenu",
+                &init,
+            )
+            .expect("create contextmenu event");
+            let _ = canvas_el
+                .dispatch_event(re.unchecked_ref());
         });
         backdrop
             .add_event_listener_with_callback(
@@ -377,11 +396,23 @@ impl GridCanvas {
             // Right-click on column header → column menu.
             let col = gc.0.state.borrow().hit_test_col_header(cx, cy);
             if let Some(col_idx) = col {
-                gc.show_col_header_menu(
-                    col_idx,
-                    evt.client_x(),
-                    evt.client_y(),
-                );
+                // If the click lands on the menu icon button,
+                // anchor to the button's bottom-left corner;
+                // otherwise use the mouse position.
+                let (mx, my) =
+                    if gc.hit_header_menu_icon(cx, cy).is_some() {
+                        let (ax, ay) =
+                            gc.menu_icon_anchor(col_idx);
+                        let rect =
+                            gc.0.canvas.get_bounding_client_rect();
+                        (
+                            (rect.left() + ax) as i32,
+                            (rect.top() + ay) as i32,
+                        )
+                    } else {
+                        (evt.client_x(), evt.client_y())
+                    };
+                gc.show_col_header_menu(col_idx, mx, my);
                 return;
             }
 
@@ -439,7 +470,7 @@ impl GridCanvas {
         remove_ctx_menu();
         let colors = read_ctx_colors();
         let doc = document();
-        let (_, menu) = create_menu_shell(x, y, &colors);
+        let (_, menu) = create_menu_shell(x, y, &colors, &self.0.canvas);
 
         let config = self.0.ctx_menu_config.borrow();
         let (is_pinned, col_sorted) = {
@@ -531,7 +562,7 @@ impl GridCanvas {
         remove_ctx_menu();
         let colors = read_ctx_colors();
         let doc = document();
-        let (_, menu) = create_menu_shell(x, y, &colors);
+        let (_, menu) = create_menu_shell(x, y, &colors, &self.0.canvas);
 
         let config = self.0.ctx_menu_config.borrow();
         let has_selection = self.0.state.borrow().selection.has_selection();
