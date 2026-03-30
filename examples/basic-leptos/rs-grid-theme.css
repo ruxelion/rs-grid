@@ -127,7 +127,9 @@ body {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 7px 14px;
-  font: 600 13px/1 system-ui, sans-serif;
+  font:
+    600 13px/1 system-ui,
+    sans-serif;
   color: #374151;
   cursor: pointer;
   white-space: nowrap;
@@ -164,31 +166,33 @@ body {
 /* ── light theme (default) ─────────────────────────────────────────────────── */
 :root {
   --rs-grid-bg: #ffffff;
-  --rs-grid-header-bg: #f8f9fa;
-  --rs-grid-header-text: #181d1f;
-  --rs-grid-cell-text: #181d1f;
+  --rs-grid-header-bg: #ffffff;
+  --rs-grid-header-text: #000000;
+  --rs-grid-cell-text: #000000;
   --rs-grid-grid-line: #e0e0e0;
   --rs-grid-header-border: #e0e0e0;
-  --rs-grid-selection-fill: rgba(31, 119, 220, 0.18);
-  --rs-grid-selection-border: rgba(31, 119, 220, 0.82);
+  --rs-grid-selection-fill: rgba(50, 190, 250, 0.2);
+  --rs-grid-selection-border: rgba(50, 190, 250, 0.8);
+  --rs-grid-header-selection-fill: rgba(0, 0, 0, 0.05);
+  --rs-grid-gutter-selection-fill: rgba(0, 0, 0, 0.05);
   --rs-grid-scrollbar-track: #f1f1f1;
-  --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.63);
+  --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.65);
   --rs-grid-scrollbar-width: 14px;
   --rs-grid-scrollbar-radius: 4px;
-  --rs-grid-row-alt-bg: #fcfcfd;
-  --rs-grid-row-hover-bg: rgba(31, 119, 220, 0.08);
+  --rs-grid-row-alt-bg: var(--rs-grid-header-bg);
+  --rs-grid-row-hover-bg: rgba(50, 190, 250, 0.08);
   --rs-grid-font-size: 14px;
-  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-size: 14px;
   --rs-grid-header-font-bold: 1;
   --rs-grid-cell-padding: 10px;
 
   /* context menu */
   --rs-grid-ctx-bg: #ffffff;
   --rs-grid-ctx-border: #d1d5db;
-  --rs-grid-ctx-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  --rs-grid-ctx-text: #111827;
+  --rs-grid-ctx-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  --rs-grid-ctx-text: #000000;
   --rs-grid-ctx-text-disabled: #9ca3af;
-  --rs-grid-ctx-hover-bg: #f3f4f6;
+  --rs-grid-ctx-hover-bg: var(--rs-grid-row-hover-bg);
   --rs-grid-ctx-separator: #e5e7eb;
 }
 
@@ -200,8 +204,10 @@ body {
   --rs-grid-cell-text: #d0d0d0;
   --rs-grid-grid-line: #333335;
   --rs-grid-header-border: #333335;
-  --rs-grid-selection-fill: rgba(60, 130, 245, 0.30);
+  --rs-grid-selection-fill: rgba(60, 130, 245, 0.3);
   --rs-grid-selection-border: rgba(60, 130, 245, 0.9);
+  --rs-grid-header-selection-fill: rgba(255, 255, 255, 0.05);
+  --rs-grid-gutter-selection-fill: rgba(255, 255, 255, 0.05);
   --rs-grid-scrollbar-track: #222224;
   --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
   --rs-grid-row-alt-bg: #212123;
@@ -297,98 +303,105 @@ body {
 
 :root.material {
   /* grid — mapped to M3 color roles */
-  --rs-grid-bg: #fffbfe;                                  /* Surface            */
-  --rs-grid-header-bg: #e7e0ec;                           /* Surface Variant    */
-  --rs-grid-header-text: #1c1b1f;                         /* On Surface         */
-  --rs-grid-cell-text: #1c1b1f;                           /* On Surface         */
-  --rs-grid-grid-line: #cac4d0;                           /* Outline Variant    */
-  --rs-grid-header-border: #79747e;                       /* Outline            */
-  --rs-grid-selection-fill: rgba(103, 80, 164, 0.14);    /* Primary @ 14%      */
-  --rs-grid-selection-border: rgba(103, 80, 164, 0.80);  /* Primary @ 80%      */
-  --rs-grid-scrollbar-track: #e7e0ec;                     /* Surface Variant    */
-  --rs-grid-scrollbar-thumb: rgba(73, 69, 79, 0.50);     /* On Surface Var @50%*/
+  --rs-grid-bg: #fffbfe; /* Surface            */
+  --rs-grid-header-bg: #e7e0ec; /* Surface Variant    */
+  --rs-grid-header-text: #1c1b1f; /* On Surface         */
+  --rs-grid-cell-text: #1c1b1f; /* On Surface         */
+  --rs-grid-grid-line: #cac4d0; /* Outline Variant    */
+  --rs-grid-header-border: #79747e; /* Outline            */
+  --rs-grid-selection-fill: rgba(103, 80, 164, 0.14); /* Primary @ 14%      */
+  --rs-grid-selection-border: rgba(103, 80, 164, 0.8); /* Primary @ 80%      */
+  --rs-grid-header-selection-fill: rgba(103, 80, 164, 0.14);
+  --rs-grid-gutter-selection-fill: rgba(103, 80, 164, 0.14);
+  --rs-grid-scrollbar-track: #e7e0ec; /* Surface Variant    */
+  --rs-grid-scrollbar-thumb: rgba(73, 69, 79, 0.5); /* On Surface Var @50%*/
   --rs-grid-scrollbar-width: 14px;
-  --rs-grid-scrollbar-radius: 8px;                        /* Full (pill)        */
-  --rs-grid-row-alt-bg: #f5eefa;                          /* Surface tint       */
-  --rs-grid-row-hover-bg: rgba(103, 80, 164, 0.08);      /* Primary @ 8%       */
-  --rs-grid-font-size: 14px;                              /* Body Medium        */
-  --rs-grid-header-font-size: 14px;                       /* Title Small        */
-  --rs-grid-header-font-bold: 1;                          /* Title = weight 500 */
-  --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
+  --rs-grid-scrollbar-radius: 8px; /* Full (pill)        */
+  --rs-grid-row-alt-bg: #f5eefa; /* Surface tint       */
+  --rs-grid-row-hover-bg: rgba(103, 80, 164, 0.08); /* Primary @ 8%       */
+  --rs-grid-font-size: 14px; /* Body Medium        */
+  --rs-grid-header-font-size: 14px; /* Title Small        */
+  --rs-grid-header-font-bold: 1; /* Title = weight 500 */
+  --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
 
   /* context menu — M3 Elevation 2 surface */
-  --rs-grid-ctx-bg: #fffbfe;                              /* Surface            */
-  --rs-grid-ctx-border: #cac4d0;                          /* Outline Variant    */
-  --rs-grid-ctx-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
-  --rs-grid-ctx-text: #1c1b1f;                            /* On Surface         */
-  --rs-grid-ctx-text-disabled: #1c1b1f66;                 /* On Surface @ 40%   */
-  --rs-grid-ctx-hover-bg: #e7e0ec;                        /* Surface Variant    */
-  --rs-grid-ctx-separator: #cac4d0;                       /* Outline Variant    */
+  --rs-grid-ctx-bg: #fffbfe; /* Surface            */
+  --rs-grid-ctx-border: #cac4d0; /* Outline Variant    */
+  --rs-grid-ctx-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-ctx-text: #1c1b1f; /* On Surface         */
+  --rs-grid-ctx-text-disabled: #1c1b1f66; /* On Surface @ 40%   */
+  --rs-grid-ctx-hover-bg: #e7e0ec; /* Surface Variant    */
+  --rs-grid-ctx-separator: #cac4d0; /* Outline Variant    */
 }
 
 /* ── M3 app shell overrides ──────────────────────────────────────────────────── */
 
 :root.material body {
-  background: #fffbfe;                                    /* Surface            */
+  background: #fffbfe; /* Surface            */
   font-family: "Roboto", system-ui, sans-serif;
 }
 
 :root.material .app-title {
-  color: #1c1b1f;                                         /* On Surface         */
+  color: #1c1b1f; /* On Surface         */
 }
 
 :root.material .app-subtitle {
-  color: #49454e;                                         /* On Surface Variant */
+  color: #49454e; /* On Surface Variant */
 }
 
 :root.material .app-highlight {
-  color: #6750a4;                                         /* Primary            */
+  color: #6750a4; /* Primary            */
 }
 
 :root.material .app-control {
-  background: #e7e0ec;                                    /* Surface Variant    */
-  border-color: #cac4d0;                                  /* Outline Variant    */
-  border-radius: 12px;                                    /* Shape Medium       */
+  background: #e7e0ec; /* Surface Variant    */
+  border-color: #cac4d0; /* Outline Variant    */
+  border-radius: 12px; /* Shape Medium       */
 }
 
 :root.material .app-control-label {
-  color: #49454e;                                         /* On Surface Variant */
+  color: #49454e; /* On Surface Variant */
 }
 
 :root.material .app-control-select {
-  background-color: #fffbfe;                              /* Surface            */
-  border-color: #79747e;                                  /* Outline            */
-  color: #1c1b1f;                                         /* On Surface         */
-  border-radius: 4px;                                     /* Shape Extra-small  */
+  background-color: #fffbfe; /* Surface            */
+  border-color: #79747e; /* Outline            */
+  color: #1c1b1f; /* On Surface         */
+  border-radius: 4px; /* Shape Extra-small  */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2349454e'/%3E%3C/svg%3E");
 }
 
 :root.material .app-control-select:hover {
-  border-color: #1c1b1f;                                  /* On Surface (hover) */
+  border-color: #1c1b1f; /* On Surface (hover) */
 }
 
 :root.material .app-control-select:focus {
-  border-color: #6750a4;                                  /* Primary            */
-  box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.20);
+  border-color: #6750a4; /* Primary            */
+  box-shadow: 0 0 0 2px rgba(103, 80, 164, 0.2);
 }
 
 :root.material .app-grid-wrapper {
-  background: #fffbfe;                                    /* Surface            */
-  border-color: #cac4d0;                                  /* Outline Variant    */
-  border-radius: 12px;                                    /* Shape Medium       */
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  background: #fffbfe; /* Surface            */
+  border-color: #cac4d0; /* Outline Variant    */
+  border-radius: 12px; /* Shape Medium       */
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%),
+    0 1px 3px 1px rgb(0 0 0 / 15%);
 }
 
 :root.material .app-btn {
-  background: #eaddff;                                    /* Primary Container  */
+  background: #eaddff; /* Primary Container  */
   border-color: transparent;
-  color: #21005d;                                         /* On Primary Cont.   */
-  border-radius: 20px;                                    /* Full               */
-  font-weight: 500;                                       /* Label Large        */
+  color: #21005d; /* On Primary Cont.   */
+  border-radius: 20px; /* Full               */
+  font-weight: 500; /* Label Large        */
 }
 
 :root.material .app-btn:hover {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%),
+    0 1px 3px 1px rgb(0 0 0 / 15%);
 }
 
 /* ── Material Design 3 Dark — <html class="material-dark"> ─────────────────── */
@@ -400,96 +413,102 @@ body {
 /*   Outline Variant#49454E    Primary Container  #4F378B                       */
 
 :root.material-dark {
-  --rs-grid-bg: #1c1b1f;                                  /* Surface            */
-  --rs-grid-header-bg: #49454e;                           /* Surface Variant    */
-  --rs-grid-header-text: #e6e1e6;                         /* On Surface         */
-  --rs-grid-cell-text: #e6e1e6;                           /* On Surface         */
-  --rs-grid-grid-line: #49454e;                           /* Outline Variant    */
-  --rs-grid-header-border: #938f99;                       /* Outline            */
-  --rs-grid-selection-fill: rgba(208, 188, 255, 0.18);   /* Primary @ 18%      */
-  --rs-grid-selection-border: rgba(208, 188, 255, 0.80); /* Primary @ 80%      */
-  --rs-grid-scrollbar-track: #2b2930;                     /* Surface +1 tint    */
-  --rs-grid-scrollbar-thumb: rgba(202, 196, 208, 0.35);  /* On Surf Var @ 35%  */
+  --rs-grid-bg: #1c1b1f; /* Surface            */
+  --rs-grid-header-bg: #49454e; /* Surface Variant    */
+  --rs-grid-header-text: #e6e1e6; /* On Surface         */
+  --rs-grid-cell-text: #e6e1e6; /* On Surface         */
+  --rs-grid-grid-line: #49454e; /* Outline Variant    */
+  --rs-grid-header-border: #938f99; /* Outline            */
+  --rs-grid-selection-fill: rgba(208, 188, 255, 0.18); /* Primary @ 18%      */
+  --rs-grid-selection-border: rgba(208, 188, 255, 0.8); /* Primary @ 80%      */
+  --rs-grid-header-selection-fill: rgba(208, 188, 255, 0.18);
+  --rs-grid-gutter-selection-fill: rgba(208, 188, 255, 0.18);
+  --rs-grid-scrollbar-track: #2b2930; /* Surface +1 tint    */
+  --rs-grid-scrollbar-thumb: rgba(202, 196, 208, 0.35); /* On Surf Var @ 35%  */
   --rs-grid-scrollbar-width: 14px;
   --rs-grid-scrollbar-radius: 8px;
-  --rs-grid-row-alt-bg: #211f26;                          /* Surface +1 tint    */
-  --rs-grid-row-hover-bg: rgba(208, 188, 255, 0.08);     /* Primary @ 8%       */
-  --rs-grid-font-size: 14px;                              /* Body Medium        */
-  --rs-grid-header-font-size: 14px;                       /* Title Small        */
+  --rs-grid-row-alt-bg: #211f26; /* Surface +1 tint    */
+  --rs-grid-row-hover-bg: rgba(208, 188, 255, 0.08); /* Primary @ 8%       */
+  --rs-grid-font-size: 14px; /* Body Medium        */
+  --rs-grid-header-font-size: 14px; /* Title Small        */
   --rs-grid-header-font-bold: 1;
-  --rs-grid-cell-padding: 16px;                           /* M3 table 16dp      */
+  --rs-grid-cell-padding: 16px; /* M3 table 16dp      */
 
   /* context menu — M3 Elevation 2 dark */
   --rs-grid-ctx-bg: #2b2930;
-  --rs-grid-ctx-border: #49454e;                          /* Outline Variant    */
-  --rs-grid-ctx-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
-  --rs-grid-ctx-text: #e6e1e6;                            /* On Surface         */
-  --rs-grid-ctx-text-disabled: #e6e1e640;                 /* On Surface @ 25%   */
-  --rs-grid-ctx-hover-bg: #49454e;                        /* Surface Variant    */
-  --rs-grid-ctx-separator: #49454e;                       /* Outline Variant    */
+  --rs-grid-ctx-border: #49454e; /* Outline Variant    */
+  --rs-grid-ctx-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+  --rs-grid-ctx-text: #e6e1e6; /* On Surface         */
+  --rs-grid-ctx-text-disabled: #e6e1e640; /* On Surface @ 25%   */
+  --rs-grid-ctx-hover-bg: #49454e; /* Surface Variant    */
+  --rs-grid-ctx-separator: #49454e; /* Outline Variant    */
 }
 
 /* ── M3 dark app shell overrides ─────────────────────────────────────────────── */
 
 :root.material-dark body {
-  background: #1c1b1f;                                    /* Surface            */
+  background: #1c1b1f; /* Surface            */
   font-family: "Roboto", system-ui, sans-serif;
 }
 
 :root.material-dark .app-title {
-  color: #e6e1e6;                                         /* On Surface         */
+  color: #e6e1e6; /* On Surface         */
 }
 
 :root.material-dark .app-subtitle {
-  color: #cac4d0;                                         /* On Surface Variant */
+  color: #cac4d0; /* On Surface Variant */
 }
 
 :root.material-dark .app-highlight {
-  color: #d0bcff;                                         /* Primary            */
+  color: #d0bcff; /* Primary            */
 }
 
 :root.material-dark .app-control {
-  background: #2b2930;                                    /* Surface +1 tint    */
-  border-color: #49454e;                                  /* Outline Variant    */
-  border-radius: 12px;                                    /* Shape Medium       */
+  background: #2b2930; /* Surface +1 tint    */
+  border-color: #49454e; /* Outline Variant    */
+  border-radius: 12px; /* Shape Medium       */
 }
 
 :root.material-dark .app-control-label {
-  color: #cac4d0;                                         /* On Surface Variant */
+  color: #cac4d0; /* On Surface Variant */
 }
 
 :root.material-dark .app-control-select {
-  background-color: #1c1b1f;                              /* Surface            */
-  border-color: #938f99;                                  /* Outline            */
-  color: #e6e1e6;                                         /* On Surface         */
-  border-radius: 4px;                                     /* Shape Extra-small  */
+  background-color: #1c1b1f; /* Surface            */
+  border-color: #938f99; /* Outline            */
+  color: #e6e1e6; /* On Surface         */
+  border-radius: 4px; /* Shape Extra-small  */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23cac4d0'/%3E%3C/svg%3E");
 }
 
 :root.material-dark .app-control-select:hover {
-  border-color: #e6e1e6;                                  /* On Surface (hover) */
+  border-color: #e6e1e6; /* On Surface (hover) */
 }
 
 :root.material-dark .app-control-select:focus {
-  border-color: #d0bcff;                                  /* Primary            */
-  box-shadow: 0 0 0 2px rgba(208, 188, 255, 0.20);
+  border-color: #d0bcff; /* Primary            */
+  box-shadow: 0 0 0 2px rgba(208, 188, 255, 0.2);
 }
 
 :root.material-dark .app-grid-wrapper {
-  background: #1c1b1f;                                    /* Surface            */
-  border-color: #49454e;                                  /* Outline Variant    */
-  border-radius: 12px;                                    /* Shape Medium       */
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  background: #1c1b1f; /* Surface            */
+  border-color: #49454e; /* Outline Variant    */
+  border-radius: 12px; /* Shape Medium       */
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%),
+    0 1px 3px 1px rgb(0 0 0 / 15%);
 }
 
 :root.material-dark .app-btn {
-  background: #4f378b;                                    /* Primary Container  */
+  background: #4f378b; /* Primary Container  */
   border-color: transparent;
-  color: #eaddff;                                         /* On Primary Cont.   */
-  border-radius: 20px;                                    /* Full               */
+  color: #eaddff; /* On Primary Cont.   */
+  border-radius: 20px; /* Full               */
 }
 
 :root.material-dark .app-btn:hover {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 30%), 0 1px 3px 1px rgb(0 0 0 / 15%);
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 30%),
+    0 1px 3px 1px rgb(0 0 0 / 15%);
 }
-
