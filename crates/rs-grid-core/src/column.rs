@@ -139,14 +139,20 @@ impl ColumnOffsets {
     }
 
     /// Return the column index whose bounds contain `x`, or `None`.
+    ///
+    /// Uses binary search on the sorted offsets for O(log n).
     pub fn hit_column(&self, x: f64, columns: &[ColumnDef]) -> Option<usize> {
-        for (i, &offset) in self.offsets.iter().enumerate() {
-            let right = offset + columns[i].width;
-            if x >= offset && x < right {
-                return Some(i);
-            }
+        if x < 0.0 || self.offsets.is_empty() {
+            return None;
         }
-        None
+        // partition_point returns the first index where offset > x.
+        let idx = self.offsets.partition_point(|&o| o <= x);
+        let col = idx.checked_sub(1)?;
+        if col < columns.len() && x < self.offsets[col] + columns[col].width {
+            Some(col)
+        } else {
+            None
+        }
     }
 }
 

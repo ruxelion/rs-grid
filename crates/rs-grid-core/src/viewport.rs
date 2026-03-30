@@ -62,34 +62,37 @@ impl ViewportState {
     }
 
     /// Inclusive start / exclusive end of the visible column range.
+    ///
+    /// Uses binary search on sorted offsets for O(log n).
     pub fn visible_columns(
         &self,
         offsets: &ColumnOffsets,
         col_widths: &[f64],
     ) -> (usize, usize) {
+        let col_count = offsets.offsets.len();
+        if col_count == 0 {
+            return (0, 0);
+        }
         let x_start = self.scroll_x;
         let x_end = self.scroll_x + self.width;
 
-        let col_count = offsets.offsets.len();
-        // first = index of the first column whose right edge enters
-        // the viewport; last = index of the first column that starts
-        // past the viewport's right edge (exclusive upper bound).
-        let mut first = 0usize;
-        let mut last = col_count;
-
-        for (i, (&offset, &w)) in
-            offsets.offsets.iter().zip(col_widths.iter()).enumerate()
+        // First visible: the last column whose offset <= x_start,
+        // then scan back to find one whose right edge > x_start.
+        let mut first = offsets.offsets.partition_point(|&o| o <= x_start);
+        // partition_point gives the first offset > x_start; go back one
+        // since that column may still overlap the viewport.
+        first = first.saturating_sub(1);
+        // Advance past columns fully to the left of the viewport.
+        while first < col_count
+            && offsets.offsets[first] + col_widths[first] <= x_start
         {
-            // Column ends before viewport starts → still fully hidden.
-            if offset + w <= x_start {
-                first = i + 1;
-            }
-            // Column starts past viewport end → everything after is hidden too.
-            if offset >= x_end && last == col_count {
-                last = i;
-                break;
-            }
+            first += 1;
         }
+
+        // Last visible: first column whose offset >= x_end.
+        let last = offsets.offsets[first..col_count]
+            .partition_point(|&o| o < x_end)
+            + first;
 
         (first.min(col_count), last.min(col_count))
     }
@@ -100,6 +103,8 @@ impl ViewportState {
     /// from this range.  `pinned_width` is the sum of their widths,
     /// `row_number_width` is the gutter width; both are subtracted
     /// from the viewport to obtain the scrollable band.
+    ///
+    /// Uses binary search on sorted offsets for O(log n).
     pub fn visible_scrollable_columns(
         &self,
         offsets: &ColumnOffsets,
@@ -108,32 +113,33 @@ impl ViewportState {
         pinned_width: f64,
         row_number_width: f64,
     ) -> (usize, usize) {
+        let col_count = offsets.offsets.len();
+        if pinned_count >= col_count {
+            return (col_count, col_count);
+        }
         let avail = (self.width - row_number_width - pinned_width).max(0.0);
         let x_start = pinned_width + self.scroll_x;
         let x_end = x_start + avail;
 
-        let col_count = offsets.offsets.len();
-        let mut first = pinned_count;
-        let mut last = col_count;
+        let slice = &offsets.offsets[pinned_count..col_count];
 
-        for (i, (&offset, &w)) in offsets.offsets[pinned_count..col_count]
-            .iter()
-            .zip(&col_widths[pinned_count..col_count])
-            .enumerate()
+        // First visible in the scrollable slice.
+        let mut rel_first = slice.partition_point(|&o| o <= x_start);
+        rel_first = rel_first.saturating_sub(1);
+        while rel_first < slice.len()
+            && slice[rel_first] + col_widths[pinned_count + rel_first]
+                <= x_start
         {
-            // enumerate() yields 0-based indices into the slice;
-            // add pinned_count to recover the absolute column index.
-            let i = i + pinned_count;
-            if offset + w <= x_start {
-                first = i + 1;
-            }
-            if offset >= x_end && last == col_count {
-                last = i;
-                break;
-            }
+            rel_first += 1;
         }
 
-        (first.min(col_count), last.min(col_count))
+        // Last visible.
+        let rel_last =
+            slice[rel_first..].partition_point(|&o| o < x_end) + rel_first;
+
+        let first = (pinned_count + rel_first).min(col_count);
+        let last = (pinned_count + rel_last).min(col_count);
+        (first, last)
     }
 }
 
