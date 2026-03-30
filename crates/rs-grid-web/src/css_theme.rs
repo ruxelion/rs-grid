@@ -20,6 +20,8 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-header-separator-width` | `Theme::header_separator_width`   |
 /// | `--rs-grid-selection-fill`     | `Theme::selection_fill`      |
 /// | `--rs-grid-selection-border`   | `Theme::selection_border`    |
+/// | `--rs-grid-header-selection-fill` | `Theme::header_selection_fill` |
+/// | `--rs-grid-gutter-selection-fill` | `Theme::gutter_selection_fill` |
 /// | `--rs-grid-scrollbar-track`    | `Theme::scrollbar_track`     |
 /// | `--rs-grid-scrollbar-thumb`    | `Theme::scrollbar_thumb`     |
 /// | `--rs-grid-scrollbar-width`    | `Theme::scrollbar_width`     |
@@ -91,6 +93,14 @@ pub fn theme_from_css_vars() -> Theme {
     t.selection_border = color(
         "--rs-grid-selection-border",
         t.selection_border,
+    );
+    t.header_selection_fill = color(
+        "--rs-grid-header-selection-fill",
+        t.header_selection_fill,
+    );
+    t.gutter_selection_fill = color(
+        "--rs-grid-gutter-selection-fill",
+        t.gutter_selection_fill,
     );
     t.scrollbar_track = color(
         "--rs-grid-scrollbar-track",

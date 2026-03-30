@@ -31,6 +31,12 @@ pub struct Theme {
     pub selection_fill: Color,
     /// Border color for the selection rectangle.
     pub selection_border: Color,
+    /// Fill color for column headers when the column is in
+    /// the selection range. Defaults to `selection_fill`.
+    pub header_selection_fill: Color,
+    /// Fill color for the row-number gutter when the row is
+    /// in the selection range. Defaults to `selection_fill`.
+    pub gutter_selection_fill: Color,
     /// Scrollbar track background.
     pub scrollbar_track: Color,
     /// Scrollbar thumb color.
@@ -157,6 +163,8 @@ impl Theme {
             header_separator_width: 2.0,
             selection_fill: Color::rgba(31, 119, 220, 46),
             selection_border: Color::rgba(31, 119, 220, 210),
+            header_selection_fill: Color::rgba(31, 119, 220, 46),
+            gutter_selection_fill: Color::rgba(31, 119, 220, 46),
             scrollbar_track: Color::rgb(241, 241, 241),
             scrollbar_thumb: Color::rgba(100, 100, 110, 160),
             row_alt_bg: Color::rgb(245, 245, 245),
@@ -224,6 +232,8 @@ impl Theme {
             header_separator_width: 2.0,
             selection_fill: Color::rgba(122, 162, 255, 51),
             selection_border: Color::rgba(122, 162, 255, 204),
+            header_selection_fill: Color::rgba(0, 0, 0, 10),
+            gutter_selection_fill: Color::rgba(0, 0, 0, 10),
             scrollbar_track: Color::rgb(31, 35, 53),
             scrollbar_thumb: Color::rgba(169, 177, 214, 102),
             row_alt_bg: Color::rgb(30, 32, 48),
@@ -388,7 +398,9 @@ mod tests {
     fn dark_cell_text_is_light() {
         let t = Theme::dark();
         // At least one channel above 150 to be readable on dark bg.
-        assert!(t.cell_text.r > 150 || t.cell_text.g > 150 || t.cell_text.b > 150);
+        assert!(
+            t.cell_text.r > 150 || t.cell_text.g > 150 || t.cell_text.b > 150
+        );
     }
 
     #[test]
