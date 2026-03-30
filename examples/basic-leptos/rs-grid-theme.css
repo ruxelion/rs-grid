@@ -152,15 +152,9 @@ body {
 .app-grid-wrapper {
   height: 100%;
   background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e2e4ea;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
   overflow: hidden;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
 }
 
 /* ── light theme (default) ─────────────────────────────────────────────────── */
@@ -173,8 +167,8 @@ body {
   --rs-grid-header-border: #e0e0e0;
   --rs-grid-selection-fill: rgba(50, 190, 250, 0.2);
   --rs-grid-selection-border: rgba(50, 190, 250, 0.8);
-  --rs-grid-header-selection-fill: rgba(0, 0, 0, 0.05);
-  --rs-grid-gutter-selection-fill: rgba(0, 0, 0, 0.05);
+  --rs-grid-header-selection-fill: rgba(0, 0, 0, 0.07);
+  --rs-grid-gutter-selection-fill: rgba(0, 0, 0, 0.07);
   --rs-grid-scrollbar-track: #f1f1f1;
   --rs-grid-scrollbar-thumb: rgba(100, 100, 110, 0.65);
   --rs-grid-scrollbar-width: 14px;
@@ -190,18 +184,18 @@ body {
   --rs-grid-scrollbar-inset: 2px;
   --rs-grid-header-height: 50px;
   --rs-grid-row-height: 40px;
-  --rs-grid-flash-fill: rgba(255, 193, 7, 0.71);
-  --rs-grid-flash-border: rgba(255, 193, 7, 0.82);
-  --rs-grid-search-highlight: rgba(255, 213, 0, 0.31);
+  --rs-grid-flash-fill: rgb(255, 220, 0, 1);
+  --rs-grid-flash-border: rgba(255, 220, 0, 1);
+  --rs-grid-search-highlight: rgba(255, 213, 0, 0.3);
   --rs-grid-search-current: rgba(255, 165, 0, 0.55);
-  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.39);
-  --rs-grid-drag-overlay: rgba(128, 128, 128, 0);
-  --rs-grid-drag-ghost-bg: rgba(248, 249, 250, 0.71);
-  --rs-grid-drag-ghost-text: rgba(24, 29, 31, 0.78);
-  --rs-grid-drag-insert-line-width: 3px;
+  --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.3);
+  --rs-grid-drag-overlay: rgba(0, 0, 0, 0.03);
+  --rs-grid-drag-ghost-bg: var(--rs-grid-header-bg);
+  --rs-grid-drag-ghost-text: var(--rs-grid-header-text);
+  --rs-grid-drag-insert-line-width: 1px;
   --rs-grid-drag-ghost-radius: 4px;
   --rs-grid-drag-ghost-border-width: 1px;
-  --rs-grid-drag-anim-alpha: 0.3;
+  --rs-grid-drag-anim-alpha: 0.5;
   --rs-grid-sort-arrow-width: 4px;
   --rs-grid-sort-arrow-height: 3.5px;
   --rs-grid-header-menu-icon: rgba(0, 0, 0, 1);
