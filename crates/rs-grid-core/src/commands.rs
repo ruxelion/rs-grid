@@ -21,7 +21,7 @@ use crate::{
 /// | **Scroll** | `ScrollTo`, `ScrollBy`, `Resize` |
 /// | **Clipboard** | `CopySelection`, `CutSelection`, `PasteAt` |
 /// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters` |
-/// | **Columns** | `ResizeColumn`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
+/// | **Columns** | `ResizeColumn`, `CommitColumnResize`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
 /// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
@@ -176,6 +176,19 @@ pub enum GridCommand {
     /// server response returns the real row count. Has no effect on
     /// `VecDataSource` or `FnDataSource`.
     SetTotalRowCount(u64),
+    /// Record an undo entry after a column-resize drag ends.
+    ///
+    /// During a resize drag the web layer sends many
+    /// [`ResizeColumn`] commands (one per mousemove) which
+    /// intentionally do **not** push undo entries. At mouseup
+    /// the web layer dispatches this command once to record
+    /// the resize as a single undoable action.
+    CommitColumnResize {
+        /// Index of the resized column.
+        col_idx: usize,
+        /// Width before the drag started.
+        old_width: f64,
+    },
     /// Auto-fit a column width to its content (double-click separator).
     AutoFitColumn {
         /// Index of the column to auto-fit.

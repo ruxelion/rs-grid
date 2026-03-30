@@ -19,6 +19,18 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::CommitColumnResize { col_idx, old_width } => {
+                if col_idx < self.model.columns.len() {
+                    let cur = self.model.columns[col_idx].width;
+                    if (cur - old_width).abs() > f64::EPSILON {
+                        self.history.push(UndoEntry::ResizeColumn {
+                            col_idx,
+                            old_width,
+                        });
+                    }
+                }
+                CommandOutput::None
+            }
             GridCommand::SetPinnedColumnCount { count } => {
                 self.model.pinned_count = count.min(self.model.columns.len());
                 CommandOutput::None
@@ -50,7 +62,8 @@ impl GridState {
                     let old_width = self.model.columns[col_idx].width;
                     let col_key = self.model.columns[col_idx].key.clone();
                     let label = &self.model.columns[col_idx].label;
-                    let header_w = label.len() as f64 * header_char_width
+                    let header_w = label.chars().count() as f64
+                        * header_char_width
                         + cell_padding * 2.0;
                     let col_format = self.model.columns[col_idx].format.clone();
                     let row_count =
@@ -69,8 +82,8 @@ impl GridState {
                                 }) => {
                                     let label_len = val
                                         .find(' ')
-                                        .map(|i| val[i + 1..].len())
-                                        .unwrap_or(val.len());
+                                        .map(|i| val[i + 1..].chars().count())
+                                        .unwrap_or_else(|| val.chars().count());
                                     image_size
                                         + gap
                                         + label_len as f64 * char_width
@@ -78,11 +91,12 @@ impl GridState {
                                 }
                                 Some(fmt) => {
                                     let formatted = format_cell(&val, fmt);
-                                    formatted.text.len() as f64 * char_width
+                                    formatted.text.chars().count() as f64
+                                        * char_width
                                         + cell_padding * 2.0
                                 }
                                 None => {
-                                    val.len() as f64 * char_width
+                                    val.chars().count() as f64 * char_width
                                         + cell_padding * 2.0
                                 }
                             };

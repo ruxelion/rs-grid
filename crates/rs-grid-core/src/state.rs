@@ -123,6 +123,7 @@ impl GridState {
             | GridCommand::ClearAllFilters => self.cmd_sort_filter(cmd),
 
             GridCommand::ResizeColumn { .. }
+            | GridCommand::CommitColumnResize { .. }
             | GridCommand::SetPinnedColumnCount { .. }
             | GridCommand::MoveColumn { .. }
             | GridCommand::AutoFitColumn { .. }
@@ -798,21 +799,12 @@ mod tests {
     fn cut_selection_returns_tsv_and_clears_cells() {
         let mut s = make_state();
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
-        s.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 0,
-            col: 1,
-        }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
         let out = s.apply(GridCommand::CutSelection);
         assert!(matches!(out, CommandOutput::CopyText(_)));
         // Cells should be cleared.
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some(String::new()),
-        );
-        assert_eq!(
-            s.model.get_cell(0, "b"),
-            Some(String::new()),
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some(String::new()),);
+        assert_eq!(s.model.get_cell(0, "b"), Some(String::new()),);
     }
 
     #[test]
@@ -822,10 +814,7 @@ mod tests {
         s.apply(GridCommand::CutSelection);
         assert_eq!(s.model.get_cell(0, "a"), Some(String::new()));
         s.apply(GridCommand::Undo);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".to_string()),
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".to_string()),);
     }
 
     // ── ToggleSort ───────────────────────────────────────────────────────────
@@ -1001,10 +990,7 @@ mod tests {
             col_key: "a".into(),
             value: "new".into(),
         });
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".to_string()),
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".to_string()),);
     }
 
     #[test]
@@ -1019,22 +1005,14 @@ mod tests {
     #[test]
     fn move_column_same_index_noop() {
         let mut s = make_state();
-        let keys: Vec<_> = s
-            .model
-            .columns
-            .iter()
-            .map(|c| c.key.clone())
-            .collect();
+        let keys: Vec<_> =
+            s.model.columns.iter().map(|c| c.key.clone()).collect();
         s.apply(GridCommand::MoveColumn {
             from_idx: 1,
             to_idx: 1,
         });
-        let after: Vec<_> = s
-            .model
-            .columns
-            .iter()
-            .map(|c| c.key.clone())
-            .collect();
+        let after: Vec<_> =
+            s.model.columns.iter().map(|c| c.key.clone()).collect();
         assert_eq!(keys, after);
     }
 
@@ -1047,10 +1025,7 @@ mod tests {
         s.apply(GridCommand::PasteAt {
             text: String::new(),
         });
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".to_string()),
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".to_string()),);
     }
 
     // ── MoveSelection no selection ───────────────────────────────────────────
@@ -1087,10 +1062,7 @@ mod tests {
     #[test]
     fn move_selection_extend() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 2,
-            col: 1,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 2, col: 1 }));
         s.apply(GridCommand::MoveSelection {
             delta_row: 2,
             delta_col: 1,
@@ -1105,10 +1077,7 @@ mod tests {
     #[test]
     fn move_selection_negative_clamped() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::MoveSelection {
             delta_row: -5,
             delta_col: -5,
@@ -1139,52 +1108,26 @@ mod tests {
     fn paste_tiles_into_larger_selection() {
         let mut s = make_state();
         // Select a 2x2 area
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
-        s.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 1,
-            col: 1,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 1 }));
         // Paste a 1x1 value — should tile into 2x2
-        s.apply(GridCommand::PasteAt {
-            text: "Z\n".into(),
-        });
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("Z".into())
-        );
-        assert_eq!(
-            s.model.get_cell(0, "b"),
-            Some("Z".into())
-        );
-        assert_eq!(
-            s.model.get_cell(1, "a"),
-            Some("Z".into())
-        );
-        assert_eq!(
-            s.model.get_cell(1, "b"),
-            Some("Z".into())
-        );
+        s.apply(GridCommand::PasteAt { text: "Z\n".into() });
+        assert_eq!(s.model.get_cell(0, "a"), Some("Z".into()));
+        assert_eq!(s.model.get_cell(0, "b"), Some("Z".into()));
+        assert_eq!(s.model.get_cell(1, "a"), Some("Z".into()));
+        assert_eq!(s.model.get_cell(1, "b"), Some("Z".into()));
     }
 
     #[test]
     fn paste_clamps_to_grid_bounds() {
         let mut s = make_state();
         // Select bottom-right cell
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 9,
-            col: 2,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 9, col: 2 }));
         // Paste 3x3 — should only write 1 cell
         s.apply(GridCommand::PasteAt {
             text: "X\tY\tZ\nA\tB\tC\nD\tE\tF\n".into(),
         });
-        assert_eq!(
-            s.model.get_cell(9, "c"),
-            Some("X".into())
-        );
+        assert_eq!(s.model.get_cell(9, "c"), Some("X".into()));
         // Row 10 doesn't exist, col 3 doesn't exist
     }
 
@@ -1192,9 +1135,7 @@ mod tests {
     fn paste_no_selection_is_noop() {
         let mut s = make_state();
         let before = s.model.get_cell(0, "a");
-        s.apply(GridCommand::PasteAt {
-            text: "X\n".into(),
-        });
+        s.apply(GridCommand::PasteAt { text: "X\n".into() });
         assert_eq!(s.model.get_cell(0, "a"), before);
     }
 
@@ -1258,10 +1199,7 @@ mod tests {
     #[test]
     fn filter_clears_selection() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         assert!(s.selection.has_selection());
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
@@ -1293,10 +1231,7 @@ mod tests {
     #[test]
     fn clear_all_filters_resets_scroll_and_selection() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
             text: "a5".into(),
@@ -1322,10 +1257,7 @@ mod tests {
             value: "wrong".into(),
         });
         assert!(s.edit.is_some());
-        assert_eq!(
-            s.model.get_cell(1, "a"),
-            Some("a1".into())
-        );
+        assert_eq!(s.model.get_cell(1, "a"), Some("a1".into()));
     }
 
     // ── ResizeColumn does not push undo ────────────────
@@ -1342,6 +1274,44 @@ mod tests {
         // ResizeColumn doesn't push undo — Undo is a no-op
         s.apply(GridCommand::Undo);
         assert_eq!(s.model.columns[0].width, 250.0);
+    }
+
+    #[test]
+    fn commit_column_resize_enables_undo() {
+        let mut s = make_state();
+        let orig = s.model.columns[0].width;
+        assert_eq!(orig, 100.0);
+        // Simulate drag: many ResizeColumn then one Commit
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 200.0,
+        });
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 0,
+            new_width: 250.0,
+        });
+        s.apply(GridCommand::CommitColumnResize {
+            col_idx: 0,
+            old_width: orig,
+        });
+        assert_eq!(s.model.columns[0].width, 250.0);
+        // Undo restores the width before the drag
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[0].width, orig);
+    }
+
+    #[test]
+    fn commit_column_resize_noop_when_unchanged() {
+        let mut s = make_state();
+        let orig = s.model.columns[0].width;
+        // Commit without any actual resize — no undo entry
+        s.apply(GridCommand::CommitColumnResize {
+            col_idx: 0,
+            old_width: orig,
+        });
+        // Undo should be a no-op (nothing was pushed)
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[0].width, orig);
     }
 
     // ── Meta: NotifyPageLoaded / SetTotalRowCount ────
@@ -1386,9 +1356,7 @@ mod tests {
     #[test]
     fn search_next_selects_match() {
         let mut s = make_state();
-        s.apply(GridCommand::Search {
-            query: "a5".into(),
-        });
+        s.apply(GridCommand::Search { query: "a5".into() });
         // Search alone doesn't select; SearchNext does
         s.apply(GridCommand::SearchNext);
         assert!(s.selection.is_selected(5, 0));
@@ -1408,10 +1376,7 @@ mod tests {
             text: "a1".into(),
         });
         assert_eq!(s.model.display_row_count(), 1);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a1".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a1".into()));
     }
 
     #[test]
@@ -1428,10 +1393,7 @@ mod tests {
             dir: crate::sort::SortDir::Desc,
         });
         // a9 should be first after desc sort
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a9".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a9".into()));
     }
 
     // ── Redo undo redo cycle ─────────────────────────
@@ -1449,20 +1411,11 @@ mod tests {
             value: "v1".into(),
         });
         s.apply(GridCommand::Undo);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
         s.apply(GridCommand::Redo);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("v1".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("v1".into()));
         s.apply(GridCommand::Undo);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
     }
 
     // ── Undo cut restores values ─────────────────────
@@ -1470,40 +1423,16 @@ mod tests {
     #[test]
     fn undo_cut_restores_multiple_cells() {
         let mut s = make_state();
-        s.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
-        s.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 1,
-            col: 1,
-        }));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 1 }));
         s.apply(GridCommand::CutSelection);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some(String::new())
-        );
-        assert_eq!(
-            s.model.get_cell(1, "b"),
-            Some(String::new())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some(String::new()));
+        assert_eq!(s.model.get_cell(1, "b"), Some(String::new()));
         s.apply(GridCommand::Undo);
-        assert_eq!(
-            s.model.get_cell(0, "a"),
-            Some("a0".into())
-        );
-        assert_eq!(
-            s.model.get_cell(0, "b"),
-            Some("b0".into())
-        );
-        assert_eq!(
-            s.model.get_cell(1, "a"),
-            Some("a1".into())
-        );
-        assert_eq!(
-            s.model.get_cell(1, "b"),
-            Some("b1".into())
-        );
+        assert_eq!(s.model.get_cell(0, "a"), Some("a0".into()));
+        assert_eq!(s.model.get_cell(0, "b"), Some("b0".into()));
+        assert_eq!(s.model.get_cell(1, "a"), Some("a1".into()));
+        assert_eq!(s.model.get_cell(1, "b"), Some("b1".into()));
     }
 
     // ── ResizeColumn rebuilds offsets ─────────────────
@@ -1523,10 +1452,7 @@ mod tests {
     #[test]
     fn scroll_horizontal_clamped() {
         let mut s = make_state();
-        s.apply(GridCommand::ScrollTo {
-            x: 99999.0,
-            y: 0.0,
-        });
+        s.apply(GridCommand::ScrollTo { x: 99999.0, y: 0.0 });
         // max_x = total_width - (vp.width - rnw - sb)
         // = 450 - (800 - rnw - 14)
         // With rnw ~33 (for 10 rows), max_x is negative → 0

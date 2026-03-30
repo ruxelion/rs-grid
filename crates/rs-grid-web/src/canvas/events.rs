@@ -404,8 +404,7 @@ impl GridCanvas {
                 // Three-dot icon at right edge → open header menu.
                 if gc.hit_header_menu_icon(x, y).is_some() {
                     let (ax, ay) = gc.menu_icon_anchor(col);
-                    let rect =
-                        gc.0.canvas.get_bounding_client_rect();
+                    let rect = gc.0.canvas.get_bounding_client_rect();
                     gc.show_col_header_menu(
                         col,
                         (rect.left() + ax) as i32,
@@ -718,7 +717,15 @@ impl GridCanvas {
                         gc.render();
                     }
                 }
-                Some(ActiveDrag::ColumnResize { .. }) => {
+                Some(ActiveDrag::ColumnResize {
+                    col_idx,
+                    start_width,
+                    ..
+                }) => {
+                    gc.dispatch(GridCommand::CommitColumnResize {
+                        col_idx,
+                        old_width: start_width,
+                    });
                     gc.set_cursor("default");
                 }
                 _ => {}
