@@ -6,10 +6,10 @@
       "sourceType": "github",
       "computedHash": "70281973357233155f6dfb6289d5876ecad35bb858de41d505cdb0b175a47932"
     },
-    "rspress-v2-upgrade": {
+    "rspress-description-generator": {
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
-      "computedHash": "a96e355440af6a1f55a5ec7f900b637ffff432a5cf298fdf0da313e80c34e15b"
+      "computedHash": "4512b22952da93042ef12432282fecd4709d2d2337463e097a1ba6f7adc27bc8"
     }
   }
 }
