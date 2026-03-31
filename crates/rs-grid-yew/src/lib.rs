@@ -24,6 +24,39 @@ use rs_grid_scene::Theme;
 use web_sys::HtmlCanvasElement;
 use yew::prelude::*;
 
+/// Wrapper for passing a non-`Clone` [`GridModel`] into
+/// the [`GridCanvas`] component.
+///
+/// Yew `Properties` requires `PartialEq`; `GridModel`
+/// implements neither `Clone` nor `PartialEq`. This
+/// newtype wraps it in `Rc<RefCell<Option>>` and
+/// provides equality via pointer identity.
+///
+/// # Example
+/// ```ignore
+/// let slot = ModelSlot::new(my_model);
+/// html! { <GridCanvas model={slot} /> }
+/// ```
+#[derive(Clone)]
+pub struct ModelSlot(Rc<RefCell<Option<GridModel>>>);
+
+impl ModelSlot {
+    /// Wrap a `GridModel` for use as a component prop.
+    pub fn new(model: GridModel) -> Self {
+        Self(Rc::new(RefCell::new(Some(model))))
+    }
+
+    pub(crate) fn take(&self) -> Option<GridModel> {
+        self.0.borrow_mut().take()
+    }
+}
+
+impl PartialEq for ModelSlot {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 /// Callback type for validation error events:
 /// `(row, col_key, message)`.
 pub type ValidationErrorCb =
@@ -32,10 +65,11 @@ pub type ValidationErrorCb =
 /// Props for the [`GridCanvas`](GridCanvas) component.
 #[derive(Properties)]
 pub struct GridCanvasProps {
-    /// Grid model (consumed on first mount).
-    /// Wrap in `Rc<RefCell<Option<GridModel>>>` because
-    /// Yew `Properties` requires `PartialEq`.
-    pub model: Rc<RefCell<Option<GridModel>>>,
+    /// Grid model (consumed on first mount). Wrap with
+    /// [`ModelSlot::new`] because Yew `Properties`
+    /// requires `PartialEq`, and `GridModel` is neither
+    /// `Clone` nor `PartialEq`.
+    pub model: ModelSlot,
     /// CSS width. Defaults to `"100%"`.
     #[prop_or("100%".into())]
     pub width: AttrValue,
@@ -60,7 +94,7 @@ pub struct GridCanvasProps {
 
 impl PartialEq for GridCanvasProps {
     fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.model, &other.model)
+        self.model == other.model
             && self.width == other.width
             && self.height == other.height
             && self.theme == other.theme
@@ -73,11 +107,11 @@ impl PartialEq for GridCanvasProps {
 ///
 /// # Usage
 /// ```ignore
-/// use rs_grid_yew::{GridCanvas, wrap_model};
+/// use rs_grid_yew::{GridCanvas, ModelSlot};
 ///
-/// let model_slot = wrap_model(my_model);
+/// let slot = ModelSlot::new(my_model);
 /// html! {
-///     <GridCanvas model={model_slot} />
+///     <GridCanvas model={slot} />
 /// }
 /// ```
 #[function_component]
@@ -105,7 +139,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                 canvas_ref.cast::<HtmlCanvasElement>()
             {
                 if let Some(model) =
-                    model_slot.borrow_mut().take()
+                    model_slot.take()
                 {
                     let mount_theme =
                         theme.unwrap_or_else(
@@ -225,18 +259,12 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
     }
 }
 
-/// Convenience wrapper to create a model slot from a
-/// `GridModel`. Yew `Properties` requires `PartialEq`,
-/// and `GridModel` is not `Clone`/`PartialEq`, so this
-/// wraps it in `Rc<RefCell<Option>>`.
-///
-/// # Example
-/// ```ignore
-/// let model_slot = wrap_model(my_model);
-/// html! { <GridCanvas model={model_slot} /> }
-/// ```
-pub fn wrap_model(
-    model: GridModel,
-) -> Rc<RefCell<Option<GridModel>>> {
-    Rc::new(RefCell::new(Some(model)))
+/// Convenience wrapper — deprecated, use
+/// [`ModelSlot::new`] instead.
+#[deprecated(
+    since = "0.2.0",
+    note = "Use ModelSlot::new instead"
+)]
+pub fn wrap_model(model: GridModel) -> ModelSlot {
+    ModelSlot::new(model)
 }
