@@ -2,6 +2,8 @@
 
 ## Documentation
 
+@site/AGENTS.md
+
 The project has a full documentation site built in `site/`. Two files are
 particularly useful for AI context:
 
@@ -13,6 +15,10 @@ Individual pages under `site/doc_build/` cover the API reference
 (`api/`), architecture concepts (`concepts/`), data sources (`data/`),
 and all features (`features/`). Consult these before asking questions about
 existing behaviour or before designing a change.
+
+**MCP search**: use `mcp__rs-grid-docs__search_rs_grid_docs` to search the
+documentation by keywords before working on any documented feature. Prefer
+this over reading raw files when you need to locate a concept quickly.
 
 ## Global context
 
@@ -194,7 +200,24 @@ the coordinates in `grid.spec.ts`.
 - If a test fails, fix it before continuing.
 - Any visual change or addition (color, size, animation) must be made
   configurable through the theme engine: field in `Theme`, default value in
-  `light()` and `dark()`, CSS variable in `css_theme.rs`.
+  `light()`, `dark()`, and `dimmed()`, CSS variable in `css_theme.rs`.
+
+### Documentation sync
+
+After every code change, update the relevant CLAUDE.md files in the same
+commit. The rule: **if the code changed, the docs change too.**
+
+| What changed | Which CLAUDE.md to update |
+|---|---|
+| Public API of a crate | The crate's own `CLAUDE.md` |
+| New feature or workflow step | Root `CLAUDE.md` (+ crate if needed) |
+| New theme / theme variable | `rs-grid-web/CLAUDE.md` → CSS theme section |
+| New primitive or scene concept | `rs-grid-scene/CLAUDE.md` |
+| New command, shortcut, or tool | Root `CLAUDE.md` → Common commands |
+| New invariant or constraint | The crate's own `CLAUDE.md` |
+
+Do not update CLAUDE.md for internal refactors that don't change
+observable behaviour or usage.
 
 ## Adding a new renderer
 
