@@ -1,32 +1,11 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
-use example_common::build_model;
+use example_common::{build_model, fmt_cols, fmt_rows};
 use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
 
-fn fmt_rows(n: u64) -> &'static str {
-    match n {
-        1_000 => "1 000 rows",
-        100_000 => "100 000 rows",
-        1_000_000 => "1 million rows",
-        100_000_000 => "100 million rows",
-        1_000_000_000 => "1 billion rows",
-        1_000_000_000_000 => "1 trillion rows",
-        1_000_000_000_000_000 => "1 quadrillion rows",
-        _ => "rows",
-    }
-}
-
-fn fmt_cols(n: usize) -> &'static str {
-    match n {
-        20 => "20 columns",
-        100 => "100 columns",
-        1000 => "1 000 columns",
-        _ => "columns",
-    }
-}
 
 #[component]
 fn App() -> impl IntoView {
