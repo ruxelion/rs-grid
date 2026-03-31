@@ -1,12 +1,9 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
-use std::{cell::RefCell, rc::Rc};
-
 use example_common::build_model;
 use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
-use send_wrapper::SendWrapper;
 use wasm_bindgen::prelude::*;
 
 fn fmt_rows(n: u64) -> &'static str {
@@ -31,12 +28,6 @@ fn fmt_cols(n: usize) -> &'static str {
     }
 }
 
-fn local_storage() -> Option<web_sys::Storage> {
-    web_sys::window().and_then(|w| w.local_storage().ok().flatten())
-}
-
-const LS_KEY: &str = "rs-grid-patches";
-
 #[component]
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
@@ -55,14 +46,6 @@ fn App() -> impl IntoView {
     let lang_code = RwSignal::new(initial_lang_code.to_string());
     let locale_sig = RwSignal::new(Locale::from_browser());
     let validation_error = RwSignal::new(String::new());
-
-    // Shared handle to the mounted web GridCanvas (for Export/Import buttons).
-    // Wrapped in SendWrapper so the Rc can be captured in Leptos closures.
-    let gc_ref: Rc<RefCell<Option<WebGridCanvas>>> =
-        Rc::new(RefCell::new(None));
-    // The view closure and event handlers all need Send captures in Leptos 0.7.
-    let gc_for_mount = SendWrapper::new(gc_ref.clone());
-
 
     let theme_memo = Memo::<Theme>::new(move |_| {
         let _ = theme_class.get();
@@ -194,33 +177,8 @@ fn App() -> impl IntoView {
                         let model =
                             build_model(row_count.get(), col_count.get());
 
-                        // Clone the SendWrapper to move into on_mount_cb.
-                        // SendWrapper<Rc<...>> is Send, so this closure is Send.
-                        // Inside on_mount_cb (a WASM callback), dereffing it
-                        // gives the inner Rc — safe because WASM is
-                        // single-threaded.
-                        let gc_holder = gc_for_mount.clone();
-                        let on_mount_cb = Box::new(
-                            move |gc: WebGridCanvas| {
-                                if let Some(s) = local_storage() {
-                                    if let Ok(Some(data)) =
-                                        s.get_item(LS_KEY)
-                                    {
-                                        gc.import_patches(&data);
-                                    }
-                                }
-                                let gc2 = gc.clone();
-                                gc.set_on_change(move || {
-                                    if let Some(s) = local_storage() {
-                                        let _ = s.set_item(
-                                            LS_KEY,
-                                            &gc2.export_patches(),
-                                        );
-                                    }
-                                });
-                                *gc_holder.borrow_mut() = Some(gc);
-                            },
-                        );
+                        let on_mount_cb =
+                            Box::new(|_gc: WebGridCanvas| {});
 
                         let on_validation_error_cb = Box::new(
                             move |_row: u64, col: String, msg: String| {
