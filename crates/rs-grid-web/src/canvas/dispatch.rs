@@ -126,12 +126,21 @@ impl GridCanvas {
         *self.0.on_validation_error.borrow_mut() = Some(Box::new(cb));
     }
 
-    /// Serialize the current patch layer as TSV text (one line per edited
-    /// cell: `physical_row\tcol_key\tvalue`). Tab/newline/backslash in
-    /// keys/values are escaped as `\t`, `\n`, `\\`.
+    /// Serialize the current patch layer as versioned TSV text.
+    ///
+    /// Format:
+    /// ```text
+    /// rs-grid-patches/v1
+    /// physical_row\tcol_key\tvalue
+    /// ...
+    /// ```
+    ///
+    /// The first line is a version header. Tab, newline, and backslash
+    /// characters inside keys/values are escaped as `\t`, `\n`, `\\`.
+    /// Pass the result to [`import_patches`] to restore the state.
     pub fn export_patches(&self) -> String {
         let state = self.0.state.borrow();
-        let mut out = String::new();
+        let mut out = String::from("rs-grid-patches/v1\n");
         for ((row, col), val) in &state.model.patches {
             let ec = col
                 .replace('\\', "\\\\")
@@ -146,8 +155,12 @@ impl GridCanvas {
         out
     }
 
-    /// Deserialize TSV text produced by `export_patches` and apply it,
-    /// replacing any existing patches. Triggers a redraw.
+    /// Deserialize TSV text produced by [`export_patches`] and apply
+    /// it, replacing any existing patches. Triggers a redraw.
+    ///
+    /// Accepts both the current versioned format (`rs-grid-patches/v1`
+    /// header) and legacy data without a header, so previously saved
+    /// patches remain loadable after an upgrade.
     pub fn import_patches(&self, data: &str) {
         // Unescape in two passes: first stash literal `\\` as the
         // NUL sentinel so `\\t` is not mistaken for a tab, then
@@ -158,9 +171,19 @@ impl GridCanvas {
                 .replace("\\n", "\n")
                 .replace('\x00', "\\")
         };
+        let mut lines = data.lines().peekable();
+        // Skip version header if present; accept legacy headerless
+        // format for backwards compatibility.
+        if lines
+            .peek()
+            .map(|l| l.starts_with("rs-grid-patches/"))
+            .unwrap_or(false)
+        {
+            lines.next();
+        }
         let mut state = self.0.state.borrow_mut();
         state.model.patches.clear();
-        for line in data.lines() {
+        for line in lines {
             let mut parts = line.splitn(3, '\t');
             let (Some(r), Some(c), Some(v)) =
                 (parts.next(), parts.next(), parts.next())
@@ -168,7 +191,10 @@ impl GridCanvas {
                 continue;
             };
             let Ok(row) = r.parse::<u64>() else { continue };
-            state.model.patches.insert((row, unescape(c)), unescape(v));
+            state
+                .model
+                .patches
+                .insert((row, unescape(c)), unescape(v));
         }
         drop(state);
         self.render();
