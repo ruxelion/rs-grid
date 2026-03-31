@@ -30,12 +30,29 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 
 ## CSS theme
 
-CSS variables are prefixed `--rs-grid-*`. `light.css` and `dark.css` in
-`examples/example-common/themes/` are **auto-generated** — do not edit them.
+CSS variables are prefixed `--rs-grid-*`. `light.css`, `dark.css`, and
+`dimmed.css` in `examples/example-common/themes/` are **auto-generated**
+— do not edit them directly.
 
-To add a theme variable:
-1. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`) with a default
-   in both `light()` and `dark()`
-2. Add the mapping in `css_theme.rs` (reads the CSS variable at runtime)
-3. Add the entry in `generate_theme.rs` (`examples/example-common/src/bin/`)
-4. Run `cargo run -p example-common --bin generate-theme` to regenerate CSS
+### Adding a CSS variable to an existing theme
+
+1. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`) with a value
+   in every constructor: `light()`, `dark()`, `dimmed()`
+2. Add the mapping in `css_theme.rs` (reads the CSS var at runtime)
+3. Add the entry in `generate_theme.rs` (`rs-grid-scene/src/bin/`)
+4. `cargo run -p rs-grid-scene --bin generate-theme`
+
+### Adding a new theme (e.g. `solarized`)
+
+1. **`theme.rs`** — add `Theme::solarized() -> Self` with all fields
+2. **`generate_theme.rs`** — add `CTX_SOLARIZED` + call
+   `render_overlay("solarized", &light_vars, &solarized_vars, CTX_SOLARIZED)`
+   and write the output file
+3. **`solarized-shell.css`** — create in `example-common/themes/` with
+   `:root.solarized` overrides for `.app-*` and `body`
+4. **3× `index.html`** — add links for `solarized.css` and
+   `solarized-shell.css` after the existing theme links
+5. **3× `src/lib.rs`** (Leptos, Dioxus, Yew) — add
+   `<option value="solarized">Solarized</option>` in the theme select
+6. `cargo run -p rs-grid-scene --bin generate-theme`
+7. `cargo check --workspace`

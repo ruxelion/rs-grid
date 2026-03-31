@@ -243,6 +243,7 @@ impl Theme {
 
     /// Dark theme — matches `example-common/themes/dark.css`.
     /// Must stay in sync with that file.
+    /// See also `Theme::dimmed()` for a softer alternative.
     pub fn dark() -> Self {
         Self {
             // palette
@@ -319,6 +320,89 @@ impl Theme {
             gutter_font_size:         14.0,
             gutter_font_bold:         true,
             gutter_border:            Color::rgb(51, 51, 53),
+        }
+    }
+
+    /// Dimmed theme — GitHub Dimmed-inspired, softer than `dark()`.
+    /// Matches `example-common/themes/dimmed.css`.
+    pub fn dimmed() -> Self {
+        Self {
+            // palette
+            bg:                       Color::rgb(34, 39, 46),
+            header_bg:                Color::rgb(45, 51, 59),
+            header_text:              Color::rgb(173, 186, 199),
+            cell_text:                Color::rgb(173, 186, 199),
+            grid_line:                Color::rgb(55, 62, 71),
+            header_border:            Color::rgb(68, 76, 86),
+            header_separator_inset:   15.0,
+            header_separator_width:   2.0,
+            // rgba(56, 139, 253, 0.20) → a = round(0.20 × 255) = 51
+            selection_fill:           Color::rgba(56, 139, 253, 51),
+            // rgba(56, 139, 253, 0.85) → a = round(0.85 × 255) = 217
+            selection_border:         Color::rgba(56, 139, 253, 217),
+            // rgba(56, 139, 253, 0.12) → a = round(0.12 × 255) = 31
+            header_selection_fill:    Color::rgba(56, 139, 253, 31),
+            gutter_selection_fill:    Color::rgba(56, 139, 253, 31),
+            scrollbar_track:          Color::rgb(28, 33, 40),
+            // rgba(176, 188, 200, 0.30) → a = round(0.30 × 255) = 77
+            scrollbar_thumb:          Color::rgba(176, 188, 200, 77),
+            row_alt_bg:               Color::rgb(34, 39, 46),
+            // rgba(255, 255, 255, 0.04) → a = round(0.04 × 255) = 10
+            row_hover_bg:             Color::rgba(255, 255, 255, 10),
+            // row / header dimensions
+            header_height:            48.0,
+            row_height:               42.0,
+            // typography
+            font_size:                14.0,
+            header_font_size:         14.0,
+            header_font_bold:         true,
+            // flash
+            flash_fill:               Color::rgba(255, 220, 0, 255),
+            flash_border:             Color::rgba(255, 220, 0, 255),
+            // search
+            search_highlight:         Color::rgba(255, 213, 0, 77),
+            search_current:           Color::rgba(255, 165, 0, 140),
+            // skeleton — rgba(99, 110, 123, 0.78) → a = 199
+            skeleton_fg:              Color::rgba(99, 110, 123, 199),
+            // spacing
+            cell_padding:             12.0,
+            // scrollbar
+            scrollbar_width:          8.0,
+            scrollbar_radius:         4.0,
+            scrollbar_inset:          2.0,
+            // column drag
+            drag_overlay:             Color::rgba(0, 0, 0, 8),
+            drag_ghost_bg:            Color::rgb(45, 51, 59),
+            drag_ghost_text:          Color::rgb(173, 186, 199),
+            drag_insert_line_width:   1.0,
+            drag_ghost_radius:        4.0,
+            drag_ghost_border_width:  1.0,
+            drag_anim_alpha:          0.5,
+            // sort indicator
+            sort_arrow_width:         4.0,
+            sort_arrow_height:        3.5,
+            // column header menu icon
+            // rgba(173, 186, 199, 0.70) → a = 178
+            header_menu_icon:         Color::rgba(173, 186, 199, 178),
+            // rgba(255, 255, 255, 0.06) → a = 15
+            header_menu_icon_hover_bg:Color::rgba(255, 255, 255, 15),
+            header_menu_icon_radius:  3.0,
+            header_menu_icon_margin_r:10.0,
+            header_menu_icon_btn_w:   22.0,
+            header_menu_icon_btn_h:   22.0,
+            header_menu_icon_dot_r:   1.2,
+            // pinned columns
+            pinned_bg:                Color::rgb(34, 39, 46),
+            pinned_header_bg:         Color::rgb(45, 51, 59),
+            pinned_separator_color:   Color::rgb(68, 76, 86),
+            pinned_separator_width:   1.0,
+            // row-number gutter
+            // rgba(173, 186, 199, 0.70) → a = 178
+            gutter_bg:                Color::rgb(45, 51, 59),
+            gutter_text:              Color::rgba(173, 186, 199, 178),
+            gutter_font_size:         14.0,
+            gutter_font_bold:         true,
+            gutter_border:            Color::rgb(68, 76, 86),
         }
     }
 }

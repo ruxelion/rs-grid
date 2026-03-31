@@ -212,6 +212,7 @@ fn App() -> Html {
                             onchange={on_theme_change}>
                             <option value="">{"Light"}</option>
                             <option value="dark">{"Dark"}</option>
+                            <option value="dimmed">{"Dimmed"}</option>
                         </select>
                     </div>
                 </div>

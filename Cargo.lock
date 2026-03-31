@@ -1286,7 +1286,6 @@ version = "0.1.0"
 dependencies = [
  "rs-grid-core",
  "rs-grid-icons",
- "rs-grid-scene",
 ]
 
 [[package]]

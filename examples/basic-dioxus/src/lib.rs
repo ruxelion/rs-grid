@@ -182,8 +182,9 @@ fn App() -> Element {
                             onchange: move |e| {
                                 theme_class.set(e.value());
                             },
-                            option { value: "",     "Light" }
-                            option { value: "dark", "Dark" }
+                            option { value: "",       "Light" }
+                            option { value: "dark",   "Dark" }
+                            option { value: "dimmed", "Dimmed" }
                         }
                     }
                 }

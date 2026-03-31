@@ -1,6 +1,6 @@
 /* AUTO-GENERATED — do not edit.
  * Source of truth: crates/rs-grid-scene/src/theme.rs
- * Regenerate: cargo run -p example-common --bin generate-theme
+ * Regenerate: cargo run -p rs-grid-scene --bin generate-theme
  */
 
 :root.dark {
