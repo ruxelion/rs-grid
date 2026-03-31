@@ -109,8 +109,26 @@ cargo check --workspace
 # Native build (for rs-grid-core unit tests)
 cargo build -p rs-grid-core
 
-# Unit tests
-cargo test --workspace
+# Unit tests (nextest — WASM crates excluded)
+cargo nextest run --workspace \
+  --exclude rs-grid-web --exclude rs-grid-leptos \
+  --exclude rs-grid-dioxus --exclude rs-grid-yew \
+  --exclude rs-grid-render-canvas \
+  --exclude basic-leptos --exclude basic-dioxus \
+  --exclude basic-yew --exclude example-common
+
+# Unit tests — core only
+cargo nextest run -p rs-grid-core
+
+# Code coverage — HTML report (opens browser)
+cargo llvm-cov nextest \
+  -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
+  --html --open
+
+# Code coverage — lcov format (CI)
+cargo llvm-cov nextest \
+  -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
+  --lcov --output-path target/llvm-cov/lcov.info
 
 # Formatting
 cargo fmt --all
@@ -125,6 +143,13 @@ trunk build
 # Dev server
 cd examples/basic-leptos
 trunk serve
+```
+
+### One-time tool installation
+
+```sh
+cargo install cargo-nextest --locked
+cargo install cargo-llvm-cov --locked
 ```
 
 ## Code conventions

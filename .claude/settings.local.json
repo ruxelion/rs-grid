@@ -116,7 +116,10 @@
       "mcp__claude_ai_Mermaid_Chart__validate_and_render_mermaid_diagram",
       "Bash(cargo run:*)",
       "Bash(rm e:/Dev/rs-grid/examples/example-common/src/bin/generate_theme.rs)",
-      "Bash(rmdir e:/Dev/rs-grid/examples/example-common/src/bin)"
+      "Bash(rmdir e:/Dev/rs-grid/examples/example-common/src/bin)",
+      "Bash(cargo nextest:*)",
+      "Bash(cargo llvm-cov:*)",
+      "Bash(rustup component:*)"
     ]
   }
 }
