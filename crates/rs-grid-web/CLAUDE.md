@@ -30,8 +30,12 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 
 ## CSS theme
 
-CSS variables are prefixed `--rs-grid-*`. The reference file is
-`examples/basic-leptos/rs-grid-theme.css`. To add a theme colour:
-1. Add the variable in the example CSS
-2. Read the variable in `css_theme.rs`
-3. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`)
+CSS variables are prefixed `--rs-grid-*`. `light.css` and `dark.css` in
+`examples/example-common/themes/` are **auto-generated** — do not edit them.
+
+To add a theme variable:
+1. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`) with a default
+   in both `light()` and `dark()`
+2. Add the mapping in `css_theme.rs` (reads the CSS variable at runtime)
+3. Add the entry in `generate_theme.rs` (`examples/example-common/src/bin/`)
+4. Run `cargo run -p example-common --bin generate-theme` to regenerate CSS
