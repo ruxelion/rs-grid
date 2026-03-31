@@ -10,7 +10,6 @@ members = [
   "crates/rs-grid-icons",
   "examples/example-common",
   "examples/basic-leptos",
-  "examples/basic-js",
   "examples/basic-dioxus",
   "examples/basic-yew",
 ]

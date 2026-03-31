@@ -5,13 +5,9 @@ use rs_grid_core::state::GridState;
 use rs_grid_yew::{
     theme_from_css_vars, WebGridCanvas, Locale,
 };
-use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{Event, HtmlCanvasElement, HtmlInputElement, HtmlSelectElement};
+use wasm_bindgen::prelude::*;
+use web_sys::{Event, HtmlCanvasElement, HtmlSelectElement};
 use yew::prelude::*;
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const LS_KEY: &str = "rs-grid-patches";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -37,35 +33,24 @@ fn fmt_cols(n: usize) -> &'static str {
     }
 }
 
-fn local_storage() -> Option<web_sys::Storage> {
-    web_sys::window().and_then(|w| w.local_storage().ok().flatten())
-}
-
 // ── App component ──────────────────────────────────────────────────────────
 
 #[function_component]
 fn App() -> Html {
-    // ── Reactive state (drives re-renders) ────────────────────────────────
+    // ── Reactive state ────────────────────────────────────────────────────
     let row_count = use_state(|| 1_000u64);
     let col_count = use_state(|| 20usize);
     let theme_class = use_state(String::new);
 
-    // ── Non-reactive handles ──────────────────────────────────────────────
-    // use_node_ref: Yew's built-in typed reference to a DOM element.
     let canvas_ref = use_node_ref();
-    // use_mut_ref: Rc<RefCell<T>> stored across renders, no Send required.
     let grid_ref = use_mut_ref(|| None::<WebGridCanvas>);
 
     // ── Effect: mount / remount on row or col count change ────────────────
-    // use_effect_with fires after every render where the deps changed,
-    // including the first render (when the canvas is already in the DOM).
     {
         let canvas_ref = canvas_ref.clone();
         let grid_ref = grid_ref.clone();
         use_effect_with((*row_count, *col_count), move |(rows, cols)| {
-            // canvas_ref is valid after the first render
             if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>() {
-                // Detach previous instance
                 if let Some(old) = grid_ref.borrow().as_ref() {
                     old.detach();
                 }
@@ -79,25 +64,10 @@ fn App() -> Html {
                     theme_from_css_vars(),
                     Locale::default(),
                 );
-                // Restore patches from localStorage
-                if let Some(s) = local_storage() {
-                    if let Ok(Some(data)) = s.get_item(LS_KEY) {
-                        gc.import_patches(&data);
-                    }
-                }
-                // Persist on every edit
-                let gc2 = gc.clone();
-                gc.set_on_change(move || {
-                    if let Some(s) = local_storage() {
-                        let _ = s.set_item(LS_KEY, &gc2.export_patches());
-                    }
-                });
                 gc.render();
                 *grid_ref.borrow_mut() = Some(gc);
             }
 
-            // Cleanup: detach when deps change or component unmounts.
-            // Always returned so the closure type is consistent.
             let grid_ref2 = grid_ref.clone();
             move || {
                 if let Some(gc) = grid_ref2.borrow().as_ref() {
@@ -133,7 +103,7 @@ fn App() -> Html {
                 .value()
                 .parse::<u64>()
                 .unwrap_or(1_000);
-            row_count.set(v); // triggers re-render → effect remounts grid
+            row_count.set(v);
         })
     };
 
@@ -154,100 +124,6 @@ fn App() -> Html {
         Callback::from(move |e: Event| {
             let v = e.target_unchecked_into::<HtmlSelectElement>().value();
             theme_class.set(v);
-        })
-    };
-
-    let on_pinned_change = {
-        let grid_ref = grid_ref.clone();
-        Callback::from(move |e: Event| {
-            let v = e
-                .target_unchecked_into::<HtmlSelectElement>()
-                .value()
-                .parse::<usize>()
-                .unwrap_or(0);
-            if let Some(gc) = grid_ref.borrow().as_ref() {
-                gc.set_pinned_count(v);
-            }
-        })
-    };
-
-    let on_filter_input = {
-        let grid_ref = grid_ref.clone();
-        Callback::from(move |e: InputEvent| {
-            let text = e.target_unchecked_into::<HtmlInputElement>().value();
-            if let Some(gc) = grid_ref.borrow().as_ref() {
-                gc.set_filter("name", &text);
-            }
-        })
-    };
-
-    let on_export = {
-        let grid_ref = grid_ref.clone();
-        Callback::from(move |_: MouseEvent| {
-            let Some(gc) = grid_ref.borrow().clone() else {
-                return;
-            };
-            let data = gc.export_patches();
-            let encoded = js_sys::encode_uri_component(&data);
-            let url = format!(
-                "data:text/tab-separated-values;charset=utf-8,{encoded}"
-            );
-            let doc = web_sys::window().unwrap().document().unwrap();
-            let a = doc
-                .create_element("a")
-                .unwrap()
-                .dyn_into::<web_sys::HtmlAnchorElement>()
-                .unwrap();
-            a.set_href(&url);
-            a.set_download("rs-grid-patches.tsv");
-            doc.body().unwrap().append_child(&a).unwrap();
-            a.click();
-            doc.body().unwrap().remove_child(&a).unwrap();
-        })
-    };
-
-    let on_import_click = Callback::from(|_: MouseEvent| {
-        if let Some(el) = web_sys::window()
-            .unwrap()
-            .document()
-            .unwrap()
-            .get_element_by_id("yew-file-import")
-        {
-            let _ = el.dyn_into::<HtmlInputElement>().map(|i| i.click());
-        }
-    });
-
-    let on_import_change = {
-        let grid_ref = grid_ref.clone();
-        Callback::from(move |_: Event| {
-            let input_el = web_sys::window()
-                .unwrap()
-                .document()
-                .unwrap()
-                .get_element_by_id("yew-file-import")
-                .unwrap()
-                .dyn_into::<HtmlInputElement>()
-                .unwrap();
-            let file = input_el.files().and_then(|fl| fl.get(0));
-            if let Some(file) = file {
-                let reader = web_sys::FileReader::new().unwrap();
-                let reader2 = reader.clone();
-                let gc = grid_ref.borrow().clone().unwrap();
-                let cb = Closure::once(move || {
-                    if let Ok(result) = reader2.result() {
-                        if let Some(text) = result.as_string() {
-                            gc.import_patches(&text);
-                            if let Some(s) = local_storage() {
-                                let _ =
-                                    s.set_item(LS_KEY, &gc.export_patches());
-                            }
-                        }
-                    }
-                });
-                reader.set_onloadend(Some(cb.as_ref().unchecked_ref()));
-                reader.read_as_text(&file).unwrap();
-                cb.forget();
-            }
         })
     };
 
@@ -329,52 +205,6 @@ fn App() -> Html {
                         </select>
                     </div>
 
-                    // ── Export ────────────────────────────────────────
-                    <button class="app-btn" onclick={on_export}>
-                        {"Export"}
-                    </button>
-
-                    // Hidden file input for import
-                    <input
-                        type="file"
-                        id="yew-file-import"
-                        accept=".tsv,.txt"
-                        style="display:none"
-                        onchange={on_import_change}
-                    />
-
-                    // ── Import ────────────────────────────────────────
-                    <button class="app-btn" onclick={on_import_click}>
-                        {"Import"}
-                    </button>
-
-                    // ── Pinned cols ───────────────────────────────────
-                    <div class="app-control">
-                        <span class="app-control-label">
-                            {"Pinned cols"}
-                        </span>
-                        <select class="app-control-select"
-                            onchange={on_pinned_change}>
-                            <option value="0">{"None"}</option>
-                            <option value="1">{"1"}</option>
-                            <option value="2">{"2"}</option>
-                            <option value="3">{"3"}</option>
-                        </select>
-                    </div>
-
-                    // ── Filter ────────────────────────────────────────
-                    <div class="app-control">
-                        <span class="app-control-label">
-                            {"Filter Name"}
-                        </span>
-                        <input
-                            type="text"
-                            class="app-control-select"
-                            placeholder="type to filter\u{2026}"
-                            oninput={on_filter_input}
-                        />
-                    </div>
-
                     // ── Theme ─────────────────────────────────────────
                     <div class="app-control">
                         <span class="app-control-label">{"Theme"}</span>
@@ -382,12 +212,6 @@ fn App() -> Html {
                             onchange={on_theme_change}>
                             <option value="">{"Light"}</option>
                             <option value="dark">{"Dark"}</option>
-                            <option value="material">
-                                {"Material 3"}
-                            </option>
-                            <option value="material-dark">
-                                {"Material 3 Dark"}
-                            </option>
                         </select>
                     </div>
                 </div>
