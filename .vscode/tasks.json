@@ -26,7 +26,7 @@
         "isDefault": true
       },
       "problemMatcher": ["$rustc"],
-      "detail": "cargo test --workspace"
+      "detail": "cargo nextest run --workspace (WASM crates excluded)"
     },
     {
       "label": "just: test-core",
@@ -34,7 +34,23 @@
       "command": "just test-core",
       "group": "test",
       "problemMatcher": ["$rustc"],
-      "detail": "cargo test -p rs-grid-core"
+      "detail": "cargo nextest run -p rs-grid-core"
+    },
+    {
+      "label": "just: coverage",
+      "type": "shell",
+      "command": "just coverage",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo llvm-cov nextest (rapport HTML, ouvre le navigateur)"
+    },
+    {
+      "label": "just: coverage-lcov",
+      "type": "shell",
+      "command": "just coverage-lcov",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo llvm-cov nextest → target/llvm-cov/lcov.info (format CI)"
     },
     {
       "label": "just: fmt",

@@ -21,13 +21,22 @@ check:
 build:
     cargo build -p rs-grid-core
 
-# Tests unitaires (tout le workspace)
+# Tests unitaires (tout le workspace — crates WASM exclues)
 test:
-    cargo test --workspace
+    cargo nextest run --workspace --exclude rs-grid-web --exclude rs-grid-leptos --exclude rs-grid-dioxus --exclude rs-grid-yew --exclude rs-grid-render-canvas --exclude basic-leptos --exclude basic-dioxus --exclude basic-yew --exclude example-common
 
 # Tests unitaires rs-grid-core uniquement
 test-core:
-    cargo test -p rs-grid-core
+    cargo nextest run -p rs-grid-core
+
+# Coverage HTML (rapport dans target/llvm-cov/html/, ouvre le navigateur)
+coverage:
+    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --html --open
+
+# Coverage lcov (format CI → target/llvm-cov/lcov.info)
+coverage-lcov:
+    if not exist "target\llvm-cov" mkdir "target\llvm-cov"
+    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --lcov --output-path target/llvm-cov/lcov.info
 
 # Formatage
 fmt:
