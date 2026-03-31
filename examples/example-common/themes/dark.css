@@ -1,4 +1,8 @@
-/* ── dark theme — active when <html class="dark"> ───────────────────────────── */
+/* AUTO-GENERATED — do not edit.
+ * Source of truth: crates/rs-grid-scene/src/theme.rs
+ * Regenerate: cargo run -p example-common --bin generate-theme
+ */
+
 :root.dark {
   --rs-grid-bg: #1c1c1e;
   --rs-grid-header-bg: #2c2c2e;
@@ -7,38 +11,24 @@
   --rs-grid-grid-line: #333335;
   --rs-grid-header-border: #333335;
   --rs-grid-selection-fill: rgba(60, 130, 245, 0.30);
-  --rs-grid-selection-border: rgba(60, 130, 245, 0.9);
+  --rs-grid-selection-border: rgba(60, 130, 245, 0.90);
+  --rs-grid-header-selection-fill: rgba(60, 130, 245, 0.15);
+  --rs-grid-gutter-selection-fill: rgba(60, 130, 245, 0.15);
   --rs-grid-scrollbar-track: #222224;
   --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
   --rs-grid-row-alt-bg: #212123;
   --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.05);
-  --rs-grid-font-size: 14px;
-  --rs-grid-header-font-size: 14px;
-  --rs-grid-header-font-bold: 1;
-  --rs-grid-cell-padding: 12px;
-
-  /* dimensions */
-  --rs-grid-header-height:    48px;
-  --rs-grid-row-height:       42px;
-
-  /* scrollbar */
-  --rs-grid-scrollbar-width:  8px;
-  --rs-grid-scrollbar-radius: 4px;
-
-  /* derived dark overrides */
-  --rs-grid-header-selection-fill:     rgba(60, 130, 245, 0.15);
-  --rs-grid-gutter-selection-fill:     rgba(60, 130, 245, 0.15);
-  --rs-grid-skeleton-fg:               rgba(80, 80, 82, 0.78);
-  --rs-grid-drag-ghost-bg:             #2c2c2e;
-  --rs-grid-drag-ghost-text:           #b0b0b0;
-  --rs-grid-header-menu-icon:          rgba(176, 176, 176, 0.70);
+  --rs-grid-skeleton-fg: rgba(80, 80, 82, 0.78);
+  --rs-grid-drag-ghost-bg: #2c2c2e;
+  --rs-grid-drag-ghost-text: #b0b0b0;
+  --rs-grid-header-menu-icon: rgba(176, 176, 176, 0.70);
   --rs-grid-header-menu-icon-hover-bg: rgba(255, 255, 255, 0.06);
-  --rs-grid-pinned-bg:                 #1c1c1e;
-  --rs-grid-pinned-header-bg:          #2c2c2e;
-  --rs-grid-pinned-separator-color:    #333335;
-  --rs-grid-gutter-bg:                 #2c2c2e;
-  --rs-grid-gutter-text:               rgba(176, 176, 176, 0.70);
-  --rs-grid-gutter-border:             #333335;
+  --rs-grid-pinned-bg: #1c1c1e;
+  --rs-grid-pinned-header-bg: #2c2c2e;
+  --rs-grid-pinned-separator-color: #333335;
+  --rs-grid-gutter-bg: #2c2c2e;
+  --rs-grid-gutter-text: rgba(176, 176, 176, 0.70);
+  --rs-grid-gutter-border: #333335;
 
   /* context menu */
   --rs-grid-ctx-bg: #252527;
@@ -49,61 +39,3 @@
   --rs-grid-ctx-hover-bg: #2c2c2e;
   --rs-grid-ctx-separator: #333335;
 }
-
-/* ── dark app shell overrides ────────────────────────────────────────────────── */
-
-:root.dark body {
-  background: #141415;
-}
-
-:root.dark .app-title {
-  color: #d0d0d0;
-}
-
-:root.dark .app-subtitle {
-  color: #707072;
-}
-
-:root.dark .app-highlight {
-  color: #6ab0f3;
-}
-
-:root.dark .app-control {
-  background: #252527;
-  border-color: #3a3a3c;
-}
-
-:root.dark .app-control-label {
-  color: #b0b0b0;
-}
-
-:root.dark .app-control-select {
-  background-color: #1c1c1e;
-  border-color: #3a3a3c;
-  color: #d0d0d0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23b0b0b0'/%3E%3C/svg%3E");
-}
-
-:root.dark .app-control-select:hover {
-  border-color: #555558;
-}
-
-:root.dark .app-control-select:focus {
-  border-color: #6ab0f3;
-  box-shadow: 0 0 0 3px rgba(106, 176, 243, 0.15);
-}
-
-:root.dark .app-validation-error {
-  background: #2d1515;
-  border-color: #7f1d1d;
-  color: #fca5a5;
-}
-
-:root.dark .app-grid-wrapper {
-  background: #1c1c1e;
-  border-color: #3a3a3c;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.4),
-    0 4px 16px rgba(0, 0, 0, 0.3);
-}
-

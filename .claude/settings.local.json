@@ -113,7 +113,8 @@
       "Bash(grep -h \"^version\\\\|^publish\" e:/Dev/rs-grid/crates/*/Cargo.toml)",
       "Bash(wc -l /e/Dev/rs-grid/examples/basic-js/rs-grid-theme.css /e/Dev/rs-grid/examples/example-common/themes/*.css)",
       "Bash(find /e/Dev/rs-grid -type f \\\\\\(-name *.css -o -name theme.rs -o -name css_theme.rs -o -name colors.rs -o -name builder.rs \\\\\\))",
-      "mcp__claude_ai_Mermaid_Chart__validate_and_render_mermaid_diagram"
+      "mcp__claude_ai_Mermaid_Chart__validate_and_render_mermaid_diagram",
+      "Bash(cargo run:*)"
     ]
   }
 }

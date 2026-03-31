@@ -27,6 +27,21 @@ impl Color {
         let a_f = self.a as f64 / 255.0;
         format!("rgba({},{},{},{:.4})", self.r, self.g, self.b, a_f)
     }
+
+    /// Format as a CSS custom-property value.
+    /// Opaque (`a == 255`) → `#rrggbb`; semi-transparent →
+    /// `rgba(r, g, b, a)` with `a` as a 0–1 float (2 decimal places).
+    pub fn to_css_var(self) -> String {
+        if self.a == 255 {
+            format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+        } else {
+            let a = self.a as f64 / 255.0;
+            format!(
+                "rgba({}, {}, {}, {:.2})",
+                self.r, self.g, self.b, a
+            )
+        }
+    }
 }
 
 /// A filled (and optionally stroked) rectangle.
