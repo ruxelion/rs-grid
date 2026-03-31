@@ -2,91 +2,61 @@
 
 ## Available examples
 
-| Example | Stack | Description |
+| Example | Framework | Description |
 |---|---|---|
-| [basic-leptos](basic-leptos/) | Leptos 0.8 CSR + Trunk | Full-featured demo with reactive controls |
-| [basic-js](basic-js/) | Vanilla JS + wasm-pack | Minimal integration — no framework, pure ES modules |
+| [basic-leptos](basic-leptos/) | Leptos 0.8 CSR + Trunk | Demo with reactive controls and language selector |
+| [basic-dioxus](basic-dioxus/) | Dioxus CSR + Trunk | Demo with reactive controls |
+| [basic-yew](basic-yew/) | Yew CSR + Trunk | Demo with reactive controls |
 
-Both examples share the same virtual dataset (up to 1 quadrillion rows),
-theme CSS, and feature set: row/column sizing, cell editing, export/import,
-pinned columns, filtering, and four themes (Light, Dark, Material 3,
-Material 3 Dark).
+All examples share the same virtual dataset (up to 1 quadrillion rows) and
+the same three themes (Light, Dark, Dimmed).
 
 ## Shared code
 
 [example-common](example-common/) is a Rust crate containing:
 
 - `build_model()` — creates a `GridModel` backed by a deterministic fake
-  data generator (`fake_data.rs`, ~950 lines of names, roles, departments…)
-- `themes/` — individual CSS files for each theme (see below)
-
-Each example has a `build.rs` that concatenates all CSS files from
-`example-common/themes/` into a single `rs-grid-theme.css` at compile
-time, so themes stay in sync across examples.
+  data generator (`fake_data.rs`)
+- `fmt_rows()` / `fmt_cols()` — display label helpers shared across examples
+- `themes/` — CSS theme files (see below)
 
 ## Running an example
 
-### Leptos (basic-leptos)
-
 ```sh
-just serve          # trunk serve on port 9081
+cd examples/basic-leptos   # or basic-dioxus, basic-yew
+trunk serve
 ```
-
-### Vanilla JS (basic-js)
-
-```sh
-just serve-js       # wasm-pack build + http.server on port 9080
-```
-
-### Any example by name
-
-```sh
-just serve-example basic-js
-```
-
-## Creating a new example
-
-```sh
-just new-example my-demo
-```
-
-This copies the [_template-wasm](_template-wasm/) scaffold, replaces
-`{{NAME}}` / `{{TITLE}}` placeholders, and prints next steps:
-
-1. Add `"examples/my-demo"` to `[workspace] members` in the root
-   `Cargo.toml`
-2. `just build-example my-demo`
-3. `just serve-example my-demo`
-
-The template produces a vanilla JS + wasm-pack example with
-`example-common` already wired in.
 
 ## Themes
 
-The theme selector in each example switches between four presets by
-setting a CSS class on `<html>`:
+The theme selector switches between three presets by setting a CSS class on
+`<html>`:
 
 | Class | Theme |
 |---|---|
-| *(none)* | Light (default) |
-| `dark` | Dark |
-| `material` | Material Design 3 Light |
-| `material-dark` | Material Design 3 Dark |
+| *(none)* | Light (AG Grid Quartz-inspired) |
+| `dark` | Dark (iOS gray) |
+| `dimmed` | Dimmed (GitHub Dimmed-inspired) |
 
-Each theme lives in its own file under `example-common/themes/`:
+Theme files in `example-common/themes/`:
 
 ```
-themes/
-  base.css             # reset + app shell layout (shared by all themes)
-  light.css            # :root — default light palette
-  dark.css             # :root.dark — dark palette + app overrides
-  material.css         # :root.material — Material Design 3 Light
-  material-dark.css    # :root.material-dark — Material Design 3 Dark
+base.css          # reset + app shell layout
+light.css         # :root — auto-generated from Theme::light()
+dark.css          # :root.dark — auto-generated (diff vs light)
+dark-shell.css    # :root.dark — app shell overrides (hand-written)
+dimmed.css        # :root.dimmed — auto-generated (diff vs light)
+dimmed-shell.css  # :root.dimmed — app shell overrides (hand-written)
 ```
 
-To add a new theme:
+`light.css`, `dark.css`, and `dimmed.css` are **auto-generated** from
+`Theme::light()`, `Theme::dark()`, and `Theme::dimmed()` in
+`crates/rs-grid-scene/src/theme.rs`.
 
-1. Create `example-common/themes/my-theme.css` with a `:root.my-theme`
-   block defining all `--rs-grid-*` variables plus app shell overrides
-2. Add `"my-theme"` to the `parts` array in each example's `build.rs`
-3. Add the option to each example's theme `<select>`
+To add or change a theme variable, see `crates/rs-grid-web/CLAUDE.md`.
+
+## Creating a new example
+
+Copy `_template-wasm/` for a minimal vanilla JS + wasm-pack scaffold (no
+Trunk). For a Trunk-based example, copy one of the existing examples and
+update the crate name and HTML title.

@@ -170,3 +170,27 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
 
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
 }
+
+/// Format a row count for display in the UI.
+pub fn fmt_rows(n: u64) -> &'static str {
+    match n {
+        1_000 => "1 000 rows",
+        100_000 => "100 000 rows",
+        1_000_000 => "1 million rows",
+        100_000_000 => "100 million rows",
+        1_000_000_000 => "1 billion rows",
+        1_000_000_000_000 => "1 trillion rows",
+        1_000_000_000_000_000 => "1 quadrillion rows",
+        _ => "rows",
+    }
+}
+
+/// Format a column count for display in the UI.
+pub fn fmt_cols(n: usize) -> &'static str {
+    match n {
+        20 => "20 columns",
+        100 => "100 columns",
+        1000 => "1 000 columns",
+        _ => "columns",
+    }
+}

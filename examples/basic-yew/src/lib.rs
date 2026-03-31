@@ -1,6 +1,6 @@
 //! Demo application showcasing rs-grid with Yew 0.21 CSR.
 
-use example_common::build_model;
+use example_common::{build_model, fmt_cols, fmt_rows};
 use rs_grid_core::state::GridState;
 use rs_grid_yew::{
     theme_from_css_vars, WebGridCanvas, Locale,
@@ -8,30 +8,6 @@ use rs_grid_yew::{
 use wasm_bindgen::prelude::*;
 use web_sys::{Event, HtmlCanvasElement, HtmlSelectElement};
 use yew::prelude::*;
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-fn fmt_rows(n: u64) -> &'static str {
-    match n {
-        1_000 => "1 000 rows",
-        100_000 => "100 000 rows",
-        1_000_000 => "1 million rows",
-        100_000_000 => "100 million rows",
-        1_000_000_000 => "1 billion rows",
-        1_000_000_000_000 => "1 trillion rows",
-        1_000_000_000_000_000 => "1 quadrillion rows",
-        _ => "rows",
-    }
-}
-
-fn fmt_cols(n: usize) -> &'static str {
-    match n {
-        20 => "20 columns",
-        100 => "100 columns",
-        1000 => "1 000 columns",
-        _ => "columns",
-    }
-}
 
 // ── App component ──────────────────────────────────────────────────────────
 
