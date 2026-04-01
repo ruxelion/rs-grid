@@ -42,7 +42,7 @@
       "command": "just coverage",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo llvm-cov nextest (rapport HTML, ouvre le navigateur)"
+      "detail": "cargo llvm-cov nextest --ignore-filename-regex generate_theme (HTML)"
     },
     {
       "label": "just: coverage-lcov",
@@ -50,7 +50,7 @@
       "command": "just coverage-lcov",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo llvm-cov nextest → target/llvm-cov/lcov.info (format CI)"
+      "detail": "cargo llvm-cov nextest --ignore-filename-regex generate_theme → lcov.info"
     },
     {
       "label": "just: fmt",

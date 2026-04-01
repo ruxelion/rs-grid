@@ -273,4 +273,75 @@ mod tests {
             vp.visible_scrollable_columns(&offsets, &widths, 2, 400.0, 40.0);
         assert_eq!(first, last, "no room for scrollable columns");
     }
+
+    #[test]
+    fn visible_columns_empty_returns_zero_zero() {
+        let vp = ViewportState::new(800.0, 600.0);
+        let offsets = ColumnOffsets::compute(&[]);
+        let widths: Vec<f64> = vec![];
+        assert_eq!(vp.visible_columns(&offsets, &widths), (0, 0));
+    }
+
+    #[test]
+    fn visible_scrollable_all_pinned() {
+        // pinned_count >= col_count → returns (col_count, col_count)
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
+        let offsets = ColumnOffsets::compute(&cols);
+        let vp = ViewportState::new(800.0, 600.0);
+        let (first, last) =
+            vp.visible_scrollable_columns(&offsets, &widths, 5, 200.0, 40.0);
+        assert_eq!(first, 2);
+        assert_eq!(last, 2);
+    }
+
+    #[test]
+    fn visible_columns_scrolled_past_first_col() {
+        // Scroll right so first column is fully off-screen
+        // → the `first += 1` loop should advance
+        let cols: Vec<ColumnDef> = (0..5)
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .collect();
+        let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
+        let offsets = ColumnOffsets::compute(&cols);
+        // scroll_x=150 → col 0 (0..100) fully off, col 1 (100..200)
+        // partially visible
+        let vp = ViewportState {
+            scroll_x: 150.0,
+            ..ViewportState::new(200.0, 600.0)
+        };
+        let (first, _last) = vp.visible_columns(&offsets, &widths);
+        assert_eq!(first, 1, "col 0 should be skipped");
+    }
+
+    #[test]
+    fn visible_scrollable_columns_scrolled_past_first() {
+        let cols: Vec<ColumnDef> = (0..10)
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .collect();
+        let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
+        let offsets = ColumnOffsets::compute(&cols);
+        // pinned=1 (100px), scroll_x=250 → scrollable cols 1..9
+        // col 1 at offset 100..200 is fully before 100+250=350
+        // col 2 at offset 200..300 is partially before 350
+        // col 3 at offset 300..400 visible
+        let vp = ViewportState {
+            scroll_x: 250.0,
+            ..ViewportState::new(400.0, 600.0)
+        };
+        let (first, _last) = vp.visible_scrollable_columns(
+            &offsets,
+            &widths,
+            1,
+            100.0,
+            40.0,
+        );
+        assert!(
+            first >= 2,
+            "scrollable cols before scroll should be skipped, first={first}"
+        );
+    }
 }

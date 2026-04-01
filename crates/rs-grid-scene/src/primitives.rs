@@ -374,6 +374,43 @@ mod tests {
         assert!(matches!(p, ScenePrimitive::Rect(_)));
     }
 
+    // ── Color::to_css_var ───────────────────────────────────
+
+    #[test]
+    fn color_to_css_var_opaque() {
+        let c = Color::rgb(0xde, 0xad, 0xbe);
+        assert_eq!(c.to_css_var(), "#deadbe");
+    }
+
+    #[test]
+    fn color_to_css_var_semi_transparent() {
+        let c = Color::rgba(255, 128, 0, 128);
+        let s = c.to_css_var();
+        // Should be rgba(r, g, b, a) format with 2 decimal places
+        assert!(
+            s.starts_with("rgba(255, 128, 0,"),
+            "unexpected: {s}"
+        );
+        // 128/255 ≈ 0.50
+        assert!(s.contains("0.50"), "unexpected alpha: {s}");
+    }
+
+    #[test]
+    fn color_to_css_var_fully_transparent() {
+        let c = Color::rgba(0, 0, 0, 0);
+        let s = c.to_css_var();
+        assert!(s.starts_with("rgba("), "unexpected: {s}");
+        assert!(s.contains("0.00"), "unexpected: {s}");
+    }
+
+    #[test]
+    fn color_to_css_var_opaque_all_channels() {
+        let c = Color::rgb(0, 0, 0);
+        assert_eq!(c.to_css_var(), "#000000");
+        let c2 = Color::rgb(255, 255, 255);
+        assert_eq!(c2.to_css_var(), "#ffffff");
+    }
+
     #[test]
     fn scene_primitive_clone() {
         let p = ScenePrimitive::Text(TextPrimitive {

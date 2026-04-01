@@ -675,4 +675,188 @@ mod tests {
         let fc = format_cell("N/A", &fmt);
         assert_eq!(fc.text, "N/A");
     }
+
+    // ── Clone for every variant ───────────────────────────
+
+    #[test]
+    fn clone_number() {
+        let fmt = CellFormat::Number {
+            decimal_places: 3,
+            thousands_sep: Some(','),
+            decimal_sep: '.',
+        };
+        let c = fmt.clone();
+        assert!(matches!(
+            c,
+            CellFormat::Number {
+                decimal_places: 3,
+                thousands_sep: Some(','),
+                decimal_sep: '.',
+            }
+        ));
+    }
+
+    #[test]
+    fn clone_percent() {
+        let fmt = CellFormat::Percent { decimal_places: 1 };
+        let c = fmt.clone();
+        assert!(matches!(c, CellFormat::Percent { decimal_places: 1 }));
+    }
+
+    #[test]
+    fn clone_currency() {
+        let fmt = CellFormat::Currency {
+            symbol: "€".into(),
+            decimal_places: 2,
+            thousands_sep: Some(' '),
+            symbol_after: true,
+        };
+        let c = fmt.clone();
+        assert!(matches!(
+            c,
+            CellFormat::Currency {
+                symbol_after: true,
+                decimal_places: 2,
+                ..
+            }
+        ));
+        if let CellFormat::Currency { symbol, .. } = c {
+            assert_eq!(symbol, "€");
+        }
+    }
+
+    #[test]
+    fn clone_boolean() {
+        let fmt = CellFormat::Boolean {
+            true_label: "Yes".into(),
+            false_label: "No".into(),
+        };
+        let c = fmt.clone();
+        if let CellFormat::Boolean {
+            true_label,
+            false_label,
+        } = c
+        {
+            assert_eq!(true_label, "Yes");
+            assert_eq!(false_label, "No");
+        } else {
+            panic!("expected Boolean");
+        }
+    }
+
+    #[test]
+    fn clone_custom() {
+        let fmt = CellFormat::Custom(Rc::new(|raw: &str| FormattedCell {
+            text: raw.to_owned(),
+            ..Default::default()
+        }));
+        let c = fmt.clone();
+        // Cloned callback should still work.
+        let fc = format_cell("hi", &c);
+        assert_eq!(fc.text, "hi");
+    }
+
+    #[test]
+    fn clone_image_text() {
+        let fmt = CellFormat::ImageText {
+            base_url: "https://cdn.example.com/".into(),
+            suffix: ".png".into(),
+            image_size: 24.0,
+            border_radius: 4.0,
+            gap: 8.0,
+        };
+        let c = fmt.clone();
+        assert!(matches!(
+            c,
+            CellFormat::ImageText {
+                image_size,
+                border_radius,
+                gap,
+                ..
+            } if image_size == 24.0 && border_radius == 4.0 && gap == 8.0
+        ));
+        if let CellFormat::ImageText {
+            base_url, suffix, ..
+        } = c
+        {
+            assert_eq!(base_url, "https://cdn.example.com/");
+            assert_eq!(suffix, ".png");
+        }
+    }
+
+    // ── Debug for every variant ───────────────────────────
+
+    #[test]
+    fn debug_all_variants() {
+        let variants: &[CellFormat] = &[
+            CellFormat::Number {
+                decimal_places: 2,
+                thousands_sep: Some(','),
+                decimal_sep: '.',
+            },
+            CellFormat::Percent { decimal_places: 1 },
+            CellFormat::Currency {
+                symbol: "$".into(),
+                decimal_places: 2,
+                thousands_sep: None,
+                symbol_after: false,
+            },
+            CellFormat::Boolean {
+                true_label: "Y".into(),
+                false_label: "N".into(),
+            },
+            CellFormat::Custom(Rc::new(|_: &str| {
+                FormattedCell::default()
+            })),
+            CellFormat::Image {
+                base_url: None,
+                border_radius: 0.0,
+                padding: 0.0,
+            },
+            CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 16.0,
+                border_radius: 0.0,
+                gap: 4.0,
+            },
+        ];
+        for v in variants {
+            let s = format!("{v:?}");
+            assert!(!s.is_empty(), "Debug should not be empty");
+        }
+    }
+
+    // ── is_image_text ─────────────────────────────────────
+
+    #[test]
+    fn is_image_text_true() {
+        let fmt = CellFormat::ImageText {
+            base_url: String::new(),
+            suffix: String::new(),
+            image_size: 16.0,
+            border_radius: 0.0,
+            gap: 4.0,
+        };
+        assert!(fmt.is_image_text());
+        assert!(!fmt.is_image());
+    }
+
+    #[test]
+    fn is_image_text_false_for_image() {
+        let fmt = CellFormat::Image {
+            base_url: None,
+            border_radius: 0.0,
+            padding: 0.0,
+        };
+        assert!(!fmt.is_image_text());
+        assert!(fmt.is_image());
+    }
+
+    #[test]
+    fn is_image_text_false_for_other_variants() {
+        let fmt = CellFormat::Percent { decimal_places: 2 };
+        assert!(!fmt.is_image_text());
+        assert!(!fmt.is_image());
+    }
 }

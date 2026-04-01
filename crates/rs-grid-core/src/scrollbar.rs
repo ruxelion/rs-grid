@@ -448,4 +448,58 @@ mod tests {
             MIN_THUMB_H,
         );
     }
+
+    // ── HScrollbarGeom — hit_thumb / hit_track / track_click ────────────────
+
+    #[test]
+    fn hscroll_hit_thumb() {
+        let g = make_hscroll(0.0);
+        let mid_y = g.track_y + g.track_h / 2.0;
+        let mid_x = g.thumb_x + g.thumb_w / 2.0;
+        assert!(g.hit_thumb(mid_x, mid_y));
+        // Wrong y → outside track band
+        assert!(!g.hit_thumb(mid_x, g.track_y - 5.0));
+        // Wrong x → outside thumb
+        assert!(!g.hit_thumb(g.track_x - 1.0, mid_y));
+    }
+
+    #[test]
+    fn hscroll_hit_track() {
+        let g = make_hscroll(0.0);
+        let mid_y = g.track_y + g.track_h / 2.0;
+        let mid_x = g.track_x + g.track_w / 2.0;
+        assert!(g.hit_track(mid_x, mid_y));
+        // Outside band
+        assert!(!g.hit_track(mid_x, g.track_y - 1.0));
+        // Left of track
+        assert!(!g.hit_track(g.track_x - 1.0, mid_y));
+    }
+
+    #[test]
+    fn hscroll_track_click_scroll() {
+        let g = make_hscroll(0.0);
+        // Click at left edge of track → near 0 scroll
+        let s0 = g.track_click_scroll(
+            g.track_x,
+            2000.0,
+            800.0,
+            50.0,
+            16.0,
+        );
+        assert!(s0 < 50.0, "click at track left → near zero scroll");
+        // Click at right edge → near max scroll
+        let available_w = 800.0 - 50.0 - 16.0;
+        let max_scroll = 2000.0 - available_w;
+        let s1 = g.track_click_scroll(
+            g.track_x + g.track_w,
+            2000.0,
+            800.0,
+            50.0,
+            16.0,
+        );
+        assert!(
+            (s1 - max_scroll).abs() < 100.0,
+            "click at track right → near max scroll"
+        );
+    }
 }

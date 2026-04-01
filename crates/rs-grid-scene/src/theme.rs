@@ -542,5 +542,65 @@ mod tests {
     fn theme_debug_does_not_panic() {
         let _ = format!("{:?}", Theme::light());
         let _ = format!("{:?}", Theme::dark());
+        let _ = format!("{:?}", Theme::dimmed());
+    }
+
+    // ── dimmed theme sanity checks ───────────────────────────
+
+    #[test]
+    fn dimmed_bg_is_dark() {
+        let t = Theme::dimmed();
+        assert!(t.bg.r < 100 && t.bg.g < 100 && t.bg.b < 100);
+    }
+
+    #[test]
+    fn dimmed_cell_text_is_light() {
+        let t = Theme::dimmed();
+        // Check that at least one channel is bright (dimmed theme
+        // has light text). Evaluate each channel separately so
+        // coverage instruments every branch.
+        let bright =
+            [t.cell_text.r, t.cell_text.g, t.cell_text.b]
+                .iter()
+                .any(|&c| c > 100);
+        assert!(bright);
+    }
+
+    #[test]
+    fn dimmed_header_height_positive() {
+        assert!(Theme::dimmed().header_height > 0.0);
+    }
+
+    #[test]
+    fn dimmed_row_height_positive() {
+        assert!(Theme::dimmed().row_height > 0.0);
+    }
+
+    #[test]
+    fn dimmed_font_sizes_positive() {
+        let t = Theme::dimmed();
+        assert!(t.font_size > 0.0);
+        assert!(t.header_font_size > 0.0);
+    }
+
+    #[test]
+    fn dimmed_scrollbar_dimensions_positive() {
+        let t = Theme::dimmed();
+        assert!(t.scrollbar_width > 0.0);
+        assert!(t.scrollbar_radius > 0.0);
+        assert!(t.scrollbar_inset >= 0.0);
+    }
+
+    #[test]
+    fn dimmed_drag_anim_alpha_in_range() {
+        let t = Theme::dimmed();
+        assert!(t.drag_anim_alpha > 0.0);
+        assert!(t.drag_anim_alpha <= 1.0);
+    }
+
+    #[test]
+    fn dimmed_differs_from_light_and_dark() {
+        assert_ne!(Theme::dimmed(), Theme::light());
+        assert_ne!(Theme::dimmed(), Theme::dark());
     }
 }

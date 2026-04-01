@@ -119,7 +119,36 @@
       "Bash(rmdir e:/Dev/rs-grid/examples/example-common/src/bin)",
       "Bash(cargo nextest:*)",
       "Bash(cargo llvm-cov:*)",
-      "Bash(rustup component:*)"
+      "Bash(rustup component:*)",
+      "Skill(coverage)",
+      "Skill(coverage:*)",
+      "Bash(grep -E \"^--$|\\\\.rs$\")",
+      "Bash(grep \"\\\\.rs$\")",
+      "Bash(python3 -:*)",
+      "Bash(python3:*)",
+      "Bash(python3 -c \"open\\(''/tmp/cov.txt''\\)\")",
+      "Bash(grep -E \"^[A-Z]:.*\\\\.rs:$|      0\\\\|\" /tmp/cov.txt)",
+      "Read(//^[A-Z]:.*/.rs:$/{file=$0} /      0/|/**)",
+      "Bash(grep \"^E:\\\\\\\\Dev\\\\\\\\rs-grid.*builder.rs\\\\|^E:\\\\\\\\Dev\\\\\\\\rs-grid.*cells.rs\\\\|^E:\\\\\\\\Dev\\\\\\\\rs-grid.*primitives.rs\\\\|^E:\\\\\\\\Dev\\\\\\\\rs-grid.*theme.rs\\\\|^E:\\\\\\\\Dev\\\\\\\\rs-grid.*frame.rs\\\\|^E:\\\\\\\\Dev\\\\\\\\rs-grid.*rs-grid-icons.*lib.rs\" /tmp/cov.txt)",
+      "Bash(sort -t'%' -k1 -n)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(rustup toolchain:*)",
+      "Bash(rustup show:*)",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(grep -n \"^[A-Za-z/\\\\].*\\\\.rs$\" /tmp/cov_output.txt)",
+      "Read(//e/Dev/rs-grid/$TEMP/**)",
+      "Read(//e/Dev/rs-grid/^$/**)",
+      "Bash(python3 -c \"open\\(r''C:/Users/Admin/AppData/Local/Temp/cov_full.txt''\\)\")",
+      "Bash(cygpath -w /tmp/cov_full.txt)",
+      "Bash(grep -E \"^TOTAL|^-+$\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "rs-grid-docs"
+  ]
 }

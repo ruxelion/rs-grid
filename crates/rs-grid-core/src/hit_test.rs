@@ -255,4 +255,59 @@ mod tests {
         // 5 rows; vy=200
         assert_eq!(hit_test_row_header(20.0, 200.0, &m, 0.0), None);
     }
+
+    // ── pinned column hit tests ──────────────────────────────────────────────
+
+    fn make_pinned_model() -> GridModel {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows = (0..10).map(|i| RowRecord::new(i)).collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.pinned_count = 1; // pin column "a" (100px)
+        m
+    }
+
+    #[test]
+    fn hit_pinned_col_ignores_scroll_x() {
+        let m = make_pinned_model();
+        let rnw = m.row_number_width;
+        // Click in pinned zone (vx < rnw + pinned_width=100),
+        // with scroll_x=500 — pinned column is unaffected.
+        let c = hit_test(rnw + 10.0, 50.0, &m, 500.0, 0.0).unwrap();
+        assert_eq!(c.col, 0, "should hit pinned col 0");
+    }
+
+    #[test]
+    fn hit_col_header_pinned_ignores_scroll_x() {
+        let m = make_pinned_model();
+        let rnw = m.row_number_width;
+        // Click in header zone on pinned col with scroll_x=500
+        let col =
+            hit_test_col_header(rnw + 10.0, 20.0, &m, 500.0);
+        assert_eq!(col, Some(0));
+    }
+
+    // ── scroll_y >= hh decomposition path ────────────────
+
+    #[test]
+    fn hit_with_large_scroll_y() {
+        let m = make_model();
+        // scroll_y=100 > header_height=40 → triggers the precision-preserving path
+        // sy_content = 100-40=60, first_row = 60/30=2
+        // frac = 60%30=0
+        // vy=50 → offset = (50+0)/30 = 1 → row = 2+1 = 3
+        let c = hit_test(60.0, 50.0, &m, 0.0, 100.0).unwrap();
+        assert_eq!(c.row, 3);
+    }
+
+    #[test]
+    fn row_header_with_large_scroll_y() {
+        let m = make_model();
+        // scroll_y=100 > header_height=40 → precision path
+        let row = hit_test_row_header(20.0, 50.0, &m, 100.0);
+        assert_eq!(row, Some(3));
+    }
 }
