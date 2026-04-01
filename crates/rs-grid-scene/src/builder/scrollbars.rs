@@ -223,3 +223,159 @@ fn emit_scrollbar_arrow(
         corner_radius: size * 0.25,
     }));
 }
+
+#[cfg(test)]
+mod tests {
+    use rs_grid_core::{
+        column::ColumnDef,
+        model::GridModel,
+        row::RowRecord,
+        viewport::ViewportState,
+    };
+
+    use crate::{
+        frame::SceneFrame,
+        primitives::ScenePrimitive,
+        theme::Theme,
+    };
+
+    use super::emit_scrollbars;
+
+    // ── helpers ──────────────────────────────────────────────
+
+    /// Tall grid: 100 rows × 40 px = 4000 px total height.
+    /// Viewport height 300 px → vertical scrollbar appears.
+    fn make_tall_model() -> GridModel {
+        let cols = vec![ColumnDef::new("a", "A", 200.0)];
+        let rows: Vec<RowRecord> =
+            (0..100).map(RowRecord::new).collect();
+        GridModel::new(cols, rows, 40.0, 48.0)
+    }
+
+    /// Wide grid: 5 columns × 300 px = 1500 px total width.
+    /// Viewport width 400 px → horizontal scrollbar appears.
+    fn make_wide_model() -> GridModel {
+        let cols = vec![
+            ColumnDef::new("a", "A", 300.0),
+            ColumnDef::new("b", "B", 300.0),
+            ColumnDef::new("c", "C", 300.0),
+            ColumnDef::new("d", "D", 300.0),
+            ColumnDef::new("e", "E", 300.0),
+        ];
+        let rows: Vec<RowRecord> =
+            (0..5).map(RowRecord::new).collect();
+        GridModel::new(cols, rows, 40.0, 48.0)
+    }
+
+    // ── vertical scrollbar ───────────────────────────────────
+
+    #[test]
+    fn emit_scrollbars_vertical_emits_rects_and_polygons() {
+        let mut frame = SceneFrame::new(400.0, 300.0, 1.0);
+        let vp = ViewportState::new(400.0, 300.0);
+        let model = make_tall_model();
+        let t = Theme::light();
+
+        emit_scrollbars(&mut frame, &vp, &model, 0.0, &t);
+
+        // Vertical scrollbar: 2 btn bg + 2 arrows + 1 track
+        // + 1 thumb = 6 primitives minimum
+        assert!(
+            frame.primitive_count() >= 6,
+            "expected ≥6 primitives, got {}",
+            frame.primitive_count()
+        );
+        let has_polygon = frame.primitives.iter().any(|p| {
+            matches!(p, ScenePrimitive::Polygon(_))
+        });
+        assert!(has_polygon, "expected arrow polygons");
+    }
+
+    // ── horizontal scrollbar ─────────────────────────────────
+
+    #[test]
+    fn emit_scrollbars_horizontal_emits_primitives() {
+        let mut frame = SceneFrame::new(400.0, 300.0, 1.0);
+        let vp = ViewportState::new(400.0, 300.0);
+        let model = make_wide_model();
+        let t = Theme::light();
+
+        emit_scrollbars(&mut frame, &vp, &model, 0.0, &t);
+
+        // Horizontal scrollbar must emit rects + polygons
+        let rect_count = frame
+            .primitives
+            .iter()
+            .filter(|p| matches!(p, ScenePrimitive::Rect(_)))
+            .count();
+        let poly_count = frame
+            .primitives
+            .iter()
+            .filter(|p| {
+                matches!(p, ScenePrimitive::Polygon(_))
+            })
+            .count();
+        // At least 3 rects (track + thumb + btn bg) for hsb
+        assert!(
+            rect_count >= 3,
+            "expected ≥3 rects, got {rect_count}"
+        );
+        // At least 2 polygons (left + right arrows) for hsb
+        assert!(
+            poly_count >= 2,
+            "expected ≥2 polygons, got {poly_count}"
+        );
+    }
+
+    #[test]
+    fn emit_scrollbars_horizontal_uses_horizontal_arrows() {
+        let mut frame = SceneFrame::new(400.0, 300.0, 1.0);
+        let vp = ViewportState::new(400.0, 300.0);
+        // Wide but not tall: only horizontal scrollbar
+        let cols = vec![
+            ColumnDef::new("a", "A", 300.0),
+            ColumnDef::new("b", "B", 300.0),
+        ];
+        let rows = vec![RowRecord::new(0)];
+        // row_height 40, 1 row = 40 px total, fits in 300 →
+        // no vertical scrollbar
+        let model = GridModel::new(cols, rows, 40.0, 48.0);
+        let t = Theme::light();
+
+        emit_scrollbars(&mut frame, &vp, &model, 0.0, &t);
+
+        // With no vertical scrollbar, all polygons are
+        // horizontal arrows (points differ from vertical).
+        let polygons: Vec<_> = frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Polygon(poly) => Some(poly),
+                _ => None,
+            })
+            .collect();
+        // 2 horizontal arrows expected
+        assert_eq!(polygons.len(), 2);
+    }
+
+    // ── no scrollbar when content fits ───────────────────────
+
+    #[test]
+    fn emit_scrollbars_no_scrollbar_when_content_fits() {
+        let mut frame = SceneFrame::new(800.0, 600.0, 1.0);
+        let vp = ViewportState::new(800.0, 600.0);
+        // 1 column, 1 row — easily fits the viewport
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let rows = vec![RowRecord::new(0)];
+        let model = GridModel::new(cols, rows, 40.0, 48.0);
+        let t = Theme::light();
+
+        emit_scrollbars(&mut frame, &vp, &model, 0.0, &t);
+
+        assert_eq!(
+            frame.primitive_count(),
+            0,
+            "no scrollbar expected when content fits"
+        );
+    }
+}

@@ -411,4 +411,89 @@ mod tests {
         assert_eq!(col.max_width, Some(300.0));
         assert_eq!(col.flex, Some(1.0));
     }
+
+    // ── CellValidator ─────────────────────────────────────
+
+    #[test]
+    fn cell_validator_accepts_valid_input() {
+        let v = CellValidator::new(|s| {
+            s.parse::<u32>()
+                .map(|_| ())
+                .map_err(|_| "not a number".into())
+        });
+        assert!(v.validate("42").is_ok());
+    }
+
+    #[test]
+    fn cell_validator_rejects_invalid_input() {
+        let v = CellValidator::new(|s| {
+            s.parse::<u32>()
+                .map(|_| ())
+                .map_err(|e| e.to_string())
+        });
+        assert!(v.validate("abc").is_err());
+    }
+
+    #[test]
+    fn cell_validator_clone_shares_closure() {
+        let v = CellValidator::new(|s| {
+            if s.is_empty() {
+                Err("empty".into())
+            } else {
+                Ok(())
+            }
+        });
+        let v2 = v.clone();
+        assert!(v2.validate("x").is_ok());
+        assert!(v2.validate("").is_err());
+    }
+
+    #[test]
+    fn cell_validator_debug_format() {
+        let v = CellValidator::new(|_| Ok(()));
+        let s = format!("{v:?}");
+        assert!(s.contains("CellValidator"));
+    }
+
+    // ── with_editor ───────────────────────────────────────
+
+    #[test]
+    fn with_editor_text() {
+        let col =
+            ColumnDef::new("a", "A", 100.0).with_editor(CellEditor::Text);
+        assert!(matches!(col.editor, Some(CellEditor::Text)));
+    }
+
+    #[test]
+    fn with_editor_select() {
+        let opts = vec![
+            SelectOption {
+                value: "y".into(),
+                label: "Yes".into(),
+                icon: None,
+            },
+            SelectOption {
+                value: "n".into(),
+                label: "No".into(),
+                icon: Some("icon.png".into()),
+            },
+        ];
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_editor(CellEditor::Select { options: opts });
+        assert!(matches!(
+            col.editor,
+            Some(CellEditor::Select { .. })
+        ));
+    }
+
+    // ── with_validator ────────────────────────────────────
+
+    #[test]
+    fn with_validator_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_validator(CellValidator::new(|_| Ok(())));
+        assert!(col.validator.is_some());
+        let v = col.validator.unwrap();
+        assert!(v.validate("anything").is_ok());
+    }
 }

@@ -1884,4 +1884,39 @@ mod tests {
             "no search → no highlights"
         );
     }
+
+    // ── pinned columns + hover ──────────────────────────
+
+    #[test]
+    fn build_pinned_hover_overlay() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows: Vec<RowRecord> = (0..5)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 1;
+        let mut state = GridState::new(model, 800.0, 600.0);
+        state.hovered_row = Some(1);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        // Should have hover overlay in pinned zone
+        let hover_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.row_hover_bg)
+            .collect();
+        assert!(
+            hover_rects.len() >= 2,
+            "pinned + scrollable hover overlays; got {}",
+            hover_rects.len()
+        );
+    }
 }

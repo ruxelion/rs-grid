@@ -294,4 +294,34 @@ mod tests {
         ds.unmark_pending(0);
         assert!(!ds.is_page_pending(0));
     }
+
+    #[test]
+    fn page_size_accessor() {
+        let ds = PageCacheDataSource::new(1000, 50);
+        assert_eq!(ds.page_size(), 50);
+    }
+
+    #[test]
+    fn total_rows_accessor() {
+        let ds = PageCacheDataSource::new(500, 50);
+        assert_eq!(ds.total_rows(), 500);
+    }
+
+    #[test]
+    fn clone_box_returns_shared_source() {
+        let ds = PageCacheDataSource::new(100, 10);
+        ds.insert_page(0, make_page(0, 10));
+        let cloned = ds.clone_box().unwrap();
+        assert_eq!(cloned.row_count(), 100);
+        assert_eq!(cloned.get_cell(0, "name"), Some("user_0".into()));
+    }
+
+    #[test]
+    fn cell_status_absent_for_short_page() {
+        let ds = PageCacheDataSource::new(1000, 100);
+        // Insert a page with only 5 rows (short page)
+        ds.insert_page(0, make_page(0, 5));
+        // Row 5 within page 0 → page exists but offset is out of bounds
+        assert_eq!(ds.cell_status(5, "name"), CellStatus::Absent);
+    }
 }

@@ -283,6 +283,45 @@ mod tests {
         assert!(dbg.contains("42"));
     }
 
+    // FnDataSource uses the default get_cell_ref implementation
+    // which wraps get_cell in Cow::Owned.
+    #[test]
+    fn fn_get_cell_ref_uses_default_impl() {
+        let ds = FnDataSource::new(
+            10,
+            |_row, _col| Some("value".into()),
+        );
+        let val = ds.get_cell_ref(0, "any");
+        assert_eq!(val.as_deref(), Some("value"));
+        // Default impl returns Owned (not Borrowed)
+        assert!(
+            matches!(val, Some(std::borrow::Cow::Owned(_))),
+            "default get_cell_ref should return Cow::Owned"
+        );
+    }
+
+    #[test]
+    fn fn_get_cell_ref_none_when_absent() {
+        let ds = FnDataSource::new(10, |_r, _c| None);
+        assert!(ds.get_cell_ref(0, "x").is_none());
+    }
+
+    // The default `set_cell` is a no-op for read-only sources.
+    #[test]
+    fn fn_set_cell_default_is_noop() {
+        // FnDataSource doesn't override set_cell — it uses the
+        // default no-op implementation from the trait.
+        // We can't call set_cell directly on FnDataSource since
+        // it doesn't implement it, but we verify through the
+        // trait object.
+        let mut ds: Box<dyn DataSource> = Box::new(
+            FnDataSource::new(5, |_r, _c| Some("v".into())),
+        );
+        ds.set_cell(0, "x", "new".into());
+        // Value should be unchanged (no-op)
+        assert_eq!(ds.get_cell(0, "x"), Some("v".into()));
+    }
+
     // ── CellStatus ───────────────────────────────────
 
     #[test]

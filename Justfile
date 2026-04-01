@@ -30,13 +30,14 @@ test-core:
     cargo nextest run -p rs-grid-core
 
 # Coverage HTML (rapport dans target/llvm-cov/html/, ouvre le navigateur)
+# generate_theme.rs est un binaire, exclu du coverage
 coverage:
-    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --html --open
+    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --ignore-filename-regex "generate_theme" --html --open
 
 # Coverage lcov (format CI → target/llvm-cov/lcov.info)
 coverage-lcov:
     if not exist "target\llvm-cov" mkdir "target\llvm-cov"
-    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --lcov --output-path target/llvm-cov/lcov.info
+    cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --ignore-filename-regex "generate_theme" --lcov --output-path target/llvm-cov/lcov.info
 
 # Formatage
 fmt:

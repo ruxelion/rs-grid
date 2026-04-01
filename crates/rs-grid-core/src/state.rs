@@ -1580,4 +1580,475 @@ mod tests {
         });
         assert!(s.model.columns[1].flex.is_none());
     }
+
+    // ── hit_test / hit_test_row_header / hit_test_col_header ─────────────────
+    // Tests for the GridState wrapper methods (delegates to hit_test module).
+    // make_state: 3 cols (100+150+200 px), 10 rows, 800×600 viewport,
+    //             row_height=30, header=40.
+    // row_number_width for 10 rows = max(2*9+24, 40) = 42.
+
+    #[test]
+    fn hit_test_data_cell() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vx just past gutter → col 0; vy past header → row 0
+        let result = s.hit_test(rnw + 5.0, 45.0);
+        assert!(result.is_some(), "expected a hit");
+        let c = result.unwrap();
+        assert_eq!(c.row, 0);
+        assert_eq!(c.col, 0);
+    }
+
+    #[test]
+    fn hit_test_returns_none_in_gutter() {
+        let s = make_state();
+        // x=0 is always in the gutter
+        assert!(s.hit_test(0.0, 55.0).is_none());
+    }
+
+    #[test]
+    fn hit_test_returns_none_in_header() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vy < header_height=40
+        assert!(s.hit_test(rnw + 5.0, 10.0).is_none());
+    }
+
+    #[test]
+    fn hit_test_row_header_in_gutter() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vx = rnw/2 (inside gutter), vy = header_height + 15 = row 0
+        let row = s.hit_test_row_header(rnw / 2.0, 55.0);
+        assert_eq!(row, Some(0));
+    }
+
+    #[test]
+    fn hit_test_row_header_returns_none_outside_gutter() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vx just past gutter → None
+        assert!(s.hit_test_row_header(rnw + 5.0, 55.0).is_none());
+    }
+
+    #[test]
+    fn hit_test_col_header_in_header_row() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vy=20 < header_height=40; vx=rnw+5 → col 0
+        let col = s.hit_test_col_header(rnw + 5.0, 20.0);
+        assert_eq!(col, Some(0));
+    }
+
+    #[test]
+    fn hit_test_col_header_returns_none_below_header() {
+        let s = make_state();
+        let rnw = s.model.row_number_width;
+        // vy=60 > header_height=40
+        assert!(s.hit_test_col_header(rnw + 5.0, 60.0).is_none());
+    }
+
+    // ── SortWarning when row count exceeds the client-sort limit ─────────────
+
+    #[test]
+    fn toggle_sort_returns_sort_warning_for_large_dataset() {
+        use crate::commands::CommandOutput;
+        use crate::datasource::FnDataSource;
+        use crate::model::GridModelBuilder;
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        // Just over the 1_000_000 row limit
+        let data = Box::new(FnDataSource::new(
+            GridModel::MAX_CLIENT_SORT_ROWS + 1,
+            |_r, _c| None,
+        ));
+        let model = GridModelBuilder::new(cols, data).build();
+        let mut s = GridState::new(model, 800.0, 600.0);
+        let out = s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert!(
+            matches!(out, CommandOutput::SortWarning { .. }),
+            "expected SortWarning, got {out:?}"
+        );
+    }
+
+    #[test]
+    fn set_sort_returns_sort_warning_for_large_dataset() {
+        use crate::commands::CommandOutput;
+        use crate::datasource::FnDataSource;
+        use crate::model::GridModelBuilder;
+        use crate::sort::SortDir;
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let data = Box::new(FnDataSource::new(
+            GridModel::MAX_CLIENT_SORT_ROWS + 1,
+            |_r, _c| None,
+        ));
+        let model = GridModelBuilder::new(cols, data).build();
+        let mut s = GridState::new(model, 800.0, 600.0);
+        let out = s.apply(GridCommand::SetSort {
+            col_key: "a".into(),
+            dir: SortDir::Asc,
+        });
+        assert!(
+            matches!(out, CommandOutput::SortWarning { .. }),
+            "expected SortWarning, got {out:?}"
+        );
+    }
+
+    // ── search scroll-into-view ─────────────────────────
+
+    fn make_tall_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows = (0..100)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 300.0, 200.0)
+    }
+
+    #[test]
+    fn search_next_scrolls_down_to_match() {
+        let mut s = make_tall_state();
+        // Search for a row far below the viewport
+        s.apply(GridCommand::Search { query: "a50".into() });
+        assert_eq!(s.search.matches.len(), 1);
+        assert_eq!(s.viewport.scroll_y, 0.0);
+        // SearchNext scrolls to make row 50 visible
+        s.apply(GridCommand::SearchNext);
+        assert!(
+            s.viewport.scroll_y > 0.0,
+            "should have scrolled down, scroll_y={}",
+            s.viewport.scroll_y
+        );
+    }
+
+    #[test]
+    fn search_next_scrolls_left_to_match() {
+        // Grid with 10 cols × 200px. Viewport=400px.
+        // Scroll right, then search for a value in col 0.
+        let cols: Vec<ColumnDef> = (0..10)
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 200.0))
+            .collect();
+        let mut row = RowRecord::new(0);
+        row.set("c0", "findme");
+        for i in 1..10 {
+            row.set(&format!("c{i}"), format!("val{i}"));
+        }
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 400.0, 200.0);
+        // Scroll far right
+        s.apply(GridCommand::ScrollTo { x: 1000.0, y: 0.0 });
+        assert!(s.viewport.scroll_x > 0.0);
+        s.apply(GridCommand::Search {
+            query: "findme".into(),
+        });
+        s.apply(GridCommand::SearchNext);
+        // Should scroll left to show column 0
+        assert!(
+            s.viewport.scroll_x < 1000.0,
+            "should have scrolled left, scroll_x={}",
+            s.viewport.scroll_x
+        );
+    }
+
+    #[test]
+    fn search_next_scrolls_right_to_match() {
+        // Wide grid: 10 columns × 200px = 2000px, viewport=400px
+        let cols: Vec<ColumnDef> = (0..10)
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 200.0))
+            .collect();
+        let mut row = RowRecord::new(0);
+        // Put a unique value in the last column
+        row.set("c9", "findme");
+        for i in 0..9 {
+            row.set(&format!("c{i}"), format!("val{i}"));
+        }
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 400.0, 200.0);
+        assert_eq!(s.viewport.scroll_x, 0.0);
+        s.apply(GridCommand::Search {
+            query: "findme".into(),
+        });
+        assert_eq!(s.search.matches.len(), 1);
+        s.apply(GridCommand::SearchNext);
+        assert!(
+            s.viewport.scroll_x > 0.0,
+            "should have scrolled right to find column 9"
+        );
+    }
+
+    #[test]
+    fn search_next_scrolls_up_to_match() {
+        let mut s = make_tall_state();
+        // Scroll down first
+        s.apply(GridCommand::ScrollTo { x: 0.0, y: 1000.0 });
+        assert!(s.viewport.scroll_y > 0.0);
+        // Search for a row near the top
+        s.apply(GridCommand::Search { query: "a0".into() });
+        s.apply(GridCommand::SearchNext);
+        // Should scroll back up
+        assert!(
+            s.viewport.scroll_y < 1000.0,
+            "should have scrolled up to row 0"
+        );
+    }
+
+    // ── undo SetCell with None old_value (remove patch) ─
+
+    #[test]
+    fn undo_edit_on_nonexistent_cell_removes_patch() {
+        // Cell doesn't exist in datasource → get_cell returns None
+        // → UndoEntry::SetCell { old_value: None }
+        // → undo removes the patch entirely.
+        use crate::datasource::FnDataSource;
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        // Datasource only returns values for column "a"
+        let data = Box::new(FnDataSource::new(
+            5,
+            |row, col| {
+                if col == "a" {
+                    Some(format!("a{row}"))
+                } else {
+                    None
+                }
+            },
+        ));
+        let model = GridModel::with_data_source(
+            cols,
+            data,
+            30.0,
+            40.0,
+        );
+        let mut s = GridState::new(model, 800.0, 600.0);
+        // Column "b" has no values in datasource
+        assert_eq!(s.model.get_cell(0, "b"), None);
+        // Edit column "b": old_value will be None
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "b".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "b".into(),
+            value: "new_value".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "b"),
+            Some("new_value".into())
+        );
+        // Undo → old_value=None → removes patch
+        s.apply(GridCommand::Undo);
+        assert_eq!(
+            s.model.get_cell(0, "b"),
+            None,
+            "undo should remove patch entirely"
+        );
+    }
+
+    // ── undo ResizeColumn with flex recalculation ────────
+
+    #[test]
+    fn undo_resize_restores_flex() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::simple("b", "B").with_flex(1.0),
+        ];
+        let rows: Vec<RowRecord> =
+            (0..3).map(|i| RowRecord::new(i)).collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        let orig_width = s.model.columns[1].width;
+        let orig_flex = s.model.columns[1].flex;
+        assert!(orig_flex.is_some());
+        // Resize clears flex
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 1,
+            new_width: 200.0,
+        });
+        s.apply(GridCommand::CommitColumnResize {
+            col_idx: 1,
+            old_width: orig_width,
+            old_flex: orig_flex,
+        });
+        assert!(s.model.columns[1].flex.is_none());
+        // Undo should restore flex
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[1].flex, orig_flex);
+    }
+
+    // ── AutoFit with Image format ────────────────────────
+
+    #[test]
+    fn auto_fit_image_column_uses_row_height() {
+        let cols = vec![ColumnDef {
+            key: "img".into(),
+            label: "Img".into(),
+            width: 200.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: Some(CellFormat::Image {
+                base_url: None,
+                border_radius: 0.0,
+                padding: 0.0,
+            }),
+            editor: None,
+            validator: None,
+        }];
+        let mut row = RowRecord::new(0);
+        row.set("img", "photo.png");
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+            header_right_reserve: 0.0,
+        });
+        // Image: row_height(30) + padding*2(20) = 50
+        // Header: "Img".len(3)*8 + 10*2 = 44
+        // max(50, 44) = 50
+        assert!(
+            (s.model.columns[0].width - 50.0).abs() < 0.01,
+            "expected 50, got {}",
+            s.model.columns[0].width
+        );
+    }
+
+    // ── AutoFit with formatted (non-Image) column ────────
+
+    #[test]
+    fn auto_fit_formatted_column() {
+        let cols = vec![ColumnDef {
+            key: "v".into(),
+            label: "V".into(),
+            width: 200.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: Some(CellFormat::Currency {
+                symbol: "$".into(),
+                decimal_places: 2,
+                thousands_sep: Some(','),
+                symbol_after: false,
+            }),
+            editor: None,
+            validator: None,
+        }];
+        let mut row = RowRecord::new(0);
+        row.set("v", "1234.5");
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+            header_right_reserve: 0.0,
+        });
+        // "$1,234.50" = 9 chars → 9*8+10*2 = 92
+        // Header: "V" = 1 char → 1*8+10*2 = 28
+        // max(92, 28) = 92
+        assert!(
+            (s.model.columns[0].width - 92.0).abs() < 0.01,
+            "expected 92, got {}",
+            s.model.columns[0].width
+        );
+    }
+
+    // ── sort + filter interaction (reapply_filter branch) ─
+
+    #[test]
+    fn toggle_sort_reapplies_filter() {
+        let mut s = make_state();
+        // Apply filter first
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "a".into(),
+        });
+        assert_eq!(s.model.display_row_count(), 10);
+        // Toggle sort → cmd_sort_filter should reapply filter
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        assert_eq!(s.model.display_row_count(), 10);
+    }
+
+    #[test]
+    fn clear_sort_reapplies_filter() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetColumnFilter {
+            col_key: "a".into(),
+            text: "a1".into(),
+        });
+        s.apply(GridCommand::ToggleSort {
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::ClearSort);
+        // Filter should still be active after clearing sort
+        assert_eq!(s.model.display_row_count(), 1);
+    }
+
+    // ── undo paste with SetCells None path ───────────────
+
+    #[test]
+    fn undo_paste_on_fn_datasource_removes_patches() {
+        use crate::datasource::FnDataSource;
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 100.0),
+        ];
+        // Datasource only returns values for column "a"
+        let data = Box::new(FnDataSource::new(5, |row, col| {
+            if col == "a" {
+                Some(format!("a{row}"))
+            } else {
+                None
+            }
+        }));
+        let model = GridModel::with_data_source(
+            cols,
+            data,
+            30.0,
+            40.0,
+        );
+        let mut s = GridState::new(model, 800.0, 600.0);
+        // Column b has no values → old_value=None for each cell
+        assert_eq!(s.model.get_cell(0, "b"), None);
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord {
+            row: 0,
+            col: 1,
+        }));
+        s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
+        assert_eq!(s.model.get_cell(0, "a"), Some("X".into()));
+        assert_eq!(s.model.get_cell(0, "b"), Some("Y".into()));
+        s.apply(GridCommand::Undo);
+        assert_eq!(
+            s.model.get_cell(0, "a"),
+            Some("a0".into()),
+            "undo should restore col a"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b"),
+            None,
+            "undo should remove patches for col b"
+        );
+    }
 }

@@ -1010,19 +1010,25 @@ mod tests {
         let mut m = GridModel::new(cols, rows, 30.0, 40.0);
 
         m.apply_sort("a", &SortDir::Asc);
-        if let SortKeyCache::Numeric { col_key, .. } = &m.sort_key_cache {
-            assert_eq!(col_key, "a");
-        } else {
-            panic!("expected Numeric cache for col a");
-        }
+        assert!(
+            matches!(
+                &m.sort_key_cache,
+                SortKeyCache::Numeric { col_key, .. }
+                    if col_key == "a"
+            ),
+            "expected Numeric cache for col a"
+        );
 
         // Sort on different column replaces cache
         m.apply_sort("b", &SortDir::Asc);
-        if let SortKeyCache::Numeric { col_key, .. } = &m.sort_key_cache {
-            assert_eq!(col_key, "b");
-        } else {
-            panic!("expected Numeric cache for col b");
-        }
+        assert!(
+            matches!(
+                &m.sort_key_cache,
+                SortKeyCache::Numeric { col_key, .. }
+                    if col_key == "b"
+            ),
+            "expected Numeric cache for col b"
+        );
     }
 
     // ── GridModelBuilder ──────────────────────────────
@@ -1208,5 +1214,297 @@ mod tests {
         m.recalculate_flex_widths(800.0);
         assert_eq!(m.columns[0].width, 100.0);
         assert_eq!(m.columns[1].width, 200.0);
+    }
+
+    // ── SortKeyCache Debug ───────────────────────────────
+
+    #[test]
+    fn sort_key_cache_debug_none() {
+        let m = make_model();
+        let dbg = format!("{:?}", m);
+        assert!(dbg.contains("SortKeyCache::None"));
+    }
+
+    #[test]
+    fn sort_key_cache_debug_numeric() {
+        let mut m = make_numeric_model(10);
+        m.apply_sort("v", &SortDir::Asc);
+        let dbg = format!("{:?}", m);
+        assert!(dbg.contains("SortKeyCache::Numeric"));
+    }
+
+    #[test]
+    fn sort_key_cache_debug_mixed() {
+        let cols = vec![ColumnDef::new("s", "S", 100.0)];
+        let values = ["banana", "123"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("s", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("s", &SortDir::Asc);
+        let dbg = format!("{:?}", m);
+        assert!(dbg.contains("SortKeyCache::Mixed"));
+    }
+
+    // ── f64_to_sort_key: negative float path ─────────────
+
+    #[test]
+    fn sort_negative_numbers() {
+        let cols = vec![ColumnDef::new("v", "V", 100.0)];
+        let values = ["-5", "3", "-1", "0", "10"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("v", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("v", &SortDir::Asc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "v").unwrap())
+            .collect();
+        assert_eq!(sorted, vec!["-5", "-1", "0", "3", "10"]);
+    }
+
+    // ── radix_sort_f64_indices n<=1 early return ─────────
+
+    #[test]
+    fn sort_single_row() {
+        let cols = vec![ColumnDef::new("v", "V", 100.0)];
+        let mut r = RowRecord::new(0);
+        r.set("v", "42");
+        let mut m = GridModel::new(cols, vec![r], 30.0, 40.0);
+        assert!(m.apply_sort("v", &SortDir::Asc));
+        assert_eq!(m.sort_order, vec![0]);
+    }
+
+    // ── logical_to_physical with sort order (no filter) ──
+
+    #[test]
+    fn logical_to_physical_with_sort() {
+        let mut m = make_numeric_model(5);
+        m.apply_sort("v", &SortDir::Asc);
+        // After sorting, logical row 0 maps to physical row 4
+        // (value "1" is at physical row 4)
+        let physical = m.logical_to_physical(0);
+        assert_eq!(physical, 4);
+    }
+
+    // ── server-side mode: apply_sort returns false ────────
+
+    #[test]
+    fn apply_sort_server_side_is_noop() {
+        let cols = vec![ColumnDef::new("v", "V", 100.0)];
+        let rows = vec![RowRecord::new(0)];
+        let mut m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(rows)))
+                .mode(DataSourceMode::ServerSide)
+                .build();
+        assert!(!m.apply_sort("v", &SortDir::Asc));
+        assert!(m.sort_order.is_empty());
+    }
+
+    // ── apply_filter: server-side, empty, large dataset ──
+
+    #[test]
+    fn apply_filter_server_side_is_noop() {
+        let cols = vec![ColumnDef::new("v", "V", 100.0)];
+        let mut r = RowRecord::new(0);
+        r.set("v", "hello");
+        let mut m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![r])))
+                .mode(DataSourceMode::ServerSide)
+                .build();
+        m.filters.insert("v".into(), "hello".into());
+        m.apply_filter();
+        assert!(
+            m.filtered_indices.is_empty(),
+            "server-side mode skips filter"
+        );
+    }
+
+    #[test]
+    fn apply_filter_empty_filters_clears() {
+        let mut m = make_model();
+        // First add a filter to populate filtered_indices
+        m.filters.insert("a".into(), "hello".into());
+        m.apply_filter();
+        assert!(!m.filtered_indices.is_empty());
+        // Clear the filters map and reapply
+        m.filters.clear();
+        m.apply_filter();
+        assert!(m.filtered_indices.is_empty());
+    }
+
+    // ── cell_status with patches ─────────────────────────
+
+    #[test]
+    fn cell_status_returns_patched_value() {
+        let mut m = make_model();
+        m.set_cell(0, "a", "patched".into());
+        assert_eq!(
+            m.cell_status(0, "a"),
+            CellStatus::Ready("patched".into())
+        );
+    }
+
+    // ── ImageText sort extraction ────────────────────────
+
+    #[test]
+    fn sort_image_text_column_numeric() {
+        use crate::format::CellFormat;
+        let cols = vec![ColumnDef {
+            key: "c".into(),
+            label: "C".into(),
+            width: 100.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: Some(CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 20.0,
+                border_radius: 0.0,
+                gap: 4.0,
+            }),
+            editor: None,
+            validator: None,
+        }];
+        let values = ["us 3", "fr 1", "de 2"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("c", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("c", &SortDir::Asc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "c").unwrap())
+            .collect();
+        assert_eq!(sorted, vec!["fr 1", "de 2", "us 3"]);
+    }
+
+    #[test]
+    fn sort_image_text_column_mixed() {
+        use crate::format::CellFormat;
+        let cols = vec![ColumnDef {
+            key: "c".into(),
+            label: "C".into(),
+            width: 100.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: Some(CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 20.0,
+                border_radius: 0.0,
+                gap: 4.0,
+            }),
+            editor: None,
+            validator: None,
+        }];
+        // Mix of numeric and string labels → mixed sort path
+        let values = ["us France", "fr 1", "de Allemagne"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("c", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("c", &SortDir::Asc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "c").unwrap())
+            .collect();
+        // Numeric first (1), then strings (Allemagne, France)
+        assert_eq!(
+            sorted,
+            vec!["fr 1", "de Allemagne", "us France"]
+        );
+    }
+
+    // ── MixedSortKey::Empty == Empty ─────────────────────
+
+    #[test]
+    fn sort_multiple_empty_cells_mixed() {
+        let cols = vec![ColumnDef::new("s", "S", 100.0)];
+        // 2 rows with value + 2 rows empty → force Mixed path
+        let mut rows = Vec::new();
+        let mut r = RowRecord::new(0);
+        r.set("s", "beta");
+        rows.push(r);
+        rows.push(RowRecord::new(1)); // empty
+        rows.push(RowRecord::new(2)); // empty
+        let mut r = RowRecord::new(3);
+        r.set("s", "alpha");
+        rows.push(r);
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("s", &SortDir::Asc);
+        let sorted: Vec<Option<String>> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "s"))
+            .collect();
+        // alpha, beta, empty, empty
+        assert_eq!(
+            sorted,
+            vec![
+                Some("alpha".into()),
+                Some("beta".into()),
+                None,
+                None,
+            ]
+        );
+    }
+
+    // ── sort cache hit with Mixed ────────────────────────
+
+    #[test]
+    fn sort_cache_reused_for_mixed() {
+        let cols = vec![ColumnDef::new("s", "S", 100.0)];
+        let values = ["banana", "1", "apple"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("s", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        m.apply_sort("s", &SortDir::Asc);
+        assert!(matches!(m.sort_key_cache, SortKeyCache::Mixed { .. }));
+        // Toggle direction — should hit cache
+        m.apply_sort("s", &SortDir::Desc);
+        let sorted: Vec<String> = m
+            .sort_order
+            .iter()
+            .map(|&i| m.data.get_cell(i, "s").unwrap())
+            .collect();
+        assert_eq!(sorted, vec!["banana", "apple", "1"]);
     }
 }

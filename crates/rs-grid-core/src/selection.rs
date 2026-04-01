@@ -456,4 +456,22 @@ mod tests {
         let r = parse_tsv("\"line1\nline2\"\tother\n");
         assert_eq!(r, vec![vec!["line1\nline2", "other"]]);
     }
+
+    #[test]
+    fn parse_tsv_unterminated_quote() {
+        // Quoted field that reaches EOF without closing quote
+        let r = parse_tsv("\"unterminated");
+        assert_eq!(r, vec![vec!["unterminated"]]);
+    }
+
+    #[test]
+    fn parse_tsv_trailing_empty_row_dropped() {
+        // A final newline produces a trailing [""] row that
+        // should be dropped.
+        let r = parse_tsv("a\tb\n");
+        assert_eq!(r, vec![vec!["a", "b"]]);
+        // Without trailing newline, no extra row
+        let r2 = parse_tsv("a\tb");
+        assert_eq!(r2, vec![vec!["a", "b"]]);
+    }
 }
