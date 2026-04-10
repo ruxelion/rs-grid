@@ -18,7 +18,11 @@
       "Bash(cmd /c \"wmic process where \\\\\"ProcessId=33672\\\\\" get Name,ProcessId,ExecutablePath 2>&1\")",
       "Bash(cmd /c \"taskkill /PID 33672 /F\")",
       "Bash(cmd /c \"netstat -ano | findstr :9081\")",
-      "Bash(cmd /c \"netstat -ano | findstr \\\\\"0.0.0.0:9081 \\\\\"\")"
+      "Bash(cmd /c \"netstat -ano | findstr \\\\\"0.0.0.0:9081 \\\\\"\")",
+      "WebFetch(domain:daisyui.com)",
+      "Bash(cmd /c npm install --prefer-offline --no-audit --no-fund)",
+      "Bash(node scripts/generate_class_map.mjs)",
+      "Bash(cmd /c \"npm install --no-audit --no-fund\")"
     ]
   }
 }

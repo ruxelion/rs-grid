@@ -18,6 +18,9 @@ pub mod frame;
 pub mod primitives;
 /// Visual theme: colors, typography, and spacing.
 pub mod theme;
+/// Generated color/geometry constants from DaisyUI sources.
+/// Auto-generated — regenerate with `just gen-class-map`.
+pub mod class_map_data;
 /// DaisyUI / Tailwind class name → canvas style resolver.
 pub mod class_map;
 
