@@ -197,7 +197,15 @@ impl CanvasRenderer {
             ctx.save();
             ctx.set_stroke_style_str(&stroke.to_css());
             ctx.set_line_width(r.stroke_width);
-            ctx.stroke_rect(r.x, r.y, r.width, r.height);
+            // For rounded rects the rounded path is still
+            // current after close_path(), so ctx.stroke()
+            // follows the arcs. For sharp rects stroke_rect
+            // is sufficient and avoids re-building the path.
+            if r.corner_radius > 0.0 {
+                ctx.stroke();
+            } else {
+                ctx.stroke_rect(r.x, r.y, r.width, r.height);
+            }
             ctx.restore();
         }
     }

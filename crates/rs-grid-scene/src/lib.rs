@@ -18,5 +18,7 @@ pub mod frame;
 pub mod primitives;
 /// Visual theme: colors, typography, and spacing.
 pub mod theme;
+/// DaisyUI / Tailwind class name → canvas style resolver.
+pub mod class_map;
 
 pub use theme::Theme;

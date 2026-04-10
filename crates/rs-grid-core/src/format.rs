@@ -31,6 +31,31 @@ pub struct FormattedCell {
     pub color: Option<[u8; 4]>,
 }
 
+// ── styled cell element ─────────────────────────────────
+
+/// A single visual element inside a styled cell.
+///
+/// `class` accepts space-separated DaisyUI / Tailwind class
+/// names. The scene layer resolves them to canvas draw calls.
+///
+/// # Example
+/// ```ignore
+/// CellElement {
+///     text:  "active".into(),
+///     class: "badge badge-success".into(),
+///     align: CellAlign::Left,
+/// }
+/// ```
+#[derive(Debug, Clone)]
+pub struct CellElement {
+    /// Display text of the element.
+    pub text: String,
+    /// Space-separated DaisyUI/Tailwind classes.
+    pub class: String,
+    /// Horizontal alignment within the cell.
+    pub align: CellAlign,
+}
+
 // ── cell format enum ────────────────────────────────────
 
 /// Per-column display format.
@@ -94,6 +119,32 @@ pub enum CellFormat {
         /// Padding inside the cell around the image.
         padding: f64,
     },
+    /// Styled multi-element layout using DaisyUI/Tailwind
+    /// class names.
+    ///
+    /// The callback receives the raw cell value and returns
+    /// a list of [`CellElement`]s. Each element carries a
+    /// `class` string that the scene layer resolves to
+    /// canvas drawing calls (rounded rect + text).
+    ///
+    /// Unknown class names are silently ignored.
+    ///
+    /// # Example
+    /// ```ignore
+    /// CellFormat::Styled(Rc::new(|raw| {
+    ///     let class = match raw {
+    ///         "true"  => "badge badge-success",
+    ///         "false" => "badge badge-error badge-outline",
+    ///         _       => "badge badge-neutral",
+    ///     };
+    ///     vec![CellElement {
+    ///         text:  raw.to_string(),
+    ///         class: class.to_string(),
+    ///         align: CellAlign::Left,
+    ///     }]
+    /// }))
+    /// ```
+    Styled(Rc<dyn Fn(&str) -> Vec<CellElement>>),
     /// Image + text side by side (like AG Grid's flag
     /// cell renderer).
     ///
@@ -150,6 +201,7 @@ impl Clone for CellFormat {
                 false_label: false_label.clone(),
             },
             Self::Custom(f) => Self::Custom(Rc::clone(f)),
+            Self::Styled(f) => Self::Styled(Rc::clone(f)),
             Self::Image {
                 base_url,
                 border_radius,
@@ -214,6 +266,7 @@ impl std::fmt::Debug for CellFormat {
                 .field("false_label", false_label)
                 .finish(),
             Self::Custom(_) => f.debug_tuple("Custom").field(&"..").finish(),
+            Self::Styled(_) => f.debug_tuple("Styled").field(&"..").finish(),
             Self::Image {
                 base_url,
                 border_radius,
@@ -350,6 +403,12 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
             }
         }
         CellFormat::Custom(cb) => cb(raw),
+        // Styled is handled directly by the scene builder;
+        // format_cell is not called for this variant.
+        CellFormat::Styled(_) => FormattedCell {
+            text: raw.to_owned(),
+            ..Default::default()
+        },
         CellFormat::Image { .. } => FormattedCell {
             text: raw.to_owned(),
             ..Default::default()

@@ -1,0 +1,13 @@
+{
+  "name": "basic-leptos",
+  "private": true,
+  "scripts": {
+    "css": "npx @tailwindcss/cli -i ./input.css -o ./generated/tailwind.css",
+    "css:watch": "npx @tailwindcss/cli -i ./input.css -o ./generated/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.4",
+    "tailwindcss": "^4.1.4",
+    "daisyui": "^5.0.35"
+  }
+}
