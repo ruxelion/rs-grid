@@ -82,11 +82,15 @@ new-example name:
 
 [private]
 _build-leptos:
+    cd examples\basic-leptos && cmd /c npm install --prefer-offline --no-audit --no-fund
+    cd examples\basic-leptos && cmd /c npm run css
     cd examples\basic-leptos && trunk build
 
 [private]
 _serve-leptos:
-    cd examples\basic-leptos && trunk serve --address 0.0.0.0 --port 9081 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
+    cd examples\basic-leptos && cmd /c npm install --prefer-offline --no-audit --no-fund
+    cd examples\basic-leptos && cmd /c npm run css
+    cd examples\basic-leptos && trunk serve --address 127.0.0.1 --port 9081 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
 
 [private]
 _build-dioxus:
@@ -94,7 +98,7 @@ _build-dioxus:
 
 [private]
 _serve-dioxus:
-    cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9082 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
+    cd examples\basic-dioxus && trunk serve --address 127.0.0.1 --port 9082 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
 
 [private]
 _build-yew:
@@ -102,7 +106,7 @@ _build-yew:
 
 [private]
 _serve-yew:
-    cd examples\basic-yew && trunk serve --address 0.0.0.0 --port 9083 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
+    cd examples\basic-yew && trunk serve --address 127.0.0.1 --port 9083 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
 
 [private]
 _build-js:

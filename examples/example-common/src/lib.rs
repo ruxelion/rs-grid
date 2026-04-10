@@ -7,10 +7,12 @@
 /// Deterministic fake data generation for examples and tests.
 pub mod fake_data;
 
+use std::rc::Rc;
+
 use rs_grid_core::{
     column::{CellEditor, CellValidator, ColumnDef, SelectOption},
     datasource::FnDataSource,
-    format::CellFormat,
+    format::{CellAlign, CellElement, CellFormat},
     model::GridModel,
 };
 
@@ -50,6 +52,21 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             c
         },
         {
+            let mut c = ColumnDef::new("active", "Status", 120.0);
+            c.format = Some(CellFormat::Styled(Rc::new(|raw| {
+                let (text, class) = match raw {
+                    "true" => ("active", "badge badge-success"),
+                    _ => ("inactive", "badge badge-error badge-outline"),
+                };
+                vec![CellElement {
+                    text: text.to_string(),
+                    class: class.to_string(),
+                    align: CellAlign::Left,
+                }]
+            })));
+            c
+        },
+        {
             let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
             c.format = Some(CellFormat::Image {
                 base_url: Some(
@@ -63,9 +80,9 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
     ];
 
     let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(7)).collect();
+        base.into_iter().take(col_count.min(8)).collect();
 
-    let extras_needed = col_count.saturating_sub(7);
+    let extras_needed = col_count.saturating_sub(8);
     for col in fake_data::EXTRA_COLUMNS.iter().take(extras_needed) {
         let mut c = ColumnDef::new(col.key, col.label, col.width);
         c.format = match col.format_hint {
@@ -100,7 +117,7 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
     }
 
     // Dynamic columns beyond the 92 hand-crafted extras
-    let dynamic_needed = col_count.saturating_sub(7 + fake_data::EXTRA_COUNT);
+    let dynamic_needed = col_count.saturating_sub(8 + fake_data::EXTRA_COUNT);
     for i in 0..dynamic_needed {
         let (key, label, width, hint) = fake_data::dynamic_col_def(i);
         let mut c = ColumnDef::new(&key, &label, width);

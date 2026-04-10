@@ -10,7 +10,15 @@
       "Bash(mkcert localhost:*)",
       "Bash(wc -l /d/Dev/rs-grid/site/docs/en/features/*.mdx)",
       "Bash(cargo clippy:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(find d:\\\\\\\\Dev\\\\\\\\rs-grid -type f -name \"*.rs\")",
+      "Bash(grep -l \"CellFormat\" /d/Dev/rs-grid/examples/example-common/src/*.rs)",
+      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 33672\\\\\"\")",
+      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 33672\\\\\" /FO LIST\")",
+      "Bash(cmd /c \"wmic process where \\\\\"ProcessId=33672\\\\\" get Name,ProcessId,ExecutablePath 2>&1\")",
+      "Bash(cmd /c \"taskkill /PID 33672 /F\")",
+      "Bash(cmd /c \"netstat -ano | findstr :9081\")",
+      "Bash(cmd /c \"netstat -ano | findstr \\\\\"0.0.0.0:9081 \\\\\"\")"
     ]
   }
 }

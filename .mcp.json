@@ -1,8 +1,36 @@
 {
   "mcpServers": {
-    "rs-grid-docs": {
-      "command": "node",
-      "args": ["./mcp/dist/index.js"]
+    "leptos": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/leptos/mcp"
+    },
+    "leptos-use": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/leptos-use/mcp"
+    },
+    "rust": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/rust/mcp"
+    },
+    "daisyui": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/daisyui/mcp"
+    },
+    "induflow": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/induflow/mcp"
+    },
+    "tailwindcss": {
+      "type": "http",
+      "url": "https://mcp.benoitpodwinski.com/tailwindcss/mcp"
+    },
+    "openai-docs": {
+      "type": "http",
+      "url": "https://developers.openai.com/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     }
   }
 }

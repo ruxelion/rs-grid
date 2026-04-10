@@ -1,5 +1,5 @@
 [watch]
-ignore = ["dist"]
+ignore = ["dist", "generated"]
 paths = [
   "src",
   "../../crates/rs-grid-core/src",
@@ -12,6 +12,7 @@ paths = [
 
 [serve]
 port = 9080
+address = "127.0.0.1"
 
 [build]
 dist = "dist"

@@ -3,9 +3,11 @@ use std::collections::HashSet;
 use rs_grid_core::{
     column::ColumnDef,
     datasource::CellStatus,
-    format::{format_cell, CellAlign, CellFormat},
+    format::{format_cell, CellAlign, CellElement, CellFormat},
     selection::SelectionState,
 };
+
+use crate::class_map::resolve_classes;
 
 use crate::{
     frame::SceneFrame,
@@ -95,7 +97,18 @@ pub(super) fn emit_cell(
     // Cell text, image, or skeleton
     match cell_status {
         CellStatus::Ready(raw) if !raw.is_empty() => {
-            if let Some(CellFormat::Image {
+            if let Some(CellFormat::Styled(cb)) = &col.format {
+                emit_styled(
+                    frame,
+                    &cb(&raw),
+                    cx,
+                    ry,
+                    mid_y,
+                    col.width,
+                    row_height,
+                    t,
+                );
+            } else if let Some(CellFormat::Image {
                 base_url,
                 border_radius,
                 padding,
@@ -610,5 +623,79 @@ fn emit_image_text(
                     .max(0.0),
             ),
         }));
+    }
+}
+
+/// Emit a row of styled elements (badges, chips…) for a
+/// `CellFormat::Styled` cell.
+///
+/// Elements flow left-to-right starting at
+/// `cx + cell_padding`, with a 4 px gap between them.
+/// Badge width is estimated from character count so that
+/// no Canvas2D measurement is needed at the scene layer.
+#[allow(clippy::too_many_arguments)]
+fn emit_styled(
+    frame: &mut SceneFrame,
+    elements: &[CellElement],
+    cx: f64,
+    ry: f64,
+    mid_y: f64,
+    cell_w: f64,
+    row_height: f64,
+    t: &Theme,
+) {
+    let clip = [cx, ry, cell_w, row_height];
+    let mut x = cx + t.cell_padding;
+
+    for el in elements {
+        let style = resolve_classes(&el.class);
+        let font_size = (t.font_size + style.font_size_delta).max(8.0);
+
+        // Estimated badge width from character count.
+        // 0.55 is a conservative average char-width factor
+        // for system-ui at any size.
+        let text_w = el.text.len() as f64 * font_size * 0.55;
+        let badge_w = (text_w + style.padding_x * 2.0).max(0.0);
+        let badge_h =
+            (font_size + style.padding_y * 2.0).min(row_height - 2.0);
+        let badge_y = ry + (row_height - badge_h) / 2.0;
+
+        // ── background rect / outline ─────────────────────────
+        let has_bg = style.background.is_some();
+        let has_border = style.border_color.is_some();
+
+        if has_bg || has_border {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x,
+                y: badge_y,
+                width: badge_w,
+                height: badge_h,
+                fill: style
+                    .background
+                    .unwrap_or(Color::rgba(0, 0, 0, 0)),
+                stroke: style.border_color,
+                stroke_width: style.border_width,
+                corner_radius: style.border_radius,
+            }));
+        }
+
+        // ── text centred inside the badge ─────────────────────
+        let text_color = style.color.unwrap_or(t.cell_text);
+        frame.push(ScenePrimitive::Text(TextPrimitive {
+            x: x + badge_w / 2.0,
+            y: mid_y,
+            text: el.text.clone(),
+            color: text_color,
+            font_size,
+            bold: style.bold,
+            clip: Some(clip),
+            align: TextAlign::Center,
+            max_width: Some(
+                (badge_w - style.padding_x * 2.0).max(0.0),
+            ),
+        }));
+
+        // Gap between consecutive badges.
+        x += badge_w + 4.0;
     }
 }
