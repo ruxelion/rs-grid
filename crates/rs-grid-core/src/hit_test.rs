@@ -16,7 +16,7 @@ pub fn hit_test(
     scroll_y: f64,
 ) -> Option<CellCoord> {
     // Gutter zone — not a data cell.
-    let rnw = model.row_number_width;
+    let rnw = model.effective_row_number_width();
     if vx < rnw {
         return None;
     }
@@ -31,7 +31,8 @@ pub fn hit_test(
         vx_data + scroll_x // scrollable zone: add scroll
     };
     // Header is sticky — always at vy 0..hh.
-    if vy < model.header_height {
+    let hh = model.effective_header_height();
+    if vy < hh {
         return None;
     }
 
@@ -39,7 +40,6 @@ pub fn hit_test(
     // preserve f64 precision at extreme row counts.
     // row = floor((vy - hh + scroll_y) / rh)
     // When scroll_y >= hh, decompose to keep numbers small.
-    let hh = model.header_height;
     let rh = model.row_height;
     let row = if scroll_y >= hh {
         let sy_content = scroll_y - hh;
@@ -73,9 +73,9 @@ pub fn hit_test_col_header(
     model: &GridModel,
     scroll_x: f64,
 ) -> Option<usize> {
-    let rnw = model.row_number_width;
+    let rnw = model.effective_row_number_width();
     // Must be in header row and to the right of the row-number gutter corner.
-    if vy >= model.header_height || vx < rnw {
+    if vy >= model.effective_header_height() || vx < rnw {
         return None;
     }
     let vx_data = vx - rnw;
@@ -98,12 +98,12 @@ pub fn hit_test_row_header(
     model: &GridModel,
     scroll_y: f64,
 ) -> Option<u64> {
-    let rnw = model.row_number_width;
+    let rnw = model.effective_row_number_width();
     if rnw <= 0.0 || vx >= rnw {
         return None;
     }
 
-    let hh = model.header_height;
+    let hh = model.effective_header_height();
     let rh = model.row_height;
     if vy < hh {
         return None;

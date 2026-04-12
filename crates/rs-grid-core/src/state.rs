@@ -145,6 +145,8 @@ impl GridState {
             GridCommand::SetHoveredRow(_)
             | GridCommand::SetHeaderHeight(_)
             | GridCommand::SetRowHeight(_)
+            | GridCommand::SetShowHeader(_)
+            | GridCommand::SetShowRowNumbers(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -1013,6 +1015,40 @@ mod tests {
         let old = s.model.row_height;
         s.apply(GridCommand::SetRowHeight(-10.0));
         assert_eq!(s.model.row_height, old);
+    }
+
+    // ── SetShowHeader / SetShowRowNumbers ────────────────────────────────────
+
+    #[test]
+    fn set_show_header_false_effective_height_is_zero() {
+        let mut s = make_state();
+        let original_h = s.model.header_height;
+        assert!(original_h > 0.0);
+        s.apply(GridCommand::SetShowHeader(false));
+        assert_eq!(s.model.effective_header_height(), 0.0);
+        // stored value unchanged
+        assert_eq!(s.model.header_height, original_h);
+    }
+
+    #[test]
+    fn set_show_row_numbers_false_effective_width_is_zero() {
+        let mut s = make_state();
+        let original_w = s.model.row_number_width;
+        assert!(original_w > 0.0);
+        s.apply(GridCommand::SetShowRowNumbers(false));
+        assert_eq!(s.model.effective_row_number_width(), 0.0);
+        // stored value unchanged
+        assert_eq!(s.model.row_number_width, original_w);
+    }
+
+    #[test]
+    fn toggle_show_header_restores_original_height() {
+        let mut s = make_state();
+        let original_h = s.model.header_height;
+        s.apply(GridCommand::SetShowHeader(false));
+        assert_eq!(s.model.effective_header_height(), 0.0);
+        s.apply(GridCommand::SetShowHeader(true));
+        assert_eq!(s.model.effective_header_height(), original_h);
     }
 
     // ── Edit guard edge cases ────────────────────────────────────────────────

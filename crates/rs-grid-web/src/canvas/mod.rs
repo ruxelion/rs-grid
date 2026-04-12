@@ -479,6 +479,16 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetPinnedColumnCount { count });
     }
 
+    /// Show or hide the column header row.
+    pub fn set_show_header(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowHeader(show));
+    }
+
+    /// Show or hide the row-number gutter.
+    pub fn set_show_row_numbers(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowRowNumbers(show));
+    }
+
     /// Set a text filter on a column (case-insensitive contains).
     /// Pass an empty string to clear the filter for that column.
     pub fn set_filter(&self, col_key: &str, text: &str) {

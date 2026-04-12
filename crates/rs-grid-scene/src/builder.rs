@@ -151,18 +151,18 @@ impl SceneBuilder {
                 &col_widths,
                 pinned_count,
                 pinned_width,
-                model.row_number_width,
+                model.effective_row_number_width(),
             )
         };
         let (row_start, row_end) = vp.visible_rows(
             model.display_row_count(),
             model.row_height,
-            model.header_height,
+            model.effective_header_height(),
         );
 
         let sx = vp.scroll_x;
         let sy = vp.scroll_y;
-        let rnw = model.row_number_width; // row-number gutter width
+        let rnw = model.effective_row_number_width();
 
         // Compute viewport-y for a row without large absolute
         // values.  row_top(ri) − sy  =  header + ri*rh − sy.
@@ -175,7 +175,7 @@ impl SceneBuilder {
         if rh <= 0.0 {
             return frame;
         }
-        let hh = model.header_height;
+        let hh = model.effective_header_height();
         // sy_content = scroll_y that falls inside the data
         // area (past the header).
         let sy_content = (sy - hh).max(0.0);
@@ -267,7 +267,7 @@ impl SceneBuilder {
 
             // Skip rows that are fully outside the clip zone (overscan may
             // produce rows above the header).
-            if ry + model.row_height < model.header_height || ry > vp.height {
+            if ry + model.row_height < hh || ry > vp.height {
                 continue;
             }
 
@@ -351,9 +351,9 @@ impl SceneBuilder {
             // Solid background covering the full pinned band.
             frame.push(ScenePrimitive::Rect(RectPrimitive {
                 x: rnw,
-                y: model.header_height,
+                y: hh,
                 width: pinned_width,
-                height: vp.height - model.header_height,
+                height: vp.height - hh,
                 fill: t.pinned_bg,
                 stroke: None,
                 stroke_width: 0.0,
@@ -363,7 +363,7 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < model.header_height || ry > vp.height
+                if ry + model.row_height < hh || ry > vp.height
                 {
                     continue;
                 }
@@ -423,7 +423,7 @@ impl SceneBuilder {
             // Separator line on the right edge of the pinned band.
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: rnw + pinned_width - 0.5,
-                y1: model.header_height,
+                y1: hh,
                 x2: rnw + pinned_width - 0.5,
                 y2: vp.height,
                 color: t.pinned_separator_color,
@@ -492,11 +492,12 @@ impl SceneBuilder {
         }
 
         // ── header (sticky, drawn on top of scrolled data) ───────────────────
+        if hh > 0.0 {
         frame.push(ScenePrimitive::Rect(RectPrimitive {
             x: 0.0,
             y: 0.0,
             width: vp.width,
-            height: model.header_height,
+            height: hh,
             fill: t.header_bg,
             stroke: None,
             stroke_width: 0.0,
@@ -508,7 +509,7 @@ impl SceneBuilder {
         let render_col_headers =
             |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
                 let mid_y =
-                    model.header_height * 0.5 + t.header_font_size * 0.35;
+                    hh * 0.5 + t.header_font_size * 0.35;
                 for ci in range {
                     let col = &model.columns[ci];
                     let cx = col_vx(ci);
@@ -521,7 +522,7 @@ impl SceneBuilder {
                             x: cx,
                             y: 0.0,
                             width: col.width,
-                            height: model.header_height,
+                            height: hh,
                             fill: t.header_selection_fill,
                             stroke: None,
                             stroke_width: 0.0,
@@ -545,7 +546,7 @@ impl SceneBuilder {
                         color: t.header_text,
                         font_size: t.header_font_size,
                         bold: t.header_font_bold,
-                        clip: Some([cx, 0.0, col.width, model.header_height]),
+                        clip: Some([cx, 0.0, col.width, hh]),
                         align: TextAlign::Left,
                         max_width: Some(label_max_w),
                     }));
@@ -558,12 +559,12 @@ impl SceneBuilder {
                         let btn_h = if t.header_menu_icon_btn_h > 0.0 {
                             t.header_menu_icon_btn_h
                         } else {
-                            (model.header_height - 12.0).max(8.0)
+                            (hh - 12.0).max(8.0)
                         };
                         // Right edge of button, inset by margin_r.
                         let btn_rx = cx + col.width - mr;
                         let btn_lx = btn_rx - btn_w;
-                        let btn_ty = (model.header_height - btn_h) / 2.0;
+                        let btn_ty = (hh - btn_h) / 2.0;
 
                         // Hover background.
                         if hovered_menu_col == Some(ci) {
@@ -584,7 +585,7 @@ impl SceneBuilder {
                         let dot_gap = dot_r * 3.75;
                         // Icon center x = horizontal center of button.
                         let icon_cx = btn_lx + btn_w / 2.0;
-                        let icon_mid_y = model.header_height / 2.0;
+                        let icon_mid_y = hh / 2.0;
                         for i in -1i32..=1 {
                             let dot_y = icon_mid_y + i as f64 * dot_gap;
                             frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -641,7 +642,7 @@ impl SceneBuilder {
                         x1: sep_x,
                         y1: t.header_separator_inset,
                         x2: sep_x,
-                        y2: model.header_height - t.header_separator_inset,
+                        y2: hh - t.header_separator_inset,
                         color: t.header_border,
                         width: t.header_separator_width,
                     }));
@@ -657,7 +658,7 @@ impl SceneBuilder {
                 x: rnw,
                 y: 0.0,
                 width: pinned_width,
-                height: model.header_height,
+                height: hh,
                 fill: t.pinned_header_bg,
                 stroke: None,
                 stroke_width: 0.0,
@@ -669,12 +670,13 @@ impl SceneBuilder {
 
         frame.push(ScenePrimitive::Line(LinePrimitive {
             x1: 0.0,
-            y1: model.header_height - 0.5,
+            y1: hh - 0.5,
             x2: vp.width,
-            y2: model.header_height - 0.5,
+            y2: hh - 0.5,
             color: t.header_border,
             width: 1.0,
         }));
+        } // end if hh > 0.0
 
         // ── row-number gutter (sticky, drawn on top of scrolled data) ────────
         if rnw > 0.0 {
@@ -693,7 +695,7 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < model.header_height || ry > vp.height
+                if ry + model.row_height < hh || ry > vp.height
                 {
                     continue;
                 }
@@ -703,7 +705,7 @@ impl SceneBuilder {
                     .is_some_and(|(tl, br)| ri >= tl.row && ri <= br.row);
 
                 // Clamp everything to below the sticky header.
-                let clip_y = ry.max(model.header_height);
+                let clip_y = ry.max(hh);
                 let clip_h = (ry + model.row_height - clip_y).max(0.0);
                 if clip_h == 0.0 {
                     continue;
@@ -739,7 +741,7 @@ impl SceneBuilder {
 
                 // Horizontal grid line inside gutter — only below header.
                 let line_y = ry + model.row_height - 0.5;
-                if line_y > model.header_height {
+                if line_y > hh {
                     frame.push(ScenePrimitive::Line(LinePrimitive {
                         x1: 0.0,
                         y1: line_y,
@@ -764,9 +766,9 @@ impl SceneBuilder {
             // Header bottom border re-drawn on top of gutter
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: 0.0,
-                y1: model.header_height - 0.5,
+                y1: hh - 0.5,
                 x2: rnw,
-                y2: model.header_height - 0.5,
+                y2: hh - 0.5,
                 color: t.gutter_border,
                 width: 1.0,
             }));
@@ -800,7 +802,7 @@ impl SceneBuilder {
 
                 // 3. Ghost badge (follows cursor in both X and Y)
                 let ghost_w = src_w;
-                let ghost_h = model.header_height;
+                let ghost_h = hh;
                 let ghost_x = (hint.cursor_vx - ghost_w / 2.0)
                     .max(0.0)
                     .min(vp.width - ghost_w);
