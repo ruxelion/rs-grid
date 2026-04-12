@@ -45,6 +45,7 @@ pub(super) fn emit_scrollbars(
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
         }
 
@@ -86,6 +87,7 @@ pub(super) fn emit_scrollbars(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
 
         // Thumb (inset on each side)
@@ -99,6 +101,7 @@ pub(super) fn emit_scrollbars(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: t.scrollbar_radius,
+            clip: None,
         }));
     }
 
@@ -130,6 +133,7 @@ pub(super) fn emit_scrollbars(
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
         }
 
@@ -171,6 +175,7 @@ pub(super) fn emit_scrollbars(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
 
         // Thumb (inset on each side)
@@ -184,6 +189,7 @@ pub(super) fn emit_scrollbars(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: t.scrollbar_radius,
+            clip: None,
         }));
     }
 }

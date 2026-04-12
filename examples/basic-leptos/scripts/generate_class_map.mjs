@@ -285,10 +285,11 @@ function generateModule(compName, dirName, { geometry, colors, sizes }) {
 
     lines.push(`/// Auto-generated from daisyui v${daisyPkg.version} \`components/${dirName}/object.js\``);
     lines.push(`pub mod ${compName} {`);
-    lines.push(`    use crate::primitives::Color;`);
-
+    if (hasColors) {
+        lines.push(`    use rs_grid_scene::primitives::Color;`);
+        lines.push('');
+    }
     // ── Geometry ──────────────────────────────────────────────────────────────
-    lines.push('');
     lines.push(`    // ── Geometry ──────────────────────────────────────────────────────────`);
     lines.push(`    pub const RADIUS: f64 = ${f(geometry.radius)};`);
     lines.push(`    pub const BORDER: f64 = ${f(geometry.borderWidth)};`);
@@ -396,7 +397,7 @@ const output = [
     `//         Light theme — daisyui v${daisyPkg.version}`,
     `// Generated: ${new Date().toISOString().slice(0, 10)}`,
     ``,
-    `use crate::primitives::Color;`,
+    `use rs_grid_scene::primitives::Color;`,
     ``,
     `// ── Shared semantic colours (light theme, same across all components) ────────`,
     `// Derived from oklch() values in daisyui/theme/object.js`,
@@ -418,6 +419,6 @@ const output = [
     modules.join('\n\n'),
 ].join('\n');
 
-const outPath = resolve(__dir, '../../../crates/rs-grid-scene/src/class_map_data.rs');
+const outPath = resolve(__dir, '../../../examples/example-common/src/class_map_data.rs');
 writeFileSync(outPath, output, 'utf8');
 console.log(`\n✓  Written → ${outPath}`);

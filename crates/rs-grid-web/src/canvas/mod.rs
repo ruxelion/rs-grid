@@ -24,7 +24,7 @@ use rs_grid_core::{
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 
 use fetcher::FetchConfig;
-use rs_grid_scene::{builder::SceneBuilder, Theme};
+use rs_grid_scene::{builder::SceneBuilder, class_map::ClassResolver, Theme};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
     HtmlCanvasElement, HtmlElement, HtmlInputElement, ResizeObserver,
@@ -454,6 +454,22 @@ impl GridCanvas {
     /// menu or search bar is opened.
     pub fn set_locale(&self, locale: Locale) {
         *self.0.locale.borrow_mut() = locale;
+    }
+
+    /// Set the CSS class resolver used for `CellFormat::Styled`.
+    ///
+    /// Call this once after mounting — typically from the `on_mount`
+    /// callback — to wire up a framework-specific resolver such as
+    /// the DaisyUI resolver from `example-common`.
+    ///
+    /// ```ignore
+    /// on_mount: Box::new(|gc| {
+    ///     gc.set_class_resolver(Rc::new(example_common::class_map::resolve_classes));
+    /// })
+    /// ```
+    pub fn set_class_resolver(&self, resolver: Rc<ClassResolver>) {
+        self.0.builder.borrow_mut().set_class_resolver(resolver);
+        self.render();
     }
 
     // ── public API for new v1 features ────────────────────────────────────────

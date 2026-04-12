@@ -1,6 +1,6 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
-use example_common::{build_model, fmt_cols, fmt_rows};
+use example_common::{build_model, class_map::resolve_classes, fmt_cols, fmt_rows};
 use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
@@ -157,7 +157,11 @@ fn App() -> impl IntoView {
                             build_model(row_count.get(), col_count.get());
 
                         let on_mount_cb =
-                            Box::new(|_gc: WebGridCanvas| {});
+                            Box::new(|gc: WebGridCanvas| {
+                                gc.set_class_resolver(
+                                    std::rc::Rc::new(resolve_classes),
+                                );
+                            });
 
                         let on_validation_error_cb = Box::new(
                             move |_row: u64, col: String, msg: String| {

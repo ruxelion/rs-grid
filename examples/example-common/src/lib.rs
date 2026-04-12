@@ -6,6 +6,11 @@
 
 /// Deterministic fake data generation for examples and tests.
 pub mod fake_data;
+/// DaisyUI / Tailwind class → canvas style resolver.
+/// Auto-generated colour/geometry constants — regenerate with `just gen-class-map`.
+pub mod class_map_data;
+/// DaisyUI class resolver for `CellFormat::Styled`.
+pub mod class_map;
 
 use std::rc::Rc;
 
