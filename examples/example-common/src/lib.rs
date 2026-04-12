@@ -23,7 +23,33 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         ColumnDef::new("name", "Name", 200.0),
         ColumnDef::new("email", "Email", 260.0),
         ColumnDef::new("role", "Role", 140.0),
-        ColumnDef::new("dept", "Department", 160.0),
+        {
+            let mut c = ColumnDef::new("dept", "Department", 170.0);
+            c.format = Some(CellFormat::Styled(Rc::new(|raw| {
+                let class = match raw {
+                    "Engineering" | "Infrastructure" | "Data Science" => {
+                        "badge badge-primary badge-soft"
+                    }
+                    "Product" | "Design" => "badge badge-secondary badge-soft",
+                    "Marketing" => "badge badge-accent badge-soft",
+                    "Sales" | "Customer Success" => {
+                        "badge badge-success badge-soft"
+                    }
+                    "Finance" => "badge badge-info badge-soft",
+                    "Operations" => "badge badge-warning badge-soft",
+                    "Legal" | "Human Resources" => {
+                        "badge badge-neutral badge-soft"
+                    }
+                    _ => "badge badge-ghost",
+                };
+                vec![CellElement {
+                    text: raw.to_string(),
+                    class: class.to_string(),
+                    align: CellAlign::Left,
+                }]
+            })));
+            c
+        },
         {
             let mut c = ColumnDef::new("salary", "Salary", 120.0);
             c.format = Some(CellFormat::Currency {
@@ -75,6 +101,21 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
                 border_radius: 16.0,
                 padding: 4.0,
             });
+            c
+        },
+        {
+            let mut c = ColumnDef::new("active", "Action", 110.0);
+            c.format = Some(CellFormat::Styled(Rc::new(|raw| {
+                let (text, class) = match raw {
+                    "true" => ("Edit", "btn btn-primary btn-xs"),
+                    _ => ("Activate", "btn btn-neutral btn-outline btn-xs"),
+                };
+                vec![CellElement {
+                    text: text.to_string(),
+                    class: class.to_string(),
+                    align: CellAlign::Left,
+                }]
+            })));
             c
         },
     ];
@@ -143,6 +184,43 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             _ => None,
         };
         columns.push(c);
+    }
+
+    // Styled badge formatter for the seniority column.
+    if let Some(col) = columns.iter_mut().find(|c| c.key == "seniority") {
+        col.format = Some(CellFormat::Styled(Rc::new(|raw| {
+            let class = match raw {
+                "Junior" => "badge badge-ghost badge-sm",
+                "Mid" => "badge badge-info badge-soft badge-sm",
+                "Senior" => "badge badge-primary badge-soft badge-sm",
+                "Staff" => "badge badge-secondary badge-soft badge-sm",
+                "Principal" => "badge badge-accent badge-sm",
+                _ => "badge badge-ghost badge-sm",
+            };
+            vec![CellElement {
+                text: raw.to_string(),
+                class: class.to_string(),
+                align: CellAlign::Left,
+            }]
+        })));
+    }
+
+    // Styled badge formatter for the employment type column.
+    if let Some(col) = columns.iter_mut().find(|c| c.key == "emp_type") {
+        col.format = Some(CellFormat::Styled(Rc::new(|raw| {
+            let class = match raw {
+                "Full-time" => "badge badge-success badge-outline badge-sm",
+                "Part-time" => "badge badge-warning badge-outline badge-sm",
+                "Contract" => "badge badge-error badge-soft badge-sm",
+                "Intern" => "badge badge-ghost badge-sm",
+                _ => "badge badge-ghost badge-sm",
+            };
+            vec![CellElement {
+                text: raw.to_string(),
+                class: class.to_string(),
+                align: CellAlign::Left,
+            }]
+        })));
     }
 
     // Wire up a Select editor for the country column.
