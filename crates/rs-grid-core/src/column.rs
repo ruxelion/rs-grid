@@ -132,6 +132,9 @@ pub struct ColumnDef {
     pub validator: Option<CellValidator>,
     /// Render cell text with bold weight (`font-weight: 600`).
     pub bold: bool,
+    /// Allow inline editing for this column (`true` by default).
+    /// When `false`, double-clicking the column does nothing.
+    pub editable: bool,
 }
 
 impl ColumnDef {
@@ -153,6 +156,7 @@ impl ColumnDef {
             editor: None,
             validator: None,
             bold: false,
+            editable: true,
         }
     }
 
@@ -168,6 +172,12 @@ impl ColumnDef {
     /// Render cell text in bold weight. Returns `self` for chaining.
     pub fn with_bold(mut self) -> Self {
         self.bold = true;
+        self
+    }
+
+    /// Disable inline editing for this column. Returns `self` for chaining.
+    pub fn read_only(mut self) -> Self {
+        self.editable = false;
         self
     }
 

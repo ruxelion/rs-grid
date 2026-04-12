@@ -40,6 +40,17 @@ impl GridState {
                 self.model.show_row_numbers = v;
                 CommandOutput::None
             }
+            GridCommand::SetEditable(v) => {
+                self.model.editable = v;
+                CommandOutput::None
+            }
+            GridCommand::SetSelectable(v) => {
+                self.model.selectable = v;
+                if !v {
+                    self.selection.clear();
+                }
+                CommandOutput::None
+            }
             _ => unreachable!(),
         }
     }

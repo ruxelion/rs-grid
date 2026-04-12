@@ -120,6 +120,52 @@ body {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
 }
 
+/* ── toggle switch ──────────────────────────────────────────────────────────── */
+
+.app-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.app-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.app-switch-track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.app-switch-track::after {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  margin: 3px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.app-switch input:checked + .app-switch-track {
+  background: #2196f3;
+}
+
+.app-switch input:checked + .app-switch-track::after {
+  transform: translateX(16px);
+}
+
 /* ── validation error ───────────────────────────────────────────────────────── */
 
 .app-validation-error {

@@ -479,6 +479,16 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetPinnedColumnCount { count });
     }
 
+    /// Enable or disable inline cell editing grid-wide.
+    pub fn set_editable(&self, editable: bool) {
+        self.dispatch(GridCommand::SetEditable(editable));
+    }
+
+    /// Enable or disable cell/row/column selection grid-wide.
+    pub fn set_selectable(&self, selectable: bool) {
+        self.dispatch(GridCommand::SetSelectable(selectable));
+    }
+
     /// Show or hide the column header row.
     pub fn set_show_header(&self, show: bool) {
         self.dispatch(GridCommand::SetShowHeader(show));
