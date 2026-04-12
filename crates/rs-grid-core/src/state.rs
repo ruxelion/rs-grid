@@ -594,6 +594,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+        bold: false,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -1943,6 +1944,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+        bold: false,
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -1984,6 +1986,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+        bold: false,
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");

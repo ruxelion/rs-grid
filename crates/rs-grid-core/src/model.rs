@@ -1423,6 +1423,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+        bold: false,
         }];
         let values = ["us 3", "fr 1", "de 2"];
         let rows: Vec<RowRecord> = values
@@ -1463,6 +1464,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+        bold: false,
         }];
         // Mix of numeric and string labels → mixed sort path
         let values = ["us France", "fr 1", "de Allemagne"];

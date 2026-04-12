@@ -170,9 +170,9 @@ pub(super) fn emit_cell(
                         .color
                         .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
                         .unwrap_or(t.cell_text);
-                    (fc.text, a, fc.bold, c)
+                    (fc.text, a, fc.bold || col.bold, c)
                 } else {
-                    (raw, TextAlign::Left, false, t.cell_text)
+                    (raw, TextAlign::Left, col.bold, t.cell_text)
                 };
                 let x = match align {
                     TextAlign::Right => cx + col.width - t.cell_padding,
