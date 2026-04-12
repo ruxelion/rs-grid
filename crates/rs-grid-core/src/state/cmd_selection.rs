@@ -7,6 +7,9 @@ use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_selection(&mut self, cmd: GridCommand) -> CommandOutput {
+        if !self.model.selectable {
+            return CommandOutput::None;
+        }
         match cmd {
             GridCommand::SelectCell(coord) => {
                 self.selection.select_cell(coord.row, coord.col);
