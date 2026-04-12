@@ -1,11 +1,12 @@
 mod cells;
 mod scrollbars;
 
-use std::collections::HashSet;
+use std::{collections::HashSet, rc::Rc};
 
 use rs_grid_core::{sort::SortDir, state::GridState};
 
 use crate::{
+    class_map::ClassResolver,
     frame::SceneFrame,
     primitives::{
         Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
@@ -65,6 +66,11 @@ pub struct SceneBuilder {
     pub dpr: f64,
     /// Active visual theme.
     pub theme: Theme,
+    /// Optional CSS class → style resolver for `CellFormat::Styled`.
+    ///
+    /// When `None`, styled elements render as plain text (no background
+    /// or padding). Set via [`SceneBuilder::set_class_resolver`].
+    pub class_resolver: Option<Rc<ClassResolver>>,
 }
 
 impl Default for SceneBuilder {
@@ -72,6 +78,7 @@ impl Default for SceneBuilder {
         Self {
             dpr: 1.0,
             theme: Theme::default(),
+            class_resolver: None,
         }
     }
 }
@@ -82,12 +89,22 @@ impl SceneBuilder {
         Self {
             dpr,
             theme: Theme::default(),
+            class_resolver: None,
         }
     }
 
     /// Create a builder with the given DPR and a custom theme.
     pub fn with_theme(dpr: f64, theme: Theme) -> Self {
-        Self { dpr, theme }
+        Self {
+            dpr,
+            theme,
+            class_resolver: None,
+        }
+    }
+
+    /// Set the class resolver used for `CellFormat::Styled` elements.
+    pub fn set_class_resolver(&mut self, resolver: Rc<ClassResolver>) {
+        self.class_resolver = Some(resolver);
     }
 
     /// Build a complete `SceneFrame` from the current
@@ -116,6 +133,7 @@ impl SceneBuilder {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
 
         let col_widths: Vec<f64> =
@@ -266,6 +284,7 @@ impl SceneBuilder {
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,
+                    clip: None,
                 }));
             }
 
@@ -280,6 +299,7 @@ impl SceneBuilder {
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,
+                    clip: None,
                 }));
             }
 
@@ -310,6 +330,7 @@ impl SceneBuilder {
                     search_current,
                     t,
                     flash,
+                    self.class_resolver.as_deref(),
                 );
             }
 
@@ -337,6 +358,7 @@ impl SceneBuilder {
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
 
             for ri in row_start..row_end {
@@ -357,6 +379,7 @@ impl SceneBuilder {
                         stroke: None,
                         stroke_width: 0.0,
                         corner_radius: 0.0,
+                        clip: None,
                     }));
                 }
                 if state.hovered_row == Some(ri) {
@@ -369,6 +392,7 @@ impl SceneBuilder {
                         stroke: None,
                         stroke_width: 0.0,
                         corner_radius: 0.0,
+                        clip: None,
                     }));
                 }
 
@@ -391,6 +415,7 @@ impl SceneBuilder {
                         search_current,
                         t,
                         flash,
+                        self.class_resolver.as_deref(),
                     );
                 }
             }
@@ -476,6 +501,7 @@ impl SceneBuilder {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
 
         // Render column headers for a given index range.
@@ -500,6 +526,7 @@ impl SceneBuilder {
                             stroke: None,
                             stroke_width: 0.0,
                             corner_radius: 0.0,
+                            clip: None,
                         }));
                     }
 
@@ -549,6 +576,7 @@ impl SceneBuilder {
                                 stroke: None,
                                 stroke_width: 0.0,
                                 corner_radius: t.header_menu_icon_radius,
+                                clip: None,
                             }));
                         }
 
@@ -568,6 +596,7 @@ impl SceneBuilder {
                                 stroke: None,
                                 stroke_width: 0.0,
                                 corner_radius: dot_r,
+                                clip: None,
                             }));
                         }
                     }
@@ -633,6 +662,7 @@ impl SceneBuilder {
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
             render_col_headers(&mut frame, 0..pinned_count);
         }
@@ -658,6 +688,7 @@ impl SceneBuilder {
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
 
             for ri in row_start..row_end {
@@ -688,6 +719,7 @@ impl SceneBuilder {
                         stroke: None,
                         stroke_width: 0.0,
                         corner_radius: 0.0,
+                        clip: None,
                     }));
                 }
 
@@ -763,6 +795,7 @@ impl SceneBuilder {
                     stroke: None,
                     stroke_width: 0.0,
                     corner_radius: 0.0,
+                    clip: None,
                 }));
 
                 // 3. Ghost badge (follows cursor in both X and Y)
@@ -783,6 +816,7 @@ impl SceneBuilder {
                     stroke: Some(t.header_border),
                     stroke_width: t.drag_ghost_border_width,
                     corner_radius: t.drag_ghost_radius,
+                    clip: None,
                 }));
 
                 // Ghost label — vertically centred inside the badge

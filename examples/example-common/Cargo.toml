@@ -6,4 +6,5 @@ publish = false
 
 [dependencies]
 rs-grid-core  = { path = "../../crates/rs-grid-core" }
+rs-grid-scene = { path = "../../crates/rs-grid-scene" }
 rs-grid-icons = { path = "../../crates/rs-grid-icons" }

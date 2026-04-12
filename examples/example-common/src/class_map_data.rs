@@ -4,7 +4,7 @@
 //         Light theme — daisyui v5.5.19
 // Generated: 2026-04-12
 
-use crate::primitives::Color;
+use rs_grid_scene::primitives::Color;
 
 // ── Shared semantic colours (light theme, same across all components) ────────
 // Derived from oklch() values in daisyui/theme/object.js
@@ -40,7 +40,7 @@ pub const BORDER_W:     f64   = 1.0;
 
 /// Auto-generated from daisyui v5.5.19 `components/badge/object.js`
 pub mod badge {
-    use crate::primitives::Color;
+    use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 8.0;
@@ -87,7 +87,7 @@ pub mod badge {
 
 /// Auto-generated from daisyui v5.5.19 `components/button/object.js`
 pub mod btn {
-    use crate::primitives::Color;
+    use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 4.0;
@@ -133,7 +133,7 @@ pub mod btn {
 
 /// Auto-generated from daisyui v5.5.19 `components/alert/object.js`
 pub mod alert {
-    use crate::primitives::Color;
+    use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 8.0;
@@ -157,8 +157,6 @@ pub mod alert {
 
 /// Auto-generated from daisyui v5.5.19 `components/kbd/object.js`
 pub mod kbd {
-    use crate::primitives::Color;
-
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 4.0;
     pub const BORDER: f64 = 1.0;
@@ -184,7 +182,7 @@ pub mod kbd {
 
 /// Auto-generated from daisyui v5.5.19 `components/status/object.js`
 pub mod status {
-    use crate::primitives::Color;
+    use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 8.0;
@@ -230,7 +228,7 @@ pub mod status {
 
 /// Auto-generated from daisyui v5.5.19 `components/progress/object.js`
 pub mod progress {
-    use crate::primitives::Color;
+    use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
     pub const RADIUS: f64 = 8.0;

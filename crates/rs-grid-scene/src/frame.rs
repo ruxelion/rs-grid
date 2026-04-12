@@ -70,6 +70,7 @@ mod tests {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
         assert_eq!(f.primitive_count(), 1);
 
@@ -96,6 +97,7 @@ mod tests {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
         f.push(ScenePrimitive::Text(TextPrimitive {
             x: 0.0,
@@ -134,6 +136,7 @@ mod tests {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
         let f2 = f.clone();
         assert_eq!(f2.primitive_count(), 1);

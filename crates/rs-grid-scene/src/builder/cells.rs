@@ -7,7 +7,7 @@ use rs_grid_core::{
     selection::SelectionState,
 };
 
-use crate::class_map::resolve_classes;
+use crate::class_map::ClassResolver;
 
 use crate::{
     frame::SceneFrame,
@@ -41,6 +41,7 @@ pub(super) fn emit_cell(
     search_current: Option<(u64, usize)>,
     t: &Theme,
     flash: Option<&FlashHint>,
+    class_resolver: Option<&ClassResolver>,
 ) {
     // Selection fill (no border — outer border drawn separately)
     if sel.is_selected(ri, ci) {
@@ -53,6 +54,7 @@ pub(super) fn emit_cell(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
         // Flash overlay — themed fade on paste
         if let Some(f) = flash {
@@ -71,6 +73,7 @@ pub(super) fn emit_cell(
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
+                clip: None,
             }));
         }
     }
@@ -91,6 +94,7 @@ pub(super) fn emit_cell(
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         }));
     }
 
@@ -107,6 +111,7 @@ pub(super) fn emit_cell(
                     col.width,
                     row_height,
                     t,
+                    class_resolver,
                 );
             } else if let Some(CellFormat::Image {
                 base_url,
@@ -203,6 +208,7 @@ pub(super) fn emit_cell(
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: bar_h / 2.0,
+                clip: None,
             }));
         }
         _ => {}
@@ -257,7 +263,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Loading,
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -282,7 +288,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready(String::new()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -299,7 +305,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Absent,
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -320,7 +326,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Absent,
-            &sel, &no_search(), None, &t, Some(&flash),
+            &sel, &no_search(), None, &t, Some(&flash), None,
         );
         // selection fill + flash overlay = 2 Rect primitives
         assert_eq!(frame.primitive_count(), 2);
@@ -348,7 +354,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Absent,
-            &sel, &search, None, &t, None,
+            &sel, &search, None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -373,7 +379,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Absent,
-            &sel, &search, Some((0, 0)), &t, None,
+            &sel, &search, Some((0, 0)), &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -403,7 +409,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("photo.png".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -431,7 +437,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("https://img/x.png".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -464,7 +470,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("FR France".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         let has_image = frame.primitives.iter().any(|p| {
             matches!(p, ScenePrimitive::Image(_))
@@ -496,7 +502,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("1234.5".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -525,7 +531,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("true".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -557,7 +563,7 @@ mod tests {
             0, 0,
             0.0, 0.0, 21.0, 42.0,
             CellStatus::Ready("FR".into()),
-            &sel, &no_search(), None, &t, None,
+            &sel, &no_search(), None, &t, None, None,
         );
         assert_eq!(frame.primitive_count(), 1);
         assert!(
@@ -643,19 +649,27 @@ fn emit_styled(
     cell_w: f64,
     row_height: f64,
     t: &Theme,
+    class_resolver: Option<&ClassResolver>,
 ) {
     let clip = [cx, ry, cell_w, row_height];
     let mut x = cx + t.cell_padding;
 
     for el in elements {
-        let style = resolve_classes(&el.class);
+        let style = class_resolver
+            .map(|r| r(&el.class))
+            .unwrap_or_default();
         let font_size = (t.font_size + style.font_size_delta).max(8.0);
 
         // Estimated badge width from character count.
-        // 0.55 is a conservative average char-width factor
-        // for system-ui at any size.
-        let text_w = el.text.len() as f64 * font_size * 0.55;
-        let badge_w = (text_w + style.padding_x * 2.0).max(0.0);
+        // 0.65 provides enough margin for wide Latin glyphs
+        // (e.g. 'E', 'W', 'm') in system-ui at any size.
+        // Capped to remaining cell space so the background rect
+        // never overflows the column boundary on resize.
+        let available_w = (cx + cell_w - x - t.cell_padding).max(0.0);
+        let text_w = el.text.len() as f64 * font_size * 0.65;
+        let badge_w = (text_w + style.padding_x * 2.0)
+            .min(available_w)
+            .max(0.0);
         let badge_h =
             (font_size + style.padding_y * 2.0).min(row_height - 2.0);
         let badge_y = ry + (row_height - badge_h) / 2.0;
@@ -676,6 +690,7 @@ fn emit_styled(
                 stroke: style.border_color,
                 stroke_width: style.border_width,
                 corner_radius: style.border_radius,
+                clip: Some(clip),
             }));
         }
 
@@ -690,9 +705,10 @@ fn emit_styled(
             bold: style.bold,
             clip: Some(clip),
             align: TextAlign::Center,
-            max_width: Some(
-                (badge_w - style.padding_x * 2.0).max(0.0),
-            ),
+            // Clip to the full badge width (including padding) so
+            // that text centred in the badge doesn't get truncated
+            // when the estimated width is slightly off.
+            max_width: Some(badge_w.max(0.0)),
         }));
 
         // Gap between consecutive badges.

@@ -171,6 +171,14 @@ impl CanvasRenderer {
 
     fn draw_rect(&self, r: &RectPrimitive) {
         let ctx = &self.ctx;
+        if r.clip.is_some() {
+            ctx.save();
+        }
+        if let Some([cx, cy, cw, ch]) = r.clip {
+            ctx.begin_path();
+            ctx.rect(cx.round(), cy.round(), cw.round(), ch.round());
+            ctx.clip();
+        }
         if r.corner_radius > 0.0 {
             let rad = r.corner_radius.min(r.width / 2.0).min(r.height / 2.0);
             let (x, y, w, h) = (r.x, r.y, r.width, r.height);
@@ -206,6 +214,10 @@ impl CanvasRenderer {
             } else {
                 ctx.stroke_rect(r.x, r.y, r.width, r.height);
             }
+            ctx.restore();
+        }
+
+        if r.clip.is_some() {
             ctx.restore();
         }
     }

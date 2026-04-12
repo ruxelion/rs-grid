@@ -63,6 +63,8 @@ pub struct RectPrimitive {
     pub stroke_width: f64,
     /// Corner radius in logical pixels (0 = sharp corners).
     pub corner_radius: f64,
+    /// Optional clipping rectangle `[x, y, w, h]` in logical pixels.
+    pub clip: Option<[f64; 4]>,
 }
 
 /// Horizontal text alignment.
@@ -251,6 +253,7 @@ mod tests {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         };
         assert!(r.stroke.is_none());
         assert_eq!(r.x, 10.0);
@@ -267,6 +270,7 @@ mod tests {
             stroke: Some(Color::rgb(255, 0, 0)),
             stroke_width: 2.0,
             corner_radius: 4.0,
+            clip: None,
         };
         assert!(r.stroke.is_some());
         assert_eq!(r.stroke_width, 2.0);
@@ -370,6 +374,7 @@ mod tests {
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
+            clip: None,
         });
         assert!(matches!(p, ScenePrimitive::Rect(_)));
     }
