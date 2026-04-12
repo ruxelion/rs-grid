@@ -130,6 +130,8 @@ pub struct ColumnDef {
     /// Optional validator called before committing an edit.
     /// Returns `Ok(())` to accept or `Err(message)` to reject.
     pub validator: Option<CellValidator>,
+    /// Render cell text with bold weight (`font-weight: 600`).
+    pub bold: bool,
 }
 
 impl ColumnDef {
@@ -150,6 +152,7 @@ impl ColumnDef {
             format: None,
             editor: None,
             validator: None,
+            bold: false,
         }
     }
 
@@ -160,6 +163,12 @@ impl ColumnDef {
         label: impl Into<String>,
     ) -> Self {
         Self::new(key, label, DEFAULT_COL_WIDTH)
+    }
+
+    /// Render cell text in bold weight. Returns `self` for chaining.
+    pub fn with_bold(mut self) -> Self {
+        self.bold = true;
+        self
     }
 
     /// Set the flex factor. Returns `self` for chaining.
