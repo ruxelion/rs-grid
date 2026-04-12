@@ -147,6 +147,8 @@ impl GridState {
             | GridCommand::SetRowHeight(_)
             | GridCommand::SetShowHeader(_)
             | GridCommand::SetShowRowNumbers(_)
+            | GridCommand::SetEditable(_)
+            | GridCommand::SetSelectable(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -595,6 +597,7 @@ mod tests {
             editor: None,
             validator: None,
         bold: false,
+editable: true,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -1050,6 +1053,34 @@ mod tests {
         assert_eq!(s.model.effective_header_height(), 0.0);
         s.apply(GridCommand::SetShowHeader(true));
         assert_eq!(s.model.effective_header_height(), original_h);
+    }
+
+    // ── SetSelectable ────────────────────────────────────────────────────────
+
+    #[test]
+    fn set_selectable_false_clears_selection() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        assert!(s.selection.has_selection());
+        s.apply(GridCommand::SetSelectable(false));
+        assert!(!s.selection.has_selection());
+    }
+
+    #[test]
+    fn set_selectable_false_ignores_select_cell() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetSelectable(false));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        assert!(!s.selection.has_selection());
+    }
+
+    #[test]
+    fn set_selectable_true_allows_select_cell() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetSelectable(false));
+        s.apply(GridCommand::SetSelectable(true));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        assert!(s.selection.has_selection());
     }
 
     // ── Edit guard edge cases ────────────────────────────────────────────────
@@ -1945,6 +1976,7 @@ mod tests {
             editor: None,
             validator: None,
         bold: false,
+editable: true,
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -1987,6 +2019,7 @@ mod tests {
             editor: None,
             validator: None,
         bold: false,
+editable: true,
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");

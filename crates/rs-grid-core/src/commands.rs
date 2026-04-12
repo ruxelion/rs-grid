@@ -90,6 +90,10 @@ pub enum GridCommand {
     SetShowHeader(bool),
     /// Show or hide the row-number gutter.
     SetShowRowNumbers(bool),
+    /// Enable or disable inline cell editing grid-wide.
+    SetEditable(bool),
+    /// Enable or disable cell/row/column selection grid-wide.
+    SetSelectable(bool),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.

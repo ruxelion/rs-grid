@@ -172,6 +172,14 @@ pub struct GridModel {
     /// Whether the row-number gutter is rendered.
     /// `row_number_width` is preserved so it can be restored.
     pub show_row_numbers: bool,
+    /// Allow inline cell editing grid-wide (true by default).
+    /// When false, no cell can be edited regardless of
+    /// per-column editable flags.
+    pub editable: bool,
+    /// Allow cell/row/column selection (true by default).
+    /// When false, all selection commands are ignored and
+    /// any existing selection is cleared.
+    pub selectable: bool,
 }
 
 impl GridModel {
@@ -220,6 +228,8 @@ impl GridModel {
             scrollbar_size: 14.0,
             show_header: true,
             show_row_numbers: true,
+            editable: true,
+            selectable: true,
         }
     }
 
@@ -671,6 +681,8 @@ pub struct GridModelBuilder {
     scrollbar_size: f64,
     show_header: bool,
     show_row_numbers: bool,
+    editable: bool,
+    selectable: bool,
 }
 
 impl GridModelBuilder {
@@ -690,6 +702,8 @@ impl GridModelBuilder {
             scrollbar_size: 14.0,
             show_header: true,
             show_row_numbers: true,
+            editable: true,
+            selectable: true,
         }
     }
 
@@ -736,6 +750,12 @@ impl GridModelBuilder {
         self
     }
 
+    /// Allow or disallow cell/row/column selection.
+    pub fn selectable(mut self, v: bool) -> Self {
+        self.selectable = v;
+        self
+    }
+
     /// Build the [`GridModel`].
     pub fn build(self) -> GridModel {
         let pinned = self.pinned_count.min(self.columns.len());
@@ -750,6 +770,8 @@ impl GridModelBuilder {
         model.scrollbar_size = self.scrollbar_size;
         model.show_header = self.show_header;
         model.show_row_numbers = self.show_row_numbers;
+        model.editable = self.editable;
+        model.selectable = self.selectable;
         model
     }
 }
@@ -1424,6 +1446,7 @@ mod tests {
             editor: None,
             validator: None,
         bold: false,
+editable: true,
         }];
         let values = ["us 3", "fr 1", "de 2"];
         let rows: Vec<RowRecord> = values
@@ -1465,6 +1488,7 @@ mod tests {
             editor: None,
             validator: None,
         bold: false,
+editable: true,
         }];
         // Mix of numeric and string labels → mixed sort path
         let values = ["us France", "fr 1", "de Allemagne"];

@@ -10,6 +10,16 @@ impl GridState {
     pub(super) fn cmd_edit(&mut self, cmd: GridCommand) -> CommandOutput {
         match cmd {
             GridCommand::StartEdit { row, col_key } => {
+                // Respect grid-wide and per-column editable flags.
+                let col_editable = self
+                    .model
+                    .columns
+                    .iter()
+                    .find(|c| c.key == col_key)
+                    .map_or(true, |c| c.editable);
+                if !self.model.editable || !col_editable {
+                    return CommandOutput::None;
+                }
                 let initial_value =
                     self.model.get_cell(row, &col_key).unwrap_or_default();
                 self.edit = Some(EditCell {

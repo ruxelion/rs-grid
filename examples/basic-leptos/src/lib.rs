@@ -1,10 +1,19 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use example_common::{build_model, class_map::resolve_classes, fmt_cols, fmt_rows};
 use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
+
+// Thread-local canvas ref — avoids Send requirements.
+// WASM is single-threaded so this is always safe.
+thread_local! {
+    static CANVAS: RefCell<Option<WebGridCanvas>> = const { RefCell::new(None) };
+}
 
 
 #[component]
@@ -12,6 +21,8 @@ fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
     let theme_class = RwSignal::new(String::new());
+    let editable = RwSignal::new(true);
+    let selectable = RwSignal::new(true);
     let detected_lang = web_sys::window()
         .and_then(|w| w.navigator().language())
         .unwrap_or_default();
@@ -39,6 +50,26 @@ fn App() -> impl IntoView {
         {
             root.set_class_name(&cls);
         }
+    });
+
+    // Propagate the editable toggle to the live canvas.
+    Effect::new(move |_| {
+        let v = editable.get();
+        CANVAS.with(|r| {
+            if let Some(gc) = r.borrow().as_ref() {
+                gc.set_editable(v);
+            }
+        });
+    });
+
+    // Propagate the selectable toggle to the live canvas.
+    Effect::new(move |_| {
+        let v = selectable.get();
+        CANVAS.with(|r| {
+            if let Some(gc) = r.borrow().as_ref() {
+                gc.set_selectable(v);
+            }
+        });
     });
 
     view! {
@@ -136,6 +167,38 @@ fn App() -> impl IntoView {
                             <option value="ko">"한국어"</option>
                         </select>
                     </div>
+                    // Editable toggle
+                    <div class="app-control">
+                        <span class="app-control-label">"Editable"</span>
+                        <label class="app-switch">
+                            <input
+                                type="checkbox"
+                                checked=move || editable.get()
+                                on:change=move |e| {
+                                    editable.set(
+                                        event_target_checked(&e)
+                                    );
+                                }
+                            />
+                            <span class="app-switch-track"></span>
+                        </label>
+                    </div>
+                    // Selectable toggle
+                    <div class="app-control">
+                        <span class="app-control-label">"Selectable"</span>
+                        <label class="app-switch">
+                            <input
+                                type="checkbox"
+                                checked=move || selectable.get()
+                                on:change=move |e| {
+                                    selectable.set(
+                                        event_target_checked(&e)
+                                    );
+                                }
+                            />
+                            <span class="app-switch-track"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
             {move || {
@@ -157,10 +220,15 @@ fn App() -> impl IntoView {
                             build_model(row_count.get(), col_count.get());
 
                         let on_mount_cb =
-                            Box::new(|gc: WebGridCanvas| {
+                            Box::new(move |gc: WebGridCanvas| {
                                 gc.set_class_resolver(
-                                    std::rc::Rc::new(resolve_classes),
+                                    Rc::new(resolve_classes),
                                 );
+                                gc.set_editable(editable.get_untracked());
+                                gc.set_selectable(
+                                    selectable.get_untracked(),
+                                );
+                                CANVAS.with(|r| *r.borrow_mut() = Some(gc));
                             });
 
                         let on_validation_error_cb = Box::new(
