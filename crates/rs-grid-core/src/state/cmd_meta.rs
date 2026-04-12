@@ -32,6 +32,14 @@ impl GridState {
                 let _ = n;
                 CommandOutput::None
             }
+            GridCommand::SetShowHeader(v) => {
+                self.model.show_header = v;
+                CommandOutput::None
+            }
+            GridCommand::SetShowRowNumbers(v) => {
+                self.model.show_row_numbers = v;
+                CommandOutput::None
+            }
             _ => unreachable!(),
         }
     }

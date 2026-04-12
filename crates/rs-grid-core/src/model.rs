@@ -166,6 +166,12 @@ pub struct GridModel {
     /// Used to reserve space at the bottom so the last row
     /// is not obscured.
     pub scrollbar_size: f64,
+    /// Whether the column header row is rendered.
+    /// `header_height` is preserved so it can be restored.
+    pub show_header: bool,
+    /// Whether the row-number gutter is rendered.
+    /// `row_number_width` is preserved so it can be restored.
+    pub show_row_numbers: bool,
 }
 
 impl GridModel {
@@ -212,7 +218,26 @@ impl GridModel {
             filtered_indices: Vec::new(),
             mode: DataSourceMode::ClientSide,
             scrollbar_size: 14.0,
+            show_header: true,
+            show_row_numbers: true,
         }
+    }
+
+    /// Effective header height for layout and rendering.
+    ///
+    /// Returns `header_height` when `show_header` is `true`,
+    /// `0.0` otherwise. The stored value is preserved so it
+    /// can be restored when the header is shown again.
+    pub fn effective_header_height(&self) -> f64 {
+        if self.show_header { self.header_height } else { 0.0 }
+    }
+
+    /// Effective row-number gutter width for layout and rendering.
+    ///
+    /// Returns `row_number_width` when `show_row_numbers` is
+    /// `true`, `0.0` otherwise.
+    pub fn effective_row_number_width(&self) -> f64 {
+        if self.show_row_numbers { self.row_number_width } else { 0.0 }
     }
 
     /// Compute gutter width based on the number of digits
@@ -644,6 +669,8 @@ pub struct GridModelBuilder {
     pinned_count: usize,
     mode: DataSourceMode,
     scrollbar_size: f64,
+    show_header: bool,
+    show_row_numbers: bool,
 }
 
 impl GridModelBuilder {
@@ -661,6 +688,8 @@ impl GridModelBuilder {
             pinned_count: 0,
             mode: DataSourceMode::ClientSide,
             scrollbar_size: 14.0,
+            show_header: true,
+            show_row_numbers: true,
         }
     }
 
@@ -695,6 +724,18 @@ impl GridModelBuilder {
         self
     }
 
+    /// Show or hide the column header row.
+    pub fn show_header(mut self, v: bool) -> Self {
+        self.show_header = v;
+        self
+    }
+
+    /// Show or hide the row-number gutter.
+    pub fn show_row_numbers(mut self, v: bool) -> Self {
+        self.show_row_numbers = v;
+        self
+    }
+
     /// Build the [`GridModel`].
     pub fn build(self) -> GridModel {
         let pinned = self.pinned_count.min(self.columns.len());
@@ -707,6 +748,8 @@ impl GridModelBuilder {
         model.pinned_count = pinned;
         model.mode = self.mode;
         model.scrollbar_size = self.scrollbar_size;
+        model.show_header = self.show_header;
+        model.show_row_numbers = self.show_row_numbers;
         model
     }
 }

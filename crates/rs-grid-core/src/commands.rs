@@ -86,6 +86,10 @@ pub enum GridCommand {
     SetHeaderHeight(f64),
     /// Set the data row height in logical pixels.
     SetRowHeight(f64),
+    /// Show or hide the column header row.
+    SetShowHeader(bool),
+    /// Show or hide the row-number gutter.
+    SetShowRowNumbers(bool),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.
