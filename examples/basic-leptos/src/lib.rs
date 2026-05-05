@@ -5,7 +5,9 @@ use std::rc::Rc;
 
 use example_common::{build_model, class_map::resolve_classes, fmt_cols, fmt_rows};
 use leptos::prelude::*;
-use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
+use rs_grid_leptos::{
+    theme_from_css_vars, GridCanvas, Locale, WebGridCanvas,
+};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
 
@@ -36,6 +38,7 @@ fn App() -> impl IntoView {
     let lang_code = RwSignal::new(initial_lang_code.to_string());
     let locale_sig = RwSignal::new(Locale::from_browser());
     let validation_error = RwSignal::new(String::new());
+    let last_button_action = RwSignal::new(String::new());
 
     let theme_memo = Memo::<Theme>::new(move |_| {
         let _ = theme_class.get();
@@ -213,6 +216,18 @@ fn App() -> impl IntoView {
                     }.into_any()
                 }
             }}
+            {move || {
+                let action = last_button_action.get();
+                if action.is_empty() {
+                    view! { <div></div> }.into_any()
+                } else {
+                    view! {
+                        <div class="app-validation-error">
+                            {"Button clicked: "}{action}
+                        </div>
+                    }.into_any()
+                }
+            }}
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
@@ -239,6 +254,14 @@ fn App() -> impl IntoView {
                             },
                         );
 
+                        let on_cell_button_click_cb = Box::new(
+                            move |row: u64, col: String, btn: String| {
+                                last_button_action.set(format!(
+                                    "[{btn}] row={row} col={col}"
+                                ));
+                            },
+                        );
+
                         view! {
                             <GridCanvas
                                 model=model
@@ -248,6 +271,7 @@ fn App() -> impl IntoView {
                                 locale=Signal::derive(move || locale_sig.get())
                                 on_mount=on_mount_cb
                                 on_validation_error=on_validation_error_cb
+                                on_cell_button_click=on_cell_button_click_cb
                             />
                         }
                     }}

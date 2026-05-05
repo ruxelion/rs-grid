@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rs_grid_core::{
-    column::ColumnDef,
+    column::{ButtonStyle, ColumnDef},
     datasource::CellStatus,
     format::{format_cell, CellAlign, CellElement, CellFormat},
     selection::SelectionState,
@@ -213,6 +213,9 @@ pub(super) fn emit_cell(
         }
         _ => {}
     }
+
+    // Cell buttons — always rendered, on top of cell content.
+    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, t);
 }
 
 #[cfg(test)]
@@ -713,5 +716,126 @@ fn emit_styled(
 
         // Gap between consecutive badges.
         x += badge_w + 4.0;
+    }
+}
+
+/// Emit Rect + Text primitives for each [`ButtonDef`] in
+/// `col.cell_buttons` and record their hit zones.
+///
+/// Buttons are laid out right-to-left: the first entry in
+/// `cell_buttons` is the rightmost button.  This makes
+/// positions stable when more buttons are added.
+///
+/// Skips any button that would overflow the left cell edge.
+#[allow(clippy::too_many_arguments)]
+fn emit_cell_buttons(
+    frame: &mut SceneFrame,
+    col: &ColumnDef,
+    ri: u64,
+    ci: usize,
+    cx: f64,
+    ry: f64,
+    row_height: f64,
+    t: &Theme,
+) {
+    use crate::frame::ButtonZone;
+
+    if col.cell_buttons.is_empty() {
+        return;
+    }
+
+    let btn_h = (t.font_size + t.cell_btn_padding_y * 2.0)
+        .min(row_height - 4.0)
+        .max(0.0);
+    let btn_y = ry + (row_height - btn_h) / 2.0;
+    // Baseline for vertically-centred text inside the button.
+    // 0.35 ≈ half cap-height for system-ui.
+    let mid_y = btn_y + btn_h * 0.5 + t.font_size * 0.35;
+    let clip = [cx, ry, col.width, row_height];
+
+    // Accumulate right edge inward from the cell's right border.
+    let mut right_x = cx + col.width - t.cell_btn_margin_r;
+
+    for btn in col.cell_buttons.iter().rev() {
+        // Width from character count (same heuristic as
+        // emit_styled: 0.65 × font_size per char).
+        let text_w =
+            btn.label.len() as f64 * t.font_size * 0.65;
+        let btn_w =
+            (text_w + t.cell_btn_padding_x * 2.0).max(0.0);
+        let btn_x = right_x - btn_w;
+
+        // Skip if the button would bleed past the left edge.
+        if btn_x < cx {
+            right_x = btn_x - t.cell_btn_gap;
+            continue;
+        }
+
+        let (fill, text_color, stroke) = match btn.style {
+            ButtonStyle::Primary => (
+                Some(t.cell_btn_primary_bg),
+                t.cell_btn_primary_text,
+                None,
+            ),
+            ButtonStyle::Secondary => (
+                Some(t.cell_btn_secondary_bg),
+                t.cell_btn_secondary_text,
+                None,
+            ),
+            ButtonStyle::Danger => (
+                Some(t.cell_btn_danger_bg),
+                t.cell_btn_danger_text,
+                None,
+            ),
+            ButtonStyle::Ghost => (
+                None,
+                t.cell_btn_ghost_color,
+                Some(t.cell_btn_ghost_color),
+            ),
+            // Future variants via #[non_exhaustive].
+            _ => {
+                right_x = btn_x - t.cell_btn_gap;
+                continue;
+            }
+        };
+
+        // Background / border rect.
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: btn_x,
+            y: btn_y,
+            width: btn_w,
+            height: btn_h,
+            fill: fill.unwrap_or(Color::rgba(0, 0, 0, 0)),
+            stroke,
+            stroke_width: if stroke.is_some() { 1.0 } else { 0.0 },
+            corner_radius: t.cell_btn_radius,
+            clip: Some(clip),
+        }));
+
+        // Label centred inside the button.
+        frame.push(ScenePrimitive::Text(TextPrimitive {
+            x: btn_x + btn_w / 2.0,
+            y: mid_y,
+            text: btn.label.clone(),
+            color: text_color,
+            font_size: t.font_size,
+            bold: false,
+            clip: Some(clip),
+            align: TextAlign::Center,
+            max_width: Some(btn_w.max(0.0)),
+        }));
+
+        // Hit zone — viewport-relative coordinates.
+        frame.push_button_zone(ButtonZone {
+            row: ri,
+            col: ci,
+            button_id: btn.id.clone(),
+            x: btn_x,
+            y: btn_y,
+            width: btn_w,
+            height: btn_h,
+        });
+
+        right_x = btn_x - t.cell_btn_gap;
     }
 }

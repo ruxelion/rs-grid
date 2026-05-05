@@ -126,6 +126,16 @@ impl GridCanvas {
         *self.0.on_validation_error.borrow_mut() = Some(Box::new(cb));
     }
 
+    /// Register a callback fired when a cell button is clicked.
+    /// Arguments: `(row, col_key, button_id)`.
+    pub fn set_on_cell_button_click(
+        &self,
+        cb: impl Fn(u64, &str, &str) + 'static,
+    ) {
+        *self.0.on_cell_button_click.borrow_mut() =
+            Some(Box::new(cb));
+    }
+
     /// Serialize the current patch layer as versioned TSV text.
     ///
     /// Format:

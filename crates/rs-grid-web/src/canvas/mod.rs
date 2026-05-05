@@ -24,7 +24,10 @@ use rs_grid_core::{
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 
 use fetcher::FetchConfig;
-use rs_grid_scene::{builder::SceneBuilder, class_map::ClassResolver, Theme};
+use rs_grid_scene::{
+    builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame,
+    Theme,
+};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
     HtmlCanvasElement, HtmlElement, HtmlInputElement, ResizeObserver,
@@ -86,12 +89,19 @@ struct Inner {
     drag_col_offsets: RefCell<Vec<f64>>,
     /// Active flash-cells animation, if any.
     flash: RefCell<Option<FlashState>>,
+    /// The last rendered frame, retained so button zones can be
+    /// hit-tested on mousedown without recomputing geometry.
+    last_frame: RefCell<Option<SceneFrame>>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
     on_validation_error: RefCell<Option<Box<dyn Fn(u64, &str, &str)>>>,
+    /// Optional callback fired when a cell button is clicked.
+    /// Arguments: (row, col_key, button_id).
+    #[allow(clippy::type_complexity)]
+    on_cell_button_click: RefCell<Option<Box<dyn Fn(u64, &str, &str)>>>,
     /// DOM element used for inline cell editing (`<input>` or `<select>`).
     edit_input: RefCell<Option<HtmlElement>>,
     /// Closures on the edit `<input>` (keydown, blur).
@@ -293,8 +303,10 @@ impl GridCanvas {
             hovered_menu_col: RefCell::new(None),
             drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
+            last_frame: RefCell::new(None),
             on_change: RefCell::new(None),
             on_validation_error: RefCell::new(None),
+            on_cell_button_click: RefCell::new(None),
             edit_input: RefCell::new(None),
             edit_closures: RefCell::new(Vec::new()),
             edit_listener_refs: RefCell::new(Vec::new()),
@@ -359,6 +371,9 @@ impl GridCanvas {
         );
         drop(state);
         self.0.renderer.render(&frame);
+        // Retain the frame so button zones can be hit-tested
+        // on the next mousedown.
+        *self.0.last_frame.borrow_mut() = Some(frame);
         if flash.is_some() || drag_anim || momentum {
             self.render();
         }

@@ -596,8 +596,9 @@ mod tests {
             }),
             editor: None,
             validator: None,
-        bold: false,
-editable: true,
+            bold: false,
+            editable: true,
+            cell_buttons: Vec::new(),
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -1975,8 +1976,9 @@ editable: true,
             }),
             editor: None,
             validator: None,
-        bold: false,
-editable: true,
+            bold: false,
+            editable: true,
+            cell_buttons: Vec::new(),
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -2018,8 +2020,9 @@ editable: true,
             }),
             editor: None,
             validator: None,
-        bold: false,
-editable: true,
+            bold: false,
+            editable: true,
+            cell_buttons: Vec::new(),
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");

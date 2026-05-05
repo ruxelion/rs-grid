@@ -156,6 +156,49 @@ fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
             b(t.gutter_font_bold).to_string(),
         ),
         ("--rs-grid-gutter-border",             c(t.gutter_border)),
+        // cell buttons
+        (
+            "--rs-grid-cell-btn-primary-bg",
+            c(t.cell_btn_primary_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-primary-text",
+            c(t.cell_btn_primary_text),
+        ),
+        (
+            "--rs-grid-cell-btn-secondary-bg",
+            c(t.cell_btn_secondary_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-secondary-text",
+            c(t.cell_btn_secondary_text),
+        ),
+        (
+            "--rs-grid-cell-btn-danger-bg",
+            c(t.cell_btn_danger_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-danger-text",
+            c(t.cell_btn_danger_text),
+        ),
+        (
+            "--rs-grid-cell-btn-ghost-color",
+            c(t.cell_btn_ghost_color),
+        ),
+        ("--rs-grid-cell-btn-radius",           px(t.cell_btn_radius)),
+        (
+            "--rs-grid-cell-btn-padding-y",
+            px(t.cell_btn_padding_y),
+        ),
+        (
+            "--rs-grid-cell-btn-padding-x",
+            px(t.cell_btn_padding_x),
+        ),
+        ("--rs-grid-cell-btn-gap",              px(t.cell_btn_gap)),
+        (
+            "--rs-grid-cell-btn-margin-r",
+            px(t.cell_btn_margin_r),
+        ),
     ]
 }
 

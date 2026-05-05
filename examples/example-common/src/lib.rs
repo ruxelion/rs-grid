@@ -15,7 +15,10 @@ pub mod class_map;
 use std::rc::Rc;
 
 use rs_grid_core::{
-    column::{CellEditor, CellValidator, ColumnDef, SelectOption},
+    column::{
+        ButtonDef, ButtonStyle, CellEditor, CellValidator, ColumnDef,
+        SelectOption,
+    },
     datasource::FnDataSource,
     format::{CellAlign, CellElement, CellFormat},
     model::GridModel,
@@ -109,26 +112,27 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             c
         },
         {
-            let mut c = ColumnDef::new("active", "Action", 110.0);
-            c.format = Some(CellFormat::Styled(Rc::new(|raw| {
-                let (text, class) = match raw {
-                    "true" => ("Edit", "btn btn-primary btn-xs"),
-                    _ => ("Activate", "btn btn-neutral btn-outline btn-xs"),
-                };
-                vec![CellElement {
-                    text: text.to_string(),
-                    class: class.to_string(),
-                    align: CellAlign::Left,
-                }]
-            })));
+            let mut c = ColumnDef::new("active", "Actions", 160.0);
+            c.format = Some(CellFormat::Boolean {
+                true_label: String::new(),
+                false_label: String::new(),
+            });
+            c.cell_buttons = vec![
+                ButtonDef::new("edit", "Edit", ButtonStyle::Primary),
+                ButtonDef::new(
+                    "delete",
+                    "Delete",
+                    ButtonStyle::Danger,
+                ),
+            ];
             c
         },
     ];
 
     let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(8)).collect();
+        base.into_iter().take(col_count.min(9)).collect();
 
-    let extras_needed = col_count.saturating_sub(8);
+    let extras_needed = col_count.saturating_sub(9);
     for col in fake_data::EXTRA_COLUMNS.iter().take(extras_needed) {
         let mut c = ColumnDef::new(col.key, col.label, col.width);
         c.format = match col.format_hint {
