@@ -421,6 +421,43 @@ impl GridCanvas {
                 return;
             }
 
+            // ── cell button hit-test ──────────────────────
+            //
+            // Check button zones from the last rendered frame
+            // before falling through to cell selection.
+            // button_id and col index are cloned before
+            // releasing the borrow of last_frame.
+            {
+                let hit = gc
+                    .0
+                    .last_frame
+                    .borrow()
+                    .as_ref()
+                    .and_then(|f| f.hit_button(x, y))
+                    .map(|z| (z.row, z.col, z.button_id.clone()));
+                if let Some((row, col_idx, btn_id)) = hit {
+                    let col_key = gc
+                        .0
+                        .state
+                        .borrow()
+                        .model
+                        .columns
+                        .get(col_idx)
+                        .map(|c| c.key.clone());
+                    if let Some(key) = col_key {
+                        if let Some(cb) = gc
+                            .0
+                            .on_cell_button_click
+                            .borrow()
+                            .as_ref()
+                        {
+                            cb(row, &key, &btn_id);
+                        }
+                    }
+                    return;
+                }
+            }
+
             // ── cell selection ────────────────────────────
             let coord = gc.0.state.borrow().hit_test(x, y);
             if let Some(coord) = coord {

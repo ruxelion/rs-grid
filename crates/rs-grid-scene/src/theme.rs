@@ -159,6 +159,36 @@ pub struct Theme {
     pub gutter_font_bold: bool,
     /// Right border color of the gutter column.
     pub gutter_border: Color,
+
+    // ── cell buttons ──────────────────────────────────────────────────────────
+    /// Background of a Primary-style cell button.
+    pub cell_btn_primary_bg: Color,
+    /// Text color of a Primary-style cell button.
+    pub cell_btn_primary_text: Color,
+    /// Background of a Secondary-style cell button.
+    pub cell_btn_secondary_bg: Color,
+    /// Text color of a Secondary-style cell button.
+    pub cell_btn_secondary_text: Color,
+    /// Background of a Danger-style cell button.
+    pub cell_btn_danger_bg: Color,
+    /// Text color of a Danger-style cell button.
+    pub cell_btn_danger_text: Color,
+    /// Border and text color for Ghost-style buttons
+    /// (transparent fill).
+    pub cell_btn_ghost_color: Color,
+    /// Corner radius of cell buttons in logical pixels.
+    pub cell_btn_radius: f64,
+    /// Vertical padding inside a cell button (top and
+    /// bottom each) in logical pixels.
+    pub cell_btn_padding_y: f64,
+    /// Horizontal padding inside a cell button (left and
+    /// right each) in logical pixels.
+    pub cell_btn_padding_x: f64,
+    /// Gap between consecutive cell buttons in logical px.
+    pub cell_btn_gap: f64,
+    /// Gap between the last button and the right cell edge
+    /// in logical pixels.
+    pub cell_btn_margin_r: f64,
 }
 
 impl Theme {
@@ -238,6 +268,20 @@ impl Theme {
             gutter_font_size:         14.0,
             gutter_font_bold:         true,
             gutter_border:            Color::rgb(186, 191, 199),
+            // cell buttons
+            cell_btn_primary_bg:      Color::rgb(33, 150, 243),
+            cell_btn_primary_text:    Color::rgb(255, 255, 255),
+            cell_btn_secondary_bg:    Color::rgb(226, 232, 240),
+            cell_btn_secondary_text:  Color::rgb(24, 29, 31),
+            cell_btn_danger_bg:       Color::rgb(239, 68, 68),
+            cell_btn_danger_text:     Color::rgb(255, 255, 255),
+            // rgba(33, 150, 243, 0.78) → a = 200
+            cell_btn_ghost_color:     Color::rgba(33, 150, 243, 200),
+            cell_btn_radius:          4.0,
+            cell_btn_padding_y:       4.0,
+            cell_btn_padding_x:       8.0,
+            cell_btn_gap:             4.0,
+            cell_btn_margin_r:        8.0,
         }
     }
 
@@ -320,6 +364,20 @@ impl Theme {
             gutter_font_size:         14.0,
             gutter_font_bold:         true,
             gutter_border:            Color::rgb(51, 51, 53),
+            // cell buttons
+            cell_btn_primary_bg:      Color::rgb(60, 130, 245),
+            cell_btn_primary_text:    Color::rgb(255, 255, 255),
+            cell_btn_secondary_bg:    Color::rgb(60, 63, 68),
+            cell_btn_secondary_text:  Color::rgb(208, 208, 208),
+            cell_btn_danger_bg:       Color::rgb(220, 38, 38),
+            cell_btn_danger_text:     Color::rgb(255, 255, 255),
+            // rgba(60, 130, 245, 0.78) → a = 200
+            cell_btn_ghost_color:     Color::rgba(60, 130, 245, 200),
+            cell_btn_radius:          4.0,
+            cell_btn_padding_y:       4.0,
+            cell_btn_padding_x:       8.0,
+            cell_btn_gap:             4.0,
+            cell_btn_margin_r:        8.0,
         }
     }
 
@@ -403,6 +461,20 @@ impl Theme {
             gutter_font_size:         14.0,
             gutter_font_bold:         true,
             gutter_border:            Color::rgb(68, 76, 86),
+            // cell buttons
+            cell_btn_primary_bg:      Color::rgb(56, 139, 253),
+            cell_btn_primary_text:    Color::rgb(255, 255, 255),
+            cell_btn_secondary_bg:    Color::rgb(55, 62, 71),
+            cell_btn_secondary_text:  Color::rgb(173, 186, 199),
+            cell_btn_danger_bg:       Color::rgb(218, 54, 51),
+            cell_btn_danger_text:     Color::rgb(255, 255, 255),
+            // rgba(56, 139, 253, 0.78) → a = 200
+            cell_btn_ghost_color:     Color::rgba(56, 139, 253, 200),
+            cell_btn_radius:          4.0,
+            cell_btn_padding_y:       4.0,
+            cell_btn_padding_x:       8.0,
+            cell_btn_gap:             4.0,
+            cell_btn_margin_r:        8.0,
         }
     }
 }

@@ -218,6 +218,52 @@ pub fn theme_from_css_vars() -> Theme {
         t.gutter_font_bold,
     );
     t.gutter_border = color("--rs-grid-gutter-border", t.gutter_border);
+    // cell buttons
+    t.cell_btn_primary_bg = color(
+        "--rs-grid-cell-btn-primary-bg",
+        t.cell_btn_primary_bg,
+    );
+    t.cell_btn_primary_text = color(
+        "--rs-grid-cell-btn-primary-text",
+        t.cell_btn_primary_text,
+    );
+    t.cell_btn_secondary_bg = color(
+        "--rs-grid-cell-btn-secondary-bg",
+        t.cell_btn_secondary_bg,
+    );
+    t.cell_btn_secondary_text = color(
+        "--rs-grid-cell-btn-secondary-text",
+        t.cell_btn_secondary_text,
+    );
+    t.cell_btn_danger_bg = color(
+        "--rs-grid-cell-btn-danger-bg",
+        t.cell_btn_danger_bg,
+    );
+    t.cell_btn_danger_text = color(
+        "--rs-grid-cell-btn-danger-text",
+        t.cell_btn_danger_text,
+    );
+    t.cell_btn_ghost_color = color(
+        "--rs-grid-cell-btn-ghost-color",
+        t.cell_btn_ghost_color,
+    );
+    t.cell_btn_radius = px(
+        "--rs-grid-cell-btn-radius",
+        t.cell_btn_radius,
+    );
+    t.cell_btn_padding_y = px(
+        "--rs-grid-cell-btn-padding-y",
+        t.cell_btn_padding_y,
+    );
+    t.cell_btn_padding_x = px(
+        "--rs-grid-cell-btn-padding-x",
+        t.cell_btn_padding_x,
+    );
+    t.cell_btn_gap = px("--rs-grid-cell-btn-gap", t.cell_btn_gap);
+    t.cell_btn_margin_r = px(
+        "--rs-grid-cell-btn-margin-r",
+        t.cell_btn_margin_r,
+    );
     t
 }
 

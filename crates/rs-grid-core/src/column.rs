@@ -55,6 +55,59 @@ impl fmt::Debug for CellValidator {
     }
 }
 
+// ── cell button ────────────────────────────────────────────
+
+/// Visual style variant for a cell button.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ButtonStyle {
+    /// Solid primary-colour fill.
+    Primary,
+    /// Muted secondary-colour fill.
+    Secondary,
+    /// Destructive red fill.
+    Danger,
+    /// Transparent background, border only.
+    Ghost,
+}
+
+impl Default for ButtonStyle {
+    fn default() -> Self {
+        Self::Primary
+    }
+}
+
+/// Definition of a single button rendered inside a cell.
+///
+/// Buttons are column-level: the same `ButtonDef` applies to
+/// every row in the column.  The click callback receives the
+/// row index, column key, and this button's `id`.
+#[derive(Debug, Clone)]
+pub struct ButtonDef {
+    /// Stable identifier passed to the click callback.
+    /// Must be unique within a column.
+    pub id: String,
+    /// Label rendered on the button face.
+    pub label: String,
+    /// Visual style variant.
+    pub style: ButtonStyle,
+}
+
+impl ButtonDef {
+    /// Create a new button definition.
+    pub fn new(
+        id: impl Into<String>,
+        label: impl Into<String>,
+        style: ButtonStyle,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            label: label.into(),
+            style,
+        }
+    }
+}
+
 // ── cell editor ────────────────────────────────────────────
 
 /// A single option for the [`CellEditor::Select`] dropdown.
@@ -135,6 +188,13 @@ pub struct ColumnDef {
     /// Allow inline editing for this column (`true` by default).
     /// When `false`, double-clicking the column does nothing.
     pub editable: bool,
+    /// Clickable buttons rendered at the right side of every
+    /// cell in this column.
+    ///
+    /// Buttons are drawn right-to-left (first entry is the
+    /// rightmost).  The click callback receives the row
+    /// index, column key, and the button's `id`.
+    pub cell_buttons: Vec<ButtonDef>,
 }
 
 impl ColumnDef {
@@ -157,6 +217,7 @@ impl ColumnDef {
             validator: None,
             bold: false,
             editable: true,
+            cell_buttons: Vec::new(),
         }
     }
 
@@ -216,6 +277,15 @@ impl ColumnDef {
     /// Set the validator. Returns `self` for chaining.
     pub fn with_validator(mut self, validator: CellValidator) -> Self {
         self.validator = Some(validator);
+        self
+    }
+
+    /// Set the cell buttons. Returns `self` for chaining.
+    pub fn with_cell_buttons(
+        mut self,
+        buttons: Vec<ButtonDef>,
+    ) -> Self {
+        self.cell_buttons = buttons;
         self
     }
 

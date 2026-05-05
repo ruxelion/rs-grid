@@ -12,7 +12,7 @@ paths = [
 
 [serve]
 port = 9080
-address = "127.0.0.1"
+addresses = ["0.0.0.0"]
 
 [build]
 dist = "dist"

@@ -29,6 +29,10 @@ use web_sys::HtmlCanvasElement;
 /// Callback type for validation error events: `(row, col_key, message)`.
 pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
 
+/// Callback type for cell button click events:
+/// `(row, col_key, button_id)`.
+pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
+
 /// A Leptos component that renders an rs-grid onto a `<canvas>` element.
 ///
 /// # Props
@@ -55,6 +59,10 @@ pub fn GridCanvas(
     /// Arguments: `(row, col_key, error_message)`.
     #[prop(optional)]
     on_validation_error: Option<ValidationErrorCb>,
+    /// Called when a cell button is clicked.
+    /// Arguments: `(row, col_key, button_id)`.
+    #[prop(optional)]
+    on_cell_button_click: Option<CellButtonClickCb>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -64,6 +72,8 @@ pub fn GridCanvas(
     let model_slot = RefCell::new(Some(model));
     let on_mount_slot = RefCell::new(on_mount);
     let on_validation_error_slot = RefCell::new(on_validation_error);
+    let on_cell_button_click_slot =
+        RefCell::new(on_cell_button_click);
 
     // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
     // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
@@ -136,6 +146,15 @@ pub fn GridCanvas(
             gc.set_on_validation_error(move |row, col, msg| {
                 cb(row, col.to_string(), msg.to_string());
             });
+        }
+        if let Some(cb) =
+            on_cell_button_click_slot.borrow_mut().take()
+        {
+            gc.set_on_cell_button_click(
+                move |row, col, btn| {
+                    cb(row, col.to_string(), btn.to_string());
+                },
+            );
         }
         if let Some(cb) = on_mount_slot.borrow_mut().take() {
             cb(gc);
