@@ -233,9 +233,11 @@ impl CanvasRenderer {
         }
 
         let weight = if t.bold { "600" } else { "400" };
+        let style = if t.italic { "italic" } else { "normal" };
         ctx.set_fill_style_str(&t.color.to_css());
         ctx.set_font(&format!(
-            "{} {}px system-ui, sans-serif",
+            "{} {} {}px system-ui, sans-serif",
+            style,
             weight,
             t.font_size.round() as u32,
         ));

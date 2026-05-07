@@ -27,6 +27,8 @@ pub struct CellElementStyle {
     pub background: Option<Color>,
     /// Render text in bold weight.
     pub bold: bool,
+    /// Render text in italic style.
+    pub italic: bool,
     /// Corner radius (logical px).
     pub border_radius: f64,
     /// Horizontal inner padding (logical px each side).
@@ -47,6 +49,7 @@ impl Default for CellElementStyle {
             color: None,
             background: None,
             bold: false,
+            italic: false,
             border_radius: 0.0,
             padding_x: 0.0,
             padding_y: 0.0,

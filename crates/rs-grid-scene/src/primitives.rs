@@ -91,6 +91,8 @@ pub struct TextPrimitive {
     pub font_size: f64,
     /// Render with font-weight 600 when `true`.
     pub bold: bool,
+    /// Render with `font-style: italic` when `true`.
+    pub italic: bool,
     /// Optional clipping rectangle `(x, y, width, height)`.
     pub clip: Option<[f64; 4]>,
     /// Horizontal text alignment.
@@ -285,6 +287,7 @@ mod tests {
             color: Color::rgb(0, 0, 0),
             font_size: 14.0,
             bold: true,
+            italic: false,
             clip: Some([0.0, 0.0, 100.0, 50.0]),
             align: TextAlign::Center,
             max_width: Some(80.0),
@@ -304,6 +307,7 @@ mod tests {
             color: Color::rgb(0, 0, 0),
             font_size: 12.0,
             bold: false,
+            italic: false,
             clip: None,
             align: TextAlign::Left,
             max_width: None,
@@ -419,6 +423,7 @@ mod tests {
             color: Color::rgb(0, 0, 0),
             font_size: 12.0,
             bold: false,
+            italic: false,
             clip: None,
             align: TextAlign::Left,
             max_width: None,

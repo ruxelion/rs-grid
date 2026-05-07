@@ -27,6 +27,8 @@ pub struct FormattedCell {
     pub align: Option<CellAlign>,
     /// Render in bold weight.
     pub bold: bool,
+    /// Render in italic style.
+    pub italic: bool,
     /// RGBA colour override. `None` = use theme default.
     pub color: Option<[u8; 4]>,
 }
