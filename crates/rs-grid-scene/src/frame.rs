@@ -159,6 +159,7 @@ mod tests {
             color: Color::rgb(0, 0, 0),
             font_size: 12.0,
             bold: false,
+            italic: false,
             clip: None,
             align: crate::primitives::TextAlign::Left,
             max_width: None,

@@ -158,7 +158,9 @@ pub(super) fn emit_cell(
                     *gap,
                 );
             } else {
-                let (txt, align, bold, color) = if let Some(fmt) = &col.format {
+                let (txt, align, bold, italic, color) = if let Some(fmt)
+                    = &col.format
+                {
                     let fc = format_cell(&raw, fmt);
                     let a = match fc.align.unwrap_or_default() {
                         CellAlign::Left => TextAlign::Left,
@@ -170,9 +172,9 @@ pub(super) fn emit_cell(
                         .color
                         .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
                         .unwrap_or(t.cell_text);
-                    (fc.text, a, fc.bold || col.bold, c)
+                    (fc.text, a, fc.bold || col.bold, fc.italic, c)
                 } else {
-                    (raw, TextAlign::Left, col.bold, t.cell_text)
+                    (raw, TextAlign::Left, col.bold, false, t.cell_text)
                 };
                 let x = match align {
                     TextAlign::Right => cx + col.width - t.cell_padding,
@@ -186,6 +188,7 @@ pub(super) fn emit_cell(
                     color,
                     font_size: t.font_size,
                     bold,
+                    italic,
                     clip: Some([cx, ry, col.width, row_height]),
                     align,
                     max_width: Some(
@@ -733,6 +736,7 @@ fn emit_image_text(
             color: t.cell_text,
             font_size: t.font_size,
             bold: false,
+            italic: false,
             clip: Some([cx, ry, col_width, row_height]),
             align: TextAlign::Left,
             max_width: Some(
@@ -807,6 +811,7 @@ fn emit_styled(
             color: text_color,
             font_size,
             bold: style.bold,
+            italic: style.italic,
             clip: Some(clip),
             align: TextAlign::Center,
             // Clip to the full badge width (including padding) so
@@ -913,6 +918,7 @@ fn emit_cell_buttons(
             color: text_color,
             font_size: t.font_size,
             bold: false,
+            italic: false,
             clip: Some(clip),
             align: TextAlign::Center,
             max_width: Some(btn_w.max(0.0)),
