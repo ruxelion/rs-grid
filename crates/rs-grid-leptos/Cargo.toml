@@ -9,7 +9,20 @@ description = "Leptos component wrapper for rs-grid"
 rs-grid-core  = { path = "../rs-grid-core" }
 rs-grid-scene = { path = "../rs-grid-scene" }
 rs-grid-web   = { path = "../rs-grid-web" }
-leptos = { version = "0.8", features = ["csr"] }
+# No leptos feature is enabled here so that consumers can pick the
+# rendering mode (`csr` or `hydrate`) that fits their app. Enabling
+# `csr` unconditionally would conflict with `hydrate` in SSR/hydrate
+# Leptos apps via Cargo's feature unification.
+leptos = { version = "0.8", default-features = false }
 send_wrapper = "0.6"
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
+
+[features]
+default = []
+# Re-export Leptos rendering modes so callers that depend on
+# rs-grid-leptos directly (without depending on `leptos`) can pick
+# one. Apps that already depend on `leptos` should enable the
+# matching feature on `leptos` itself instead.
+csr = ["leptos/csr"]
+hydrate = ["leptos/hydrate"]
