@@ -60,6 +60,8 @@ pub struct Theme {
     pub header_font_size: f64,
     /// Render column header labels with font-weight 600.
     pub header_font_bold: bool,
+    /// Render column header labels with `font-style: italic`.
+    pub header_font_italic: bool,
 
     // ── flash (paste feedback) ───────────────────────────────────────────────
     /// Fill colour for the paste-flash animation (fades from full to transparent).
@@ -157,6 +159,8 @@ pub struct Theme {
     pub gutter_font_size: f64,
     /// Render row numbers with font-weight 600.
     pub gutter_font_bold: bool,
+    /// Render row numbers with `font-style: italic`.
+    pub gutter_font_italic: bool,
     /// Right border color of the gutter column.
     pub gutter_border: Color,
 
@@ -224,6 +228,7 @@ impl Theme {
             font_size: 14.0,
             header_font_size: 14.0,
             header_font_bold: true,
+            header_font_italic: false,
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
@@ -267,6 +272,7 @@ impl Theme {
             gutter_text: Color::rgba(24, 29, 31, 180),
             gutter_font_size: 14.0,
             gutter_font_bold: true,
+            gutter_font_italic: false,
             gutter_border: Color::rgb(186, 191, 199),
             // cell buttons
             cell_btn_primary_bg: Color::rgb(33, 150, 243),
@@ -319,6 +325,7 @@ impl Theme {
             font_size: 14.0,
             header_font_size: 14.0,
             header_font_bold: true,
+            header_font_italic: false,
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
@@ -363,6 +370,7 @@ impl Theme {
             gutter_text: Color::rgba(176, 176, 176, 178),
             gutter_font_size: 14.0,
             gutter_font_bold: true,
+            gutter_font_italic: false,
             gutter_border: Color::rgb(51, 51, 53),
             // cell buttons
             cell_btn_primary_bg: Color::rgb(60, 130, 245),
@@ -414,6 +422,7 @@ impl Theme {
             font_size: 14.0,
             header_font_size: 14.0,
             header_font_bold: true,
+            header_font_italic: false,
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
@@ -460,6 +469,7 @@ impl Theme {
             gutter_text: Color::rgba(173, 186, 199, 178),
             gutter_font_size: 14.0,
             gutter_font_bold: true,
+            gutter_font_italic: false,
             gutter_border: Color::rgb(68, 76, 86),
             // cell buttons
             cell_btn_primary_bg: Color::rgb(56, 139, 253),

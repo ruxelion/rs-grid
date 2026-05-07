@@ -31,6 +31,7 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-font-size`          | `Theme::font_size`           |
 /// | `--rs-grid-header-font-size`   | `Theme::header_font_size`    |
 /// | `--rs-grid-header-font-bold`   | `Theme::header_font_bold`    |
+/// | `--rs-grid-header-font-italic` | `Theme::header_font_italic`  |
 /// | `--rs-grid-cell-padding`       | `Theme::cell_padding`        |
 /// | `--rs-grid-drag-overlay`            | `Theme::drag_overlay`            |
 /// | `--rs-grid-drag-ghost-bg`           | `Theme::drag_ghost_bg`           |
@@ -48,6 +49,7 @@ use rs_grid_scene::{primitives::Color, Theme};
 /// | `--rs-grid-gutter-text`            | `Theme::gutter_text`             |
 /// | `--rs-grid-gutter-font-size`       | `Theme::gutter_font_size`        |
 /// | `--rs-grid-gutter-font-bold`       | `Theme::gutter_font_bold`        |
+/// | `--rs-grid-gutter-font-italic`     | `Theme::gutter_font_italic`      |
 /// | `--rs-grid-gutter-border`          | `Theme::gutter_border`           |
 /// | `--rs-grid-pinned-bg`              | `Theme::pinned_bg`               |
 /// | `--rs-grid-pinned-header-bg`       | `Theme::pinned_header_bg`        |
@@ -107,6 +109,8 @@ pub fn theme_from_css_vars() -> Theme {
     t.header_font_size = px("--rs-grid-header-font-size", t.header_font_size);
     t.header_font_bold =
         bool_var("--rs-grid-header-font-bold", t.header_font_bold);
+    t.header_font_italic =
+        bool_var("--rs-grid-header-font-italic", t.header_font_italic);
     t.cell_padding = px("--rs-grid-cell-padding", t.cell_padding);
     t.flash_fill = color("--rs-grid-flash-fill", t.flash_fill);
     t.flash_border = color("--rs-grid-flash-border", t.flash_border);
@@ -163,6 +167,8 @@ pub fn theme_from_css_vars() -> Theme {
     t.gutter_font_size = px("--rs-grid-gutter-font-size", t.gutter_font_size);
     t.gutter_font_bold =
         bool_var("--rs-grid-gutter-font-bold", t.gutter_font_bold);
+    t.gutter_font_italic =
+        bool_var("--rs-grid-gutter-font-italic", t.gutter_font_italic);
     t.gutter_border = color("--rs-grid-gutter-border", t.gutter_border);
     // cell buttons
     t.cell_btn_primary_bg =
