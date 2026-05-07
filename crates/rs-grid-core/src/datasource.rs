@@ -209,10 +209,7 @@ mod tests {
     #[test]
     fn vec_cell_status_ready() {
         let ds = VecDataSource::new(make_rows());
-        assert_eq!(
-            ds.cell_status(0, "a"),
-            CellStatus::Ready("hello".into())
-        );
+        assert_eq!(ds.cell_status(0, "a"), CellStatus::Ready("hello".into()));
     }
 
     #[test]
@@ -238,13 +235,8 @@ mod tests {
 
     #[test]
     fn fn_get_cell() {
-        let ds = FnDataSource::new(10, |row, col| {
-            Some(format!("{col}_{row}"))
-        });
-        assert_eq!(
-            ds.get_cell(3, "name"),
-            Some("name_3".into())
-        );
+        let ds = FnDataSource::new(10, |row, col| Some(format!("{col}_{row}")));
+        assert_eq!(ds.get_cell(3, "name"), Some("name_3".into()));
     }
 
     #[test]
@@ -261,12 +253,8 @@ mod tests {
 
     #[test]
     fn fn_cell_status_ready() {
-        let ds =
-            FnDataSource::new(10, |_r, _c| Some("val".into()));
-        assert_eq!(
-            ds.cell_status(0, "x"),
-            CellStatus::Ready("val".into())
-        );
+        let ds = FnDataSource::new(10, |_r, _c| Some("val".into()));
+        assert_eq!(ds.cell_status(0, "x"), CellStatus::Ready("val".into()));
     }
 
     #[test]
@@ -287,10 +275,7 @@ mod tests {
     // which wraps get_cell in Cow::Owned.
     #[test]
     fn fn_get_cell_ref_uses_default_impl() {
-        let ds = FnDataSource::new(
-            10,
-            |_row, _col| Some("value".into()),
-        );
+        let ds = FnDataSource::new(10, |_row, _col| Some("value".into()));
         let val = ds.get_cell_ref(0, "any");
         assert_eq!(val.as_deref(), Some("value"));
         // Default impl returns Owned (not Borrowed)
@@ -314,9 +299,8 @@ mod tests {
         // We can't call set_cell directly on FnDataSource since
         // it doesn't implement it, but we verify through the
         // trait object.
-        let mut ds: Box<dyn DataSource> = Box::new(
-            FnDataSource::new(5, |_r, _c| Some("v".into())),
-        );
+        let mut ds: Box<dyn DataSource> =
+            Box::new(FnDataSource::new(5, |_r, _c| Some("v".into())));
         ds.set_cell(0, "x", "new".into());
         // Value should be unchanged (no-op)
         assert_eq!(ds.get_cell(0, "x"), Some("v".into()));

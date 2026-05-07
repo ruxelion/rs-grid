@@ -29,7 +29,10 @@ impl GridState {
                 self.model.rebuild_offsets();
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_scroll: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

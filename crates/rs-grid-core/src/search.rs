@@ -101,12 +101,10 @@ mod tests {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
         let mut r = RowRecord::new(0);
         r.set("a", "hello");
-        let model = GridModelBuilder::new(
-            cols,
-            Box::new(VecDataSource::new(vec![r])),
-        )
-        .mode(DataSourceMode::ServerSide)
-        .build();
+        let model =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![r])))
+                .mode(DataSourceMode::ServerSide)
+                .build();
         let s = SearchState::run(&model, "hello");
         assert!(s.matches.is_empty());
     }
@@ -115,16 +113,9 @@ mod tests {
     fn run_caps_at_max_matches() {
         // 200 rows × 51 columns = 10 200 cells, all matching.
         let cols: Vec<ColumnDef> = (0..51)
-            .map(|i| {
-                ColumnDef::new(
-                    &format!("c{i}"),
-                    &format!("C{i}"),
-                    80.0,
-                )
-            })
+            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 80.0))
             .collect();
-        let keys: Vec<String> =
-            (0..51).map(|i| format!("c{i}")).collect();
+        let keys: Vec<String> = (0..51).map(|i| format!("c{i}")).collect();
         let ds = FnDataSource::new(200, move |_row, col| {
             if keys.contains(&col.to_string()) {
                 Some("match".into())
@@ -132,8 +123,7 @@ mod tests {
                 None
             }
         });
-        let model =
-            GridModelBuilder::new(cols, Box::new(ds)).build();
+        let model = GridModelBuilder::new(cols, Box::new(ds)).build();
         let s = SearchState::run(&model, "match");
         assert_eq!(s.matches.len(), 10_000);
     }

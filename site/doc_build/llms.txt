@@ -2,7 +2,7 @@
 
 > High-performance Rust/WASM data grid engine for the web
 
-## nav.docs
+## Docs
 
 - [Getting Started](/getting-started.md): Install rs-grid and render your first data grid.
 
@@ -28,6 +28,7 @@
 - [Testing](/development/testing.md): Unit tests, end-to-end tests with Playwright, and visual regression.
 - [Development Workflow](/development/workspace.md): Workspace structure, build commands, and development tools.
 - [rs-grid](/docs-overview.md): High-performance Rust/WASM data grid engine for the browser.
+- [Cell Buttons](/features/cell-buttons.md): Configurable clickable buttons rendered inside grid cells with a click callback.
 - [Cell Formatting](/features/cell-formatting.md): Number, currency, percentage, boolean, image, and custom cell formats.
 - [Columns](/features/columns.md): Column definitions, resizing, moving, pinning, and auto-fit.
 - [Context Menu](/features/context-menu.md): Right-click context menu with built-in and custom actions.

@@ -1585,8 +1585,7 @@ mod tests {
             ColumnDef::simple("b", "B").with_flex(1.0),
             ColumnDef::simple("c", "C").with_flex(1.0),
         ];
-        let rows: Vec<RowRecord> =
-            (0..5).map(|i| RowRecord::new(i)).collect();
+        let rows: Vec<RowRecord> = (0..5).map(|i| RowRecord::new(i)).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         GridState::new(model, 800.0, 600.0)
     }
@@ -1597,10 +1596,8 @@ mod tests {
         // Fixed col unchanged
         assert_eq!(s.model.columns[0].width, 100.0);
         // Flex cols share remaining space equally
-        let avail = 800.0
-            - s.model.row_number_width
-            - s.model.scrollbar_size
-            - 100.0;
+        let avail =
+            800.0 - s.model.row_number_width - s.model.scrollbar_size - 100.0;
         let half = avail / 2.0;
         assert!(
             (s.model.columns[1].width - half).abs() < 0.01,
@@ -1789,7 +1786,9 @@ mod tests {
     fn search_next_scrolls_down_to_match() {
         let mut s = make_tall_state();
         // Search for a row far below the viewport
-        s.apply(GridCommand::Search { query: "a50".into() });
+        s.apply(GridCommand::Search {
+            query: "a50".into(),
+        });
         assert_eq!(s.search.matches.len(), 1);
         assert_eq!(s.viewport.scroll_y, 0.0);
         // SearchNext scrolls to make row 50 visible
@@ -1885,22 +1884,14 @@ mod tests {
             ColumnDef::new("b", "B", 100.0),
         ];
         // Datasource only returns values for column "a"
-        let data = Box::new(FnDataSource::new(
-            5,
-            |row, col| {
-                if col == "a" {
-                    Some(format!("a{row}"))
-                } else {
-                    None
-                }
-            },
-        ));
-        let model = GridModel::with_data_source(
-            cols,
-            data,
-            30.0,
-            40.0,
-        );
+        let data = Box::new(FnDataSource::new(5, |row, col| {
+            if col == "a" {
+                Some(format!("a{row}"))
+            } else {
+                None
+            }
+        }));
+        let model = GridModel::with_data_source(cols, data, 30.0, 40.0);
         let mut s = GridState::new(model, 800.0, 600.0);
         // Column "b" has no values in datasource
         assert_eq!(s.model.get_cell(0, "b"), None);
@@ -1914,10 +1905,7 @@ mod tests {
             col_key: "b".into(),
             value: "new_value".into(),
         });
-        assert_eq!(
-            s.model.get_cell(0, "b"),
-            Some("new_value".into())
-        );
+        assert_eq!(s.model.get_cell(0, "b"), Some("new_value".into()));
         // Undo → old_value=None → removes patch
         s.apply(GridCommand::Undo);
         assert_eq!(
@@ -1935,8 +1923,7 @@ mod tests {
             ColumnDef::new("a", "A", 100.0),
             ColumnDef::simple("b", "B").with_flex(1.0),
         ];
-        let rows: Vec<RowRecord> =
-            (0..3).map(|i| RowRecord::new(i)).collect();
+        let rows: Vec<RowRecord> = (0..3).map(|i| RowRecord::new(i)).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 800.0, 600.0);
         let orig_width = s.model.columns[1].width;
@@ -2095,20 +2082,12 @@ mod tests {
                 None
             }
         }));
-        let model = GridModel::with_data_source(
-            cols,
-            data,
-            30.0,
-            40.0,
-        );
+        let model = GridModel::with_data_source(cols, data, 30.0, 40.0);
         let mut s = GridState::new(model, 800.0, 600.0);
         // Column b has no values → old_value=None for each cell
         assert_eq!(s.model.get_cell(0, "b"), None);
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
-        s.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 0,
-            col: 1,
-        }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
         s.apply(GridCommand::PasteAt {
             text: "X\tY\n".into(),
         });

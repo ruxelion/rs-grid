@@ -95,3 +95,86 @@ match model.data.cell_status(row, &col.key) {
 
 Pour un export complet de donnees server-side, recupérez toutes les pages
 directement depuis votre backend plutot que de lire a travers la grille.
+
+## Persister les modifications
+
+`GridCanvas` expose deux methodes pour sauvegarder et restaurer la couche
+de patches (l'ensemble des cellules editees par l'utilisateur) :
+
+| Methode                      | Description                                                     |
+| ---------------------------- | --------------------------------------------------------------- |
+| `export_patches() -> String` | Serialise toutes les cellules editees en TSV versionne          |
+| `import_patches(data: &str)` | Deserialise et applique les patches en remplacant les existants |
+
+### Format
+
+La chaine exportee commence par un en-tete de version, suivi d'une ligne
+par cellule editee :
+
+```
+rs-grid-patches/v1
+0	salary	42000
+3	name	Alice
+7	country	FR
+```
+
+Chaque ligne de donnees est `ligne_physique\tcle_colonne\tvaleur`. Les
+caracteres tabulation, saut de ligne et antislash dans les cles et valeurs
+sont echappes en `\t`, `\n`, `\\`. L'en-tete de version permet aux
+versions futures de migrer les donnees sauvegardees sans les corrompre
+silencieusement.
+
+:::note
+`import_patches` accepte egalement les donnees sans en-tete de version
+(produites avant l'introduction de ce format), afin que les patches
+precedemment sauvegardes restent chargeables apres une mise a jour.
+:::
+
+### Exemple localStorage (Leptos)
+
+```rust
+const LS_KEY: &str = "my-grid-patches";
+
+// Sauvegarder a chaque edition
+let gc2 = gc.clone();
+gc.set_on_change(move || {
+    if let Some(storage) = local_storage() {
+        let _ = storage.set_item(LS_KEY, &gc2.export_patches());
+    }
+});
+
+// Restaurer au montage
+if let Some(storage) = local_storage() {
+    if let Ok(Some(data)) = storage.get_item(LS_KEY) {
+        gc.import_patches(&data);
+    }
+}
+```
+
+### Telechargement / upload de fichier (Vanilla JS)
+
+```js
+// Export → telechargement
+const tsv = grid.export_patches();
+const url = URL.createObjectURL(
+  new Blob([tsv], { type: "text/tab-separated-values" })
+);
+Object.assign(document.createElement("a"), {
+  href: url, download: "patches.tsv"
+}).click();
+URL.revokeObjectURL(url);
+
+// Import ← input fichier
+fileInput.addEventListener("change", async (e) => {
+  const text = await e.target.files[0].text();
+  grid.import_patches(text);
+});
+```
+
+### Quand utiliser les patches vs une sauvegarde complete
+
+| Scenario                                 | Recommandation                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| Petites editions sur un dataset statique | `export_patches` — compact, rapide                                 |
+| Persistance complete du dataset          | Iterer `model.patches` + votre propre serialisation                |
+| Source de donnees server-side            | Envoyer les editions individuelles a votre API via `set_on_change` |

@@ -25,11 +25,9 @@ impl GridState {
             } => {
                 if col_idx < self.model.columns.len() {
                     let cur = self.model.columns[col_idx].width;
-                    let flex_changed = old_flex
-                        != self.model.columns[col_idx].flex;
-                    if (cur - old_width).abs() > f64::EPSILON
-                        || flex_changed
-                    {
+                    let flex_changed =
+                        old_flex != self.model.columns[col_idx].flex;
+                    if (cur - old_width).abs() > f64::EPSILON || flex_changed {
                         self.history.push(UndoEntry::ResizeColumn {
                             col_idx,
                             old_width,
@@ -144,7 +142,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_column: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

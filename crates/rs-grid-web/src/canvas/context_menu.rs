@@ -1,8 +1,6 @@
 use rs_grid_core::{commands::GridCommand, sort::SortDir};
 use wasm_bindgen::{prelude::Closure, JsCast};
-use web_sys::{
-    HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit,
-};
+use web_sys::{HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit};
 
 use super::context_menu_config::{BuiltinAction, ContextMenuItem};
 use super::dom_helpers::{document, make_el, set_styles};
@@ -340,8 +338,7 @@ fn create_menu_shell(
                 &init,
             )
             .expect("create contextmenu event");
-            let _ = canvas_el
-                .dispatch_event(re.unchecked_ref());
+            let _ = canvas_el.dispatch_event(re.unchecked_ref());
         });
         backdrop
             .add_event_listener_with_callback(
@@ -382,14 +379,11 @@ fn create_menu_shell(
     let mw = menu.offset_width();
     let mh = menu.offset_height();
     let max_x = (rect.right() as i32 - mw).max(rect.left() as i32);
-    let max_y =
-        (rect.bottom() as i32 - mh).max(rect.top() as i32);
+    let max_y = (rect.bottom() as i32 - mh).max(rect.top() as i32);
     let cx = x.min(max_x).max(rect.left() as i32);
     let cy = y.min(max_y).max(rect.top() as i32);
-    let _ =
-        menu.style().set_property("left", &format!("{}px", cx));
-    let _ =
-        menu.style().set_property("top", &format!("{}px", cy));
+    let _ = menu.style().set_property("left", &format!("{}px", cx));
+    let _ = menu.style().set_property("top", &format!("{}px", cy));
 
     (backdrop, menu)
 }
@@ -413,19 +407,13 @@ impl GridCanvas {
                 // If the click lands on the menu icon button,
                 // anchor to the button's bottom-left corner;
                 // otherwise use the mouse position.
-                let (mx, my) =
-                    if gc.hit_header_menu_icon(cx, cy).is_some() {
-                        let (ax, ay) =
-                            gc.menu_icon_anchor(col_idx);
-                        let rect =
-                            gc.0.canvas.get_bounding_client_rect();
-                        (
-                            (rect.left() + ax) as i32,
-                            (rect.top() + ay) as i32,
-                        )
-                    } else {
-                        (evt.client_x(), evt.client_y())
-                    };
+                let (mx, my) = if gc.hit_header_menu_icon(cx, cy).is_some() {
+                    let (ax, ay) = gc.menu_icon_anchor(col_idx);
+                    let rect = gc.0.canvas.get_bounding_client_rect();
+                    ((rect.left() + ax) as i32, (rect.top() + ay) as i32)
+                } else {
+                    (evt.client_x(), evt.client_y())
+                };
                 gc.show_col_header_menu(col_idx, mx, my);
                 return;
             }
@@ -434,33 +422,29 @@ impl GridCanvas {
             // preserve the existing selection when the click
             // lands inside it (so right-clicking a range keeps
             // the whole range selected).
-            let row =
-                gc.0.state.borrow().hit_test_row_header(cx, cy);
+            let row = gc.0.state.borrow().hit_test_row_header(cx, cy);
             if let Some(row) = row {
-                let already = {
-                    let st = gc.0.state.borrow();
-                    st.selection.has_selection()
-                        && st.model.columns.iter().enumerate().all(
-                            |(ci, _)| st.selection.is_selected(row, ci),
-                        )
-                };
+                let already =
+                    {
+                        let st = gc.0.state.borrow();
+                        st.selection.has_selection()
+                            && st.model.columns.iter().enumerate().all(
+                                |(ci, _)| st.selection.is_selected(row, ci),
+                            )
+                    };
                 if !already {
                     gc.dispatch(GridCommand::SelectRow(row));
                 }
             } else {
-                let coord =
-                    gc.0.state.borrow().hit_test(cx, cy);
+                let coord = gc.0.state.borrow().hit_test(cx, cy);
                 if let Some(coord) = coord {
-                    let already = gc
-                        .0
-                        .state
-                        .borrow()
-                        .selection
-                        .is_selected(coord.row, coord.col);
+                    let already =
+                        gc.0.state
+                            .borrow()
+                            .selection
+                            .is_selected(coord.row, coord.col);
                     if !already {
-                        gc.dispatch(
-                            GridCommand::SelectCell(coord),
-                        );
+                        gc.dispatch(GridCommand::SelectCell(coord));
                     }
                 }
             }

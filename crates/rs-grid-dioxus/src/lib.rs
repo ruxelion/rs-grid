@@ -21,9 +21,7 @@ use std::{
 };
 
 use dioxus::prelude::*;
-use rs_grid_core::{
-    model::GridModel, state::GridState,
-};
+use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
@@ -47,9 +45,7 @@ static CANVAS_ID: AtomicU32 = AtomicU32::new(0);
 /// }
 /// ```
 #[derive(Clone)]
-pub struct ModelSlot(
-    Rc<RefCell<Option<GridModel>>>,
-);
+pub struct ModelSlot(Rc<RefCell<Option<GridModel>>>);
 
 impl ModelSlot {
     /// Wrap a `GridModel` for passing as a component prop.
@@ -86,34 +82,22 @@ impl PartialEq for ModelSlot {
 #[component]
 pub fn GridCanvas(
     model: ModelSlot,
-    #[props(default = "100%".into())]
-    width: String,
-    #[props(default = "600px".into())]
-    height: String,
-    #[props(optional)]
-    theme: Option<Signal<Theme>>,
-    #[props(optional)]
-    locale: Option<Signal<Locale>>,
-    #[props(default)]
-    on_mount: EventHandler<WebGridCanvas>,
-    #[props(default)]
-    on_validation_error: EventHandler<(
-        u64,
-        String,
-        String,
-    )>,
+    #[props(default = "100%".into())] width: String,
+    #[props(default = "600px".into())] height: String,
+    #[props(optional)] theme: Option<Signal<Theme>>,
+    #[props(optional)] locale: Option<Signal<Locale>>,
+    #[props(default)] on_mount: EventHandler<WebGridCanvas>,
+    #[props(default)] on_validation_error: EventHandler<(u64, String, String)>,
 ) -> Element {
     // Unique canvas id for this component instance.
     let canvas_id = use_hook(|| {
-        let n =
-            CANVAS_ID.fetch_add(1, Ordering::Relaxed);
+        let n = CANVAS_ID.fetch_add(1, Ordering::Relaxed);
         format!("rs-grid-canvas-{n}")
     });
 
     // Shared handle to the mounted GridCanvas.
-    let gc_holder: Rc<
-        RefCell<Option<rs_grid_web::GridCanvas>>,
-    > = use_hook(|| Rc::new(RefCell::new(None))).clone();
+    let gc_holder: Rc<RefCell<Option<rs_grid_web::GridCanvas>>> =
+        use_hook(|| Rc::new(RefCell::new(None))).clone();
     let gc_for_theme = gc_holder.clone();
     let gc_for_locale = gc_holder.clone();
     let gc_for_cleanup = gc_holder.clone();
@@ -128,9 +112,7 @@ pub fn GridCanvas(
             if first_run.replace(false) {
                 return;
             }
-            if let Some(gc) =
-                gc_for_theme.borrow().as_ref()
-            {
+            if let Some(gc) = gc_for_theme.borrow().as_ref() {
                 gc.set_theme(t);
             }
         });
@@ -144,9 +126,7 @@ pub fn GridCanvas(
             if first_run.replace(false) {
                 return;
             }
-            if let Some(gc) =
-                gc_for_locale.borrow().as_ref()
-            {
+            if let Some(gc) = gc_for_locale.borrow().as_ref() {
                 gc.set_locale(l);
             }
         });
@@ -154,9 +134,7 @@ pub fn GridCanvas(
 
     // Detach listeners when this component unmounts.
     use_drop(move || {
-        if let Some(gc) =
-            gc_for_cleanup.borrow().as_ref()
-        {
+        if let Some(gc) = gc_for_cleanup.borrow().as_ref() {
             gc.detach();
         }
     });

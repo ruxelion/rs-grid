@@ -6,6 +6,9 @@ for use in Leptos applications.
 ## Public API
 
 ```rust
+pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
+pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
+
 #[component]
 pub fn GridCanvas(
     model: GridModel,
@@ -15,8 +18,15 @@ pub fn GridCanvas(
     #[prop(optional)] locale: Option<Signal<Locale>>,
     #[prop(optional)] on_mount: Option<Box<dyn FnOnce(WebGridCanvas)>>,
     #[prop(optional)] on_validation_error: Option<ValidationErrorCb>,
+    #[prop(optional)] on_cell_button_click: Option<CellButtonClickCb>,
 ) -> impl IntoView
 ```
+
+Callback arguments:
+- `on_validation_error(row, col_key, error_message)` — fires when a
+  per-column validator rejects an edit.
+- `on_cell_button_click(row, col_key, button_id)` — fires when a cell
+  button (declared via `ColumnDef::with_cell_buttons`) is clicked.
 
 ## Behaviour
 

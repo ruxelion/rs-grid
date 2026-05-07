@@ -94,3 +94,85 @@ match model.data.cell_status(row, &col.key) {
 
 For a full export of server-side data, fetch all pages from your backend
 directly rather than reading through the grid.
+
+## Persisting edits
+
+`GridCanvas` exposes two methods to save and restore the patch layer
+(the set of cells the user has edited):
+
+| Method                       | Description                                            |
+| ---------------------------- | ------------------------------------------------------ |
+| `export_patches() -> String` | Serialise all edited cells as versioned TSV            |
+| `import_patches(data: &str)` | Deserialise and apply patches, replacing existing ones |
+
+### Format
+
+The exported string starts with a version header followed by one line per
+edited cell:
+
+```
+rs-grid-patches/v1
+0	salary	42000
+3	name	Alice
+7	country	FR
+```
+
+Each data line is `physical_row\tcol_key\tvalue`. Tab, newline, and
+backslash characters inside keys and values are escaped as `\t`, `\n`,
+`\\`. The version header lets future releases migrate saved data without
+silently corrupting it.
+
+:::note
+`import_patches` also accepts legacy data without a version header
+(produced before this format was introduced), so previously saved
+patches remain loadable after an upgrade.
+:::
+
+### LocalStorage example (Leptos)
+
+```rust
+const LS_KEY: &str = "my-grid-patches";
+
+// Save on every edit
+let gc2 = gc.clone();
+gc.set_on_change(move || {
+    if let Some(storage) = local_storage() {
+        let _ = storage.set_item(LS_KEY, &gc2.export_patches());
+    }
+});
+
+// Restore on mount
+if let Some(storage) = local_storage() {
+    if let Ok(Some(data)) = storage.get_item(LS_KEY) {
+        gc.import_patches(&data);
+    }
+}
+```
+
+### File download / upload (Vanilla JS)
+
+```js
+// Export → download
+const tsv = grid.export_patches();
+const url = URL.createObjectURL(
+  new Blob([tsv], { type: "text/tab-separated-values" })
+);
+Object.assign(document.createElement("a"), {
+  href: url, download: "patches.tsv"
+}).click();
+URL.revokeObjectURL(url);
+
+// Import ← file input
+fileInput.addEventListener("change", async (e) => {
+  const text = await e.target.files[0].text();
+  grid.import_patches(text);
+});
+```
+
+### When to use patches vs a full save
+
+| Scenario                        | Recommendation                                        |
+| ------------------------------- | ----------------------------------------------------- |
+| Small edits on a static dataset | `export_patches` — compact, fast                      |
+| Full dataset persistence        | Iterate `model.patches` + your own serialisation      |
+| Server-side data source         | Send individual edits to your API via `set_on_change` |

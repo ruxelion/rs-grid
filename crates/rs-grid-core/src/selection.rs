@@ -391,15 +391,18 @@ mod tests {
     #[test]
     fn to_tsv_quotes_tab_and_newline() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = vec![{
-            let mut r = RowRecord::new(0);
-            r.set("a", "has\ttab");
-            r
-        }, {
-            let mut r = RowRecord::new(1);
-            r.set("a", "has\nnewline");
-            r
-        }];
+        let rows = vec![
+            {
+                let mut r = RowRecord::new(0);
+                r.set("a", "has\ttab");
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("a", "has\nnewline");
+                r
+            },
+        ];
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = SelectionState::default();
         s.select_cell(0, 0);
@@ -429,16 +432,10 @@ mod tests {
     fn to_tsv_too_many_rows_error() {
         use crate::datasource::FnDataSource;
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let ds = FnDataSource::new(
-            MAX_COPY_ROWS + 1,
-            |row, _col| Some(format!("r{row}")),
-        );
-        let model = GridModel::with_data_source(
-            cols,
-            Box::new(ds),
-            30.0,
-            40.0,
-        );
+        let ds = FnDataSource::new(MAX_COPY_ROWS + 1, |row, _col| {
+            Some(format!("r{row}"))
+        });
+        let model = GridModel::with_data_source(cols, Box::new(ds), 30.0, 40.0);
         let mut s = SelectionState::default();
         s.select_cell(0, 0);
         s.extend_to(MAX_COPY_ROWS, 0);

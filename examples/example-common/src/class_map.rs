@@ -57,15 +57,9 @@
 use rs_grid_scene::{class_map::CellElementStyle, primitives::Color};
 
 use crate::class_map_data::{
-    badge, btn, BASE_200,
-    ACCENT_BG, ACCENT_FG,
-    ERROR_BG, ERROR_FG,
-    INFO_BG, INFO_FG,
-    NEUTRAL_BG, NEUTRAL_FG,
-    PRIMARY_BG, PRIMARY_FG,
-    SECONDARY_BG, SECONDARY_FG,
-    SUCCESS_BG, SUCCESS_FG,
-    WARNING_BG, WARNING_FG,
+    badge, btn, ACCENT_BG, ACCENT_FG, BASE_200, ERROR_BG, ERROR_FG, INFO_BG,
+    INFO_FG, NEUTRAL_BG, NEUTRAL_FG, PRIMARY_BG, PRIMARY_FG, SECONDARY_BG,
+    SECONDARY_FG, SUCCESS_BG, SUCCESS_FG, WARNING_BG, WARNING_FG,
 };
 
 /// Resolve space-separated DaisyUI / Tailwind class names
@@ -322,10 +316,7 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 
     // dash: outline with no fill.
     if dash {
-        let stroke = s
-            .background
-            .or(s.color)
-            .unwrap_or(NEUTRAL_BG);
+        let stroke = s.background.or(s.color).unwrap_or(NEUTRAL_BG);
         s.border_color = Some(stroke);
         s.background = None;
         s.border_width = badge::BORDER;
@@ -340,8 +331,7 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 mod tests {
     use super::*;
     use crate::class_map_data::{
-        badge, btn, ERROR_BG, INFO_BG, SUCCESS_BG, SUCCESS_FG,
-        PRIMARY_BG,
+        badge, btn, ERROR_BG, INFO_BG, PRIMARY_BG, SUCCESS_BG, SUCCESS_FG,
     };
 
     // ── badge ─────────────────────────────────────────────
@@ -409,10 +399,7 @@ mod tests {
     fn badge_ghost_uses_base_200() {
         let s = resolve_classes("badge badge-ghost");
         let bg = s.background.expect("ghost should have bg-base-200");
-        assert_eq!(
-            (bg.r, bg.g, bg.b),
-            (BASE_200.r, BASE_200.g, BASE_200.b)
-        );
+        assert_eq!((bg.r, bg.g, bg.b), (BASE_200.r, BASE_200.g, BASE_200.b));
         assert!(s.border_color.is_some());
     }
 
@@ -435,9 +422,14 @@ mod tests {
     #[test]
     fn badge_all_colour_variants_have_bg_and_fg() {
         let variants = [
-            "badge-primary", "badge-secondary", "badge-accent",
-            "badge-success", "badge-error", "badge-warning",
-            "badge-info", "badge-neutral",
+            "badge-primary",
+            "badge-secondary",
+            "badge-accent",
+            "badge-success",
+            "badge-error",
+            "badge-warning",
+            "badge-info",
+            "badge-neutral",
         ];
         for v in variants {
             let s = resolve_classes(&format!("badge {v}"));
@@ -449,15 +441,19 @@ mod tests {
     #[test]
     fn badge_soft_modifier_on_all_variants() {
         let variants = [
-            "badge-primary", "badge-secondary", "badge-accent",
-            "badge-success", "badge-error", "badge-warning",
-            "badge-info", "badge-neutral",
+            "badge-primary",
+            "badge-secondary",
+            "badge-accent",
+            "badge-success",
+            "badge-error",
+            "badge-warning",
+            "badge-info",
+            "badge-neutral",
         ];
         for v in variants {
             let s = resolve_classes(&format!("badge {v} badge-soft"));
-            let bg = s
-                .background
-                .unwrap_or_else(|| panic!("{v} soft has no bg"));
+            let bg =
+                s.background.unwrap_or_else(|| panic!("{v} soft has no bg"));
             assert!(
                 bg.a <= 25,
                 "{v} badge-soft bg should be ~8% translucent, got a={}",
@@ -575,9 +571,14 @@ mod tests {
     #[test]
     fn btn_all_colour_variants_have_bg_and_fg() {
         let variants = [
-            "btn-primary", "btn-secondary", "btn-accent",
-            "btn-success", "btn-error", "btn-warning",
-            "btn-info", "btn-neutral",
+            "btn-primary",
+            "btn-secondary",
+            "btn-accent",
+            "btn-success",
+            "btn-error",
+            "btn-warning",
+            "btn-info",
+            "btn-neutral",
         ];
         for v in variants {
             let s = resolve_classes(&format!("btn {v}"));

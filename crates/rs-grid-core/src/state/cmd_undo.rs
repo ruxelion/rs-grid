@@ -22,7 +22,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_undo: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 
@@ -72,8 +75,7 @@ impl GridState {
                 self.model.columns[*col_idx].width = *old_width;
                 self.model.columns[*col_idx].flex = *old_flex;
                 if old_flex.is_some() {
-                    self.model
-                        .recalculate_flex_widths(self.viewport.width);
+                    self.model.recalculate_flex_widths(self.viewport.width);
                 }
                 self.model.rebuild_offsets();
                 UndoEntry::ResizeColumn {

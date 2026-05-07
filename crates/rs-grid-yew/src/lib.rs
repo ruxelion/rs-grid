@@ -17,9 +17,7 @@ pub use rs_grid_web::Locale;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use rs_grid_core::{
-    model::GridModel, state::GridState,
-};
+use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
 use web_sys::HtmlCanvasElement;
 use yew::prelude::*;
@@ -59,8 +57,7 @@ impl PartialEq for ModelSlot {
 
 /// Callback type for validation error events:
 /// `(row, col_key, message)`.
-pub type ValidationErrorCb =
-    Rc<dyn Fn(u64, String, String)>;
+pub type ValidationErrorCb = Rc<dyn Fn(u64, String, String)>;
 
 /// Props for the [`GridCanvas`](GridCanvas) component.
 #[derive(Properties)]
@@ -117,9 +114,8 @@ impl PartialEq for GridCanvasProps {
 #[function_component]
 pub fn GridCanvas(props: &GridCanvasProps) -> Html {
     let canvas_ref = use_node_ref();
-    let gc_handle: Rc<
-        RefCell<Option<rs_grid_web::GridCanvas>>,
-    > = use_mut_ref(|| None);
+    let gc_handle: Rc<RefCell<Option<rs_grid_web::GridCanvas>>> =
+        use_mut_ref(|| None);
 
     // Mount effect: runs once after the canvas DOM node
     // is available.
@@ -135,23 +131,14 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         use_effect_with((), move |_| {
             let gc_cleanup = gc_handle.clone();
 
-            if let Some(canvas) =
-                canvas_ref.cast::<HtmlCanvasElement>()
-            {
-                if let Some(model) =
-                    model_slot.take()
-                {
+            if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>() {
+                if let Some(model) = model_slot.take() {
                     let mount_theme =
-                        theme.unwrap_or_else(
-                            rs_grid_web::theme_from_css_vars,
-                        );
-                    let mount_locale =
-                        locale.unwrap_or_default();
+                        theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
+                    let mount_locale = locale.unwrap_or_default();
 
-                    let rect = canvas
-                        .get_bounding_client_rect();
-                    let win = web_sys::window()
-                        .expect("no window");
+                    let rect = canvas.get_bounding_client_rect();
+                    let win = web_sys::window().expect("no window");
                     let w = {
                         let bw = rect.width();
                         if bw > 0.0 {
@@ -159,9 +146,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                         } else {
                             win.inner_width()
                                 .ok()
-                                .and_then(|v| {
-                                    v.as_f64()
-                                })
+                                .and_then(|v| v.as_f64())
                                 .unwrap_or(800.0)
                         }
                     };
@@ -172,36 +157,25 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                         } else {
                             win.inner_height()
                                 .ok()
-                                .and_then(|v| {
-                                    v.as_f64()
-                                })
+                                .and_then(|v| v.as_f64())
                                 .map(|h| h - 80.0)
                                 .unwrap_or(600.0)
                         }
                     };
 
-                    let state =
-                        GridState::new(model, w, h);
-                    let gc =
-                        rs_grid_web::GridCanvas::mount(
-                            canvas,
-                            state,
-                            mount_theme,
-                            mount_locale,
-                        );
-                    *gc_handle.borrow_mut() =
-                        Some(gc.clone());
+                    let state = GridState::new(model, w, h);
+                    let gc = rs_grid_web::GridCanvas::mount(
+                        canvas,
+                        state,
+                        mount_theme,
+                        mount_locale,
+                    );
+                    *gc_handle.borrow_mut() = Some(gc.clone());
 
                     if let Some(cb) = on_ve {
-                        gc.set_on_validation_error(
-                            move |row, col, msg| {
-                                cb(
-                                    row,
-                                    col.to_string(),
-                                    msg.to_string(),
-                                );
-                            },
-                        );
+                        gc.set_on_validation_error(move |row, col, msg| {
+                            cb(row, col.to_string(), msg.to_string());
+                        });
                     }
                     if let Some(cb) = on_mount {
                         cb.emit(gc);
@@ -210,9 +184,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
             }
 
             move || {
-                if let Some(gc) =
-                    gc_cleanup.borrow().as_ref()
-                {
+                if let Some(gc) = gc_cleanup.borrow().as_ref() {
                     gc.detach();
                 }
             }
@@ -225,9 +197,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         let theme = props.theme.clone();
         use_effect_with(theme.clone(), move |t| {
             if let Some(theme) = t {
-                if let Some(gc) =
-                    gc_handle.borrow().as_ref()
-                {
+                if let Some(gc) = gc_handle.borrow().as_ref() {
                     gc.set_theme(theme.clone());
                 }
             }
@@ -240,9 +210,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         let locale = props.locale.clone();
         use_effect_with(locale.clone(), move |l| {
             if let Some(locale) = l {
-                if let Some(gc) =
-                    gc_handle.borrow().as_ref()
-                {
+                if let Some(gc) = gc_handle.borrow().as_ref() {
                     gc.set_locale(locale.clone());
                 }
             }
@@ -261,10 +229,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
 
 /// Convenience wrapper — deprecated, use
 /// [`ModelSlot::new`] instead.
-#[deprecated(
-    since = "0.2.0",
-    note = "Use ModelSlot::new instead"
-)]
+#[deprecated(since = "0.2.0", note = "Use ModelSlot::new instead")]
 pub fn wrap_model(model: GridModel) -> ModelSlot {
     ModelSlot::new(model)
 }

@@ -80,12 +80,12 @@ html! {
 **[object Object]**
 
 ### API JsGrid
-| Méthode                          | Description                                              |
-| -------------------------------- | -------------------------------------------------------- |
-| `new JsGrid(canvas, rows, cols)` | Monte une grille sur un élément canvas                   |
-| `detach()`                       | Démonte la grille et supprime les écouteurs d'événements |
-| `export_patches()`               | Exporte les valeurs de cellules modifiées au format TSV  |
-| `import_patches(tsv)`            | Importe des modifications TSV dans la grille             |
+| Méthode                          | Description                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new JsGrid(canvas, rows, cols)` | Monte une grille sur un élément canvas                                                                                                      |
+| `detach()`                       | Démonte la grille et supprime les écouteurs d'événements                                                                                    |
+| `export_patches()`               | Exporte les cellules editees en TSV versionne — voir [Persister les modifications](/fr/data/extracting-data.md#persister-les-modifications) |
+| `import_patches(tsv)`            | Importe des patches TSV dans la grille — voir [Persister les modifications](/fr/data/extracting-data.md#persister-les-modifications)        |
 
 
 **[object Object]**

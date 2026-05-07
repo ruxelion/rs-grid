@@ -85,94 +85,54 @@ pub fn theme_from_css_vars() -> Theme {
     t.cell_text = color("--rs-grid-cell-text", t.cell_text);
     t.grid_line = color("--rs-grid-grid-line", t.grid_line);
     t.header_border = color("--rs-grid-header-border", t.header_border);
-    t.header_separator_inset = px(
-        "--rs-grid-header-separator-inset",
-        t.header_separator_inset,
-    );
-    t.header_separator_width = px(
-        "--rs-grid-header-separator-width",
-        t.header_separator_width,
-    );
+    t.header_separator_inset =
+        px("--rs-grid-header-separator-inset", t.header_separator_inset);
+    t.header_separator_width =
+        px("--rs-grid-header-separator-width", t.header_separator_width);
     t.selection_fill = color("--rs-grid-selection-fill", t.selection_fill);
-    t.selection_border = color(
-        "--rs-grid-selection-border",
-        t.selection_border,
-    );
-    t.header_selection_fill = color(
-        "--rs-grid-header-selection-fill",
-        t.header_selection_fill,
-    );
-    t.gutter_selection_fill = color(
-        "--rs-grid-gutter-selection-fill",
-        t.gutter_selection_fill,
-    );
-    t.scrollbar_track = color(
-        "--rs-grid-scrollbar-track",
-        t.scrollbar_track,
-    );
-    t.scrollbar_thumb = color(
-        "--rs-grid-scrollbar-thumb",
-        t.scrollbar_thumb,
-    );
+    t.selection_border =
+        color("--rs-grid-selection-border", t.selection_border);
+    t.header_selection_fill =
+        color("--rs-grid-header-selection-fill", t.header_selection_fill);
+    t.gutter_selection_fill =
+        color("--rs-grid-gutter-selection-fill", t.gutter_selection_fill);
+    t.scrollbar_track = color("--rs-grid-scrollbar-track", t.scrollbar_track);
+    t.scrollbar_thumb = color("--rs-grid-scrollbar-thumb", t.scrollbar_thumb);
     t.row_alt_bg = color("--rs-grid-row-alt-bg", t.row_alt_bg);
     t.row_hover_bg = color("--rs-grid-row-hover-bg", t.row_hover_bg);
     t.scrollbar_width = px("--rs-grid-scrollbar-width", t.scrollbar_width);
-    t.scrollbar_radius = px(
-        "--rs-grid-scrollbar-radius",
-        t.scrollbar_radius,
-    );
+    t.scrollbar_radius = px("--rs-grid-scrollbar-radius", t.scrollbar_radius);
     t.scrollbar_inset = px("--rs-grid-scrollbar-inset", t.scrollbar_inset);
     t.font_size = px("--rs-grid-font-size", t.font_size);
-    t.header_font_size = px(
-        "--rs-grid-header-font-size",
-        t.header_font_size,
-    );
-    t.header_font_bold = bool_var(
-        "--rs-grid-header-font-bold",
-        t.header_font_bold,
-    );
+    t.header_font_size = px("--rs-grid-header-font-size", t.header_font_size);
+    t.header_font_bold =
+        bool_var("--rs-grid-header-font-bold", t.header_font_bold);
     t.cell_padding = px("--rs-grid-cell-padding", t.cell_padding);
     t.flash_fill = color("--rs-grid-flash-fill", t.flash_fill);
     t.flash_border = color("--rs-grid-flash-border", t.flash_border);
-    t.search_highlight = color(
-        "--rs-grid-search-highlight",
-        t.search_highlight,
-    );
+    t.search_highlight =
+        color("--rs-grid-search-highlight", t.search_highlight);
     t.search_current = color("--rs-grid-search-current", t.search_current);
     t.skeleton_fg = color("--rs-grid-skeleton-fg", t.skeleton_fg);
     t.drag_overlay = color("--rs-grid-drag-overlay", t.drag_overlay);
     t.drag_ghost_bg = color("--rs-grid-drag-ghost-bg", t.drag_ghost_bg);
-    t.drag_ghost_text = color(
-        "--rs-grid-drag-ghost-text",
-        t.drag_ghost_text,
-    );
-    t.drag_insert_line_width = px(
-        "--rs-grid-drag-insert-line-width",
-        t.drag_insert_line_width,
-    );
-    t.drag_ghost_radius = px(
-        "--rs-grid-drag-ghost-radius",
-        t.drag_ghost_radius,
-    );
+    t.drag_ghost_text = color("--rs-grid-drag-ghost-text", t.drag_ghost_text);
+    t.drag_insert_line_width =
+        px("--rs-grid-drag-insert-line-width", t.drag_insert_line_width);
+    t.drag_ghost_radius =
+        px("--rs-grid-drag-ghost-radius", t.drag_ghost_radius);
     t.drag_ghost_border_width = px(
         "--rs-grid-drag-ghost-border-width",
         t.drag_ghost_border_width,
     );
     t.drag_anim_alpha = px("--rs-grid-drag-anim-alpha", t.drag_anim_alpha);
-    t.sort_arrow_width = px(
-        "--rs-grid-sort-arrow-width",
-        t.sort_arrow_width,
-    );
-    t.sort_arrow_height = px(
-        "--rs-grid-sort-arrow-height",
-        t.sort_arrow_height,
-    );
+    t.sort_arrow_width = px("--rs-grid-sort-arrow-width", t.sort_arrow_width);
+    t.sort_arrow_height =
+        px("--rs-grid-sort-arrow-height", t.sort_arrow_height);
     t.header_height = px("--rs-grid-header-height", t.header_height);
     t.row_height = px("--rs-grid-row-height", t.row_height);
-    t.header_menu_icon = color(
-        "--rs-grid-header-menu-icon",
-        t.header_menu_icon,
-    );
+    t.header_menu_icon =
+        color("--rs-grid-header-menu-icon", t.header_menu_icon);
     t.header_menu_icon_hover_bg = color(
         "--rs-grid-header-menu-icon-hover-bg",
         t.header_menu_icon_hover_bg,
@@ -185,85 +145,50 @@ pub fn theme_from_css_vars() -> Theme {
         "--rs-grid-header-menu-icon-margin-r",
         t.header_menu_icon_margin_r,
     );
-    t.header_menu_icon_btn_w = px(
-        "--rs-grid-header-menu-icon-btn-w",
-        t.header_menu_icon_btn_w,
-    );
-    t.header_menu_icon_btn_h = px(
-        "--rs-grid-header-menu-icon-btn-h",
-        t.header_menu_icon_btn_h,
-    );
-    t.header_menu_icon_dot_r = px(
-        "--rs-grid-header-menu-icon-dot-r",
-        t.header_menu_icon_dot_r,
-    );
+    t.header_menu_icon_btn_w =
+        px("--rs-grid-header-menu-icon-btn-w", t.header_menu_icon_btn_w);
+    t.header_menu_icon_btn_h =
+        px("--rs-grid-header-menu-icon-btn-h", t.header_menu_icon_btn_h);
+    t.header_menu_icon_dot_r =
+        px("--rs-grid-header-menu-icon-dot-r", t.header_menu_icon_dot_r);
     t.pinned_bg = color("--rs-grid-pinned-bg", t.pinned_bg);
-    t.pinned_header_bg = color(
-        "--rs-grid-pinned-header-bg",
-        t.pinned_header_bg,
-    );
-    t.pinned_separator_color = color(
-        "--rs-grid-pinned-separator-color",
-        t.pinned_separator_color,
-    );
-    t.pinned_separator_width = px(
-        "--rs-grid-pinned-separator-width",
-        t.pinned_separator_width,
-    );
+    t.pinned_header_bg =
+        color("--rs-grid-pinned-header-bg", t.pinned_header_bg);
+    t.pinned_separator_color =
+        color("--rs-grid-pinned-separator-color", t.pinned_separator_color);
+    t.pinned_separator_width =
+        px("--rs-grid-pinned-separator-width", t.pinned_separator_width);
     t.gutter_bg = color("--rs-grid-gutter-bg", t.gutter_bg);
     t.gutter_text = color("--rs-grid-gutter-text", t.gutter_text);
     t.gutter_font_size = px("--rs-grid-gutter-font-size", t.gutter_font_size);
-    t.gutter_font_bold = bool_var(
-        "--rs-grid-gutter-font-bold",
-        t.gutter_font_bold,
-    );
+    t.gutter_font_bold =
+        bool_var("--rs-grid-gutter-font-bold", t.gutter_font_bold);
     t.gutter_border = color("--rs-grid-gutter-border", t.gutter_border);
     // cell buttons
-    t.cell_btn_primary_bg = color(
-        "--rs-grid-cell-btn-primary-bg",
-        t.cell_btn_primary_bg,
-    );
-    t.cell_btn_primary_text = color(
-        "--rs-grid-cell-btn-primary-text",
-        t.cell_btn_primary_text,
-    );
-    t.cell_btn_secondary_bg = color(
-        "--rs-grid-cell-btn-secondary-bg",
-        t.cell_btn_secondary_bg,
-    );
+    t.cell_btn_primary_bg =
+        color("--rs-grid-cell-btn-primary-bg", t.cell_btn_primary_bg);
+    t.cell_btn_primary_text =
+        color("--rs-grid-cell-btn-primary-text", t.cell_btn_primary_text);
+    t.cell_btn_secondary_bg =
+        color("--rs-grid-cell-btn-secondary-bg", t.cell_btn_secondary_bg);
     t.cell_btn_secondary_text = color(
         "--rs-grid-cell-btn-secondary-text",
         t.cell_btn_secondary_text,
     );
-    t.cell_btn_danger_bg = color(
-        "--rs-grid-cell-btn-danger-bg",
-        t.cell_btn_danger_bg,
-    );
-    t.cell_btn_danger_text = color(
-        "--rs-grid-cell-btn-danger-text",
-        t.cell_btn_danger_text,
-    );
-    t.cell_btn_ghost_color = color(
-        "--rs-grid-cell-btn-ghost-color",
-        t.cell_btn_ghost_color,
-    );
-    t.cell_btn_radius = px(
-        "--rs-grid-cell-btn-radius",
-        t.cell_btn_radius,
-    );
-    t.cell_btn_padding_y = px(
-        "--rs-grid-cell-btn-padding-y",
-        t.cell_btn_padding_y,
-    );
-    t.cell_btn_padding_x = px(
-        "--rs-grid-cell-btn-padding-x",
-        t.cell_btn_padding_x,
-    );
+    t.cell_btn_danger_bg =
+        color("--rs-grid-cell-btn-danger-bg", t.cell_btn_danger_bg);
+    t.cell_btn_danger_text =
+        color("--rs-grid-cell-btn-danger-text", t.cell_btn_danger_text);
+    t.cell_btn_ghost_color =
+        color("--rs-grid-cell-btn-ghost-color", t.cell_btn_ghost_color);
+    t.cell_btn_radius = px("--rs-grid-cell-btn-radius", t.cell_btn_radius);
+    t.cell_btn_padding_y =
+        px("--rs-grid-cell-btn-padding-y", t.cell_btn_padding_y);
+    t.cell_btn_padding_x =
+        px("--rs-grid-cell-btn-padding-x", t.cell_btn_padding_x);
     t.cell_btn_gap = px("--rs-grid-cell-btn-gap", t.cell_btn_gap);
-    t.cell_btn_margin_r = px(
-        "--rs-grid-cell-btn-margin-r",
-        t.cell_btn_margin_r,
-    );
+    t.cell_btn_margin_r =
+        px("--rs-grid-cell-btn-margin-r", t.cell_btn_margin_r);
     t
 }
 

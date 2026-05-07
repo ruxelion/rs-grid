@@ -12,13 +12,13 @@
 
 /// Scene builder — turns `GridState` + `Theme` into a frame.
 pub mod builder;
+/// Generic visual-style types for `CellFormat::Styled` rendering.
+pub mod class_map;
 /// Immutable per-frame snapshot of drawing primitives.
 pub mod frame;
 /// Renderable primitive types (rect, text, line, polygon, image).
 pub mod primitives;
 /// Visual theme: colors, typography, and spacing.
 pub mod theme;
-/// Generic visual-style types for `CellFormat::Styled` rendering.
-pub mod class_map;
 
 pub use theme::Theme;

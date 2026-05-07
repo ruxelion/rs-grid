@@ -1,0 +1,156 @@
+# Cell Buttons
+
+## Overview
+
+Cell buttons are clickable canvas-drawn elements rendered at the right side of a
+cell.  They are defined at the **column level** — the same buttons appear in
+every row of the column.  A click fires a callback with the row index, column
+key, and button identifier.
+
+```rust
+use rs_grid_core::column::{ButtonDef, ButtonStyle, ColumnDef};
+
+let mut col = ColumnDef::new("actions", "Actions", 160.0);
+col.cell_buttons = vec![
+    ButtonDef::new("edit",   "Edit",   ButtonStyle::Primary),
+    ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+];
+```
+
+## ButtonDef
+
+```rust
+pub struct ButtonDef {
+    /// Stable identifier passed to the click callback.
+    /// Must be unique within a column.
+    pub id: String,
+    /// Label rendered on the button face.
+    pub label: String,
+    /// Visual style variant.
+    pub style: ButtonStyle,
+}
+```
+
+Use `ButtonDef::new(id, label, style)` to construct one:
+
+```rust
+ButtonDef::new("approve", "Approve", ButtonStyle::Primary)
+```
+
+## ButtonStyle
+
+| Variant     | Appearance                                 |
+| ----------- | ------------------------------------------ |
+| `Primary`   | Solid blue fill, white text                |
+| `Secondary` | Muted grey fill, dark text                 |
+| `Danger`    | Solid red fill, white text                 |
+| `Ghost`     | Transparent fill, coloured border and text |
+
+```rust
+pub enum ButtonStyle {
+    Primary,
+    Secondary,
+    Danger,
+    Ghost,
+}
+```
+
+## Layout
+
+Buttons are laid out **right-to-left**: the first entry in `cell_buttons` is
+the rightmost button.  This keeps positions stable when additional buttons are
+added later.
+
+The button width is estimated from the label length — no Canvas2D measurement
+is performed at the scene layer.  A column width of at least
+`(label_chars × font_size × 0.65 + padding_x × 2) × button_count + gaps + margin`
+is recommended.
+
+## Builder method
+
+```rust
+let col = ColumnDef::new("actions", "Actions", 160.0)
+    .with_cell_buttons(vec![
+        ButtonDef::new("edit",   "Edit",   ButtonStyle::Primary),
+        ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+    ]);
+```
+
+## Click callback
+
+### Web layer (`WebGridCanvas`)
+
+```rust
+gc.set_on_cell_button_click(|row, col_key, button_id| {
+    web_sys::console::log_1(
+        &format!("row={row} col={col_key} btn={button_id}").into(),
+    );
+});
+```
+
+### Leptos component
+
+```rust
+use rs_grid_leptos::{CellButtonClickCb, GridCanvas};
+
+let on_click: CellButtonClickCb = Box::new(|row, col, btn| {
+    match btn.as_str() {
+        "edit"   => { /* open edit modal */ }
+        "delete" => { /* confirm delete */ }
+        _ => {}
+    }
+});
+
+view! {
+    <GridCanvas
+        model=model
+        on_cell_button_click=on_click
+    />
+}
+```
+
+The callback signature is `(row: u64, col_key: String, button_id: String)`.
+
+## Combining with cell content
+
+Buttons are rendered **on top of** the cell's text content.  To avoid overlap,
+either widen the column or suppress text rendering by using an empty
+`CellFormat::Boolean`:
+
+```rust
+// Show buttons only — no text in the cell
+col.format = Some(CellFormat::Boolean {
+    true_label:  String::new(),
+    false_label: String::new(),
+});
+col.cell_buttons = vec![
+    ButtonDef::new("view", "View", ButtonStyle::Ghost),
+];
+```
+
+## Theme variables
+
+All button colours and geometry are configurable via CSS custom properties:
+
+| CSS variable                        | Theme field               | Default (light)         |
+| ----------------------------------- | ------------------------- | ----------------------- |
+| `--rs-grid-cell-btn-primary-bg`     | `cell_btn_primary_bg`     | `#2196f3`               |
+| `--rs-grid-cell-btn-primary-text`   | `cell_btn_primary_text`   | `#ffffff`               |
+| `--rs-grid-cell-btn-secondary-bg`   | `cell_btn_secondary_bg`   | `#e2e8f0`               |
+| `--rs-grid-cell-btn-secondary-text` | `cell_btn_secondary_text` | `#181d1f`               |
+| `--rs-grid-cell-btn-danger-bg`      | `cell_btn_danger_bg`      | `#ef4444`               |
+| `--rs-grid-cell-btn-danger-text`    | `cell_btn_danger_text`    | `#ffffff`               |
+| `--rs-grid-cell-btn-ghost-color`    | `cell_btn_ghost_color`    | `rgba(33,150,243,0.78)` |
+| `--rs-grid-cell-btn-radius`         | `cell_btn_radius`         | `4px`                   |
+| `--rs-grid-cell-btn-padding-y`      | `cell_btn_padding_y`      | `4px`                   |
+| `--rs-grid-cell-btn-padding-x`      | `cell_btn_padding_x`      | `8px`                   |
+| `--rs-grid-cell-btn-gap`            | `cell_btn_gap`            | `4px`                   |
+| `--rs-grid-cell-btn-margin-r`       | `cell_btn_margin_r`       | `8px`                   |
+
+## Interaction notes
+
+- A button click **does not select the cell** — the event is consumed before
+  cell selection logic runs.
+- Buttons are hit-tested against the last rendered frame's `ButtonZone` list,
+  so they are always in sync with the visible layout.
+- Hover styling is not yet implemented; it is planned for a future release.

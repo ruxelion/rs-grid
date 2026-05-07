@@ -1,36 +1,34 @@
 {
   "mcpServers": {
-    "leptos": {
+    "docs": {
       "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/leptos/mcp"
-    },
-    "leptos-use": {
-      "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/leptos-use/mcp"
-    },
-    "rust": {
-      "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/rust/mcp"
-    },
-    "daisyui": {
-      "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/daisyui/mcp"
-    },
-    "induflow": {
-      "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/induflow/mcp"
-    },
-    "tailwindcss": {
-      "type": "http",
-      "url": "https://mcp.benoitpodwinski.com/tailwindcss/mcp"
+      "url": "https://mcp.benoitpodwinski.com/mcp"
     },
     "openai-docs": {
       "type": "http",
       "url": "https://developers.openai.com/mcp"
     },
+    "ag-grid": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "-p",
+        "ag-mcp@1.0.0",
+        "-p",
+        "ajv",
+        "ag-mcp"
+      ]
+    },
     "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
+      "type": "stdio",
+      "command": "${USERPROFILE}/.claude/bin/github-mcp-server.exe",
+      "args": [
+        "stdio"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
     }
   }
 }

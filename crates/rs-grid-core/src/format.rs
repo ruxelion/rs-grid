@@ -864,9 +864,7 @@ mod tests {
                 true_label: "Y".into(),
                 false_label: "N".into(),
             },
-            CellFormat::Custom(Rc::new(|_: &str| {
-                FormattedCell::default()
-            })),
+            CellFormat::Custom(Rc::new(|_: &str| FormattedCell::default())),
             CellFormat::Image {
                 base_url: None,
                 border_radius: 0.0,

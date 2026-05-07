@@ -239,7 +239,11 @@ impl GridModel {
     /// `0.0` otherwise. The stored value is preserved so it
     /// can be restored when the header is shown again.
     pub fn effective_header_height(&self) -> f64 {
-        if self.show_header { self.header_height } else { 0.0 }
+        if self.show_header {
+            self.header_height
+        } else {
+            0.0
+        }
     }
 
     /// Effective row-number gutter width for layout and rendering.
@@ -247,7 +251,11 @@ impl GridModel {
     /// Returns `row_number_width` when `show_row_numbers` is
     /// `true`, `0.0` otherwise.
     pub fn effective_row_number_width(&self) -> f64 {
-        if self.show_row_numbers { self.row_number_width } else { 0.0 }
+        if self.show_row_numbers {
+            self.row_number_width
+        } else {
+            0.0
+        }
     }
 
     /// Compute gutter width based on the number of digits
@@ -434,7 +442,17 @@ impl GridModel {
                         }
                     });
                 }
-                SortKeyCache::None => unreachable!(),
+                SortKeyCache::None => {
+                    // Defensive: the cache_hit guard above only sets
+                    // true for Numeric/Mixed, so reaching None here
+                    // means the guard logic drifted. Fail loud in
+                    // debug, skip the sort in release.
+                    debug_assert!(
+                        false,
+                        "SortKeyCache::None reached cached sort path",
+                    );
+                    return false;
+                }
             }
             self.sort_order = indices;
             return true;
@@ -582,10 +600,7 @@ impl GridModel {
     /// collapse to their minimum width.
     ///
     /// Call [`rebuild_offsets`](Self::rebuild_offsets) after this.
-    pub fn recalculate_flex_widths(
-        &mut self,
-        viewport_width: f64,
-    ) {
+    pub fn recalculate_flex_widths(&mut self, viewport_width: f64) {
         let mut fixed_sum = 0.0_f64;
         let mut total_flex = 0.0_f64;
         let mut flex_indices: Vec<usize> = Vec::new();
@@ -1418,10 +1433,7 @@ mod tests {
     fn cell_status_returns_patched_value() {
         let mut m = make_model();
         m.set_cell(0, "a", "patched".into());
-        assert_eq!(
-            m.cell_status(0, "a"),
-            CellStatus::Ready("patched".into())
-        );
+        assert_eq!(m.cell_status(0, "a"), CellStatus::Ready("patched".into()));
     }
 
     // ── ImageText sort extraction ────────────────────────
@@ -1511,10 +1523,7 @@ mod tests {
             .map(|&i| m.data.get_cell(i, "c").unwrap())
             .collect();
         // Numeric first (1), then strings (Allemagne, France)
-        assert_eq!(
-            sorted,
-            vec!["fr 1", "de Allemagne", "us France"]
-        );
+        assert_eq!(sorted, vec!["fr 1", "de Allemagne", "us France"]);
     }
 
     // ── MixedSortKey::Empty == Empty ─────────────────────
@@ -1542,12 +1551,7 @@ mod tests {
         // alpha, beta, empty, empty
         assert_eq!(
             sorted,
-            vec![
-                Some("alpha".into()),
-                Some("beta".into()),
-                None,
-                None,
-            ]
+            vec![Some("alpha".into()), Some("beta".into()), None, None,]
         );
     }
 
