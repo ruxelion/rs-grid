@@ -92,6 +92,10 @@ fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-header-font-bold",
             b(t.header_font_bold).to_string(),
         ),
+        (
+            "--rs-grid-header-font-italic",
+            b(t.header_font_italic).to_string(),
+        ),
         // flash
         ("--rs-grid-flash-fill", c(t.flash_fill)),
         ("--rs-grid-flash-border", c(t.flash_border)),
@@ -167,6 +171,10 @@ fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
         (
             "--rs-grid-gutter-font-bold",
             b(t.gutter_font_bold).to_string(),
+        ),
+        (
+            "--rs-grid-gutter-font-italic",
+            b(t.gutter_font_italic).to_string(),
         ),
         ("--rs-grid-gutter-border", c(t.gutter_border)),
         // cell buttons

@@ -29,6 +29,11 @@
   --rs-grid-gutter-bg: #2d333b;
   --rs-grid-gutter-text: rgba(173, 186, 199, 0.70);
   --rs-grid-gutter-border: #444c56;
+  --rs-grid-cell-btn-primary-bg: #388bfd;
+  --rs-grid-cell-btn-secondary-bg: #373e47;
+  --rs-grid-cell-btn-secondary-text: #adbac7;
+  --rs-grid-cell-btn-danger-bg: #da3633;
+  --rs-grid-cell-btn-ghost-color: rgba(56, 139, 253, 0.78);
 
   /* context menu */
   --rs-grid-ctx-bg: #2d333b;
