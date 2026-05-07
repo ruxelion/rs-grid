@@ -3,11 +3,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use example_common::{build_model, class_map::resolve_classes, fmt_cols, fmt_rows};
-use leptos::prelude::*;
-use rs_grid_leptos::{
-    theme_from_css_vars, GridCanvas, Locale, WebGridCanvas,
+use example_common::{
+    build_model, class_map::resolve_classes, fmt_cols, fmt_rows,
 };
+use leptos::prelude::*;
+use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
 
@@ -16,7 +16,6 @@ use wasm_bindgen::prelude::*;
 thread_local! {
     static CANVAS: RefCell<Option<WebGridCanvas>> = const { RefCell::new(None) };
 }
-
 
 #[component]
 fn App() -> impl IntoView {

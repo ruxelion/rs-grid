@@ -54,7 +54,10 @@ impl GridState {
                 self.edit = None;
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_edit: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

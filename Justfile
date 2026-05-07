@@ -115,7 +115,7 @@ _serve-yew:
 
 [private]
 _build-js:
-    wasm-pack build examples\basic-js --target web --out-dir pkg
+    if exist "examples\basic-js\Cargo.toml" wasm-pack build examples\basic-js --target web --out-dir pkg
 
 [private]
 _serve-js:
@@ -169,7 +169,7 @@ mcp-publish: mcp-build
 build-site-wasm:
     just _build-js
     if not exist "site\docs\public\wasm" mkdir "site\docs\public\wasm"
-    robocopy examples\basic-js\pkg site\docs\public\wasm basic_js.js basic_js_bg.wasm /IS /IT || exit 0
+    if exist "examples\basic-js\pkg" robocopy examples\basic-js\pkg site\docs\public\wasm basic_js.js basic_js_bg.wasm /IS /IT || exit 0
 
 # Serveur de développement RSPress (port 5173)
 site: build-site-wasm

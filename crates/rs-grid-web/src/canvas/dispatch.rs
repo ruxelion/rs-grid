@@ -132,8 +132,7 @@ impl GridCanvas {
         &self,
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
-        *self.0.on_cell_button_click.borrow_mut() =
-            Some(Box::new(cb));
+        *self.0.on_cell_button_click.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Serialize the current patch layer as versioned TSV text.
@@ -201,10 +200,7 @@ impl GridCanvas {
                 continue;
             };
             let Ok(row) = r.parse::<u64>() else { continue };
-            state
-                .model
-                .patches
-                .insert((row, unescape(c)), unescape(v));
+            state.model.patches.insert((row, unescape(c)), unescape(v));
         }
         drop(state);
         self.render();

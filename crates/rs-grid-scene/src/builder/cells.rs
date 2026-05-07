@@ -223,16 +223,12 @@ mod tests {
     use std::collections::HashSet;
 
     use rs_grid_core::{
-        column::ColumnDef,
-        datasource::CellStatus,
-        format::CellFormat,
+        column::ColumnDef, datasource::CellStatus, format::CellFormat,
         selection::SelectionState,
     };
 
     use crate::{
-        builder::FlashHint,
-        frame::SceneFrame,
-        primitives::ScenePrimitive,
+        builder::FlashHint, frame::SceneFrame, primitives::ScenePrimitive,
         theme::Theme,
     };
 
@@ -263,10 +259,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Loading,
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -288,10 +293,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready(String::new()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -305,10 +319,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Absent,
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -326,19 +349,26 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Absent,
-            &sel, &no_search(), None, &t, Some(&flash), None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            Some(&flash),
+            None,
         );
         // selection fill + flash overlay = 2 Rect primitives
         assert_eq!(frame.primitive_count(), 2);
-        assert!(
-            frame.primitives.iter().all(|p| matches!(
-                p,
-                ScenePrimitive::Rect(_)
-            ))
-        );
+        assert!(frame
+            .primitives
+            .iter()
+            .all(|p| matches!(p, ScenePrimitive::Rect(_))));
     }
 
     // ── Search highlight ─────────────────────────────────────
@@ -354,10 +384,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Absent,
-            &sel, &search, None, &t, None, None,
+            &sel,
+            &search,
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -379,10 +418,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Absent,
-            &sel, &search, Some((0, 0)), &t, None, None,
+            &sel,
+            &search,
+            Some((0, 0)),
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -398,21 +446,31 @@ mod tests {
     #[test]
     fn emit_cell_image_format_emits_image_primitive() {
         let mut frame = make_frame();
-        let col = ColumnDef::new("img", "Image", 100.0)
-            .with_format(CellFormat::Image {
+        let col = ColumnDef::new("img", "Image", 100.0).with_format(
+            CellFormat::Image {
                 base_url: Some("https://cdn/".into()),
                 border_radius: 4.0,
                 padding: 4.0,
-            });
+            },
+        );
         let sel = SelectionState::default();
         let t = Theme::light();
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("photo.png".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -426,21 +484,31 @@ mod tests {
     #[test]
     fn emit_cell_image_no_base_url_uses_raw() {
         let mut frame = make_frame();
-        let col = ColumnDef::new("img", "Image", 100.0)
-            .with_format(CellFormat::Image {
+        let col = ColumnDef::new("img", "Image", 100.0).with_format(
+            CellFormat::Image {
                 base_url: None,
                 border_radius: 0.0,
                 padding: 0.0,
-            });
+            },
+        );
         let sel = SelectionState::default();
         let t = Theme::light();
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("https://img/x.png".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -456,31 +524,43 @@ mod tests {
     #[test]
     fn emit_cell_image_text_with_label_emits_image_and_text() {
         let mut frame = make_frame();
-        let col = ColumnDef::new("flag", "Flag", 150.0)
-            .with_format(CellFormat::ImageText {
+        let col = ColumnDef::new("flag", "Flag", 150.0).with_format(
+            CellFormat::ImageText {
                 base_url: "https://flags/".into(),
                 suffix: ".svg".into(),
                 image_size: 20.0,
                 border_radius: 0.0,
                 gap: 4.0,
-            });
+            },
+        );
         let sel = SelectionState::default();
         let t = Theme::light();
         // raw = "FR France" → key="FR", label="France"
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("FR France".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
-        let has_image = frame.primitives.iter().any(|p| {
-            matches!(p, ScenePrimitive::Image(_))
-        });
-        let has_text = frame.primitives.iter().any(|p| {
-            matches!(p, ScenePrimitive::Text(_))
-        });
+        let has_image = frame
+            .primitives
+            .iter()
+            .any(|p| matches!(p, ScenePrimitive::Image(_)));
+        let has_text = frame
+            .primitives
+            .iter()
+            .any(|p| matches!(p, ScenePrimitive::Text(_)));
         assert!(has_image, "expected Image primitive");
         assert!(has_text, "expected Text primitive");
     }
@@ -491,8 +571,8 @@ mod tests {
     fn emit_cell_formatted_right_aligned() {
         use crate::primitives::TextAlign;
         let mut frame = make_frame();
-        let col = ColumnDef::new("v", "V", 100.0)
-            .with_format(CellFormat::Number {
+        let col =
+            ColumnDef::new("v", "V", 100.0).with_format(CellFormat::Number {
                 decimal_places: 2,
                 thousands_sep: None,
                 decimal_sep: '.',
@@ -502,10 +582,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("1234.5".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -521,8 +610,8 @@ mod tests {
     fn emit_cell_formatted_center_aligned() {
         use crate::primitives::TextAlign;
         let mut frame = make_frame();
-        let col = ColumnDef::new("b", "B", 100.0)
-            .with_format(CellFormat::Boolean {
+        let col =
+            ColumnDef::new("b", "B", 100.0).with_format(CellFormat::Boolean {
                 true_label: "Yes".into(),
                 false_label: "No".into(),
             });
@@ -531,10 +620,19 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("true".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -549,24 +647,34 @@ mod tests {
     #[test]
     fn emit_cell_image_text_no_label_emits_only_image() {
         let mut frame = make_frame();
-        let col = ColumnDef::new("flag", "Flag", 150.0)
-            .with_format(CellFormat::ImageText {
+        let col = ColumnDef::new("flag", "Flag", 150.0).with_format(
+            CellFormat::ImageText {
                 base_url: "https://flags/".into(),
                 suffix: ".svg".into(),
                 image_size: 20.0,
                 border_radius: 0.0,
                 gap: 4.0,
-            });
+            },
+        );
         let sel = SelectionState::default();
         let t = Theme::light();
         // raw = "FR" → no space → key="FR", label=""
         emit_cell(
             &mut frame,
             &col,
-            0, 0,
-            0.0, 0.0, 21.0, 42.0,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
             CellStatus::Ready("FR".into()),
-            &sel, &no_search(), None, &t, None, None,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
         );
         assert_eq!(frame.primitive_count(), 1);
         assert!(
@@ -628,8 +736,7 @@ fn emit_image_text(
             clip: Some([cx, ry, col_width, row_height]),
             align: TextAlign::Left,
             max_width: Some(
-                (col_width - 2.0 * t.cell_padding - image_size - gap)
-                    .max(0.0),
+                (col_width - 2.0 * t.cell_padding - image_size - gap).max(0.0),
             ),
         }));
     }
@@ -658,9 +765,7 @@ fn emit_styled(
     let mut x = cx + t.cell_padding;
 
     for el in elements {
-        let style = class_resolver
-            .map(|r| r(&el.class))
-            .unwrap_or_default();
+        let style = class_resolver.map(|r| r(&el.class)).unwrap_or_default();
         let font_size = (t.font_size + style.font_size_delta).max(8.0);
 
         // Estimated badge width from character count.
@@ -670,11 +775,9 @@ fn emit_styled(
         // never overflows the column boundary on resize.
         let available_w = (cx + cell_w - x - t.cell_padding).max(0.0);
         let text_w = el.text.len() as f64 * font_size * 0.65;
-        let badge_w = (text_w + style.padding_x * 2.0)
-            .min(available_w)
-            .max(0.0);
-        let badge_h =
-            (font_size + style.padding_y * 2.0).min(row_height - 2.0);
+        let badge_w =
+            (text_w + style.padding_x * 2.0).min(available_w).max(0.0);
+        let badge_h = (font_size + style.padding_y * 2.0).min(row_height - 2.0);
         let badge_y = ry + (row_height - badge_h) / 2.0;
 
         // ── background rect / outline ─────────────────────────
@@ -687,9 +790,7 @@ fn emit_styled(
                 y: badge_y,
                 width: badge_w,
                 height: badge_h,
-                fill: style
-                    .background
-                    .unwrap_or(Color::rgba(0, 0, 0, 0)),
+                fill: style.background.unwrap_or(Color::rgba(0, 0, 0, 0)),
                 stroke: style.border_color,
                 stroke_width: style.border_width,
                 corner_radius: style.border_radius,
@@ -759,10 +860,8 @@ fn emit_cell_buttons(
     for btn in col.cell_buttons.iter().rev() {
         // Width from character count (same heuristic as
         // emit_styled: 0.65 × font_size per char).
-        let text_w =
-            btn.label.len() as f64 * t.font_size * 0.65;
-        let btn_w =
-            (text_w + t.cell_btn_padding_x * 2.0).max(0.0);
+        let text_w = btn.label.len() as f64 * t.font_size * 0.65;
+        let btn_w = (text_w + t.cell_btn_padding_x * 2.0).max(0.0);
         let btn_x = right_x - btn_w;
 
         // Skip if the button would bleed past the left edge.
@@ -772,26 +871,20 @@ fn emit_cell_buttons(
         }
 
         let (fill, text_color, stroke) = match btn.style {
-            ButtonStyle::Primary => (
-                Some(t.cell_btn_primary_bg),
-                t.cell_btn_primary_text,
-                None,
-            ),
+            ButtonStyle::Primary => {
+                (Some(t.cell_btn_primary_bg), t.cell_btn_primary_text, None)
+            }
             ButtonStyle::Secondary => (
                 Some(t.cell_btn_secondary_bg),
                 t.cell_btn_secondary_text,
                 None,
             ),
-            ButtonStyle::Danger => (
-                Some(t.cell_btn_danger_bg),
-                t.cell_btn_danger_text,
-                None,
-            ),
-            ButtonStyle::Ghost => (
-                None,
-                t.cell_btn_ghost_color,
-                Some(t.cell_btn_ghost_color),
-            ),
+            ButtonStyle::Danger => {
+                (Some(t.cell_btn_danger_bg), t.cell_btn_danger_text, None)
+            }
+            ButtonStyle::Ghost => {
+                (None, t.cell_btn_ghost_color, Some(t.cell_btn_ghost_color))
+            }
             // Future variants via #[non_exhaustive].
             _ => {
                 right_x = btn_x - t.cell_btn_gap;

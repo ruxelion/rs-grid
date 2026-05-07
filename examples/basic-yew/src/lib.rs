@@ -2,9 +2,7 @@
 
 use example_common::{build_model, fmt_cols, fmt_rows};
 use rs_grid_core::state::GridState;
-use rs_grid_yew::{
-    theme_from_css_vars, WebGridCanvas, Locale,
-};
+use rs_grid_yew::{theme_from_css_vars, Locale, WebGridCanvas};
 use wasm_bindgen::prelude::*;
 use web_sys::{Event, HtmlCanvasElement, HtmlSelectElement};
 use yew::prelude::*;

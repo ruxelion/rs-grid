@@ -25,6 +25,18 @@ It must remain testable with standard native `cargo test`.
 - `GridState` mutations go **exclusively** through `GridState::apply(GridCommand)`.
 - Hit-testing must remain O(log n) — column offsets are precomputed.
 
+## Behaviour flags & cell buttons
+
+- `GridModel.editable: bool` (default `true`) — global edit toggle.
+  Per-column `ColumnDef.editable` can opt individual columns out.
+- `GridModel.selectable: bool` (default `true`) — when `false`,
+  selection commands are silently ignored. Toggle at runtime via
+  `GridCommand::SetEditable(bool)` / `GridCommand::SetSelectable(bool)`.
+- `ColumnDef::with_cell_buttons(Vec<ButtonDef>)` — declares interactive
+  buttons rendered inside each cell of that column. Clicks bubble up
+  through `rs-grid-web` as a callback (`on_cell_button_click` in the
+  framework wrappers) carrying `(row, col_key, button_id)`.
+
 ## Useful commands
 
 ```sh

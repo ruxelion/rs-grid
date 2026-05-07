@@ -363,8 +363,7 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < hh || ry > vp.height
-                {
+                if ry + model.row_height < hh || ry > vp.height {
                     continue;
                 }
                 let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
@@ -493,189 +492,193 @@ impl SceneBuilder {
 
         // ── header (sticky, drawn on top of scrolled data) ───────────────────
         if hh > 0.0 {
-        frame.push(ScenePrimitive::Rect(RectPrimitive {
-            x: 0.0,
-            y: 0.0,
-            width: vp.width,
-            height: hh,
-            fill: t.header_bg,
-            stroke: None,
-            stroke_width: 0.0,
-            corner_radius: 0.0,
-            clip: None,
-        }));
-
-        // Render column headers for a given index range.
-        let render_col_headers =
-            |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
-                let mid_y =
-                    hh * 0.5 + t.header_font_size * 0.35;
-                for ci in range {
-                    let col = &model.columns[ci];
-                    let cx = col_vx(ci);
-
-                    let col_in_sel = sel
-                        .range()
-                        .is_some_and(|(tl, br)| ci >= tl.col && ci <= br.col);
-                    if col_in_sel {
-                        frame.push(ScenePrimitive::Rect(RectPrimitive {
-                            x: cx,
-                            y: 0.0,
-                            width: col.width,
-                            height: hh,
-                            fill: t.header_selection_fill,
-                            stroke: None,
-                            stroke_width: 0.0,
-                            corner_radius: 0.0,
-                            clip: None,
-                        }));
-                    }
-
-                    // Text must end before the left edge of the
-                    // menu icon button to prevent the ellipsis
-                    // from overlapping the button.
-                    let icon_btn_offset = t.header_menu_icon_margin_r
-                        + t.header_menu_icon_btn_w;
-                    let label_max_w =
-                        (col.width - t.cell_padding - icon_btn_offset)
-                            .max(0.0);
-                    frame.push(ScenePrimitive::Text(TextPrimitive {
-                        x: cx + t.cell_padding,
-                        y: mid_y,
-                        text: col.label.clone(),
-                        color: t.header_text,
-                        font_size: t.header_font_size,
-                        bold: t.header_font_bold,
-                        clip: Some([cx, 0.0, col.width, hh]),
-                        align: TextAlign::Left,
-                        max_width: Some(label_max_w),
-                    }));
-
-                    // Three-dot menu icon (⋮) — three small circles at
-                    // the right edge of the header cell.
-                    {
-                        let mr = t.header_menu_icon_margin_r;
-                        let btn_w = t.header_menu_icon_btn_w;
-                        let btn_h = if t.header_menu_icon_btn_h > 0.0 {
-                            t.header_menu_icon_btn_h
-                        } else {
-                            (hh - 12.0).max(8.0)
-                        };
-                        // Right edge of button, inset by margin_r.
-                        let btn_rx = cx + col.width - mr;
-                        let btn_lx = btn_rx - btn_w;
-                        let btn_ty = (hh - btn_h) / 2.0;
-
-                        // Hover background.
-                        if hovered_menu_col == Some(ci) {
-                            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                                x: btn_lx,
-                                y: btn_ty,
-                                width: btn_w,
-                                height: btn_h,
-                                fill: t.header_menu_icon_hover_bg,
-                                stroke: None,
-                                stroke_width: 0.0,
-                                corner_radius: t.header_menu_icon_radius,
-                                clip: None,
-                            }));
-                        }
-
-                        let dot_r = t.header_menu_icon_dot_r;
-                        let dot_gap = dot_r * 3.75;
-                        // Icon center x = horizontal center of button.
-                        let icon_cx = btn_lx + btn_w / 2.0;
-                        let icon_mid_y = hh / 2.0;
-                        for i in -1i32..=1 {
-                            let dot_y = icon_mid_y + i as f64 * dot_gap;
-                            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                                x: icon_cx - dot_r,
-                                y: dot_y - dot_r,
-                                width: dot_r * 2.0,
-                                height: dot_r * 2.0,
-                                fill: t.header_menu_icon,
-                                stroke: None,
-                                stroke_width: 0.0,
-                                corner_radius: dot_r,
-                                clip: None,
-                            }));
-                        }
-                    }
-
-                    // Sort indicator ▲ / ▼
-                    if let Some(s) = &state.sort {
-                        if s.col_key == col.key {
-                            let aw = t.sort_arrow_width;
-                            let ah = t.sort_arrow_height;
-                            // Shifted left to leave room for menu icon.
-                            let ax = cx + col.width
-                                - t.header_menu_icon_margin_r
-                                - t.header_menu_icon_btn_w
-                                - t.cell_padding
-                                - aw;
-                            let ay = mid_y - t.header_font_size * 0.35;
-                            let points = if s.dir == SortDir::Asc {
-                                vec![
-                                    [ax, ay - ah],
-                                    [ax + aw, ay + ah * 0.6],
-                                    [ax - aw, ay + ah * 0.6],
-                                ]
-                            } else {
-                                vec![
-                                    [ax, ay + ah],
-                                    [ax + aw, ay - ah * 0.6],
-                                    [ax - aw, ay - ah * 0.6],
-                                ]
-                            };
-                            frame.push(ScenePrimitive::Polygon(
-                                PolygonPrimitive {
-                                    points,
-                                    fill: t.header_text,
-                                    corner_radius: 0.5,
-                                },
-                            ));
-                        }
-                    }
-
-                    let sep_x = cx + col.width - 0.5;
-                    frame.push(ScenePrimitive::Line(LinePrimitive {
-                        x1: sep_x,
-                        y1: t.header_separator_inset,
-                        x2: sep_x,
-                        y2: hh - t.header_separator_inset,
-                        color: t.header_border,
-                        width: t.header_separator_width,
-                    }));
-                }
-            };
-
-        // Scrollable column headers
-        render_col_headers(&mut frame, col_start..col_end);
-        // Pinned column headers (on top)
-        if pinned_count > 0 {
-            // Solid background masking scrollable headers underneath.
             frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: rnw,
+                x: 0.0,
                 y: 0.0,
-                width: pinned_width,
+                width: vp.width,
                 height: hh,
-                fill: t.pinned_header_bg,
+                fill: t.header_bg,
                 stroke: None,
                 stroke_width: 0.0,
                 corner_radius: 0.0,
                 clip: None,
             }));
-            render_col_headers(&mut frame, 0..pinned_count);
-        }
 
-        frame.push(ScenePrimitive::Line(LinePrimitive {
-            x1: 0.0,
-            y1: hh - 0.5,
-            x2: vp.width,
-            y2: hh - 0.5,
-            color: t.header_border,
-            width: 1.0,
-        }));
+            // Render column headers for a given index range.
+            let render_col_headers =
+                |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
+                    let mid_y = hh * 0.5 + t.header_font_size * 0.35;
+                    for ci in range {
+                        let col = &model.columns[ci];
+                        let cx = col_vx(ci);
+
+                        let col_in_sel = sel.range().is_some_and(|(tl, br)| {
+                            ci >= tl.col && ci <= br.col
+                        });
+                        if col_in_sel {
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: cx,
+                                y: 0.0,
+                                width: col.width,
+                                height: hh,
+                                fill: t.header_selection_fill,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: 0.0,
+                                clip: None,
+                            }));
+                        }
+
+                        // Text must end before the left edge of the
+                        // menu icon button to prevent the ellipsis
+                        // from overlapping the button.
+                        let icon_btn_offset = t.header_menu_icon_margin_r
+                            + t.header_menu_icon_btn_w;
+                        let label_max_w =
+                            (col.width - t.cell_padding - icon_btn_offset)
+                                .max(0.0);
+                        frame.push(ScenePrimitive::Text(TextPrimitive {
+                            x: cx + t.cell_padding,
+                            y: mid_y,
+                            text: col.label.clone(),
+                            color: t.header_text,
+                            font_size: t.header_font_size,
+                            bold: t.header_font_bold,
+                            clip: Some([cx, 0.0, col.width, hh]),
+                            align: TextAlign::Left,
+                            max_width: Some(label_max_w),
+                        }));
+
+                        // Three-dot menu icon (⋮) — three small circles at
+                        // the right edge of the header cell.
+                        {
+                            let mr = t.header_menu_icon_margin_r;
+                            let btn_w = t.header_menu_icon_btn_w;
+                            let btn_h = if t.header_menu_icon_btn_h > 0.0 {
+                                t.header_menu_icon_btn_h
+                            } else {
+                                (hh - 12.0).max(8.0)
+                            };
+                            // Right edge of button, inset by margin_r.
+                            let btn_rx = cx + col.width - mr;
+                            let btn_lx = btn_rx - btn_w;
+                            let btn_ty = (hh - btn_h) / 2.0;
+
+                            // Hover background.
+                            if hovered_menu_col == Some(ci) {
+                                frame.push(ScenePrimitive::Rect(
+                                    RectPrimitive {
+                                        x: btn_lx,
+                                        y: btn_ty,
+                                        width: btn_w,
+                                        height: btn_h,
+                                        fill: t.header_menu_icon_hover_bg,
+                                        stroke: None,
+                                        stroke_width: 0.0,
+                                        corner_radius: t
+                                            .header_menu_icon_radius,
+                                        clip: None,
+                                    },
+                                ));
+                            }
+
+                            let dot_r = t.header_menu_icon_dot_r;
+                            let dot_gap = dot_r * 3.75;
+                            // Icon center x = horizontal center of button.
+                            let icon_cx = btn_lx + btn_w / 2.0;
+                            let icon_mid_y = hh / 2.0;
+                            for i in -1i32..=1 {
+                                let dot_y = icon_mid_y + i as f64 * dot_gap;
+                                frame.push(ScenePrimitive::Rect(
+                                    RectPrimitive {
+                                        x: icon_cx - dot_r,
+                                        y: dot_y - dot_r,
+                                        width: dot_r * 2.0,
+                                        height: dot_r * 2.0,
+                                        fill: t.header_menu_icon,
+                                        stroke: None,
+                                        stroke_width: 0.0,
+                                        corner_radius: dot_r,
+                                        clip: None,
+                                    },
+                                ));
+                            }
+                        }
+
+                        // Sort indicator ▲ / ▼
+                        if let Some(s) = &state.sort {
+                            if s.col_key == col.key {
+                                let aw = t.sort_arrow_width;
+                                let ah = t.sort_arrow_height;
+                                // Shifted left to leave room for menu icon.
+                                let ax = cx + col.width
+                                    - t.header_menu_icon_margin_r
+                                    - t.header_menu_icon_btn_w
+                                    - t.cell_padding
+                                    - aw;
+                                let ay = mid_y - t.header_font_size * 0.35;
+                                let points = if s.dir == SortDir::Asc {
+                                    vec![
+                                        [ax, ay - ah],
+                                        [ax + aw, ay + ah * 0.6],
+                                        [ax - aw, ay + ah * 0.6],
+                                    ]
+                                } else {
+                                    vec![
+                                        [ax, ay + ah],
+                                        [ax + aw, ay - ah * 0.6],
+                                        [ax - aw, ay - ah * 0.6],
+                                    ]
+                                };
+                                frame.push(ScenePrimitive::Polygon(
+                                    PolygonPrimitive {
+                                        points,
+                                        fill: t.header_text,
+                                        corner_radius: 0.5,
+                                    },
+                                ));
+                            }
+                        }
+
+                        let sep_x = cx + col.width - 0.5;
+                        frame.push(ScenePrimitive::Line(LinePrimitive {
+                            x1: sep_x,
+                            y1: t.header_separator_inset,
+                            x2: sep_x,
+                            y2: hh - t.header_separator_inset,
+                            color: t.header_border,
+                            width: t.header_separator_width,
+                        }));
+                    }
+                };
+
+            // Scrollable column headers
+            render_col_headers(&mut frame, col_start..col_end);
+            // Pinned column headers (on top)
+            if pinned_count > 0 {
+                // Solid background masking scrollable headers underneath.
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: rnw,
+                    y: 0.0,
+                    width: pinned_width,
+                    height: hh,
+                    fill: t.pinned_header_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                    clip: None,
+                }));
+                render_col_headers(&mut frame, 0..pinned_count);
+            }
+
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: 0.0,
+                y1: hh - 0.5,
+                x2: vp.width,
+                y2: hh - 0.5,
+                color: t.header_border,
+                width: 1.0,
+            }));
         } // end if hh > 0.0
 
         // ── row-number gutter (sticky, drawn on top of scrolled data) ────────
@@ -695,8 +698,7 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < hh || ry > vp.height
-                {
+                if ry + model.row_height < hh || ry > vp.height {
                     continue;
                 }
 
@@ -845,8 +847,8 @@ impl SceneBuilder {
 mod tests {
     use super::*;
     use crate::primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive,
-        ScenePrimitive, TextPrimitive,
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextPrimitive,
     };
     use rs_grid_core::{
         column::ColumnDef,
@@ -1006,11 +1008,7 @@ mod tests {
         let t = Theme::light();
         let header_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
-            .filter(|r| {
-                r.y == 0.0
-                    && r.height == 40.0
-                    && r.fill == t.header_bg
-            })
+            .filter(|r| r.y == 0.0 && r.height == 40.0 && r.fill == t.header_bg)
             .collect();
         assert!(
             !header_rects.is_empty(),
@@ -1024,8 +1022,7 @@ mod tests {
         let b = SceneBuilder::new(1.0);
         let frame = b.build(&state, None, None, None);
         let texts = text_primitives(&frame);
-        let labels: Vec<&str> =
-            texts.iter().map(|t| t.text.as_str()).collect();
+        let labels: Vec<&str> = texts.iter().map(|t| t.text.as_str()).collect();
         assert!(labels.contains(&"Alpha"), "missing header Alpha");
         assert!(labels.contains(&"Beta"), "missing header Beta");
         assert!(labels.contains(&"Gamma"), "missing header Gamma");
@@ -1098,10 +1095,7 @@ mod tests {
                     && l.y1 > 40.0 // below header
             })
             .collect();
-        assert!(
-            !h_lines.is_empty(),
-            "should have horizontal grid lines"
-        );
+        assert!(!h_lines.is_empty(), "should have horizontal grid lines");
     }
 
     // ── column separators ────────────────────────────────────
@@ -1146,8 +1140,7 @@ mod tests {
         let dot_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| {
-                (r.corner_radius - t.header_menu_icon_dot_r).abs()
-                    < 0.01
+                (r.corner_radius - t.header_menu_icon_dot_r).abs() < 0.01
                     && r.fill == t.header_menu_icon
             })
             .collect();
@@ -1185,10 +1178,7 @@ mod tests {
     #[test]
     fn build_selection_adds_fill_and_border() {
         let mut state = make_state();
-        state.apply(GridCommand::SelectCell(CellCoord {
-            row: 1,
-            col: 1,
-        }));
+        state.apply(GridCommand::SelectCell(CellCoord { row: 1, col: 1 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let frame = b.build(&state, None, None, None);
@@ -1198,10 +1188,7 @@ mod tests {
             .into_iter()
             .filter(|r| r.fill == t.selection_fill)
             .collect();
-        assert!(
-            !sel_rects.is_empty(),
-            "should have selection fill rects"
-        );
+        assert!(!sel_rects.is_empty(), "should have selection fill rects");
 
         // Selection border (4 lines).
         let border_lines: Vec<_> = line_primitives(&frame)
@@ -1225,23 +1212,14 @@ mod tests {
             .into_iter()
             .filter(|l| l.color == t.selection_border)
             .collect();
-        assert!(
-            border_lines.is_empty(),
-            "no selection → no border lines"
-        );
+        assert!(border_lines.is_empty(), "no selection → no border lines");
     }
 
     #[test]
     fn build_multi_cell_selection() {
         let mut state = make_state();
-        state.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
-        state.apply(GridCommand::ExtendSelection(CellCoord {
-            row: 2,
-            col: 1,
-        }));
+        state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        state.apply(GridCommand::ExtendSelection(CellCoord { row: 2, col: 1 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let frame = b.build(&state, None, None, None);
@@ -1290,10 +1268,7 @@ mod tests {
             .into_iter()
             .filter(|r| r.fill == t.row_hover_bg)
             .collect();
-        assert!(
-            hover_rects.is_empty(),
-            "no hover → no hover overlay"
-        );
+        assert!(hover_rects.is_empty(), "no hover → no hover overlay");
     }
 
     // ── sort indicator ───────────────────────────────────────
@@ -1309,10 +1284,7 @@ mod tests {
         let frame = b.build(&state, None, None, None);
         let polys = polygon_primitives(&frame);
         // At least one polygon for the sort arrow.
-        assert!(
-            !polys.is_empty(),
-            "sort should produce a polygon arrow"
-        );
+        assert!(!polys.is_empty(), "sort should produce a polygon arrow");
     }
 
     #[test]
@@ -1325,14 +1297,9 @@ mod tests {
         // may still produce polygons).
         // Check: no polygon has the header_text fill.
         let t = Theme::light();
-        let sort_polys: Vec<_> = polys
-            .iter()
-            .filter(|p| p.fill == t.header_text)
-            .collect();
-        assert!(
-            sort_polys.is_empty(),
-            "no sort → no sort indicator polygon"
-        );
+        let sort_polys: Vec<_> =
+            polys.iter().filter(|p| p.fill == t.header_text).collect();
+        assert!(sort_polys.is_empty(), "no sort → no sort indicator polygon");
     }
 
     #[test]
@@ -1361,18 +1328,14 @@ mod tests {
     #[test]
     fn build_flash_changes_selection_border_color() {
         let mut state = make_state();
-        state.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let flash = FlashHint { alpha_factor: 0.5 };
         let frame = b.build(&state, None, Some(&flash), None);
 
         // Border lines should use flash_border color (alpha-adjusted).
-        let expected_a =
-            (t.flash_border.a as f64 * 0.5).round() as u8;
+        let expected_a = (t.flash_border.a as f64 * 0.5).round() as u8;
         let expected_color = Color::rgba(
             t.flash_border.r,
             t.flash_border.g,
@@ -1393,10 +1356,7 @@ mod tests {
     #[test]
     fn build_flash_overlay_on_selected_cells() {
         let mut state = make_state();
-        state.apply(GridCommand::SelectCell(CellCoord {
-            row: 0,
-            col: 0,
-        }));
+        state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let flash = FlashHint { alpha_factor: 1.0 };
@@ -1441,9 +1401,7 @@ mod tests {
 
     #[test]
     fn build_empty_grid_no_data_rows() {
-        let cols = vec![
-            ColumnDef::new("x", "X", 100.0),
-        ];
+        let cols = vec![ColumnDef::new("x", "X", 100.0)];
         let rows: Vec<RowRecord> = vec![];
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let state = GridState::new(model, 800.0, 600.0);
@@ -1451,10 +1409,8 @@ mod tests {
         let frame = b.build(&state, None, None, None);
         // Should still have background + header, but no cell text.
         let texts = text_primitives(&frame);
-        let data_texts: Vec<_> = texts
-            .iter()
-            .filter(|t| t.text != "X")
-            .collect();
+        let data_texts: Vec<_> =
+            texts.iter().filter(|t| t.text != "X").collect();
         assert!(
             data_texts.is_empty(),
             "empty grid should have no data cell text"
@@ -1480,16 +1436,9 @@ mod tests {
         // Ghost badge rect (drag_ghost_bg fill + rounded corners).
         let ghost_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
-            .filter(|r| {
-                r.fill == t.drag_ghost_bg
-                    && r.corner_radius > 0.0
-            })
+            .filter(|r| r.fill == t.drag_ghost_bg && r.corner_radius > 0.0)
             .collect();
-        assert_eq!(
-            ghost_rects.len(),
-            1,
-            "drag should show one ghost badge"
-        );
+        assert_eq!(ghost_rects.len(), 1, "drag should show one ghost badge");
 
         // Ghost label text.
         let texts = text_primitives(&frame);
@@ -1497,10 +1446,7 @@ mod tests {
             .iter()
             .filter(|t| t.color == Theme::light().drag_ghost_text)
             .collect();
-        assert!(
-            !ghost_labels.is_empty(),
-            "ghost badge should have a label"
-        );
+        assert!(!ghost_labels.is_empty(), "ghost badge should have a label");
     }
 
     #[test]
@@ -1568,10 +1514,7 @@ mod tests {
     #[test]
     fn build_scrolled_viewport_still_has_header() {
         let mut state = make_state();
-        state.apply(GridCommand::ScrollTo {
-            x: 0.0,
-            y: 200.0,
-        });
+        state.apply(GridCommand::ScrollTo { x: 0.0, y: 200.0 });
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let frame = b.build(&state, None, None, None);
@@ -1594,9 +1537,7 @@ mod tests {
 
     #[test]
     fn build_with_row_numbers() {
-        let cols = vec![
-            ColumnDef::new("a", "A", 100.0),
-        ];
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
         let rows: Vec<RowRecord> = (0..5)
             .map(|i| {
                 let mut r = RowRecord::new(i);
@@ -1620,10 +1561,7 @@ mod tests {
                     && r.fill == t.gutter_bg
             })
             .collect();
-        assert!(
-            !gutter_rects.is_empty(),
-            "should have gutter background"
-        );
+        assert!(!gutter_rects.is_empty(), "should have gutter background");
 
         // Row numbers as text (1-indexed).
         let texts = text_primitives(&frame);
@@ -1653,10 +1591,7 @@ mod tests {
                 && (l.x1 - l.x2).abs() < 0.01
                 && l.y1 == 0.0
         });
-        assert!(
-            !gutter_border,
-            "no row numbers → no gutter border"
-        );
+        assert!(!gutter_border, "no row numbers → no gutter border");
     }
 
     // ── pinned columns ───────────────────────────────────────
@@ -1737,8 +1672,7 @@ mod tests {
     // ── scrollbars ───────────────────────────────────────────
 
     #[test]
-    fn build_scrollbar_primitives_present_when_content_overflows()
-    {
+    fn build_scrollbar_primitives_present_when_content_overflows() {
         // Make content taller than viewport.
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
         let rows: Vec<RowRecord> = (0..100)
@@ -1761,8 +1695,7 @@ mod tests {
             .into_iter()
             .filter(|r| {
                 r.fill == t.scrollbar_thumb
-                    && (r.corner_radius - t.scrollbar_radius).abs()
-                        < 0.01
+                    && (r.corner_radius - t.scrollbar_radius).abs() < 0.01
             })
             .collect();
         assert!(
@@ -1806,8 +1739,7 @@ mod tests {
     fn build_dark_theme_different_background() {
         let state = make_state();
         let b_light = SceneBuilder::new(1.0);
-        let b_dark =
-            SceneBuilder::with_theme(1.0, Theme::dark());
+        let b_dark = SceneBuilder::with_theme(1.0, Theme::dark());
         let f_light = b_light.build(&state, None, None, None);
         let f_dark = b_dark.build(&state, None, None, None);
 
@@ -1881,9 +1813,7 @@ mod tests {
     #[test]
     fn build_search_highlights_matching_cells() {
         let mut state = make_state();
-        state.apply(GridCommand::Search {
-            query: "a0".into(),
-        });
+        state.apply(GridCommand::Search { query: "a0".into() });
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
         let frame = b.build(&state, None, None, None);
@@ -1892,8 +1822,7 @@ mod tests {
         let highlight_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| {
-                r.fill == t.search_highlight
-                    || r.fill == t.search_current
+                r.fill == t.search_highlight || r.fill == t.search_current
             })
             .collect();
         assert!(
@@ -1911,14 +1840,10 @@ mod tests {
         let highlight_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| {
-                r.fill == t.search_highlight
-                    || r.fill == t.search_current
+                r.fill == t.search_highlight || r.fill == t.search_current
             })
             .collect();
-        assert!(
-            highlight_rects.is_empty(),
-            "no search → no highlights"
-        );
+        assert!(highlight_rects.is_empty(), "no search → no highlights");
     }
 
     // ── pinned columns + hover ──────────────────────────

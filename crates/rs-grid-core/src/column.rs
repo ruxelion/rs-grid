@@ -223,10 +223,7 @@ impl ColumnDef {
 
     /// Create a column with the default width
     /// ([`DEFAULT_COL_WIDTH`] = 150 px).
-    pub fn simple(
-        key: impl Into<String>,
-        label: impl Into<String>,
-    ) -> Self {
+    pub fn simple(key: impl Into<String>, label: impl Into<String>) -> Self {
         Self::new(key, label, DEFAULT_COL_WIDTH)
     }
 
@@ -281,10 +278,7 @@ impl ColumnDef {
     }
 
     /// Set the cell buttons. Returns `self` for chaining.
-    pub fn with_cell_buttons(
-        mut self,
-        buttons: Vec<ButtonDef>,
-    ) -> Self {
+    pub fn with_cell_buttons(mut self, buttons: Vec<ButtonDef>) -> Self {
         self.cell_buttons = buttons;
         self
     }
@@ -292,10 +286,7 @@ impl ColumnDef {
     /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
     /// range, with [`MIN_COL_WIDTH`] as the absolute floor.
     pub fn clamp_width(&self, w: f64) -> f64 {
-        let floor = self
-            .min_width
-            .unwrap_or(MIN_COL_WIDTH)
-            .max(MIN_COL_WIDTH);
+        let floor = self.min_width.unwrap_or(MIN_COL_WIDTH).max(MIN_COL_WIDTH);
         let w = w.max(floor);
         match self.max_width {
             Some(max) => w.min(max.max(floor)),
@@ -516,9 +507,7 @@ mod tests {
     #[test]
     fn cell_validator_rejects_invalid_input() {
         let v = CellValidator::new(|s| {
-            s.parse::<u32>()
-                .map(|_| ())
-                .map_err(|e| e.to_string())
+            s.parse::<u32>().map(|_| ()).map_err(|e| e.to_string())
         });
         assert!(v.validate("abc").is_err());
     }
@@ -548,8 +537,7 @@ mod tests {
 
     #[test]
     fn with_editor_text() {
-        let col =
-            ColumnDef::new("a", "A", 100.0).with_editor(CellEditor::Text);
+        let col = ColumnDef::new("a", "A", 100.0).with_editor(CellEditor::Text);
         assert!(matches!(col.editor, Some(CellEditor::Text)));
     }
 
@@ -569,10 +557,7 @@ mod tests {
         ];
         let col = ColumnDef::new("a", "A", 100.0)
             .with_editor(CellEditor::Select { options: opts });
-        assert!(matches!(
-            col.editor,
-            Some(CellEditor::Select { .. })
-        ));
+        assert!(matches!(col.editor, Some(CellEditor::Select { .. })));
     }
 
     // ── with_validator ────────────────────────────────────

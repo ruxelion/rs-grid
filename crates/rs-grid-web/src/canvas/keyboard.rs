@@ -36,7 +36,7 @@ impl GridCanvas {
                         "ArrowDown" => (1, 0),
                         "ArrowLeft" => (0, -1),
                         "ArrowRight" => (0, 1),
-                        _ => unreachable!(),
+                        _ => return,
                     };
                     gc.dispatch(GridCommand::MoveSelection {
                         delta_row: dr,

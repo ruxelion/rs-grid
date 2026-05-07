@@ -36,10 +36,7 @@ impl Color {
             format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
         } else {
             let a = self.a as f64 / 255.0;
-            format!(
-                "rgba({}, {}, {}, {:.2})",
-                self.r, self.g, self.b, a
-            )
+            format!("rgba({}, {}, {}, {:.2})", self.r, self.g, self.b, a)
         }
     }
 }
@@ -392,10 +389,7 @@ mod tests {
         let c = Color::rgba(255, 128, 0, 128);
         let s = c.to_css_var();
         // Should be rgba(r, g, b, a) format with 2 decimal places
-        assert!(
-            s.starts_with("rgba(255, 128, 0,"),
-            "unexpected: {s}"
-        );
+        assert!(s.starts_with("rgba(255, 128, 0,"), "unexpected: {s}");
         // 128/255 ≈ 0.50
         assert!(s.contains("0.50"), "unexpected alpha: {s}");
     }

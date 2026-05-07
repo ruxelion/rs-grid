@@ -233,17 +233,11 @@ fn emit_scrollbar_arrow(
 #[cfg(test)]
 mod tests {
     use rs_grid_core::{
-        column::ColumnDef,
-        model::GridModel,
-        row::RowRecord,
+        column::ColumnDef, model::GridModel, row::RowRecord,
         viewport::ViewportState,
     };
 
-    use crate::{
-        frame::SceneFrame,
-        primitives::ScenePrimitive,
-        theme::Theme,
-    };
+    use crate::{frame::SceneFrame, primitives::ScenePrimitive, theme::Theme};
 
     use super::emit_scrollbars;
 
@@ -253,8 +247,7 @@ mod tests {
     /// Viewport height 300 px → vertical scrollbar appears.
     fn make_tall_model() -> GridModel {
         let cols = vec![ColumnDef::new("a", "A", 200.0)];
-        let rows: Vec<RowRecord> =
-            (0..100).map(RowRecord::new).collect();
+        let rows: Vec<RowRecord> = (0..100).map(RowRecord::new).collect();
         GridModel::new(cols, rows, 40.0, 48.0)
     }
 
@@ -268,8 +261,7 @@ mod tests {
             ColumnDef::new("d", "D", 300.0),
             ColumnDef::new("e", "E", 300.0),
         ];
-        let rows: Vec<RowRecord> =
-            (0..5).map(RowRecord::new).collect();
+        let rows: Vec<RowRecord> = (0..5).map(RowRecord::new).collect();
         GridModel::new(cols, rows, 40.0, 48.0)
     }
 
@@ -291,9 +283,10 @@ mod tests {
             "expected ≥6 primitives, got {}",
             frame.primitive_count()
         );
-        let has_polygon = frame.primitives.iter().any(|p| {
-            matches!(p, ScenePrimitive::Polygon(_))
-        });
+        let has_polygon = frame
+            .primitives
+            .iter()
+            .any(|p| matches!(p, ScenePrimitive::Polygon(_)));
         assert!(has_polygon, "expected arrow polygons");
     }
 
@@ -317,20 +310,12 @@ mod tests {
         let poly_count = frame
             .primitives
             .iter()
-            .filter(|p| {
-                matches!(p, ScenePrimitive::Polygon(_))
-            })
+            .filter(|p| matches!(p, ScenePrimitive::Polygon(_)))
             .count();
         // At least 3 rects (track + thumb + btn bg) for hsb
-        assert!(
-            rect_count >= 3,
-            "expected ≥3 rects, got {rect_count}"
-        );
+        assert!(rect_count >= 3, "expected ≥3 rects, got {rect_count}");
         // At least 2 polygons (left + right arrows) for hsb
-        assert!(
-            poly_count >= 2,
-            "expected ≥2 polygons, got {poly_count}"
-        );
+        assert!(poly_count >= 2, "expected ≥2 polygons, got {poly_count}");
     }
 
     #[test]

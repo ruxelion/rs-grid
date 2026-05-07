@@ -285,8 +285,7 @@ mod tests {
         let m = make_pinned_model();
         let rnw = m.row_number_width;
         // Click in header zone on pinned col with scroll_x=500
-        let col =
-            hit_test_col_header(rnw + 10.0, 20.0, &m, 500.0);
+        let col = hit_test_col_header(rnw + 10.0, 20.0, &m, 500.0);
         assert_eq!(col, Some(0));
     }
 

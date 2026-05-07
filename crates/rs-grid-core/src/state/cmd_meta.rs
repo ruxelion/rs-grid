@@ -51,7 +51,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_meta: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

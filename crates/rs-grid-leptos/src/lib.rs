@@ -72,8 +72,7 @@ pub fn GridCanvas(
     let model_slot = RefCell::new(Some(model));
     let on_mount_slot = RefCell::new(on_mount);
     let on_validation_error_slot = RefCell::new(on_validation_error);
-    let on_cell_button_click_slot =
-        RefCell::new(on_cell_button_click);
+    let on_cell_button_click_slot = RefCell::new(on_cell_button_click);
 
     // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
     // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
@@ -107,7 +106,9 @@ pub fn GridCanvas(
         // getBoundingClientRect() is reliable even before first paint;
         // fall back to window dimensions if the element has no size yet.
         let rect = canvas_el.get_bounding_client_rect();
-        let win = web_sys::window().expect("no window");
+        let Some(win) = web_sys::window() else {
+            return;
+        };
 
         let w = {
             let bw = rect.width();
@@ -147,14 +148,10 @@ pub fn GridCanvas(
                 cb(row, col.to_string(), msg.to_string());
             });
         }
-        if let Some(cb) =
-            on_cell_button_click_slot.borrow_mut().take()
-        {
-            gc.set_on_cell_button_click(
-                move |row, col, btn| {
-                    cb(row, col.to_string(), btn.to_string());
-                },
-            );
+        if let Some(cb) = on_cell_button_click_slot.borrow_mut().take() {
+            gc.set_on_cell_button_click(move |row, col, btn| {
+                cb(row, col.to_string(), btn.to_string());
+            });
         }
         if let Some(cb) = on_mount_slot.borrow_mut().take() {
             cb(gc);

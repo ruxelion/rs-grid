@@ -68,11 +68,13 @@ impl GridState {
                     .clone()
                     .or_else(|| self.selection.anchor.clone());
                 if let Some(b) = base {
-                    // Cast to i64 first so negative deltas don't
-                    // underflow the unsigned row/col indices, then
-                    // clamp to valid bounds before casting back.
-                    let new_row = (b.row as i64 + delta_row)
-                        .clamp(0, row_count.saturating_sub(1) as i64)
+                    // Use i128 for the row arithmetic so a u64 row
+                    // index near 2^63 cannot wrap when cast through
+                    // i64. Columns stay in i64: usize counts are
+                    // bounded well below 2^63 in practice.
+                    let max_row = row_count.saturating_sub(1);
+                    let new_row = ((b.row as i128) + (delta_row as i128))
+                        .clamp(0, max_row as i128)
                         as u64;
                     let new_col = (b.col as i64 + delta_col)
                         .clamp(0, col_count.saturating_sub(1) as i64)
@@ -85,7 +87,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_selection: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

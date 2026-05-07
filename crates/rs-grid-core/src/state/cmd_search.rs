@@ -32,7 +32,10 @@ impl GridState {
                 self.search = SearchState::default();
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_search: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 

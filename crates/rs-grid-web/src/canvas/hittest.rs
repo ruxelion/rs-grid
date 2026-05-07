@@ -162,8 +162,7 @@ impl GridCanvas {
         let b = self.0.builder.borrow();
         let t = &b.theme;
         let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
-        let icon_zone =
-            t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
+        let icon_zone = t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
         t.cell_padding + sort_zone + icon_zone
     }
 
@@ -181,12 +180,15 @@ impl GridCanvas {
         };
         // Space reserved at the right of the header for the
         // sort arrow, menu icon button, and their margins.
-        let sort_zone =
-            t.sort_arrow_width * 2.0 + t.cell_padding;
-        let icon_zone =
-            t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
+        let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
+        let icon_zone = t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
         let header_right_reserve = sort_zone + icon_zone;
-        (char_width, header_char_width, t.cell_padding, header_right_reserve)
+        (
+            char_width,
+            header_char_width,
+            t.cell_padding,
+            header_right_reserve,
+        )
     }
 
     /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the
@@ -234,10 +236,7 @@ impl GridCanvas {
     /// Returns the bottom-left corner of the menu icon button
     /// for `col_idx` in canvas-local coordinates, suitable for
     /// anchoring the context menu at a fixed position.
-    pub(super) fn menu_icon_anchor(
-        &self,
-        col_idx: usize,
-    ) -> (f64, f64) {
+    pub(super) fn menu_icon_anchor(&self, col_idx: usize) -> (f64, f64) {
         let theme = self.0.builder.borrow();
         let mr = theme.theme.header_menu_icon_margin_r;
         let bw = theme.theme.header_menu_icon_btn_w;
@@ -259,8 +258,7 @@ impl GridCanvas {
         } else {
             off - sx + rnw
         };
-        let col_right_vx =
-            col_left_vx + model.columns[col_idx].width;
+        let col_right_vx = col_left_vx + model.columns[col_idx].width;
         let btn_left_vx = col_right_vx - mr - bw;
         (btn_left_vx, btn_ty + btn_h)
     }

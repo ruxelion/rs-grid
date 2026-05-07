@@ -108,26 +108,19 @@ mod tests {
     #[test]
     fn flag_data_uri_non_empty_payload() {
         let uri = flag_data_uri("DE").unwrap();
-        let payload =
-            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
-        assert!(
-            !payload.is_empty(),
-            "base64 payload must not be empty"
-        );
+        let payload = uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(!payload.is_empty(), "base64 payload must not be empty");
     }
 
     #[test]
     fn flag_data_uri_valid_base64_chars() {
         let uri = flag_data_uri("GB").unwrap();
-        let payload =
-            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        let payload = uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
         assert!(
-            payload
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric()
-                    || c == '+'
-                    || c == '/'
-                    || c == '='),
+            payload.chars().all(|c| c.is_ascii_alphanumeric()
+                || c == '+'
+                || c == '/'
+                || c == '='),
             "payload contains invalid base64 characters"
         );
     }
@@ -141,28 +134,17 @@ mod tests {
 
     #[test]
     fn flags_sorted() {
-        let codes: Vec<&str> =
-            FLAGS.iter().map(|(k, _)| *k).collect();
+        let codes: Vec<&str> = FLAGS.iter().map(|(k, _)| *k).collect();
         for w in codes.windows(2) {
-            assert!(
-                w[0] < w[1],
-                "not sorted: {} >= {}",
-                w[0],
-                w[1]
-            );
+            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
         }
     }
 
     #[test]
     fn flags_no_duplicate_codes() {
-        let codes: Vec<&str> =
-            FLAGS.iter().map(|(k, _)| *k).collect();
+        let codes: Vec<&str> = FLAGS.iter().map(|(k, _)| *k).collect();
         for w in codes.windows(2) {
-            assert_ne!(
-                w[0], w[1],
-                "duplicate flag code: {}",
-                w[0]
-            );
+            assert_ne!(w[0], w[1], "duplicate flag code: {}", w[0]);
         }
     }
 
@@ -174,10 +156,7 @@ mod tests {
     #[test]
     fn all_flags_yields_valid_uris() {
         for (code, uri) in all_flags() {
-            assert!(
-                !code.is_empty(),
-                "flag code must not be empty"
-            );
+            assert!(!code.is_empty(), "flag code must not be empty");
             assert!(
                 uri.starts_with("data:image/svg+xml;base64,"),
                 "bad URI for flag {code}"
@@ -201,13 +180,9 @@ mod tests {
     #[test]
     fn flag_all_continents_represented() {
         // One country per continent (excl. Antarctica).
-        let samples =
-            ["US", "BR", "FR", "ZA", "CN", "AU"];
+        let samples = ["US", "BR", "FR", "ZA", "CN", "AU"];
         for code in samples {
-            assert!(
-                flag_data_uri(code).is_some(),
-                "missing flag: {code}"
-            );
+            assert!(flag_data_uri(code).is_some(), "missing flag: {code}");
         }
     }
 
@@ -247,26 +222,19 @@ mod tests {
     #[test]
     fn gender_data_uri_non_empty_payload() {
         let uri = gender_icon_uri("FEMALE").unwrap();
-        let payload =
-            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
-        assert!(
-            !payload.is_empty(),
-            "base64 payload must not be empty"
-        );
+        let payload = uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        assert!(!payload.is_empty(), "base64 payload must not be empty");
     }
 
     #[test]
     fn gender_data_uri_valid_base64_chars() {
         let uri = gender_icon_uri("MALE").unwrap();
-        let payload =
-            uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
+        let payload = uri.strip_prefix("data:image/svg+xml;base64,").unwrap();
         assert!(
-            payload
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric()
-                    || c == '+'
-                    || c == '/'
-                    || c == '='),
+            payload.chars().all(|c| c.is_ascii_alphanumeric()
+                || c == '+'
+                || c == '/'
+                || c == '='),
             "payload contains invalid base64 characters"
         );
     }
@@ -280,28 +248,17 @@ mod tests {
 
     #[test]
     fn genders_sorted() {
-        let keys: Vec<&str> =
-            GENDERS.iter().map(|(k, _)| *k).collect();
+        let keys: Vec<&str> = GENDERS.iter().map(|(k, _)| *k).collect();
         for w in keys.windows(2) {
-            assert!(
-                w[0] < w[1],
-                "not sorted: {} >= {}",
-                w[0],
-                w[1]
-            );
+            assert!(w[0] < w[1], "not sorted: {} >= {}", w[0], w[1]);
         }
     }
 
     #[test]
     fn genders_no_duplicate_keys() {
-        let keys: Vec<&str> =
-            GENDERS.iter().map(|(k, _)| *k).collect();
+        let keys: Vec<&str> = GENDERS.iter().map(|(k, _)| *k).collect();
         for w in keys.windows(2) {
-            assert_ne!(
-                w[0], w[1],
-                "duplicate gender key: {}",
-                w[0]
-            );
+            assert_ne!(w[0], w[1], "duplicate gender key: {}", w[0]);
         }
     }
 
@@ -313,10 +270,7 @@ mod tests {
     #[test]
     fn all_gender_icons_yields_valid_uris() {
         for (key, uri) in all_gender_icons() {
-            assert!(
-                !key.is_empty(),
-                "gender key must not be empty"
-            );
+            assert!(!key.is_empty(), "gender key must not be empty");
             assert!(
                 uri.starts_with("data:image/svg+xml;base64,"),
                 "bad URI for gender {key}"
@@ -353,8 +307,7 @@ mod tests {
     fn most_flags_have_distinct_uris() {
         // A few territories may share the exact same SVG,
         // but the vast majority must be unique.
-        let uris: Vec<&str> =
-            all_flags().map(|(_, v)| v).collect();
+        let uris: Vec<&str> = all_flags().map(|(_, v)| v).collect();
         let mut sorted = uris.clone();
         sorted.sort();
         sorted.dedup();

@@ -108,7 +108,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => unreachable!(),
+            _ => {
+                debug_assert!(false, "cmd_clipboard: unsupported variant");
+                CommandOutput::None
+            }
         }
     }
 }

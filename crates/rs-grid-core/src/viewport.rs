@@ -332,13 +332,8 @@ mod tests {
             scroll_x: 250.0,
             ..ViewportState::new(400.0, 600.0)
         };
-        let (first, _last) = vp.visible_scrollable_columns(
-            &offsets,
-            &widths,
-            1,
-            100.0,
-            40.0,
-        );
+        let (first, _last) =
+            vp.visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0);
         assert!(
             first >= 2,
             "scrollable cols before scroll should be skipped, first={first}"

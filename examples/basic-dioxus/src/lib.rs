@@ -5,9 +5,7 @@ use std::{cell::RefCell, rc::Rc};
 use dioxus::prelude::*;
 use example_common::{build_model, fmt_cols, fmt_rows};
 use rs_grid_core::state::GridState;
-use rs_grid_dioxus::{
-    theme_from_css_vars, WebGridCanvas, Locale,
-};
+use rs_grid_dioxus::{theme_from_css_vars, Locale, WebGridCanvas};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_sys::HtmlCanvasElement;
 
@@ -20,12 +18,7 @@ type GridRef = Rc<RefCell<Option<WebGridCanvas>>>;
 
 /// Detach the current GridCanvas if any and mount a fresh one with
 /// `rows` × `cols` of virtual data.
-fn remount(
-    canvas_ref: &CanvasRef,
-    grid_ref: &GridRef,
-    rows: u64,
-    cols: usize,
-) {
+fn remount(canvas_ref: &CanvasRef, grid_ref: &GridRef, rows: u64, cols: usize) {
     let Some(canvas) = canvas_ref.borrow().clone() else {
         return;
     };

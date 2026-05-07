@@ -26,11 +26,11 @@ pub const NEUTRAL_BG: Color = Color::rgb(9, 9, 11);
 pub const NEUTRAL_FG: Color = Color::rgb(228, 228, 231);
 
 /// base-200 colour — used by ghost variants and skeleton
-pub const BASE_200:     Color = Color::rgb(248, 248, 248);
+pub const BASE_200: Color = Color::rgb(248, 248, 248);
 /// base-content — dark text on light backgrounds
 pub const BASE_CONTENT: Color = Color::rgb(24, 24, 27);
 /// Global border width from --border
-pub const BORDER_W:     f64   = 1.0;
+pub const BORDER_W: f64 = 1.0;
 
 // ── Per-component geometry modules ────────────────────────────────────────────
 // Each module contains RADIUS, BORDER, FONT_SIZE, optional Sz size table,
@@ -51,18 +51,42 @@ pub mod badge {
     // ── Size system ───────────────────────────────────────────────────────
     /// Per-size geometry: padding-inline (px), padding-block (py),
     /// and font-size delta relative to the 14px base (fd).
-    pub struct Sz { pub px: f64, pub py: f64, pub fd: f64 }
+    pub struct Sz {
+        pub px: f64,
+        pub py: f64,
+        pub fd: f64,
+    }
 
     /// h=16.0px  font=10.0px
-    pub const XS: Sz = Sz { px: 7.0, py: 3.0, fd: -4.0 };
+    pub const XS: Sz = Sz {
+        px: 7.0,
+        py: 3.0,
+        fd: -4.0,
+    };
     /// h=20.0px  font=12.0px
-    pub const SM: Sz = Sz { px: 9.0, py: 4.0, fd: -2.0 };
+    pub const SM: Sz = Sz {
+        px: 9.0,
+        py: 4.0,
+        fd: -2.0,
+    };
     /// h=24.0px  font=14.0px
-    pub const MD: Sz = Sz { px: 11.0, py: 5.0, fd: 0.0 };
+    pub const MD: Sz = Sz {
+        px: 11.0,
+        py: 5.0,
+        fd: 0.0,
+    };
     /// h=28.0px  font=16.0px
-    pub const LG: Sz = Sz { px: 13.0, py: 6.0, fd: 2.0 };
+    pub const LG: Sz = Sz {
+        px: 13.0,
+        py: 6.0,
+        fd: 2.0,
+    };
     /// h=32.0px  font=18.0px
-    pub const XL: Sz = Sz { px: 15.0, py: 7.0, fd: 4.0 };
+    pub const XL: Sz = Sz {
+        px: 15.0,
+        py: 7.0,
+        fd: 4.0,
+    };
 
     // ── Colour variants (oklch → sRGB, light theme) ──────────────────────
     // _BG = badge/component fill  |  _FG = text/content colour
@@ -97,18 +121,42 @@ pub mod btn {
     // ── Size system ───────────────────────────────────────────────────────
     /// Per-size geometry: padding-inline (px), padding-block (py),
     /// and font-size delta relative to the 14px base (fd).
-    pub struct Sz { pub px: f64, pub py: f64, pub fd: f64 }
+    pub struct Sz {
+        pub px: f64,
+        pub py: f64,
+        pub fd: f64,
+    }
 
     /// h=24.0px  font=10.0px
-    pub const XS: Sz = Sz { px: 11.0, py: 7.0, fd: -4.0 };
+    pub const XS: Sz = Sz {
+        px: 11.0,
+        py: 7.0,
+        fd: -4.0,
+    };
     /// h=32.0px  font=12.0px
-    pub const SM: Sz = Sz { px: 15.0, py: 10.0, fd: -2.0 };
+    pub const SM: Sz = Sz {
+        px: 15.0,
+        py: 10.0,
+        fd: -2.0,
+    };
     /// h=40.0px  font=14.0px
-    pub const MD: Sz = Sz { px: 19.0, py: 13.0, fd: 0.0 };
+    pub const MD: Sz = Sz {
+        px: 19.0,
+        py: 13.0,
+        fd: 0.0,
+    };
     /// h=48.0px  font=16.0px
-    pub const LG: Sz = Sz { px: 23.0, py: 16.0, fd: 2.0 };
+    pub const LG: Sz = Sz {
+        px: 23.0,
+        py: 16.0,
+        fd: 2.0,
+    };
     /// h=56.0px  font=18.0px
-    pub const XL: Sz = Sz { px: 27.0, py: 19.0, fd: 4.0 };
+    pub const XL: Sz = Sz {
+        px: 27.0,
+        py: 19.0,
+        fd: 4.0,
+    };
 
     // ── Colour variants (oklch → sRGB, light theme) ──────────────────────
     // _BG = badge/component fill  |  _FG = text/content colour
@@ -166,18 +214,42 @@ pub mod kbd {
     // ── Size system ───────────────────────────────────────────────────────
     /// Per-size geometry: padding-inline (px), padding-block (py),
     /// and font-size delta relative to the 14px base (fd).
-    pub struct Sz { pub px: f64, pub py: f64, pub fd: f64 }
+    pub struct Sz {
+        pub px: f64,
+        pub py: f64,
+        pub fd: f64,
+    }
 
     /// h=16.0px  font=10.0px
-    pub const XS: Sz = Sz { px: 7.0, py: 3.0, fd: -4.0 };
+    pub const XS: Sz = Sz {
+        px: 7.0,
+        py: 3.0,
+        fd: -4.0,
+    };
     /// h=20.0px  font=12.0px
-    pub const SM: Sz = Sz { px: 9.0, py: 4.0, fd: -2.0 };
+    pub const SM: Sz = Sz {
+        px: 9.0,
+        py: 4.0,
+        fd: -2.0,
+    };
     /// h=24.0px  font=14.0px
-    pub const MD: Sz = Sz { px: 11.0, py: 5.0, fd: 0.0 };
+    pub const MD: Sz = Sz {
+        px: 11.0,
+        py: 5.0,
+        fd: 0.0,
+    };
     /// h=28.0px  font=16.0px
-    pub const LG: Sz = Sz { px: 13.0, py: 6.0, fd: 2.0 };
+    pub const LG: Sz = Sz {
+        px: 13.0,
+        py: 6.0,
+        fd: 2.0,
+    };
     /// h=32.0px  font=18.0px
-    pub const XL: Sz = Sz { px: 15.0, py: 7.0, fd: 4.0 };
+    pub const XL: Sz = Sz {
+        px: 15.0,
+        py: 7.0,
+        fd: 4.0,
+    };
 }
 
 /// Auto-generated from daisyui v5.5.19 `components/status/object.js`
@@ -192,18 +264,42 @@ pub mod status {
     // ── Size system ───────────────────────────────────────────────────────
     /// Per-size geometry: padding-inline (px), padding-block (py),
     /// and font-size delta relative to the 14px base (fd).
-    pub struct Sz { pub px: f64, pub py: f64, pub fd: f64 }
+    pub struct Sz {
+        pub px: f64,
+        pub py: f64,
+        pub fd: f64,
+    }
 
     /// h=16.0px  font=10.0px
-    pub const XS: Sz = Sz { px: 7.0, py: 3.0, fd: -4.0 };
+    pub const XS: Sz = Sz {
+        px: 7.0,
+        py: 3.0,
+        fd: -4.0,
+    };
     /// h=20.0px  font=12.0px
-    pub const SM: Sz = Sz { px: 9.0, py: 4.0, fd: -2.0 };
+    pub const SM: Sz = Sz {
+        px: 9.0,
+        py: 4.0,
+        fd: -2.0,
+    };
     /// h=24.0px  font=14.0px
-    pub const MD: Sz = Sz { px: 11.0, py: 5.0, fd: 0.0 };
+    pub const MD: Sz = Sz {
+        px: 11.0,
+        py: 5.0,
+        fd: 0.0,
+    };
     /// h=28.0px  font=16.0px
-    pub const LG: Sz = Sz { px: 13.0, py: 6.0, fd: 2.0 };
+    pub const LG: Sz = Sz {
+        px: 13.0,
+        py: 6.0,
+        fd: 2.0,
+    };
     /// h=32.0px  font=18.0px
-    pub const XL: Sz = Sz { px: 15.0, py: 7.0, fd: 4.0 };
+    pub const XL: Sz = Sz {
+        px: 15.0,
+        py: 7.0,
+        fd: 4.0,
+    };
 
     // ── Colour variants (oklch → sRGB, light theme) ──────────────────────
     // _BG = badge/component fill  |  _FG = text/content colour

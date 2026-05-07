@@ -79,11 +79,7 @@ impl SceneFrame {
     }
 
     /// Return the first [`ButtonZone`] that contains `(vx, vy)`.
-    pub fn hit_button(
-        &self,
-        vx: f64,
-        vy: f64,
-    ) -> Option<&ButtonZone> {
+    pub fn hit_button(&self, vx: f64, vy: f64) -> Option<&ButtonZone> {
         self.button_zones.iter().find(|z| z.contains(vx, vy))
     }
 

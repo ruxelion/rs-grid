@@ -414,12 +414,8 @@ mod tests {
         assert!(s0 < 50.0, "click at track top → near zero scroll");
         // Click at bottom of track → scroll near max
         let max_scroll = 3000.0 - (600.0 - 40.0);
-        let s1 = g.track_click_scroll(
-            g.track_y + g.track_h,
-            3000.0,
-            600.0,
-            40.0,
-        );
+        let s1 =
+            g.track_click_scroll(g.track_y + g.track_h, 3000.0, 600.0, 40.0);
         assert!(
             (s1 - max_scroll).abs() < 50.0,
             "click at track bottom → near max scroll"
@@ -437,10 +433,9 @@ mod tests {
     #[test]
     fn min_thumb_size_enforced() {
         // Very large content → thumb should still be >= MIN_THUMB_H
-        let g = ScrollbarGeom::compute(
-            0.0, 800.0, 600.0, 40.0, 100_000.0, 16.0,
-        )
-        .unwrap();
+        let g =
+            ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 100_000.0, 16.0)
+                .unwrap();
         assert!(
             g.thumb_h >= MIN_THUMB_H,
             "thumb_h={} < MIN_THUMB_H={}",
@@ -479,13 +474,7 @@ mod tests {
     fn hscroll_track_click_scroll() {
         let g = make_hscroll(0.0);
         // Click at left edge of track → near 0 scroll
-        let s0 = g.track_click_scroll(
-            g.track_x,
-            2000.0,
-            800.0,
-            50.0,
-            16.0,
-        );
+        let s0 = g.track_click_scroll(g.track_x, 2000.0, 800.0, 50.0, 16.0);
         assert!(s0 < 50.0, "click at track left → near zero scroll");
         // Click at right edge → near max scroll
         let available_w = 800.0 - 50.0 - 16.0;

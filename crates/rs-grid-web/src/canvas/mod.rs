@@ -25,8 +25,7 @@ use rs_grid_render_canvas::renderer::CanvasRenderer;
 
 use fetcher::FetchConfig;
 use rs_grid_scene::{
-    builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame,
-    Theme,
+    builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame, Theme,
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{
