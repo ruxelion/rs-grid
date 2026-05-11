@@ -20,6 +20,9 @@ pub struct GridModel {
     pub filtered_indices: Vec<u64>,
     pub mode: DataSourceMode,
     pub scrollbar_size: f64,
+    pub editable: bool,
+    pub selectable: bool,
+    pub column_reorderable: bool,
 }
 ```
 
@@ -40,6 +43,9 @@ pub struct GridModel {
 | `filtered_indices` | `Vec<u64>` | empty | Filtered physical row indices |
 | `mode` | `DataSourceMode` | `ClientSide` | Client or server-side data |
 | `scrollbar_size` | `f64` | `14.0` | Scrollbar reserved space |
+| `editable` | `bool` | `true` | Global inline-edit toggle (per-column flag still applies) |
+| `selectable` | `bool` | `true` | Global selection toggle; clears selection when set to `false` |
+| `column_reorderable` | `bool` | `true` | Allow header drag-to-reorder. `MoveColumn` works regardless |
 
 ## Constructors
 
@@ -82,6 +88,8 @@ impl GridModelBuilder {
     pub fn pinned_count(self, n: usize) -> Self;    // default 0
     pub fn mode(self, m: DataSourceMode) -> Self;   // default ClientSide
     pub fn scrollbar_size(self, s: f64) -> Self;    // default 14.0
+    pub fn selectable(self, v: bool) -> Self;       // default true
+    pub fn column_reorderable(self, v: bool) -> Self; // default true
     pub fn build(self) -> GridModel;
 }
 ```

@@ -62,6 +62,17 @@ impl GridCanvas {
             cmd,
             GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
         );
+        // Commands that mutate column layout (width, order, pin count) —
+        // fire the on_columns_changed callback so JS callers can persist
+        // the user's per-grid layout preferences.
+        let is_column_change = matches!(
+            cmd,
+            GridCommand::CommitColumnResize { .. }
+                | GridCommand::MoveColumn { .. }
+                | GridCommand::AutoFitColumn { .. }
+                | GridCommand::AutoFitAllColumns { .. }
+                | GridCommand::SetPinnedColumnCount { .. }
+        );
         // Commands that may expose new rows — trigger a page fetch in
         // server-side pagination mode (PageCacheDataSource).
         let triggers_fetch = matches!(
@@ -101,6 +112,11 @@ impl GridCanvas {
                 cb();
             }
         }
+        if is_column_change {
+            if let Some(cb) = self.0.on_columns_changed.borrow().as_ref() {
+                cb();
+            }
+        }
         if triggers_fetch {
             self.maybe_fetch_pages();
         }
@@ -115,6 +131,15 @@ impl GridCanvas {
     /// Register a callback fired after every cell-data mutation (paste).
     pub fn set_on_change(&self, cb: impl Fn() + 'static) {
         *self.0.on_change.borrow_mut() = Some(Box::new(cb));
+    }
+
+    /// Register a callback fired after every command that mutates column
+    /// layout: `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`,
+    /// `AutoFitAllColumns`, `SetPinnedColumnCount`. Use it together with
+    /// [`GridCanvas::column_widths`], [`GridCanvas::column_order`] and
+    /// [`GridCanvas::pinned_count`] to persist per-user grid layouts.
+    pub fn set_on_columns_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_columns_changed.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an

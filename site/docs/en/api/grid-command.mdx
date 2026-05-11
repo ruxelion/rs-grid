@@ -92,6 +92,14 @@ NotifyPageLoaded
 SetTotalRowCount(u64)
 ```
 
+### Behaviour toggles
+
+```rust
+SetEditable(bool)          // global inline-edit on/off
+SetSelectable(bool)        // global selection on/off (clears selection when false)
+SetColumnReorderable(bool) // header drag-to-reorder on/off (MoveColumn unaffected)
+```
+
 ## CommandOutput
 
 ```rust
