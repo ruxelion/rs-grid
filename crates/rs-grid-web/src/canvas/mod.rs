@@ -93,6 +93,9 @@ struct Inner {
     last_frame: RefCell<Option<SceneFrame>>,
     /// Optional callback fired after every command that mutates cell data.
     on_change: RefCell<Option<Box<dyn Fn()>>>,
+    /// Optional callback fired after every command that mutates column
+    /// layout (resize, move, auto-fit, pin count).
+    on_columns_changed: RefCell<Option<Box<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
@@ -304,6 +307,7 @@ impl GridCanvas {
             flash: RefCell::new(None),
             last_frame: RefCell::new(None),
             on_change: RefCell::new(None),
+            on_columns_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             on_cell_button_click: RefCell::new(None),
             edit_input: RefCell::new(None),
@@ -484,6 +488,40 @@ impl GridCanvas {
     pub fn set_class_resolver(&self, resolver: Rc<ClassResolver>) {
         self.0.builder.borrow_mut().set_class_resolver(resolver);
         self.render();
+    }
+
+    // ── column layout readers ────────────────────────────────────────────────
+
+    /// Snapshot of `(col_key, width)` for every column in their current
+    /// display order. Use this from `on_columns_changed` callbacks to persist
+    /// user-resized layouts.
+    pub fn column_widths(&self) -> Vec<(String, f64)> {
+        self.0
+            .state
+            .borrow()
+            .model
+            .columns
+            .iter()
+            .map(|c| (c.key.clone(), c.width))
+            .collect()
+    }
+
+    /// Snapshot of every column key in current display order. Reflects
+    /// `MoveColumn` re-orderings made by the user.
+    pub fn column_order(&self) -> Vec<String> {
+        self.0
+            .state
+            .borrow()
+            .model
+            .columns
+            .iter()
+            .map(|c| c.key.clone())
+            .collect()
+    }
+
+    /// Current count of pinned (frozen) columns.
+    pub fn pinned_count(&self) -> usize {
+        self.0.state.borrow().model.pinned_count
     }
 
     // ── public API for new v1 features ────────────────────────────────────────
