@@ -73,6 +73,20 @@ impl GridCanvas {
                 | GridCommand::AutoFitAllColumns { .. }
                 | GridCommand::SetPinnedColumnCount { .. }
         );
+        // Commands that mutate the selection rectangle — fire the
+        // on_selection_changed callback so JS callers can react to
+        // row/range selection (e.g. show a bulk-action toolbar).
+        let is_selection_change = matches!(
+            cmd,
+            GridCommand::SelectCell(_)
+                | GridCommand::ExtendSelection(_)
+                | GridCommand::ClearSelection
+                | GridCommand::MoveSelection { .. }
+                | GridCommand::SelectRow(_)
+                | GridCommand::ExtendRowSelection(_)
+                | GridCommand::SelectCol(_)
+                | GridCommand::ExtendColSelection(_)
+        );
         // Commands that may expose new rows — trigger a page fetch in
         // server-side pagination mode (PageCacheDataSource).
         let triggers_fetch = matches!(
@@ -114,6 +128,11 @@ impl GridCanvas {
         }
         if is_column_change {
             if let Some(cb) = self.0.on_columns_changed.borrow().as_ref() {
+                cb();
+            }
+        }
+        if is_selection_change {
+            if let Some(cb) = self.0.on_selection_changed.borrow().as_ref() {
                 cb();
             }
         }
@@ -159,6 +178,21 @@ impl GridCanvas {
     /// microtask or channel.
     pub fn set_on_columns_changed(&self, cb: impl Fn() + 'static) {
         *self.0.on_columns_changed.borrow_mut() = Some(Box::new(cb));
+    }
+
+    /// Register a callback fired after every command that mutates the
+    /// selection rectangle: `SelectCell`, `ExtendSelection`,
+    /// `ClearSelection`, `MoveSelection`, `SelectRow`, `ExtendRowSelection`,
+    /// `SelectCol`, `ExtendColSelection`. Use it together with
+    /// [`GridCanvas::selected_row_indices`] to drive row-level toolbars.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
+    /// it would re-borrow the internal state cell and panic. Defer via a
+    /// microtask or channel.
+    pub fn set_on_selection_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_selection_changed.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an

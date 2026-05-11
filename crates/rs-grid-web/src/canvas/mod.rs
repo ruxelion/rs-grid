@@ -96,6 +96,10 @@ struct Inner {
     /// Optional callback fired after every command that mutates column
     /// layout (resize, move, auto-fit, pin count).
     on_columns_changed: RefCell<Option<Box<dyn Fn()>>>,
+    /// Optional callback fired after every command that mutates the
+    /// selection rectangle (single click, shift-extend, row/col select,
+    /// clear, arrow-key move).
+    on_selection_changed: RefCell<Option<Box<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
@@ -308,6 +312,7 @@ impl GridCanvas {
             last_frame: RefCell::new(None),
             on_change: RefCell::new(None),
             on_columns_changed: RefCell::new(None),
+            on_selection_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             on_cell_button_click: RefCell::new(None),
             edit_input: RefCell::new(None),
@@ -522,6 +527,22 @@ impl GridCanvas {
     /// Current count of pinned (frozen) columns.
     pub fn pinned_count(&self) -> usize {
         self.0.state.borrow().model.pinned_count
+    }
+
+    /// Physical row indices currently inside the selection rectangle.
+    ///
+    /// Returns an empty `Vec` when nothing is selected. The selection model
+    /// is anchor + focus (a single rectangle), so the result is always a
+    /// contiguous range — non-contiguous multi-select is not supported yet.
+    ///
+    /// Use together with [`GridCanvas::set_on_selection_changed`] to drive
+    /// row-level toolbars (bulk delete, bulk approve, …).
+    pub fn selected_row_indices(&self) -> Vec<u64> {
+        let sel = &self.0.state.borrow().selection;
+        match sel.range() {
+            Some((tl, br)) => (tl.row..=br.row).collect(),
+            None => Vec::new(),
+        }
     }
 
     // ── public API for new v1 features ────────────────────────────────────────
