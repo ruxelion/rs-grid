@@ -85,6 +85,7 @@ body {
 .app-control-label {
   font-size: 13px;
   font-weight: 600;
+  color: #4b5563;
   white-space: nowrap;
   transition: color 0.2s;
 }
