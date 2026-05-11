@@ -595,7 +595,9 @@ impl GridCanvas {
                     let (ci, scx) = (col_idx, start_client_x);
                     drop(drag);
                     let dx = evt.client_x() as f64 - scx;
-                    if dx.abs() > 5.0 {
+                    let reorder_enabled =
+                        gc.0.state.borrow().model.column_reorderable;
+                    if dx.abs() > 5.0 && reorder_enabled {
                         let (vx, vy) = gc.canvas_xy(&evt);
                         // Seed animation from real column positions
                         // so the lerp starts from the actual layout.

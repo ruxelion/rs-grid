@@ -149,6 +149,7 @@ impl GridState {
             | GridCommand::SetShowRowNumbers(_)
             | GridCommand::SetEditable(_)
             | GridCommand::SetSelectable(_)
+            | GridCommand::SetColumnReorderable(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -1082,6 +1083,35 @@ mod tests {
         s.apply(GridCommand::SetSelectable(true));
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         assert!(s.selection.has_selection());
+    }
+
+    // ── SetColumnReorderable ─────────────────────────────────────────────────
+
+    #[test]
+    fn column_reorderable_defaults_to_true() {
+        let s = make_state();
+        assert!(s.model.column_reorderable);
+    }
+
+    #[test]
+    fn set_column_reorderable_toggles_flag() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetColumnReorderable(false));
+        assert!(!s.model.column_reorderable);
+        s.apply(GridCommand::SetColumnReorderable(true));
+        assert!(s.model.column_reorderable);
+    }
+
+    #[test]
+    fn move_column_still_works_when_reorder_disabled() {
+        // The flag gates only the UI drag; programmatic reorders
+        // remain available so apps can manipulate column order
+        // regardless of the user-facing toggle.
+        let mut s = make_state();
+        s.apply(GridCommand::SetColumnReorderable(false));
+        let first_key = s.model.columns[0].key.clone();
+        s.apply(GridCommand::MoveColumn { from_idx: 0, to_idx: 2 });
+        assert_eq!(s.model.columns[2].key, first_key);
     }
 
     // ── Edit guard edge cases ────────────────────────────────────────────────

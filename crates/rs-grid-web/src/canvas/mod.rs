@@ -503,6 +503,12 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetSelectable(selectable));
     }
 
+    /// Enable or disable header drag-to-reorder of columns.
+    /// Programmatic `MoveColumn` commands are unaffected.
+    pub fn set_column_reorderable(&self, reorderable: bool) {
+        self.dispatch(GridCommand::SetColumnReorderable(reorderable));
+    }
+
     /// Show or hide the column header row.
     pub fn set_show_header(&self, show: bool) {
         self.dispatch(GridCommand::SetShowHeader(show));
