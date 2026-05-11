@@ -94,6 +94,9 @@ pub enum GridCommand {
     SetEditable(bool),
     /// Enable or disable cell/row/column selection grid-wide.
     SetSelectable(bool),
+    /// Enable or disable header drag-to-reorder of columns.
+    /// Does not affect programmatic `MoveColumn` commands.
+    SetColumnReorderable(bool),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.
