@@ -23,6 +23,7 @@ const sidebarEN = [
       { text: 'Cell Buttons', link: '/features/cell-buttons' },
       { text: 'Editing', link: '/features/editing' },
       { text: 'Validation', link: '/features/validation' },
+      { text: 'Callbacks & Persistence', link: '/features/callbacks' },
       { text: 'Sorting', link: '/features/sorting' },
       { text: 'Filtering', link: '/features/filtering' },
       {
@@ -120,6 +121,7 @@ const sidebarFR = [
       { text: 'Boutons de cellule', link: '/fr/features/cell-buttons' },
       { text: 'Édition', link: '/fr/features/editing' },
       { text: 'Validation', link: '/fr/features/validation' },
+      { text: 'Callbacks et persistance', link: '/fr/features/callbacks' },
       { text: 'Tri', link: '/fr/features/sorting' },
       { text: 'Filtrage', link: '/fr/features/filtering' },
       {

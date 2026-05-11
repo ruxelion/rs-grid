@@ -128,22 +128,46 @@ impl GridCanvas {
         self.dispatch_with_output(cmd);
     }
 
-    /// Register a callback fired after every cell-data mutation (paste).
+    /// Register a callback fired after every command that mutates cell data
+    /// (edits, paste). Use it to persist patches or push to a backend.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
+    /// it would re-borrow the internal state cell and panic. Defer via a
+    /// microtask or channel if you need to react with another command.
     pub fn set_on_change(&self, cb: impl Fn() + 'static) {
         *self.0.on_change.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Register a callback fired after every command that mutates column
-    /// layout: `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`,
-    /// `AutoFitAllColumns`, `SetPinnedColumnCount`. Use it together with
+    /// **layout**: `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`,
+    /// `AutoFitAllColumns`, `SetPinnedColumnCount`. Combine with
     /// [`GridCanvas::column_widths`], [`GridCanvas::column_order`] and
     /// [`GridCanvas::pinned_count`] to persist per-user grid layouts.
+    ///
+    /// # Scope
+    ///
+    /// Layout = widths, order, pin count. **Sort and filter state are NOT
+    /// covered** by this callback — use `set_on_change` (or a custom
+    /// solution) if you need to persist them too.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
+    /// it would re-borrow the internal state cell and panic. Defer via a
+    /// microtask or channel.
     pub fn set_on_columns_changed(&self, cb: impl Fn() + 'static) {
         *self.0.on_columns_changed.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an
     /// edit. Arguments: `(row, col_key, error_message)`.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
+    /// it would re-borrow the internal state cell and panic.
     pub fn set_on_validation_error(
         &self,
         cb: impl Fn(u64, &str, &str) + 'static,
@@ -153,6 +177,11 @@ impl GridCanvas {
 
     /// Register a callback fired when a cell button is clicked.
     /// Arguments: `(row, col_key, button_id)`.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
+    /// it would re-borrow the internal state cell and panic.
     pub fn set_on_cell_button_click(
         &self,
         cb: impl Fn(u64, &str, &str) + 'static,

@@ -1,15 +1,23 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use example_common::{
     build_model, class_map::resolve_classes, fmt_cols, fmt_rows,
 };
 use leptos::prelude::*;
+use rs_grid_core::column::ColumnOffsets;
+use rs_grid_core::model::GridModel;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
+
+const LS_KEY: &str = "rs-grid-basic-layout";
+
+/// `(widths_by_key, order_by_key, pinned_count)`
+type PersistedLayout = (Vec<(String, f64)>, Vec<String>, usize);
 
 // Thread-local canvas ref — avoids Send requirements.
 // WASM is single-threaded so this is always safe.
@@ -257,8 +265,11 @@ fn App() -> impl IntoView {
             <div class="app-body">
                 <div class="app-grid-wrapper">
                     {move || {
-                        let model =
+                        let mut model =
                             build_model(row_count.get(), col_count.get());
+                        if let Some(layout) = load_layout() {
+                            apply_layout(&mut model, &layout);
+                        }
 
                         let on_mount_cb =
                             Box::new(move |gc: WebGridCanvas| {
@@ -272,6 +283,13 @@ fn App() -> impl IntoView {
                                 gc.set_column_reorderable(
                                     column_reorderable.get_untracked(),
                                 );
+                                // Persist column layout to localStorage so
+                                // user-resized / reordered columns survive
+                                // a page reload (F5).
+                                let gc_save = gc.clone();
+                                gc.set_on_columns_changed(move || {
+                                    save_layout(&gc_save);
+                                });
                                 CANVAS.with(|r| *r.borrow_mut() = Some(gc));
                             });
 
@@ -315,4 +333,51 @@ fn App() -> impl IntoView {
 pub fn main() {
     console_error_panic_hook::set_once();
     mount_to_body(App);
+}
+
+// ── column-layout persistence (localStorage) ──────────────────────────────────
+
+fn load_layout() -> Option<PersistedLayout> {
+    let ls = web_sys::window()?.local_storage().ok().flatten()?;
+    let raw = ls.get_item(LS_KEY).ok().flatten()?;
+    serde_json::from_str(&raw).ok()
+}
+
+fn save_layout(gc: &WebGridCanvas) {
+    let payload: PersistedLayout =
+        (gc.column_widths(), gc.column_order(), gc.pinned_count());
+    if let Ok(json) = serde_json::to_string(&payload) {
+        if let Some(ls) =
+            web_sys::window().and_then(|w| w.local_storage().ok().flatten())
+        {
+            let _ = ls.set_item(LS_KEY, &json);
+        }
+    }
+}
+
+fn apply_layout(model: &mut GridModel, layout: &PersistedLayout) {
+    let (widths, order, pinned) = layout;
+
+    let width_map: HashMap<&str, f64> =
+        widths.iter().map(|(k, w)| (k.as_str(), *w)).collect();
+    for col in model.columns.iter_mut() {
+        if let Some(w) = width_map.get(col.key.as_str()) {
+            col.width = *w;
+        }
+    }
+
+    let order_idx: HashMap<&str, usize> = order
+        .iter()
+        .enumerate()
+        .map(|(i, k)| (k.as_str(), i))
+        .collect();
+    model.columns.sort_by_key(|c| {
+        order_idx.get(c.key.as_str()).copied().unwrap_or(usize::MAX)
+    });
+
+    model.pinned_count = (*pinned).min(model.columns.len());
+
+    // Hit-testing reads `column_offsets`; keep it in sync after mutating
+    // widths and reordering.
+    model.column_offsets = ColumnOffsets::compute(&model.columns);
 }
