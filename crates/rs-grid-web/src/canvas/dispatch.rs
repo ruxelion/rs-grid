@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use rs_grid_core::commands::{CommandOutput, GridCommand};
 use wasm_bindgen::JsValue;
 
@@ -49,7 +51,8 @@ impl GridCanvas {
             if let Some(Err(msg)) = validation_result {
                 self.0.state.borrow_mut().apply(GridCommand::CancelEdit);
                 self.render();
-                if let Some(cb) = self.0.on_validation_error.borrow().as_ref() {
+                let cb = self.0.on_validation_error.borrow().clone();
+                if let Some(cb) = cb {
                     cb(row, col_key, &msg);
                 }
                 return CommandOutput::None;
@@ -121,18 +124,24 @@ impl GridCanvas {
             )));
         }
         self.render();
+        // Clone the `Rc` out of each `RefCell` before invoking — that
+        // releases the borrow, so a callback that re-dispatches a command
+        // of the same kind won't re-borrow the cell and panic.
         if is_mutation {
-            if let Some(cb) = self.0.on_change.borrow().as_ref() {
+            let cb = self.0.on_change.borrow().clone();
+            if let Some(cb) = cb {
                 cb();
             }
         }
         if is_column_change {
-            if let Some(cb) = self.0.on_columns_changed.borrow().as_ref() {
+            let cb = self.0.on_columns_changed.borrow().clone();
+            if let Some(cb) = cb {
                 cb();
             }
         }
         if is_selection_change {
-            if let Some(cb) = self.0.on_selection_changed.borrow().as_ref() {
+            let cb = self.0.on_selection_changed.borrow().clone();
+            if let Some(cb) = cb {
                 cb();
             }
         }
@@ -152,11 +161,12 @@ impl GridCanvas {
     ///
     /// # Re-entrancy
     ///
-    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
-    /// it would re-borrow the internal state cell and panic. Defer via a
-    /// microtask or channel if you need to react with another command.
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe — the callback is held by `Rc` and cloned out of its cell
+    /// before invocation, so the dispatch path has no live borrow when
+    /// user code runs.
     pub fn set_on_change(&self, cb: impl Fn() + 'static) {
-        *self.0.on_change.borrow_mut() = Some(Box::new(cb));
+        *self.0.on_change.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired after every command that mutates column
@@ -173,11 +183,10 @@ impl GridCanvas {
     ///
     /// # Re-entrancy
     ///
-    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
-    /// it would re-borrow the internal state cell and panic. Defer via a
-    /// microtask or channel.
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_columns_changed(&self, cb: impl Fn() + 'static) {
-        *self.0.on_columns_changed.borrow_mut() = Some(Box::new(cb));
+        *self.0.on_columns_changed.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired after every command that mutates the
@@ -188,11 +197,10 @@ impl GridCanvas {
     ///
     /// # Re-entrancy
     ///
-    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
-    /// it would re-borrow the internal state cell and panic. Defer via a
-    /// microtask or channel.
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_selection_changed(&self, cb: impl Fn() + 'static) {
-        *self.0.on_selection_changed.borrow_mut() = Some(Box::new(cb));
+        *self.0.on_selection_changed.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an
@@ -200,13 +208,13 @@ impl GridCanvas {
     ///
     /// # Re-entrancy
     ///
-    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
-    /// it would re-borrow the internal state cell and panic.
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_validation_error(
         &self,
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
-        *self.0.on_validation_error.borrow_mut() = Some(Box::new(cb));
+        *self.0.on_validation_error.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired when a cell button is clicked.
@@ -214,13 +222,13 @@ impl GridCanvas {
     ///
     /// # Re-entrancy
     ///
-    /// Do **not** dispatch a `GridCommand` synchronously from this callback —
-    /// it would re-borrow the internal state cell and panic.
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_cell_button_click(
         &self,
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
-        *self.0.on_cell_button_click.borrow_mut() = Some(Box::new(cb));
+        *self.0.on_cell_button_click.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Serialize the current patch layer as versioned TSV text.

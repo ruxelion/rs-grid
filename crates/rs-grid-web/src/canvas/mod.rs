@@ -92,22 +92,26 @@ struct Inner {
     /// hit-tested on mousedown without recomputing geometry.
     last_frame: RefCell<Option<SceneFrame>>,
     /// Optional callback fired after every command that mutates cell data.
-    on_change: RefCell<Option<Box<dyn Fn()>>>,
+    ///
+    /// Stored as `Rc` so the dispatch path can clone it out of the
+    /// `RefCell` borrow before invoking — that lets callbacks safely
+    /// dispatch further commands without re-entrant borrow panics.
+    on_change: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired after every command that mutates column
     /// layout (resize, move, auto-fit, pin count).
-    on_columns_changed: RefCell<Option<Box<dyn Fn()>>>,
+    on_columns_changed: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired after every command that mutates the
     /// selection rectangle (single click, shift-extend, row/col select,
     /// clear, arrow-key move).
-    on_selection_changed: RefCell<Option<Box<dyn Fn()>>>,
+    on_selection_changed: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
-    on_validation_error: RefCell<Option<Box<dyn Fn(u64, &str, &str)>>>,
+    on_validation_error: RefCell<Option<Rc<dyn Fn(u64, &str, &str)>>>,
     /// Optional callback fired when a cell button is clicked.
     /// Arguments: (row, col_key, button_id).
     #[allow(clippy::type_complexity)]
-    on_cell_button_click: RefCell<Option<Box<dyn Fn(u64, &str, &str)>>>,
+    on_cell_button_click: RefCell<Option<Rc<dyn Fn(u64, &str, &str)>>>,
     /// DOM element used for inline cell editing (`<input>` or `<select>`).
     edit_input: RefCell<Option<HtmlElement>>,
     /// Closures on the edit `<input>` (keydown, blur).
