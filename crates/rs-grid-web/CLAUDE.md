@@ -28,6 +28,24 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 - DPR is read once at mount and on each resize. Do not re-read it every frame.
 - `theme_from_css_vars()` reads the DOM — call only at mount, not every frame.
 
+## Public callbacks
+
+Callbacks fired during `dispatch()` after `GridState::apply()` returns:
+
+| Callback | Triggers |
+|---|---|
+| `set_on_change` | `PasteAt`, `CommitEdit` (cell data mutations) |
+| `set_on_columns_changed` | `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns`, `SetPinnedColumnCount` (layout mutations — **not** sort/filter) |
+| `set_on_validation_error` | A `ColumnDef.validator` returned `Err` |
+| `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
+
+**Re-entrancy**: callbacks run inside the dispatch path while `state` is
+still borrowed read-only. Do **not** dispatch a command synchronously
+from any callback — defer via microtask / channel.
+
+Layout getters callable from `on_columns_changed`:
+`column_widths()`, `column_order()`, `pinned_count()`.
+
 ## CSS theme
 
 CSS variables are prefixed `--rs-grid-*`. `light.css`, `dark.css`, and

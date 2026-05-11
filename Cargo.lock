@@ -219,8 +219,10 @@ dependencies = [
  "example-common",
  "js-sys",
  "leptos",
+ "rs-grid-core",
  "rs-grid-leptos",
  "rs-grid-scene",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]
