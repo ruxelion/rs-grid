@@ -28,6 +28,7 @@
 - [Tests](/fr/development/testing.md): Tests unitaires, tests end-to-end avec Playwright et régression visuelle.
 - [Workflow de développement](/fr/development/workspace.md): Structure du workspace, commandes de build et outils de développement.
 - [rs-grid](/fr/docs-overview.md): Moteur de data grid Rust/WASM haute performance pour le navigateur.
+- [Callbacks et persistance](/fr/features/callbacks.md): Hooks pour réagir aux modifications utilisateur et persister l'état de la grille entre les sessions.
 - [Boutons de cellule](/fr/features/cell-buttons.md): Boutons cliquables configurables rendus dans les cellules avec un callback de clic.
 - [Formatage des cellules](/fr/features/cell-formatting.md): Formats nombre, devise, pourcentage, booléen, image et formats personnalisés.
 - [Colonnes](/fr/features/columns.md): Définition des colonnes, redimensionnement, déplacement, épinglage et ajustement automatique.

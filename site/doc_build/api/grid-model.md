@@ -17,26 +17,32 @@ pub struct GridModel {
     pub filtered_indices: Vec<u64>,
     pub mode: DataSourceMode,
     pub scrollbar_size: f64,
+    pub editable: bool,
+    pub selectable: bool,
+    pub column_reorderable: bool,
 }
 ```
 
 ## Fields
 
-| Field              | Type                             | Default      | Description                        |
-| ------------------ | -------------------------------- | ------------ | ---------------------------------- |
-| `columns`          | `Vec<ColumnDef>`                 | —            | Ordered column definitions         |
-| `data`             | `Box<dyn DataSource>`            | —            | Backing data provider              |
-| `row_height`       | `f64`                            | —            | Height of data rows (logical px)   |
-| `header_height`    | `f64`                            | —            | Height of header row (logical px)  |
-| `column_offsets`   | `ColumnOffsets`                  | computed     | Precomputed left-edge offsets      |
-| `patches`          | `HashMap<(u64, String), String>` | empty        | Cell value overrides               |
-| `row_number_width` | `f64`                            | auto         | Gutter width (auto from row count) |
-| `sort_order`       | `Vec<u64>`                       | empty        | Display→physical row mapping       |
-| `pinned_count`     | `usize`                          | `0`          | Number of pinned leading columns   |
-| `filters`          | `HashMap<String, String>`        | empty        | Per-column text filters            |
-| `filtered_indices` | `Vec<u64>`                       | empty        | Filtered physical row indices      |
-| `mode`             | `DataSourceMode`                 | `ClientSide` | Client or server-side data         |
-| `scrollbar_size`   | `f64`                            | `14.0`       | Scrollbar reserved space           |
+| Field                | Type                             | Default      | Description                                                   |
+| -------------------- | -------------------------------- | ------------ | ------------------------------------------------------------- |
+| `columns`            | `Vec<ColumnDef>`                 | —            | Ordered column definitions                                    |
+| `data`               | `Box<dyn DataSource>`            | —            | Backing data provider                                         |
+| `row_height`         | `f64`                            | —            | Height of data rows (logical px)                              |
+| `header_height`      | `f64`                            | —            | Height of header row (logical px)                             |
+| `column_offsets`     | `ColumnOffsets`                  | computed     | Precomputed left-edge offsets                                 |
+| `patches`            | `HashMap<(u64, String), String>` | empty        | Cell value overrides                                          |
+| `row_number_width`   | `f64`                            | auto         | Gutter width (auto from row count)                            |
+| `sort_order`         | `Vec<u64>`                       | empty        | Display→physical row mapping                                  |
+| `pinned_count`       | `usize`                          | `0`          | Number of pinned leading columns                              |
+| `filters`            | `HashMap<String, String>`        | empty        | Per-column text filters                                       |
+| `filtered_indices`   | `Vec<u64>`                       | empty        | Filtered physical row indices                                 |
+| `mode`               | `DataSourceMode`                 | `ClientSide` | Client or server-side data                                    |
+| `scrollbar_size`     | `f64`                            | `14.0`       | Scrollbar reserved space                                      |
+| `editable`           | `bool`                           | `true`       | Global inline-edit toggle (per-column flag still applies)     |
+| `selectable`         | `bool`                           | `true`       | Global selection toggle; clears selection when set to `false` |
+| `column_reorderable` | `bool`                           | `true`       | Allow header drag-to-reorder. `MoveColumn` works regardless   |
 
 ## Constructors
 
@@ -79,6 +85,8 @@ impl GridModelBuilder {
     pub fn pinned_count(self, n: usize) -> Self;    // default 0
     pub fn mode(self, m: DataSourceMode) -> Self;   // default ClientSide
     pub fn scrollbar_size(self, s: f64) -> Self;    // default 14.0
+    pub fn selectable(self, v: bool) -> Self;       // default true
+    pub fn column_reorderable(self, v: bool) -> Self; // default true
     pub fn build(self) -> GridModel;
 }
 ```

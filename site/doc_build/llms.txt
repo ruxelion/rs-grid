@@ -28,6 +28,7 @@
 - [Testing](/development/testing.md): Unit tests, end-to-end tests with Playwright, and visual regression.
 - [Development Workflow](/development/workspace.md): Workspace structure, build commands, and development tools.
 - [rs-grid](/docs-overview.md): High-performance Rust/WASM data grid engine for the browser.
+- [Callbacks & persistence](/features/callbacks.md): Hooks for reacting to user changes and persisting grid state across sessions.
 - [Cell Buttons](/features/cell-buttons.md): Configurable clickable buttons rendered inside grid cells with a click callback.
 - [Cell Formatting](/features/cell-formatting.md): Number, currency, percentage, boolean, image, and custom cell formats.
 - [Columns](/features/columns.md): Column definitions, resizing, moving, pinning, and auto-fit.

@@ -1,0 +1,93 @@
+# Callbacks et persistance
+
+## Vue d'ensemble
+
+`WebGridCanvas` expose 4 callbacks pour réagir aux mutations déclenchées
+par l'utilisateur. Ce sont les primitives nécessaires pour persister
+l'état de la grille dans localStorage, vers un backend, ou tout autre
+puits externe. La grille elle-même ne persiste jamais rien — ce choix
+est laissé à l'appelant.
+
+## Callbacks disponibles
+
+| Méthode                    | Déclenchée quand                                        |
+| -------------------------- | ------------------------------------------------------- |
+| `set_on_change`            | Une `CommitEdit` ou `PasteAt` modifie une cellule       |
+| `set_on_columns_changed`   | Layout : largeur / ordre / nombre de colonnes épinglées |
+| `set_on_validation_error`  | Un `validator` de colonne a rejeté une édition          |
+| `set_on_cell_button_click` | L'utilisateur a cliqué un bouton de cellule             |
+
+## Persister la layout des colonnes
+
+`set_on_columns_changed` se déclenche après chaque commande qui modifie
+la layout. Combinée aux 3 readers, elle permet de capturer l'état.
+
+### Readers
+
+```rust
+pub fn column_widths(&self) -> Vec<(String, f64)>;  // (col_key, px)
+pub fn column_order(&self) -> Vec<String>;          // col_keys dans l'ordre d'affichage
+pub fn pinned_count(&self) -> usize;
+```
+
+### Exemple : localStorage
+
+```rust
+use rs_grid_leptos::WebGridCanvas;
+use web_sys::window;
+
+let on_mount = move |gc: WebGridCanvas| {
+    let gc_save = gc.clone();
+    gc.set_on_columns_changed(move || {
+        let payload = (
+            gc_save.column_widths(),
+            gc_save.column_order(),
+            gc_save.pinned_count(),
+        );
+        if let Ok(json) = serde_json::to_string(&payload) {
+            if let Some(ls) = window()
+                .and_then(|w| w.local_storage().ok().flatten())
+            {
+                let _ = ls.set_item("rs-grid-layout", &json);
+            }
+        }
+    });
+};
+```
+
+Au montage, lire le JSON et l'appliquer :
+
+- **Largeurs** — assigner `ColumnDef.width` avant de construire le `GridModel`
+- **Ordre** — trier `model.columns` pour correspondre à l'ordre persisté
+- **Pinned count** — affecter `model.pinned_count` directement (ou via `set_pinned_count` après mount)
+
+Après mutation des largeurs ou de l'ordre dans `model.columns`, recalculer
+les offsets précalculés utilisés par le hit-testing :
+
+```rust
+model.column_offsets = rs_grid_core::ColumnOffsets::compute(&model.columns);
+```
+
+L'exemple `examples/basic-leptos/src/lib.rs` contient un flow
+load/save/apply complet à recopier.
+
+## Portée de `set_on_columns_changed`
+
+Le callback couvre **uniquement la layout physique** : largeurs, ordre,
+nombre d'épinglées. Il **ne** se déclenche **pas** sur `ToggleSort`,
+`SetSort`, `ClearSort`, `SetColumnFilter` ou `ClearAllFilters` — il n'y
+a pas encore de callback dédié pour ces commandes. Persistez le tri et
+les filtres séparément si nécessaire.
+
+Il se déclenche aussi sur `CommitColumnResize` (une seule fois au
+mouseup), **et non** sur chaque `ResizeColumn` intermédiaire du drag —
+donc les écritures dans localStorage restent rares sans aucun throttle
+de votre côté.
+
+## Ré-entrance
+
+⚠️ **Ne pas dispatcher une `GridCommand` de manière synchrone depuis un
+callback.** Le callback s'exécute pendant que l'état interne de la grille
+est encore emprunté en lecture — un nouveau dispatch ferait paniquer le
+`RefCell`. Différer via `queueMicrotask`, `setTimeout(0)`, ou un canal
+si vous avez besoin de réagir avec une autre commande.
