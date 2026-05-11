@@ -180,6 +180,10 @@ pub struct GridModel {
     /// When false, all selection commands are ignored and
     /// any existing selection is cleared.
     pub selectable: bool,
+    /// Allow header drag-to-reorder of columns (true by default).
+    /// When false, the column drag interaction is suppressed.
+    /// Programmatic `GridCommand::MoveColumn` still works.
+    pub column_reorderable: bool,
 }
 
 impl GridModel {
@@ -230,6 +234,7 @@ impl GridModel {
             show_row_numbers: true,
             editable: true,
             selectable: true,
+            column_reorderable: true,
         }
     }
 
@@ -698,6 +703,7 @@ pub struct GridModelBuilder {
     show_row_numbers: bool,
     editable: bool,
     selectable: bool,
+    column_reorderable: bool,
 }
 
 impl GridModelBuilder {
@@ -719,6 +725,7 @@ impl GridModelBuilder {
             show_row_numbers: true,
             editable: true,
             selectable: true,
+            column_reorderable: true,
         }
     }
 
@@ -771,6 +778,12 @@ impl GridModelBuilder {
         self
     }
 
+    /// Allow or disallow header drag-to-reorder of columns.
+    pub fn column_reorderable(mut self, v: bool) -> Self {
+        self.column_reorderable = v;
+        self
+    }
+
     /// Build the [`GridModel`].
     pub fn build(self) -> GridModel {
         let pinned = self.pinned_count.min(self.columns.len());
@@ -787,6 +800,7 @@ impl GridModelBuilder {
         model.show_row_numbers = self.show_row_numbers;
         model.editable = self.editable;
         model.selectable = self.selectable;
+        model.column_reorderable = self.column_reorderable;
         model
     }
 }

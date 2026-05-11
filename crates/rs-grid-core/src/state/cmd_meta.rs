@@ -51,6 +51,10 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SetColumnReorderable(v) => {
+                self.model.column_reorderable = v;
+                CommandOutput::None
+            }
             _ => {
                 debug_assert!(false, "cmd_meta: unsupported variant");
                 CommandOutput::None

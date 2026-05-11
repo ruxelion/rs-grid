@@ -24,6 +24,7 @@ fn App() -> impl IntoView {
     let theme_class = RwSignal::new(String::new());
     let editable = RwSignal::new(true);
     let selectable = RwSignal::new(true);
+    let column_reorderable = RwSignal::new(true);
     let detected_lang = web_sys::window()
         .and_then(|w| w.navigator().language())
         .unwrap_or_default();
@@ -70,6 +71,16 @@ fn App() -> impl IntoView {
         CANVAS.with(|r| {
             if let Some(gc) = r.borrow().as_ref() {
                 gc.set_selectable(v);
+            }
+        });
+    });
+
+    // Propagate the column reorder toggle to the live canvas.
+    Effect::new(move |_| {
+        let v = column_reorderable.get();
+        CANVAS.with(|r| {
+            if let Some(gc) = r.borrow().as_ref() {
+                gc.set_column_reorderable(v);
             }
         });
     });
@@ -201,6 +212,22 @@ fn App() -> impl IntoView {
                             <span class="app-switch-track"></span>
                         </label>
                     </div>
+                    // Column reorder toggle
+                    <div class="app-control">
+                        <span class="app-control-label">"Column reorder"</span>
+                        <label class="app-switch">
+                            <input
+                                type="checkbox"
+                                checked=move || column_reorderable.get()
+                                on:change=move |e| {
+                                    column_reorderable.set(
+                                        event_target_checked(&e)
+                                    );
+                                }
+                            />
+                            <span class="app-switch-track"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
             {move || {
@@ -241,6 +268,9 @@ fn App() -> impl IntoView {
                                 gc.set_editable(editable.get_untracked());
                                 gc.set_selectable(
                                     selectable.get_untracked(),
+                                );
+                                gc.set_column_reorderable(
+                                    column_reorderable.get_untracked(),
                                 );
                                 CANVAS.with(|r| *r.borrow_mut() = Some(gc));
                             });
