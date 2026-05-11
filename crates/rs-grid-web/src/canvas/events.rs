@@ -443,9 +443,8 @@ impl GridCanvas {
                             .get(col_idx)
                             .map(|c| c.key.clone());
                     if let Some(key) = col_key {
-                        if let Some(cb) =
-                            gc.0.on_cell_button_click.borrow().as_ref()
-                        {
+                        let cb = gc.0.on_cell_button_click.borrow().clone();
+                        if let Some(cb) = cb {
                             cb(row, &key, &btn_id);
                         }
                     }

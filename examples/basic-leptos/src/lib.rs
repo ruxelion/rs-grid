@@ -236,6 +236,25 @@ fn App() -> impl IntoView {
                             <span class="app-switch-track"></span>
                         </label>
                     </div>
+                    // Reset persisted layout
+                    <div class="app-control">
+                        <span class="app-control-label">"Layout"</span>
+                        <button
+                            class="app-control-select"
+                            on:click=move |_| {
+                                if let Some(ls) = web_sys::window()
+                                    .and_then(|w| w.local_storage().ok().flatten())
+                                {
+                                    let _ = ls.remove_item(LS_KEY);
+                                }
+                                if let Some(w) = web_sys::window() {
+                                    let _ = w.location().reload();
+                                }
+                            }
+                        >
+                            "Reset"
+                        </button>
+                    </div>
                 </div>
             </div>
             {move || {
@@ -346,13 +365,15 @@ fn load_layout() -> Option<PersistedLayout> {
 fn save_layout(gc: &WebGridCanvas) {
     let payload: PersistedLayout =
         (gc.column_widths(), gc.column_order(), gc.pinned_count());
-    if let Ok(json) = serde_json::to_string(&payload) {
-        if let Some(ls) =
-            web_sys::window().and_then(|w| w.local_storage().ok().flatten())
-        {
-            let _ = ls.set_item(LS_KEY, &json);
-        }
-    }
+    let Ok(json) = serde_json::to_string(&payload) else {
+        return;
+    };
+    let Some(ls) =
+        web_sys::window().and_then(|w| w.local_storage().ok().flatten())
+    else {
+        return;
+    };
+    let _ = ls.set_item(LS_KEY, &json);
 }
 
 fn apply_layout(model: &mut GridModel, layout: &PersistedLayout) {
