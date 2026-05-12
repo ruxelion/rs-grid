@@ -1,7 +1,8 @@
 use crate::{model::GridModel, selection::CellCoord};
 
-/// Convert a pointer position in *viewport* space (logical pixels, top-left origin)
-/// into a `CellCoord`, accounting for the current scroll offset and row-number gutter.
+/// Convert a pointer position in *viewport* space (logical pixels, top-left
+/// origin) into a `CellCoord`, accounting for the current scroll offset and
+/// row-number gutter.
 ///
 /// Returns `None` when:
 /// - The pointer is over the row-number gutter.
@@ -143,7 +144,8 @@ mod tests {
         GridModel::new(cols, rows, 30.0, 40.0)
     }
 
-    // ── hit_test (data cells) ─────────────────────────────────────────────────
+    // ── hit_test (data cells)
+    // ─────────────────────────────────────────────────
 
     #[test]
     fn hit_first_cell() {
@@ -206,7 +208,8 @@ mod tests {
         assert_eq!(c.row, 1);
     }
 
-    // ── hit_test_col_header ───────────────────────────────────────────────────
+    // ── hit_test_col_header
+    // ───────────────────────────────────────────────────
 
     #[test]
     fn col_header_hit() {
@@ -227,7 +230,8 @@ mod tests {
         assert_eq!(hit_test_col_header(30.0, 20.0, &m, 0.0), None);
     }
 
-    // ── hit_test_row_header ───────────────────────────────────────────────────
+    // ── hit_test_row_header
+    // ───────────────────────────────────────────────────
 
     #[test]
     fn row_header_hit_first() {
@@ -294,8 +298,8 @@ mod tests {
     #[test]
     fn hit_with_large_scroll_y() {
         let m = make_model();
-        // scroll_y=100 > header_height=40 → triggers the precision-preserving path
-        // sy_content = 100-40=60, first_row = 60/30=2
+        // scroll_y=100 > header_height=40 → triggers the precision-preserving
+        // path sy_content = 100-40=60, first_row = 60/30=2
         // frac = 60%30=0
         // vy=50 → offset = (50+0)/30 = 1 → row = 2+1 = 3
         let c = hit_test(60.0, 50.0, &m, 0.0, 100.0).unwrap();

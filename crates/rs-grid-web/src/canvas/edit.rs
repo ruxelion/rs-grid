@@ -1,5 +1,4 @@
-use std::cell::Cell;
-use std::rc::Rc;
+use std::{cell::Cell, rc::Rc};
 
 use rs_grid_core::{
     column::{CellEditor, SelectOption},
@@ -8,8 +7,7 @@ use rs_grid_core::{
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlImageElement, HtmlInputElement, KeyboardEvent};
 
-use super::dom_helpers::document;
-use super::GridCanvas;
+use super::{dom_helpers::document, GridCanvas};
 use crate::css_theme;
 
 /// Geometry of an inline cell editor (screen coordinates).

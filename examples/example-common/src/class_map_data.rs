@@ -32,11 +32,11 @@ pub const BASE_CONTENT: Color = Color::rgb(24, 24, 27);
 /// Global border width from --border
 pub const BORDER_W: f64 = 1.0;
 
-// ── Per-component geometry modules ────────────────────────────────────────────
-// Each module contains RADIUS, BORDER, FONT_SIZE, optional Sz size table,
-// and colour constants for variants available on that component.
-// Colours are redundant with the shared constants above but are provided
-// for ergonomic access via e.g. badge::SUCCESS_BG.
+// ── Per-component geometry modules
+// ──────────────────────────────────────────── Each module contains RADIUS,
+// BORDER, FONT_SIZE, optional Sz size table, and colour constants for variants
+// available on that component. Colours are redundant with the shared constants
+// above but are provided for ergonomic access via e.g. badge::SUCCESS_BG.
 
 /// Auto-generated from daisyui v5.5.19 `components/badge/object.js`
 pub mod badge {

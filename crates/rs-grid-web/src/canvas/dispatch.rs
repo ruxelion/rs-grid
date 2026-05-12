@@ -248,13 +248,13 @@ impl GridCanvas {
     /// (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_outside_click(&self, cb: impl Fn() + 'static) {
         use wasm_bindgen::prelude::Closure;
-        let canvas_node: web_sys::Node =
-            self.0.canvas.clone().unchecked_into();
+        let canvas_node: web_sys::Node = self.0.canvas.clone().unchecked_into();
         let cb = Rc::new(cb);
         let closure = Closure::<dyn Fn(JsValue)>::new(move |ev: JsValue| {
-            let target = js_sys::Reflect::get(&ev, &JsValue::from_str("target"))
-                .ok()
-                .filter(|v| !v.is_null() && !v.is_undefined());
+            let target =
+                js_sys::Reflect::get(&ev, &JsValue::from_str("target"))
+                    .ok()
+                    .filter(|v| !v.is_null() && !v.is_undefined());
             let on_canvas = target
                 .and_then(|t| t.dyn_into::<web_sys::Node>().ok())
                 .map(|n| canvas_node.is_same_node(Some(&n)))
@@ -266,7 +266,10 @@ impl GridCanvas {
         let f: js_sys::Function =
             closure.as_ref().unchecked_ref::<js_sys::Function>().clone();
         let _ = document().add_event_listener_with_callback("click", &f);
-        self.0.doc_listeners.borrow_mut().push(("click".to_string(), f));
+        self.0
+            .doc_listeners
+            .borrow_mut()
+            .push(("click".to_string(), f));
         self.0.closures.borrow_mut().push(Box::new(closure));
     }
 

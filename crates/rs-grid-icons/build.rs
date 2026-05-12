@@ -1,6 +1,8 @@
-use std::io::Write;
-use std::path::Path;
-use std::{env, fs, path::PathBuf};
+use std::{
+    env, fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 /// Base64 alphabet (standard).
 const B64: &[u8; 64] =

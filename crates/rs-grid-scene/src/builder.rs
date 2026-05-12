@@ -55,7 +55,8 @@ pub struct FlashHint {
     pub alpha_factor: f64,
 }
 
-// ── builder ───────────────────────────────────────────────────────────────────
+// ── builder
+// ───────────────────────────────────────────────────────────────────
 
 /// Transforms a `GridState` snapshot into a `SceneFrame`.
 ///
@@ -345,8 +346,9 @@ impl SceneBuilder {
             }));
         }
 
-        // ── pinned-column data overlay ────────────────────────────────────────
-        // Rendered after scrollable rows so pinned cells appear on top.
+        // ── pinned-column data overlay
+        // ──────────────────────────────────────── Rendered after
+        // scrollable rows so pinned cells appear on top.
         if pinned_count > 0 && pinned_count <= model.columns.len() {
             // Solid background covering the full pinned band.
             frame.push(ScenePrimitive::Rect(RectPrimitive {
@@ -848,11 +850,6 @@ impl SceneBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
-        TextPrimitive,
-    };
     use rs_grid_core::{
         column::ColumnDef,
         commands::GridCommand,
@@ -861,6 +858,12 @@ mod tests {
         selection::CellCoord,
         sort::{SortDir, SortState},
         state::GridState,
+    };
+
+    use super::*;
+    use crate::primitives::{
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        TextPrimitive,
     };
 
     // ── helpers ──────────────────────────────────────────────

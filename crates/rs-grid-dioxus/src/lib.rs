@@ -8,12 +8,6 @@
 //! Re-exports: [`WebGridCanvas`], [`Locale`],
 //! [`theme_from_css_vars`].
 
-pub use rs_grid_web::theme_from_css_vars;
-/// Re-exported so callers can name the type in `on_mount`
-/// closures without depending on `rs-grid-web` directly.
-pub use rs_grid_web::GridCanvas as WebGridCanvas;
-pub use rs_grid_web::Locale;
-
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -23,6 +17,10 @@ use std::{
 use dioxus::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
+/// Re-exported so callers can name the type in `on_mount`
+/// closures without depending on `rs-grid-web` directly.
+pub use rs_grid_web::GridCanvas as WebGridCanvas;
+pub use rs_grid_web::{theme_from_css_vars, Locale};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 
@@ -71,14 +69,13 @@ impl PartialEq for ModelSlot {
 /// - `model`: A [`ModelSlot`] wrapping the `GridModel`.
 /// - `width`: CSS width (e.g. `"100%"` or `"800px"`).
 /// - `height`: CSS height (e.g. `"600px"`).
-/// - `theme`: Optional reactive `Signal<Theme>`. Changes
-///   are applied in-place via `set_theme()`.
-/// - `locale`: Optional reactive `Signal<Locale>`. Changes
-///   are applied in-place via `set_locale()`.
-/// - `on_mount`: Called once after mount with the
-///   `GridCanvas` handle.
-/// - `on_validation_error`: Called when a validator
-///   rejects an edit. Args: `(row, col_key, message)`.
+/// - `theme`: Optional reactive `Signal<Theme>`. Changes are applied in-place
+///   via `set_theme()`.
+/// - `locale`: Optional reactive `Signal<Locale>`. Changes are applied in-place
+///   via `set_locale()`.
+/// - `on_mount`: Called once after mount with the `GridCanvas` handle.
+/// - `on_validation_error`: Called when a validator rejects an edit. Args:
+///   `(row, col_key, message)`.
 #[component]
 pub fn GridCanvas(
     model: ModelSlot,

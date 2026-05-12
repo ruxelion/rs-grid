@@ -5,9 +5,10 @@ use rs_grid_core::{
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{MouseEvent, ResizeObserver, WheelEvent};
 
-use super::context_menu::remove_ctx_menu;
-use super::dom_helpers::document;
-use super::{ActiveDrag, GridCanvas, HThumbDrag, ThumbDrag};
+use super::{
+    context_menu::remove_ctx_menu, dom_helpers::document, ActiveDrag,
+    GridCanvas, HThumbDrag, ThumbDrag,
+};
 
 impl GridCanvas {
     pub(super) fn attach_resize_observer(&self) {

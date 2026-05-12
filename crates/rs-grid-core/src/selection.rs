@@ -37,7 +37,8 @@ impl SelectionState {
         self.focus = Some(coord);
     }
 
-    /// Extend the selection to cover a new focus cell (shift-click / shift-arrow).
+    /// Extend the selection to cover a new focus cell (shift-click /
+    /// shift-arrow).
     pub fn extend_to(&mut self, row: u64, col: usize) {
         self.focus = Some(CellCoord { row, col });
     }
@@ -106,7 +107,8 @@ impl SelectionState {
                 let cell = model
                     .get_cell(r, &model.columns[ci].key)
                     .unwrap_or_default();
-                // RFC 4180: quote if the field contains tab, newline, or double-quote
+                // RFC 4180: quote if the field contains tab, newline, or
+                // double-quote
                 if cell.contains(['\t', '\n', '\r', '"']) {
                     out.push('"');
                     for ch in cell.chars() {
@@ -126,8 +128,8 @@ impl SelectionState {
     }
 }
 
-/// Parse a TSV/CSV string (RFC 4180, tab-separated) into a 2-D array of strings.
-/// Trailing empty row produced by a final newline is dropped.
+/// Parse a TSV/CSV string (RFC 4180, tab-separated) into a 2-D array of
+/// strings. Trailing empty row produced by a final newline is dropped.
 pub fn parse_tsv(text: &str) -> Vec<Vec<String>> {
     let mut rows: Vec<Vec<String>> = Vec::new();
     let mut chars = text.chars().peekable();
@@ -230,7 +232,8 @@ mod tests {
         s
     }
 
-    // ── SelectionState ────────────────────────────────────────────────────────
+    // ── SelectionState
+    // ────────────────────────────────────────────────────────
 
     #[test]
     fn select_cell_sets_anchor_and_focus() {
@@ -301,7 +304,8 @@ mod tests {
         assert!(SelectionState::default().range().is_none());
     }
 
-    // ── parse_tsv ─────────────────────────────────────────────────────────────
+    // ── parse_tsv
+    // ─────────────────────────────────────────────────────────────
 
     #[test]
     fn parse_simple() {

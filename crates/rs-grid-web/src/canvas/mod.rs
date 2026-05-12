@@ -18,12 +18,12 @@ use std::{
     rc::Rc,
 };
 
+use dom_helpers::document;
+use fetcher::FetchConfig;
 use rs_grid_core::{
     commands::GridCommand, page_cache::PageCacheDataSource, state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
-
-use fetcher::FetchConfig;
 use rs_grid_scene::{
     builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame, Theme,
 };
@@ -34,9 +34,8 @@ use web_sys::{
 
 use crate::locale::Locale;
 
-use dom_helpers::document;
-
-// ── public handle ─────────────────────────────────────────────────────────────
+// ── public handle
+// ─────────────────────────────────────────────────────────────
 
 /// A mounted grid that owns its event listeners and render pipeline.
 ///
@@ -44,7 +43,8 @@ use dom_helpers::document;
 #[derive(Clone)]
 pub struct GridCanvas(Rc<Inner>);
 
-// ── internal state ────────────────────────────────────────────────────────────
+// ── internal state
+// ────────────────────────────────────────────────────────────
 
 struct Inner {
     state: RefCell<GridState>,
@@ -55,14 +55,16 @@ struct Inner {
     drag: RefCell<Option<ActiveDrag>>,
     /// Handle returned by `setTimeout` for the initial auto-scroll delay.
     scroll_timeout: RefCell<Option<i32>>,
-    /// Handle returned by `setInterval` for arrow-button auto-scroll (cleared on mouseup).
+    /// Handle returned by `setInterval` for arrow-button auto-scroll (cleared
+    /// on mouseup).
     scroll_interval: RefCell<Option<i32>>,
     /// Current mouse position during middle-click autoscroll (client coords).
     pan_mouse: RefCell<(f64, f64)>,
     #[allow(clippy::type_complexity)]
     _resize_closure: RefCell<Option<Closure<dyn FnMut(js_sys::Array)>>>,
     _resize_observer: RefCell<Option<ResizeObserver>>,
-    /// Stored references to document-level listeners so they can be removed on detach.
+    /// Stored references to document-level listeners so they can be removed on
+    /// detach.
     doc_listeners: RefCell<Vec<(String, js_sys::Function)>>,
     /// Stored references to canvas-level listeners for removal on detach.
     canvas_listeners: RefCell<Vec<(String, js_sys::Function)>>,
@@ -196,41 +198,36 @@ impl GridCanvas {
     ///
     /// # Parameters
     ///
-    /// - `canvas`: The target `<canvas>` DOM element. Its CSS
-    ///   dimensions must already be set (e.g. via `style`).
-    ///   `mount()` reads `clientWidth`/`clientHeight` to
-    ///   compute the physical size and sets `canvas.width`
-    ///   and `canvas.height` accordingly (CSS size × DPR).
+    /// - `canvas`: The target `<canvas>` DOM element. Its CSS dimensions must
+    ///   already be set (e.g. via `style`). `mount()` reads
+    ///   `clientWidth`/`clientHeight` to compute the physical size and sets
+    ///   `canvas.width` and `canvas.height` accordingly (CSS size × DPR).
     ///
-    /// - `state`: The initial grid state. **This value is
-    ///   mutated before it is stored**: three commands are
-    ///   applied synchronously —
-    ///   [`GridCommand::Resize`] (viewport from CSS
-    ///   dimensions), [`GridCommand::SetHeaderHeight`] and
-    ///   [`GridCommand::SetRowHeight`] (both from `theme`).
+    /// - `state`: The initial grid state. **This value is mutated before it is
+    ///   stored**: three commands are applied synchronously —
+    ///   [`GridCommand::Resize`] (viewport from CSS dimensions),
+    ///   [`GridCommand::SetHeaderHeight`] and [`GridCommand::SetRowHeight`]
+    ///   (both from `theme`).
     ///
-    /// - `theme`: Visual configuration (colours, row height,
-    ///   header height, font). Use `theme_from_css_vars()`
-    ///   to read values from CSS custom properties.
+    /// - `theme`: Visual configuration (colours, row height, header height,
+    ///   font). Use `theme_from_css_vars()` to read values from CSS custom
+    ///   properties.
     ///
-    /// - `locale`: UI string translations. Use
-    ///   [`Locale::default()`] for English.
+    /// - `locale`: UI string translations. Use [`Locale::default()`] for
+    ///   English.
     ///
     /// # Side-effects
     ///
-    /// - Sets `canvas.style.background-color` from
-    ///   `theme.bg` to prevent transparent flashes.
-    /// - Sets `tabindex="0"` and `outline: none` so the
-    ///   canvas can receive keyboard events.
-    /// - Attaches canvas-level listeners: `wheel`,
-    ///   `mousedown`, `mouseleave`, `dblclick`,
-    ///   `contextmenu`, `keydown`, `copy`, `cut`, `paste`.
-    /// - Attaches document-level listeners: `mousemove`,
-    ///   `mouseup`.
-    /// - Installs a `ResizeObserver` that keeps the
-    ///   physical canvas size in sync with CSS layout.
-    /// - Renders the first frame synchronously before
-    ///   returning.
+    /// - Sets `canvas.style.background-color` from `theme.bg` to prevent
+    ///   transparent flashes.
+    /// - Sets `tabindex="0"` and `outline: none` so the canvas can receive
+    ///   keyboard events.
+    /// - Attaches canvas-level listeners: `wheel`, `mousedown`, `mouseleave`,
+    ///   `dblclick`, `contextmenu`, `keydown`, `copy`, `cut`, `paste`.
+    /// - Attaches document-level listeners: `mousemove`, `mouseup`.
+    /// - Installs a `ResizeObserver` that keeps the physical canvas size in
+    ///   sync with CSS layout.
+    /// - Renders the first frame synchronously before returning.
     ///
     /// # Cleanup
     ///
@@ -391,7 +388,8 @@ impl GridCanvas {
         }
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+    // ── helpers
+    // ───────────────────────────────────────────────────────────────
 
     /// Returns `true` when this grid should handle keyboard /
     /// clipboard events.  The grid "has focus" when the active
@@ -458,8 +456,8 @@ impl GridCanvas {
         self.remove_edit_input();
         self.remove_search_input();
 
-        // 6. Drop all stored closures (invalidates their JS
-        //    functions and breaks Rc<Inner> cycles).
+        // 6. Drop all stored closures (invalidates their JS functions and
+        //    breaks Rc<Inner> cycles).
         self.0.closures.borrow_mut().clear();
         self.0.scroll_closures.borrow_mut().clear();
     }
@@ -549,7 +547,8 @@ impl GridCanvas {
         }
     }
 
-    // ── public API for new v1 features ────────────────────────────────────────
+    // ── public API for new v1 features
+    // ────────────────────────────────────────
 
     /// Set the number of pinned (frozen) columns.
     pub fn set_pinned_count(&self, count: usize) {

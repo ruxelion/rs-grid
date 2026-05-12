@@ -1,9 +1,8 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     sort::{SortDir, SortState},
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_sort_filter(
@@ -112,12 +111,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        sort::SortDir,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, sort::SortDir, state::GridState,
     };
 
     fn make_state() -> GridState {

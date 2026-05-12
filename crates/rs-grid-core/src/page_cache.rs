@@ -1,9 +1,13 @@
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::rc::Rc;
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet, VecDeque},
+    rc::Rc,
+};
 
-use crate::datasource::{CellStatus, DataSource};
-use crate::row::RowRecord;
+use crate::{
+    datasource::{CellStatus, DataSource},
+    row::RowRecord,
+};
 
 /// A page-cache data source for async/server-side data.
 ///

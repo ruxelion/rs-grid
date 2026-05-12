@@ -8,12 +8,6 @@
 //! Re-exports: [`WebGridCanvas`], [`Locale`],
 //! [`theme_from_css_vars`].
 
-pub use rs_grid_web::theme_from_css_vars;
-/// Re-exported so callers can name the type in `on_mount` closures without
-/// depending on `rs-grid-web` directly.
-pub use rs_grid_web::GridCanvas as WebGridCanvas;
-pub use rs_grid_web::Locale;
-
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -22,6 +16,10 @@ use std::{
 use leptos::prelude::*;
 use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
+/// Re-exported so callers can name the type in `on_mount` closures without
+/// depending on `rs-grid-web` directly.
+pub use rs_grid_web::GridCanvas as WebGridCanvas;
+pub use rs_grid_web::{theme_from_css_vars, Locale};
 use send_wrapper::SendWrapper;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
@@ -74,10 +72,10 @@ pub fn GridCanvas(
     let on_validation_error_slot = RefCell::new(on_validation_error);
     let on_cell_button_click_slot = RefCell::new(on_cell_button_click);
 
-    // Holder for the mounted GridCanvas handle, shared across effects and cleanup.
-    // SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for on_cleanup;
-    // it is safe because WASM is single-threaded and the value never actually
-    // crosses thread boundaries.
+    // Holder for the mounted GridCanvas handle, shared across effects and
+    // cleanup. SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for
+    // on_cleanup; it is safe because WASM is single-threaded and the value
+    // never actually crosses thread boundaries.
     let gc_holder: Rc<RefCell<Option<rs_grid_web::GridCanvas>>> =
         Rc::new(RefCell::new(None));
     let gc_for_theme = gc_holder.clone();

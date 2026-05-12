@@ -237,9 +237,8 @@ mod tests {
         viewport::ViewportState,
     };
 
-    use crate::{frame::SceneFrame, primitives::ScenePrimitive, theme::Theme};
-
     use super::emit_scrollbars;
+    use crate::{frame::SceneFrame, primitives::ScenePrimitive, theme::Theme};
 
     // ── helpers ──────────────────────────────────────────────
 

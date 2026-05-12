@@ -8,7 +8,8 @@ use crate::primitives::Color;
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Theme {
-    // ── palette ──────────────────────────────────────────────────────────────
+    // ── palette
+    // ──────────────────────────────────────────────────────────────
     /// Default cell background.
     pub bg: Color,
     /// Column header background.
@@ -44,16 +45,19 @@ pub struct Theme {
 
     /// Subtle background for odd data rows (0 = same as `bg`).
     pub row_alt_bg: Color,
-    /// Background overlay for the row under the cursor (transparent = disabled).
+    /// Background overlay for the row under the cursor (transparent =
+    /// disabled).
     pub row_hover_bg: Color,
 
-    // ── row / header dimensions ──────────────────────────────────────────────
+    // ── row / header dimensions
+    // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
     pub header_height: f64,
     /// Height of each data row in logical pixels.
     pub row_height: f64,
 
-    // ── typography ───────────────────────────────────────────────────────────
+    // ── typography
+    // ───────────────────────────────────────────────────────────
     /// Cell text font size in logical pixels.
     pub font_size: f64,
     /// Header text font size in logical pixels.
@@ -63,8 +67,10 @@ pub struct Theme {
     /// Render column header labels with `font-style: italic`.
     pub header_font_italic: bool,
 
-    // ── flash (paste feedback) ───────────────────────────────────────────────
-    /// Fill colour for the paste-flash animation (fades from full to transparent).
+    // ── flash (paste feedback)
+    // ───────────────────────────────────────────────
+    /// Fill colour for the paste-flash animation (fades from full to
+    /// transparent).
     pub flash_fill: Color,
     /// Border colour for the paste-flash animation.
     pub flash_border: Color,
@@ -79,11 +85,13 @@ pub struct Theme {
     /// Foreground colour of skeleton loading bars.
     pub skeleton_fg: Color,
 
-    // ── spacing ──────────────────────────────────────────────────────────────
+    // ── spacing
+    // ──────────────────────────────────────────────────────────────
     /// Horizontal padding inside each cell in logical pixels.
     pub cell_padding: f64,
 
-    // ── scrollbar ─────────────────────────────────────────────────────────────
+    // ── scrollbar
+    // ─────────────────────────────────────────────────────────────
     /// Track + thumb total width in logical pixels.
     pub scrollbar_width: f64,
     /// Corner radius of the thumb in logical pixels.
@@ -92,7 +100,8 @@ pub struct Theme {
     /// pixels.
     pub scrollbar_inset: f64,
 
-    // ── column drag ───────────────────────────────────────────────────────────
+    // ── column drag
+    // ───────────────────────────────────────────────────────────
     /// Dim overlay drawn over the source column header during a column drag.
     pub drag_overlay: Color,
     /// Background of the ghost header that follows the cursor during a column
@@ -113,13 +122,15 @@ pub struct Theme {
     /// (0–1). Higher = faster. Default 0.30 ≈ 200 ms at 60 fps.
     pub drag_anim_alpha: f64,
 
-    // ── sort indicator ────────────────────────────────────────────────────────
+    // ── sort indicator
+    // ────────────────────────────────────────────────────────
     /// Half-width of the sort arrow triangle, in logical pixels.
     pub sort_arrow_width: f64,
     /// Half-height of the sort arrow triangle, in logical pixels.
     pub sort_arrow_height: f64,
 
-    // ── column header menu icon ───────────────────────────────────────────────
+    // ── column header menu icon
+    // ───────────────────────────────────────────────
     /// Color of the three-dot (⋮) menu icon in each column header.
     pub header_menu_icon: Color,
     /// Background color of the menu icon button on hover.
@@ -137,7 +148,8 @@ pub struct Theme {
     /// Radius of each dot in the three-dot icon, in logical pixels.
     pub header_menu_icon_dot_r: f64,
 
-    // ── pinned columns ────────────────────────────────────────────────────────
+    // ── pinned columns
+    // ────────────────────────────────────────────────────────
     /// Background of the pinned-column data band.
     /// Defaults to `bg`.
     pub pinned_bg: Color,
@@ -150,7 +162,8 @@ pub struct Theme {
     /// Width of the pinned-column separator line in logical pixels.
     pub pinned_separator_width: f64,
 
-    // ── row-number gutter ─────────────────────────────────────────────────────
+    // ── row-number gutter
+    // ─────────────────────────────────────────────────────
     /// Background of the row-number gutter column.
     pub gutter_bg: Color,
     /// Text color of row numbers in the gutter.
@@ -164,7 +177,8 @@ pub struct Theme {
     /// Right border color of the gutter column.
     pub gutter_border: Color,
 
-    // ── cell buttons ──────────────────────────────────────────────────────────
+    // ── cell buttons
+    // ──────────────────────────────────────────────────────────
     /// Background of a Primary-style cell button.
     pub cell_btn_primary_bg: Color,
     /// Text color of a Primary-style cell button.
