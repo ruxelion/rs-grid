@@ -61,3 +61,105 @@ impl GridState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        column::ColumnDef,
+        commands::GridCommand,
+        model::GridModel,
+        row::RowRecord,
+        state::GridState,
+    };
+
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("ro", "ReadOnly", 100.0).read_only(),
+        ];
+        let rows = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("val{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn start_edit_sets_edit_cell() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        assert!(s.edit.is_some());
+        let e = s.edit.as_ref().expect("edit should be set");
+        assert_eq!(e.row, 0);
+        assert_eq!(e.col_key, "a");
+        assert_eq!(e.initial_value, "val0");
+    }
+
+    #[test]
+    fn start_edit_read_only_column_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "ro".into(),
+        });
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn start_edit_grid_not_editable_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetEditable(false));
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn cancel_edit_clears_edit() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CancelEdit);
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn commit_edit_without_active_edit_is_noop() {
+        let mut s = make_state();
+        // No StartEdit — CommitEdit should not panic.
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "new".into(),
+        });
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn commit_edit_wrong_row_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        // Commit for a different row — should not apply.
+        s.apply(GridCommand::CommitEdit {
+            row: 1,
+            col_key: "a".into(),
+            value: "new".into(),
+        });
+        // Edit remains active because the commit didn't match.
+        assert!(s.edit.is_some());
+    }
+}

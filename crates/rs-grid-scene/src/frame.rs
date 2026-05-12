@@ -202,4 +202,89 @@ mod tests {
         let f = SceneFrame::new(800.0, 600.0, 1.0);
         let _ = format!("{:?}", f);
     }
+
+    // ── ButtonZone ────────────────────────────────────────
+
+    fn make_zone() -> ButtonZone {
+        ButtonZone {
+            row: 0,
+            col: 0,
+            button_id: "btn".into(),
+            x: 10.0,
+            y: 20.0,
+            width: 50.0,
+            height: 24.0,
+        }
+    }
+
+    #[test]
+    fn button_zone_contains_inside() {
+        let z = make_zone();
+        assert!(z.contains(35.0, 32.0));
+    }
+
+    #[test]
+    fn button_zone_contains_left_edge() {
+        let z = make_zone();
+        assert!(z.contains(10.0, 20.0));
+    }
+
+    #[test]
+    fn button_zone_contains_right_edge_is_outside() {
+        let z = make_zone();
+        assert!(!z.contains(60.0, 32.0));
+    }
+
+    #[test]
+    fn button_zone_contains_bottom_edge_is_outside() {
+        let z = make_zone();
+        assert!(!z.contains(35.0, 44.0));
+    }
+
+    #[test]
+    fn button_zone_contains_outside_left() {
+        let z = make_zone();
+        assert!(!z.contains(9.9, 32.0));
+    }
+
+    #[test]
+    fn push_button_zone_increments_count() {
+        let mut f = SceneFrame::new(800.0, 600.0, 1.0);
+        assert_eq!(f.button_zones.len(), 0);
+        f.push_button_zone(make_zone());
+        assert_eq!(f.button_zones.len(), 1);
+        f.push_button_zone(make_zone());
+        assert_eq!(f.button_zones.len(), 2);
+    }
+
+    #[test]
+    fn hit_button_returns_matching_zone() {
+        let mut f = SceneFrame::new(800.0, 600.0, 1.0);
+        f.push_button_zone(make_zone());
+        let hit = f.hit_button(35.0, 32.0);
+        assert!(hit.is_some());
+        assert_eq!(hit.unwrap().button_id, "btn");
+    }
+
+    #[test]
+    fn hit_button_returns_none_on_miss() {
+        let mut f = SceneFrame::new(800.0, 600.0, 1.0);
+        f.push_button_zone(make_zone());
+        assert!(f.hit_button(0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn hit_button_returns_first_match() {
+        let mut f = SceneFrame::new(800.0, 600.0, 1.0);
+        f.push_button_zone(ButtonZone {
+            button_id: "first".into(),
+            ..make_zone()
+        });
+        f.push_button_zone(ButtonZone {
+            button_id: "second".into(),
+            ..make_zone()
+        });
+        let hit = f.hit_button(35.0, 32.0);
+        assert_eq!(hit.unwrap().button_id, "first");
+    }
 }
