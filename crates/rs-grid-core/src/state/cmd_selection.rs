@@ -86,10 +86,7 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => {
-                debug_assert!(false, "cmd_selection: unsupported variant");
-                CommandOutput::None
-            }
+            _ => super::unreachable_cmd("cmd_selection"),
         }
     }
 }

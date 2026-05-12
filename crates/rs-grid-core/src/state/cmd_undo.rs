@@ -21,10 +21,7 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => {
-                debug_assert!(false, "cmd_undo: unsupported variant");
-                CommandOutput::None
-            }
+            _ => super::unreachable_cmd("cmd_undo"),
         }
     }
 
