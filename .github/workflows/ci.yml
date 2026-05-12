@@ -11,6 +11,21 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rustfmt.toml uses nightly-only options (wrap_comments,
+      # imports_granularity, …) — must check with nightly rustfmt.
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
   check:
     name: Check & Lint
     runs-on: ubuntu-latest
@@ -21,15 +36,7 @@ jobs:
         with:
           components: clippy
 
-      # rustfmt.toml uses nightly-only options — must check with nightly.
-      - uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
-
       - uses: Swatinem/rust-cache@v2
-
-      - name: cargo fmt
-        run: cargo +nightly fmt --all -- --check
 
       - name: cargo check
         run: cargo check --workspace
