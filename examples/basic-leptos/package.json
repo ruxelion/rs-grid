@@ -7,7 +7,7 @@
     "gen": "node scripts/generate_class_map.mjs"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.4",
+    "@tailwindcss/cli": "^4.3.0",
     "tailwindcss": "^4.3.0",
     "daisyui": "^5.0.35",
     "culori": "^4.0.1"
