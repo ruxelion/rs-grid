@@ -647,6 +647,249 @@ mod tests {
         }
     }
 
+    // ── CellFormat::Styled ───────────────────────────────
+
+    #[test]
+    fn emit_cell_styled_no_bg_emits_text_only() {
+        use rs_grid_core::format::{CellAlign, CellElement};
+        use std::rc::Rc;
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("s", "S", 150.0).with_format(
+            CellFormat::Styled(Rc::new(|_raw| {
+                vec![CellElement {
+                    text: "active".into(),
+                    class: "".into(),
+                    align: CellAlign::Left,
+                }]
+            })),
+        );
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("active".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // No background → only a Text primitive.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(
+            frame.primitives[0],
+            ScenePrimitive::Text(_)
+        ));
+    }
+
+    #[test]
+    fn emit_cell_styled_with_bg_emits_rect_and_text() {
+        use crate::class_map::CellElementStyle;
+        use crate::primitives::Color;
+        use rs_grid_core::format::{CellAlign, CellElement};
+        use std::rc::Rc;
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("s", "S", 150.0).with_format(
+            CellFormat::Styled(Rc::new(|_raw| {
+                vec![CellElement {
+                    text: "badge".into(),
+                    class: "bg".into(),
+                    align: CellAlign::Left,
+                }]
+            })),
+        );
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        // Resolver that returns a background color.
+        let resolver: &crate::class_map::ClassResolver =
+            &|_class: &str| CellElementStyle {
+                background: Some(Color::rgb(255, 0, 0)),
+                padding_x: 4.0,
+                padding_y: 2.0,
+                ..CellElementStyle::default()
+            };
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("badge".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            Some(resolver),
+        );
+        // background rect + text
+        assert_eq!(frame.primitive_count(), 2);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Rect(_)));
+        assert!(matches!(frame.primitives[1], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_styled_multiple_elements_emits_all() {
+        use rs_grid_core::format::{CellAlign, CellElement};
+        use std::rc::Rc;
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("s", "S", 300.0).with_format(
+            CellFormat::Styled(Rc::new(|_raw| {
+                vec![
+                    CellElement {
+                        text: "A".into(),
+                        class: "".into(),
+                        align: CellAlign::Left,
+                    },
+                    CellElement {
+                        text: "B".into(),
+                        class: "".into(),
+                        align: CellAlign::Left,
+                    },
+                ]
+            })),
+        );
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("x".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // 2 elements → 2 Text primitives (no bg).
+        assert_eq!(frame.primitive_count(), 2);
+    }
+
+    // ── emit_cell_buttons ────────────────────────────────
+
+    #[test]
+    fn emit_cell_button_primary_emits_rect_text_and_zone() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col =
+            ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
+                ButtonDef::new("save", "Save", ButtonStyle::Primary),
+            ]);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            1,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // Rect + Text for the button.
+        assert_eq!(frame.primitive_count(), 2);
+        assert_eq!(frame.button_zones.len(), 1);
+        assert_eq!(frame.button_zones[0].button_id, "save");
+        assert_eq!(frame.button_zones[0].row, 1);
+    }
+
+    #[test]
+    fn emit_cell_button_ghost_has_stroke() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+        use crate::primitives::ScenePrimitive;
+
+        let mut frame = make_frame();
+        let col =
+            ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
+                ButtonDef::new("g", "Ghost", ButtonStyle::Ghost),
+            ]);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        let has_stroke = frame.primitives.iter().any(|p| {
+            matches!(p, ScenePrimitive::Rect(r) if r.stroke.is_some())
+        });
+        assert!(has_stroke, "Ghost button should have a stroke rect");
+    }
+
+    #[test]
+    fn emit_cell_button_secondary_and_danger_emit_zones() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col =
+            ColumnDef::new("x", "X", 400.0).with_cell_buttons(vec![
+                ButtonDef::new("d", "Del", ButtonStyle::Danger),
+                ButtonDef::new("s", "Sec", ButtonStyle::Secondary),
+            ]);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.button_zones.len(), 2);
+    }
+
     #[test]
     fn emit_cell_image_text_no_label_emits_only_image() {
         let mut frame = make_frame();

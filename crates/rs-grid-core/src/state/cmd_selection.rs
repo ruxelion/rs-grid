@@ -94,3 +94,128 @@ impl GridState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        column::ColumnDef,
+        commands::GridCommand,
+        model::GridModel,
+        row::RowRecord,
+        selection::CellCoord,
+        state::GridState,
+    };
+
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows = (0..10)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn select_cell_not_selectable_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetSelectable(false));
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        assert!(!s.selection.has_selection());
+    }
+
+    #[test]
+    fn extend_selection_not_selectable_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::SetSelectable(false));
+        // extend while not selectable — must not change selection
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 5, col: 2 }));
+        assert!(!s.selection.has_selection());
+    }
+
+    #[test]
+    fn extend_row_selection_without_anchor_sets_focus() {
+        let mut s = make_state();
+        // No prior selection — anchor is None.
+        s.apply(GridCommand::ExtendRowSelection(3));
+        // Focus should be set even with no prior anchor.
+        assert!(s.selection.focus.is_some());
+    }
+
+    #[test]
+    fn extend_row_selection_clamps_anchor_col_to_zero() {
+        let mut s = make_state();
+        // Anchor on col 2 — ExtendRowSelection must clamp anchor col to 0.
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 2 }));
+        s.apply(GridCommand::ExtendRowSelection(4));
+        let anchor = s.selection.anchor.expect("anchor must be set");
+        assert_eq!(anchor.col, 0);
+    }
+
+    #[test]
+    fn extend_col_selection_without_anchor_sets_focus() {
+        let mut s = make_state();
+        s.apply(GridCommand::ExtendColSelection(1));
+        assert!(s.selection.focus.is_some());
+    }
+
+    #[test]
+    fn extend_col_selection_clamps_anchor_row_to_zero() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 5, col: 0 }));
+        s.apply(GridCommand::ExtendColSelection(2));
+        let anchor = s.selection.anchor.expect("anchor must be set");
+        assert_eq!(anchor.row, 0);
+    }
+
+    #[test]
+    fn move_selection_without_existing_selection_is_noop() {
+        let mut s = make_state();
+        // No selection — MoveSelection should not panic.
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 1,
+            delta_col: 0,
+            extend: false,
+        });
+        assert!(!s.selection.has_selection());
+    }
+
+    #[test]
+    fn move_selection_extend_true_extends_range() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 2,
+            delta_col: 1,
+            extend: true,
+        });
+        // After extend the anchor stays at (0,0) and focus moves.
+        let anchor = s.selection.anchor.expect("anchor must be set");
+        let focus = s.selection.focus.expect("focus must be set");
+        assert_eq!(anchor.row, 0);
+        assert_eq!(focus.row, 2);
+        assert_eq!(focus.col, 1);
+    }
+
+    #[test]
+    fn move_selection_clamps_to_bounds() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 9, col: 2 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 100,
+            delta_col: 100,
+            extend: false,
+        });
+        let focus = s.selection.focus.expect("focus must be set");
+        assert_eq!(focus.row, 9);
+        assert_eq!(focus.col, 2);
+    }
+}

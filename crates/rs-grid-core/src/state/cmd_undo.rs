@@ -96,3 +96,105 @@ impl GridState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        column::ColumnDef,
+        commands::GridCommand,
+        model::GridModel,
+        row::RowRecord,
+        state::GridState,
+    };
+
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows = (0..5)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("v{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn undo_on_empty_history_is_noop() {
+        let mut s = make_state();
+        // No prior edits — Undo must not panic.
+        s.apply(GridCommand::Undo);
+    }
+
+    #[test]
+    fn redo_on_empty_history_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::Redo);
+    }
+
+    #[test]
+    fn undo_restores_previous_value() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "edited".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("edited")
+        );
+        s.apply(GridCommand::Undo);
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("v0")
+        );
+    }
+
+    #[test]
+    fn redo_reapplies_after_undo() {
+        let mut s = make_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "a".into(),
+            value: "new".into(),
+        });
+        s.apply(GridCommand::Undo);
+        s.apply(GridCommand::Redo);
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("new")
+        );
+    }
+
+    #[test]
+    fn undo_cell_with_no_prior_value_removes_patch() {
+        let mut s = make_state();
+        // Set a cell that had no initial value (col "b" has no data).
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "b".into(),
+        });
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "b".into(),
+            value: "added".into(),
+        });
+        assert!(s.model.get_cell(0, "b").is_some());
+        s.apply(GridCommand::Undo);
+        // Original state had no value for "b" — patch should be removed.
+        assert!(s.model.get_cell(0, "b").is_none());
+    }
+}
