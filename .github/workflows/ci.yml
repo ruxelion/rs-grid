@@ -98,3 +98,52 @@ jobs:
       - name: trunk build (basic-leptos)
         working-directory: examples/basic-leptos
         run: trunk build --release
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: basic-leptos-dist
+          path: examples/basic-leptos/dist/
+          retention-days: 1
+
+  e2e:
+    name: E2E Tests
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: e2e/package.json
+
+      - name: Install dependencies
+        working-directory: e2e
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install chromium --with-deps
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: basic-leptos-dist
+          path: examples/basic-leptos/dist/
+
+      - name: Run E2E tests (smoke + functional)
+        working-directory: e2e
+        # Visual regression snapshots were generated on Windows —
+        # skip them on Linux CI to avoid false font-rendering diffs.
+        # Run: npm run update-snapshots on Linux to regenerate them.
+        run: npx playwright test --grep-invert "visual regression"
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
