@@ -141,10 +141,7 @@ impl GridState {
                 }
                 CommandOutput::None
             }
-            _ => {
-                debug_assert!(false, "cmd_column: unsupported variant");
-                CommandOutput::None
-            }
+            _ => super::unreachable_cmd("cmd_column"),
         }
     }
 }

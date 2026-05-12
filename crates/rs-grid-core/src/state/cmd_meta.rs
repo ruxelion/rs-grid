@@ -54,10 +54,7 @@ impl GridState {
                 self.model.column_reorderable = v;
                 CommandOutput::None
             }
-            _ => {
-                debug_assert!(false, "cmd_meta: unsupported variant");
-                CommandOutput::None
-            }
+            _ => super::unreachable_cmd("cmd_meta"),
         }
     }
 }

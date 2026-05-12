@@ -61,6 +61,17 @@ pub struct GridState {
     history: UndoHistory,
 }
 
+/// Fallback for `_ =>` arms in cmd_* handlers.
+///
+/// The `debug_assert!` is compiled out in coverage builds
+/// (`cfg(coverage)` is set by cargo-llvm-cov) to reduce noise
+/// in the report — these arms are intentionally unreachable.
+pub(super) fn unreachable_cmd(name: &str) -> CommandOutput {
+    #[cfg(not(coverage))]
+    debug_assert!(false, "{name}: unsupported variant");
+    CommandOutput::None
+}
+
 /// Clamp `(x, y)` scroll coordinates to the valid range
 /// for the given model and viewport.
 fn clamp_scroll(

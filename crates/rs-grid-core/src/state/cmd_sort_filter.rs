@@ -100,10 +100,7 @@ impl GridState {
                 self.viewport.scroll_y = 0.0;
                 CommandOutput::None
             }
-            _ => {
-                debug_assert!(false, "cmd_sort_filter: unsupported variant");
-                CommandOutput::None
-            }
+            _ => super::unreachable_cmd("cmd_sort_filter"),
         }
     }
 }
