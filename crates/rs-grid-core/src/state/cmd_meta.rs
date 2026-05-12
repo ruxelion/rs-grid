@@ -1,6 +1,5 @@
-use crate::commands::{CommandOutput, GridCommand};
-
 use super::GridState;
+use crate::commands::{CommandOutput, GridCommand};
 
 impl GridState {
     pub(super) fn cmd_meta(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -66,11 +65,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, state::GridState,
     };
 
     fn make_state() -> GridState {

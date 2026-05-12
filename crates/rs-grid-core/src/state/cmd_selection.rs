@@ -1,9 +1,8 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     selection::CellCoord,
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_selection(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -98,12 +97,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        selection::CellCoord,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, selection::CellCoord, state::GridState,
     };
 
     fn make_state() -> GridState {

@@ -1,10 +1,9 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     format::{format_cell, CellFormat},
     undo::UndoEntry,
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_column(&mut self, cmd: GridCommand) -> CommandOutput {

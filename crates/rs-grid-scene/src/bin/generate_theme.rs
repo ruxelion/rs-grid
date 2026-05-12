@@ -11,7 +11,8 @@ use std::path::PathBuf;
 
 use rs_grid_scene::{primitives::Color, Theme};
 
-// ── formatting helpers ────────────────────────────────────────────────────────
+// ── formatting helpers
+// ────────────────────────────────────────────────────────
 
 /// Color → CSS value: `#rrggbb` when opaque, `rgba(r, g, b, a)` otherwise.
 fn c(color: Color) -> String {
@@ -49,7 +50,8 @@ fn b(v: bool) -> &'static str {
     }
 }
 
-// ── Theme → CSS variable list ─────────────────────────────────────────────────
+// ── Theme → CSS variable list
+// ─────────────────────────────────────────────────
 
 fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
     vec![
@@ -202,7 +204,8 @@ fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
     ]
 }
 
-// ── context menu vars (CSS-only, not in Theme) ────────────────────────────────
+// ── context menu vars (CSS-only, not in Theme)
+// ────────────────────────────────
 
 const CTX_LIGHT: &[(&str, &str)] = &[
     ("--rs-grid-ctx-bg", "#ffffff"),
@@ -234,7 +237,8 @@ const CTX_DIMMED: &[(&str, &str)] = &[
     ("--rs-grid-ctx-separator", "#373e47"),
 ];
 
-// ── CSS rendering ─────────────────────────────────────────────────────────────
+// ── CSS rendering
+// ─────────────────────────────────────────────────────────────
 
 const HEADER: &str = concat!(
     "/* AUTO-GENERATED — do not edit.\n",

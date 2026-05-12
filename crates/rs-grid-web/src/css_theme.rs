@@ -198,7 +198,8 @@ pub fn theme_from_css_vars() -> Theme {
     t
 }
 
-// ── DOM helpers ───────────────────────────────────────────────────────────────
+// ── DOM helpers
+// ───────────────────────────────────────────────────────────────
 
 pub(crate) fn root_computed_style() -> Option<web_sys::CssStyleDeclaration> {
     let window = web_sys::window()?;
@@ -218,7 +219,8 @@ pub(crate) fn get_var(
         .to_string()
 }
 
-// ── parsers ───────────────────────────────────────────────────────────────────
+// ── parsers
+// ───────────────────────────────────────────────────────────────────
 
 /// Parse a CSS color string into a `Color`.
 ///

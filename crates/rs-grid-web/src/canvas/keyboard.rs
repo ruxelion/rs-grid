@@ -2,9 +2,7 @@ use rs_grid_core::commands::GridCommand;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{ClipboardEvent, KeyboardEvent};
 
-use super::context_menu::remove_ctx_menu;
-use super::dom_helpers::document;
-use super::GridCanvas;
+use super::{context_menu::remove_ctx_menu, dom_helpers::document, GridCanvas};
 
 impl GridCanvas {
     pub(super) fn attach_keydown(&self) {

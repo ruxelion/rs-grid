@@ -2,8 +2,7 @@ use rs_grid_core::commands::GridCommand;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlInputElement, KeyboardEvent};
 
-use super::dom_helpers::document;
-use super::GridCanvas;
+use super::{dom_helpers::document, GridCanvas};
 use crate::css_theme;
 
 impl GridCanvas {

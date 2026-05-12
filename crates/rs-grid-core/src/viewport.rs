@@ -11,7 +11,8 @@ pub struct ViewportState {
     pub width: f64,
     /// Canvas height in logical pixels.
     pub height: f64,
-    /// Extra rows rendered above and below the visible area to prevent flicker.
+    /// Extra rows rendered above and below the visible area to prevent
+    /// flicker.
     pub overscan: usize,
 }
 
@@ -38,7 +39,8 @@ impl ViewportState {
         }
     }
 
-    /// Inclusive start / exclusive end of the visible row range (with overscan).
+    /// Inclusive start / exclusive end of the visible row range (with
+    /// overscan).
     pub fn visible_rows(
         &self,
         row_count: u64,
@@ -155,7 +157,8 @@ mod tests {
         }
     }
 
-    // ── visible_rows ──────────────────────────────────────────────────────────
+    // ── visible_rows
+    // ──────────────────────────────────────────────────────────
 
     #[test]
     fn visible_rows_empty_grid() {
@@ -197,7 +200,8 @@ mod tests {
         assert_eq!(last, 10);
     }
 
-    // ── visible_columns ───────────────────────────────────────────────────────
+    // ── visible_columns
+    // ───────────────────────────────────────────────────────
 
     fn make_offsets() -> (ColumnOffsets, Vec<f64>) {
         let cols = vec![

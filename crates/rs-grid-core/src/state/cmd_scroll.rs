@@ -1,6 +1,5 @@
-use crate::commands::{CommandOutput, GridCommand};
-
 use super::{clamp_scroll, GridState};
+use crate::commands::{CommandOutput, GridCommand};
 
 impl GridState {
     pub(super) fn cmd_scroll(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -40,11 +39,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, state::GridState,
     };
 
     fn make_state() -> GridState {
@@ -75,7 +71,10 @@ mod tests {
     #[test]
     fn scroll_to_clamps_negative() {
         let mut s = make_state();
-        s.apply(GridCommand::ScrollTo { x: -50.0, y: -100.0 });
+        s.apply(GridCommand::ScrollTo {
+            x: -50.0,
+            y: -100.0,
+        });
         assert_eq!(s.viewport.scroll_x, 0.0);
         assert_eq!(s.viewport.scroll_y, 0.0);
     }
@@ -106,7 +105,10 @@ mod tests {
         let mut s = make_state();
         // Scroll forward then back past origin — must not go negative.
         s.apply(GridCommand::ScrollBy { dx: 20.0, dy: 10.0 });
-        s.apply(GridCommand::ScrollBy { dx: -200.0, dy: -200.0 });
+        s.apply(GridCommand::ScrollBy {
+            dx: -200.0,
+            dy: -200.0,
+        });
         assert_eq!(s.viewport.scroll_x, 0.0);
         assert_eq!(s.viewport.scroll_y, 0.0);
     }

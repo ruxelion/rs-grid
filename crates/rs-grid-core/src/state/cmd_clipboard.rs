@@ -1,10 +1,9 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     selection::CellCoord,
     undo::UndoEntry,
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_clipboard(&mut self, cmd: GridCommand) -> CommandOutput {

@@ -2,11 +2,12 @@ use rs_grid_core::{commands::GridCommand, sort::SortDir};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit};
 
-use super::context_menu_config::{BuiltinAction, ContextMenuItem};
-use super::dom_helpers::{document, make_el, set_styles};
-use super::GridCanvas;
-use crate::css_theme;
-use crate::locale::Locale;
+use super::{
+    context_menu_config::{BuiltinAction, ContextMenuItem},
+    dom_helpers::{document, make_el, set_styles},
+    GridCanvas,
+};
+use crate::{css_theme, locale::Locale};
 
 // ── context-menu icons (Feather Icons) ──────────────────
 

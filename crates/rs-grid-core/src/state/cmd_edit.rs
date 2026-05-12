@@ -1,10 +1,9 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     edit::EditCell,
     undo::UndoEntry,
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_edit(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -65,11 +64,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, state::GridState,
     };
 
     fn make_state() -> GridState {

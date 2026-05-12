@@ -8,17 +8,14 @@
 //! Re-exports: [`WebGridCanvas`], [`Locale`],
 //! [`theme_from_css_vars`].
 
-pub use rs_grid_web::theme_from_css_vars;
-/// Re-exported so callers can name the type in callbacks
-/// without depending on `rs-grid-web` directly.
-pub use rs_grid_web::GridCanvas as WebGridCanvas;
-pub use rs_grid_web::Locale;
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use rs_grid_core::{model::GridModel, state::GridState};
 use rs_grid_scene::Theme;
+/// Re-exported so callers can name the type in callbacks
+/// without depending on `rs-grid-web` directly.
+pub use rs_grid_web::GridCanvas as WebGridCanvas;
+pub use rs_grid_web::{theme_from_css_vars, Locale};
 use web_sys::HtmlCanvasElement;
 use yew::prelude::*;
 

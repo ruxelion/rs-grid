@@ -1,15 +1,12 @@
 //! Demo application showcasing rs-grid with Leptos CSR.
 
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use example_common::{
     build_model, class_map::resolve_classes, fmt_cols, fmt_rows,
 };
 use leptos::prelude::*;
-use rs_grid_core::column::ColumnOffsets;
-use rs_grid_core::model::GridModel;
+use rs_grid_core::{column::ColumnOffsets, model::GridModel};
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use wasm_bindgen::prelude::*;
@@ -354,7 +351,8 @@ pub fn main() {
     mount_to_body(App);
 }
 
-// ── column-layout persistence (localStorage) ──────────────────────────────────
+// ── column-layout persistence (localStorage)
+// ──────────────────────────────────
 
 fn load_layout() -> Option<PersistedLayout> {
     let ls = web_sys::window()?.local_storage().ok().flatten()?;

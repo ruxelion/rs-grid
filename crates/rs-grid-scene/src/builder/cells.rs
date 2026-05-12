@@ -7,9 +7,9 @@ use rs_grid_core::{
     selection::SelectionState,
 };
 
-use crate::class_map::ClassResolver;
-
+use super::FlashHint;
 use crate::{
+    class_map::ClassResolver,
     frame::SceneFrame,
     primitives::{
         Color, ImagePrimitive, RectPrimitive, ScenePrimitive, TextAlign,
@@ -17,8 +17,6 @@ use crate::{
     },
     theme::Theme,
 };
-
-use super::FlashHint;
 
 /// Emit selection fill, search highlight, and cell content
 /// (text, image, or skeleton) for a single cell.
@@ -158,24 +156,23 @@ pub(super) fn emit_cell(
                     *gap,
                 );
             } else {
-                let (txt, align, bold, italic, color) = if let Some(fmt)
-                    = &col.format
-                {
-                    let fc = format_cell(&raw, fmt);
-                    let a = match fc.align.unwrap_or_default() {
-                        CellAlign::Left => TextAlign::Left,
-                        CellAlign::Right => TextAlign::Right,
-                        CellAlign::Center => TextAlign::Center,
-                        _ => TextAlign::Left,
+                let (txt, align, bold, italic, color) =
+                    if let Some(fmt) = &col.format {
+                        let fc = format_cell(&raw, fmt);
+                        let a = match fc.align.unwrap_or_default() {
+                            CellAlign::Left => TextAlign::Left,
+                            CellAlign::Right => TextAlign::Right,
+                            CellAlign::Center => TextAlign::Center,
+                            _ => TextAlign::Left,
+                        };
+                        let c = fc
+                            .color
+                            .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
+                            .unwrap_or(t.cell_text);
+                        (fc.text, a, fc.bold || col.bold, fc.italic, c)
+                    } else {
+                        (raw, TextAlign::Left, col.bold, false, t.cell_text)
                     };
-                    let c = fc
-                        .color
-                        .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
-                        .unwrap_or(t.cell_text);
-                    (fc.text, a, fc.bold || col.bold, fc.italic, c)
-                } else {
-                    (raw, TextAlign::Left, col.bold, false, t.cell_text)
-                };
                 let x = match align {
                     TextAlign::Right => cx + col.width - t.cell_padding,
                     TextAlign::Center => cx + col.width / 2.0,
@@ -230,12 +227,11 @@ mod tests {
         selection::SelectionState,
     };
 
+    use super::emit_cell;
     use crate::{
         builder::FlashHint, frame::SceneFrame, primitives::ScenePrimitive,
         theme::Theme,
     };
-
-    use super::emit_cell;
 
     // ── helpers ──────────────────────────────────────────────
 
@@ -651,8 +647,9 @@ mod tests {
 
     #[test]
     fn emit_cell_styled_no_bg_emits_text_only() {
-        use rs_grid_core::format::{CellAlign, CellElement};
         use std::rc::Rc;
+
+        use rs_grid_core::format::{CellAlign, CellElement};
 
         let mut frame = make_frame();
         let col = ColumnDef::new("s", "S", 150.0).with_format(
@@ -685,18 +682,16 @@ mod tests {
         );
         // No background → only a Text primitive.
         assert_eq!(frame.primitive_count(), 1);
-        assert!(matches!(
-            frame.primitives[0],
-            ScenePrimitive::Text(_)
-        ));
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
     }
 
     #[test]
     fn emit_cell_styled_with_bg_emits_rect_and_text() {
-        use crate::class_map::CellElementStyle;
-        use crate::primitives::Color;
-        use rs_grid_core::format::{CellAlign, CellElement};
         use std::rc::Rc;
+
+        use rs_grid_core::format::{CellAlign, CellElement};
+
+        use crate::{class_map::CellElementStyle, primitives::Color};
 
         let mut frame = make_frame();
         let col = ColumnDef::new("s", "S", 150.0).with_format(
@@ -743,8 +738,9 @@ mod tests {
 
     #[test]
     fn emit_cell_styled_multiple_elements_emits_all() {
-        use rs_grid_core::format::{CellAlign, CellElement};
         use std::rc::Rc;
+
+        use rs_grid_core::format::{CellAlign, CellElement};
 
         let mut frame = make_frame();
         let col = ColumnDef::new("s", "S", 300.0).with_format(
@@ -793,10 +789,9 @@ mod tests {
         use rs_grid_core::column::{ButtonDef, ButtonStyle};
 
         let mut frame = make_frame();
-        let col =
-            ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
-                ButtonDef::new("save", "Save", ButtonStyle::Primary),
-            ]);
+        let col = ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
+            ButtonDef::new("save", "Save", ButtonStyle::Primary),
+        ]);
         let sel = SelectionState::default();
         let t = Theme::light();
         emit_cell(
@@ -826,13 +821,13 @@ mod tests {
     #[test]
     fn emit_cell_button_ghost_has_stroke() {
         use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
         use crate::primitives::ScenePrimitive;
 
         let mut frame = make_frame();
-        let col =
-            ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
-                ButtonDef::new("g", "Ghost", ButtonStyle::Ghost),
-            ]);
+        let col = ColumnDef::new("x", "X", 200.0).with_cell_buttons(vec![
+            ButtonDef::new("g", "Ghost", ButtonStyle::Ghost),
+        ]);
         let sel = SelectionState::default();
         let t = Theme::light();
         emit_cell(
@@ -852,9 +847,9 @@ mod tests {
             None,
             None,
         );
-        let has_stroke = frame.primitives.iter().any(|p| {
-            matches!(p, ScenePrimitive::Rect(r) if r.stroke.is_some())
-        });
+        let has_stroke = frame.primitives.iter().any(
+            |p| matches!(p, ScenePrimitive::Rect(r) if r.stroke.is_some()),
+        );
         assert!(has_stroke, "Ghost button should have a stroke rect");
     }
 
@@ -863,11 +858,10 @@ mod tests {
         use rs_grid_core::column::{ButtonDef, ButtonStyle};
 
         let mut frame = make_frame();
-        let col =
-            ColumnDef::new("x", "X", 400.0).with_cell_buttons(vec![
-                ButtonDef::new("d", "Del", ButtonStyle::Danger),
-                ButtonDef::new("s", "Sec", ButtonStyle::Secondary),
-            ]);
+        let col = ColumnDef::new("x", "X", 400.0).with_cell_buttons(vec![
+            ButtonDef::new("d", "Del", ButtonStyle::Danger),
+            ButtonDef::new("s", "Sec", ButtonStyle::Secondary),
+        ]);
         let sel = SelectionState::default();
         let t = Theme::light();
         emit_cell(

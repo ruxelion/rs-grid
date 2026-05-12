@@ -51,7 +51,8 @@ pub trait DataSource: std::fmt::Debug {
     }
 }
 
-// ── VecDataSource ─────────────────────────────────────────────────────────────
+// ── VecDataSource
+// ─────────────────────────────────────────────────────────────
 
 /// In-memory data source backed by a `Vec<RowRecord>`.
 #[derive(Debug, Clone)]
@@ -91,7 +92,8 @@ impl DataSource for VecDataSource {
     }
 }
 
-// ── FnDataSource ──────────────────────────────────────────────────────────────
+// ── FnDataSource
+// ──────────────────────────────────────────────────────────────
 
 /// Closure-based virtual data source for computed/lazy data.
 pub struct FnDataSource<F: Fn(u64, &str) -> Option<String>> {

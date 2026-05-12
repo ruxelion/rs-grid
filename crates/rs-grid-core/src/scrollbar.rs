@@ -11,7 +11,8 @@ pub struct ScrollbarGeom {
     /// Track width.
     pub track_w: f64,
 
-    // ── arrow buttons ─────────────────────────────────────────────────────────
+    // ── arrow buttons
+    // ─────────────────────────────────────────────────────────
     /// Top edge of the up-arrow button.
     pub up_btn_y: f64,
     /// Top edge of the down-arrow button.
@@ -19,7 +20,8 @@ pub struct ScrollbarGeom {
     /// Height of each arrow button (= `track_w` → square).
     pub arrow_h: f64,
 
-    // ── track (between the two buttons) ──────────────────────────────────────
+    // ── track (between the two buttons)
+    // ──────────────────────────────────────
     /// Top edge of the scrollable track area.
     pub track_y: f64,
     /// Height of the scrollable track area.
@@ -139,7 +141,8 @@ impl ScrollbarGeom {
     }
 }
 
-// ── horizontal scrollbar ──────────────────────────────────────────────────────
+// ── horizontal scrollbar
+// ──────────────────────────────────────────────────────
 
 /// Pre-computed geometry of the horizontal scrollbar for one frame.
 #[derive(Debug, Clone)]
@@ -149,7 +152,8 @@ pub struct HScrollbarGeom {
     /// Track height (= scrollbar_width from theme).
     pub track_h: f64,
 
-    // ── arrow buttons ─────────────────────────────────────────────────────────
+    // ── arrow buttons
+    // ─────────────────────────────────────────────────────────
     /// Left edge of the left-arrow button.
     pub left_btn_x: f64,
     /// Left edge of the right-arrow button.
@@ -157,7 +161,8 @@ pub struct HScrollbarGeom {
     /// Width of each arrow button (= `track_h` → square).
     pub arrow_w: f64,
 
-    // ── track (between the two buttons) ──────────────────────────────────────
+    // ── track (between the two buttons)
+    // ──────────────────────────────────────
     /// Left edge of the scrollable track area.
     pub track_x: f64,
     /// Width of the scrollable track area.
@@ -286,7 +291,8 @@ impl HScrollbarGeom {
 mod tests {
     use super::*;
 
-    // ── ScrollbarGeom ─────────────────────────────────────────────────────────
+    // ── ScrollbarGeom
+    // ─────────────────────────────────────────────────────────
 
     /// viewport 800×600, header=40, total_h=3000, track_w=16
     fn make_vscroll(scroll_y: f64) -> ScrollbarGeom {
@@ -357,7 +363,8 @@ mod tests {
         assert!(delta > 0.0);
     }
 
-    // ── HScrollbarGeom ────────────────────────────────────────────────────────
+    // ── HScrollbarGeom
+    // ────────────────────────────────────────────────────────
 
     /// viewport 800×600, gutter=50, total_w=2000, vsb_w=16, track_h=16
     fn make_hscroll(scroll_x: f64) -> HScrollbarGeom {

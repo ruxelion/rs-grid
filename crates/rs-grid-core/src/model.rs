@@ -141,7 +141,8 @@ pub struct GridModel {
     /// Edited cell values that override the underlying datasource (works for
     /// any source, including read-only `FnDataSource`).
     pub patches: HashMap<(u64, String), String>,
-    /// Width of the sticky row-number gutter on the left in logical pixels (0 = hidden).
+    /// Width of the sticky row-number gutter on the left in logical pixels (0
+    /// = hidden).
     pub row_number_width: f64,
     /// Logical→physical row index mapping built by `apply_sort`.
     /// Empty = natural (unsorted) order.
@@ -396,11 +397,10 @@ impl GridModel {
     /// the same column, the cached keys are re-used — skipping
     /// the expensive extraction entirely.**
     ///
-    /// - **Numeric columns** use a compact `Vec<f64>` (8 B/row)
-    ///   with `f64::total_cmp` for cache-friendly, branchless
-    ///   comparison.
-    /// - **Mixed / string columns** fall back to a
-    ///   `Vec<MixedSortKey>` with lexicographic comparison.
+    /// - **Numeric columns** use a compact `Vec<f64>` (8 B/row) with
+    ///   `f64::total_cmp` for cache-friendly, branchless comparison.
+    /// - **Mixed / string columns** fall back to a `Vec<MixedSortKey>` with
+    ///   lexicographic comparison.
     ///
     /// Returns `true` when the sort was applied, `false` when it was
     /// skipped (server-side mode or row count exceeds
@@ -584,7 +584,8 @@ impl GridModel {
         self.column_offsets.total_width
     }
 
-    /// Y position of the top edge of a data row (in content space, before scroll offset).
+    /// Y position of the top edge of a data row (in content space, before
+    /// scroll offset).
     pub fn row_top(&self, row_index: u64) -> f64 {
         self.header_height + row_index as f64 * self.row_height
     }

@@ -1,9 +1,8 @@
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     undo::UndoEntry,
 };
-
-use super::GridState;
 
 impl GridState {
     pub(super) fn cmd_undo(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -100,11 +99,8 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef,
-        commands::GridCommand,
-        model::GridModel,
-        row::RowRecord,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, state::GridState,
     };
 
     fn make_state() -> GridState {
@@ -148,15 +144,9 @@ mod tests {
             col_key: "a".into(),
             value: "edited".into(),
         });
-        assert_eq!(
-            s.model.get_cell(0, "a").as_deref(),
-            Some("edited")
-        );
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("edited"));
         s.apply(GridCommand::Undo);
-        assert_eq!(
-            s.model.get_cell(0, "a").as_deref(),
-            Some("v0")
-        );
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("v0"));
     }
 
     #[test]
@@ -173,10 +163,7 @@ mod tests {
         });
         s.apply(GridCommand::Undo);
         s.apply(GridCommand::Redo);
-        assert_eq!(
-            s.model.get_cell(0, "a").as_deref(),
-            Some("new")
-        );
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("new"));
     }
 
     #[test]

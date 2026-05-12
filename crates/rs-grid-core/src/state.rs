@@ -232,7 +232,8 @@ mod tests {
         assert_eq!(s.viewport.height, 768.0);
     }
 
-    // ── ScrollTo ──────────────────────────────────────────────────────────────
+    // ── ScrollTo
+    // ──────────────────────────────────────────────────────────────
 
     #[test]
     fn scroll_to_basic() {
@@ -275,7 +276,8 @@ mod tests {
         assert_eq!(s.viewport.scroll_y, 0.0);
     }
 
-    // ── ScrollBy ──────────────────────────────────────────────────────────────
+    // ── ScrollBy
+    // ──────────────────────────────────────────────────────────────
 
     #[test]
     fn scroll_by_accumulates() {
@@ -288,7 +290,8 @@ mod tests {
         assert_eq!(s.viewport.scroll_y, 150.0);
     }
 
-    // ── SelectCell / ClearSelection ───────────────────────────────────────────
+    // ── SelectCell / ClearSelection
+    // ───────────────────────────────────────────
 
     #[test]
     fn select_cell_and_clear() {
@@ -309,7 +312,8 @@ mod tests {
         assert!(s.selection.is_selected(1, 1));
     }
 
-    // ── SelectRow / ExtendRowSelection ────────────────────────────────────────
+    // ── SelectRow / ExtendRowSelection
+    // ────────────────────────────────────────
 
     #[test]
     fn select_row_spans_all_columns() {
@@ -320,7 +324,8 @@ mod tests {
         assert!(!s.selection.is_selected(1, 0));
     }
 
-    // ── SelectCol / ExtendColSelection ────────────────────────────────────────
+    // ── SelectCol / ExtendColSelection
+    // ────────────────────────────────────────
 
     #[test]
     fn select_col_spans_all_rows() {
@@ -331,7 +336,8 @@ mod tests {
         assert!(!s.selection.is_selected(0, 0));
     }
 
-    // ── MoveSelection ─────────────────────────────────────────────────────────
+    // ── MoveSelection
+    // ─────────────────────────────────────────────────────────
 
     #[test]
     fn move_selection_down() {
@@ -359,7 +365,8 @@ mod tests {
         assert!(s.selection.is_selected(9, 2));
     }
 
-    // ── CopySelection ─────────────────────────────────────────────────────────
+    // ── CopySelection
+    // ─────────────────────────────────────────────────────────
 
     #[test]
     fn copy_selection_returns_tsv() {
@@ -373,7 +380,8 @@ mod tests {
         }
     }
 
-    // ── PasteAt ───────────────────────────────────────────────────────────────
+    // ── PasteAt
+    // ───────────────────────────────────────────────────────────────
 
     #[test]
     fn paste_at_origin() {
@@ -1110,7 +1118,10 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnReorderable(false));
         let first_key = s.model.columns[0].key.clone();
-        s.apply(GridCommand::MoveColumn { from_idx: 0, to_idx: 2 });
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 2,
+        });
         assert_eq!(s.model.columns[2].key, first_key);
     }
 
@@ -1748,9 +1759,10 @@ mod tests {
 
     #[test]
     fn toggle_sort_returns_sort_warning_for_large_dataset() {
-        use crate::commands::CommandOutput;
-        use crate::datasource::FnDataSource;
-        use crate::model::GridModelBuilder;
+        use crate::{
+            commands::CommandOutput, datasource::FnDataSource,
+            model::GridModelBuilder,
+        };
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
         // Just over the 1_000_000 row limit
         let data = Box::new(FnDataSource::new(
@@ -1770,10 +1782,10 @@ mod tests {
 
     #[test]
     fn set_sort_returns_sort_warning_for_large_dataset() {
-        use crate::commands::CommandOutput;
-        use crate::datasource::FnDataSource;
-        use crate::model::GridModelBuilder;
-        use crate::sort::SortDir;
+        use crate::{
+            commands::CommandOutput, datasource::FnDataSource,
+            model::GridModelBuilder, sort::SortDir,
+        };
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
         let data = Box::new(FnDataSource::new(
             GridModel::MAX_CLIENT_SORT_ROWS + 1,
