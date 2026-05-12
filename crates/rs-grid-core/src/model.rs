@@ -1173,6 +1173,46 @@ mod tests {
         assert_eq!(m.pinned_count, 1);
     }
 
+    #[test]
+    fn builder_show_header_false() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .show_header(false)
+                .build();
+        assert!(!m.show_header);
+    }
+
+    #[test]
+    fn builder_show_row_numbers_false() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .show_row_numbers(false)
+                .build();
+        assert!(!m.show_row_numbers);
+    }
+
+    #[test]
+    fn builder_selectable_false() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .selectable(false)
+                .build();
+        assert!(!m.selectable);
+    }
+
+    #[test]
+    fn builder_column_reorderable_false() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .column_reorderable(false)
+                .build();
+        assert!(!m.column_reorderable);
+    }
+
     // ── recalculate_flex_widths ─────────────────────
 
     fn flex_model(cols: Vec<ColumnDef>) -> GridModel {

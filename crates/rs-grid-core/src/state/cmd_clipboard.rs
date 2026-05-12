@@ -114,3 +114,80 @@ impl GridState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        column::ColumnDef,
+        commands::{CommandOutput, GridCommand},
+        model::GridModel,
+        row::RowRecord,
+        selection::CellCoord,
+        state::GridState,
+    };
+
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows = (0..4)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn copy_selection_returns_tsv() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        let out = s.apply(GridCommand::CopySelection);
+        assert!(matches!(out, CommandOutput::CopyText(_)));
+    }
+
+    #[test]
+    fn paste_without_selection_is_noop() {
+        let mut s = make_state();
+        // No anchor, no focus → paste must not panic or modify cells.
+        let out = s.apply(GridCommand::PasteAt {
+            text: "new\n".into(),
+        });
+        assert!(matches!(out, CommandOutput::None));
+    }
+
+    #[test]
+    fn paste_at_anchor_updates_cell() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::PasteAt { text: "X\n".into() });
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("X"));
+    }
+
+    #[test]
+    fn paste_tiling_fills_selection() {
+        let mut s = make_state();
+        // Select a 2×2 range, paste a single cell → tiled to fill.
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 1 }));
+        s.apply(GridCommand::PasteAt { text: "Z\n".into() });
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("Z"));
+        assert_eq!(s.model.get_cell(1, "a").as_deref(), Some("Z"));
+        assert_eq!(s.model.get_cell(0, "b").as_deref(), Some("Z"));
+        assert_eq!(s.model.get_cell(1, "b").as_deref(), Some("Z"));
+    }
+
+    #[test]
+    fn cut_clears_cells_and_returns_tsv() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        let out = s.apply(GridCommand::CutSelection);
+        assert!(matches!(out, CommandOutput::CopyText(_)));
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+    }
+}
