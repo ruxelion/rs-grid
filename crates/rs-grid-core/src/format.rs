@@ -146,6 +146,7 @@ pub enum CellFormat {
     ///     }]
     /// }))
     /// ```
+    #[allow(clippy::type_complexity)]
     Styled(Rc<dyn Fn(&str) -> Vec<CellElement>>),
     /// Image + text side by side (like AG Grid's flag
     /// cell renderer).
