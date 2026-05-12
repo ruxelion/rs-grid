@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
 use rs_grid_core::commands::{CommandOutput, GridCommand};
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 
-use super::{FlashState, GridCanvas};
+use super::{dom_helpers::document, FlashState, GridCanvas};
 
 impl GridCanvas {
     /// Trigger a brief golden-yellow flash on the currently selected cells.
@@ -229,6 +229,45 @@ impl GridCanvas {
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
         *self.0.on_cell_button_click.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback invoked on document `"click"` events that
+    /// originate **outside** this grid's canvas element.
+    ///
+    /// Typical use: dispatch `ClearSelection` to dismiss row highlights
+    /// when the user clicks filter chips, action toolbars, or any other
+    /// UI adjacent to the grid.
+    ///
+    /// The listener is registered on `document` and removed
+    /// automatically when [`GridCanvas::detach()`] is called (e.g. on
+    /// component unmount), so no manual cleanup is needed.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching a `GridCommand` from inside this callback is safe
+    /// (see [`GridCanvas::set_on_change`] for the mechanism).
+    pub fn set_on_outside_click(&self, cb: impl Fn() + 'static) {
+        use wasm_bindgen::prelude::Closure;
+        let canvas_node: web_sys::Node =
+            self.0.canvas.clone().unchecked_into();
+        let cb = Rc::new(cb);
+        let closure = Closure::<dyn Fn(JsValue)>::new(move |ev: JsValue| {
+            let target = js_sys::Reflect::get(&ev, &JsValue::from_str("target"))
+                .ok()
+                .filter(|v| !v.is_null() && !v.is_undefined());
+            let on_canvas = target
+                .and_then(|t| t.dyn_into::<web_sys::Node>().ok())
+                .map(|n| canvas_node.is_same_node(Some(&n)))
+                .unwrap_or(false);
+            if !on_canvas {
+                cb();
+            }
+        });
+        let f: js_sys::Function =
+            closure.as_ref().unchecked_ref::<js_sys::Function>().clone();
+        let _ = document().add_event_listener_with_callback("click", &f);
+        self.0.doc_listeners.borrow_mut().push(("click".to_string(), f));
+        self.0.closures.borrow_mut().push(Box::new(closure));
     }
 
     /// Serialize the current patch layer as versioned TSV text.
