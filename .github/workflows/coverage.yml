@@ -23,11 +23,16 @@ jobs:
 
       - uses: taiki-e/install-action@nextest
 
-      - name: Generate coverage (HTML + JSON)
+      - name: Generate coverage (run tests once)
         run: |
           cargo llvm-cov nextest \
             -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
-            --html --output-dir target/llvm-cov/html \
+            --html --output-dir target/llvm-cov/html
+
+      - name: Export JSON from existing coverage data
+        run: |
+          cargo llvm-cov report \
+            -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
             --json --output-path target/llvm-cov/coverage.json
 
       - name: Upload HTML report
