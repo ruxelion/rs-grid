@@ -27,12 +27,14 @@ jobs:
         run: |
           cargo llvm-cov nextest \
             -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
+            --ignore-filename-regex "generate_theme" \
             --html --output-dir target/llvm-cov/html
 
       - name: Export JSON from existing coverage data
         run: |
           cargo llvm-cov report \
             -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
+            --ignore-filename-regex "generate_theme" \
             --json --output-path target/llvm-cov/coverage.json
 
       - name: Upload HTML report

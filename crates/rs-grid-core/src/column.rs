@@ -565,4 +565,19 @@ mod tests {
         let v = col.validator.unwrap();
         assert!(v.validate("anything").is_ok());
     }
+
+    #[test]
+    fn with_bold_sets_flag() {
+        let col = ColumnDef::new("a", "A", 100.0).with_bold();
+        assert!(col.bold);
+    }
+
+    #[test]
+    fn with_cell_buttons_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0).with_cell_buttons(vec![
+            ButtonDef::new("del", "Delete", ButtonStyle::Danger),
+        ]);
+        assert_eq!(col.cell_buttons.len(), 1);
+        assert_eq!(col.cell_buttons[0].id, "del");
+    }
 }

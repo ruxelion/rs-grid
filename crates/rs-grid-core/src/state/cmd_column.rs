@@ -148,3 +148,97 @@ impl GridState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        column::ColumnDef, commands::GridCommand, model::GridModel,
+        row::RowRecord, state::GridState,
+    };
+
+    fn make_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows = (0..5)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("v{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn resize_column_out_of_bounds_is_noop() {
+        let mut s = make_state();
+        let before = s.model.columns[0].width;
+        s.apply(GridCommand::ResizeColumn {
+            col_idx: 99,
+            new_width: 500.0,
+        });
+        assert_eq!(s.model.columns[0].width, before);
+    }
+
+    #[test]
+    fn commit_column_resize_out_of_bounds_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::CommitColumnResize {
+            col_idx: 99,
+            old_width: 100.0,
+            old_flex: None,
+        });
+    }
+
+    #[test]
+    fn commit_column_resize_same_width_no_undo() {
+        let mut s = make_state();
+        let w = s.model.columns[0].width;
+        s.apply(GridCommand::CommitColumnResize {
+            col_idx: 0,
+            old_width: w,
+            old_flex: None,
+        });
+        // Width unchanged → no undo entry pushed; Undo is a noop.
+        let w_after = s.model.columns[0].width;
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.columns[0].width, w_after);
+    }
+
+    #[test]
+    fn move_column_same_index_is_noop() {
+        let mut s = make_state();
+        let key = s.model.columns[0].key.clone();
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 0,
+        });
+        assert_eq!(s.model.columns[0].key, key);
+    }
+
+    #[test]
+    fn move_column_out_of_bounds_is_noop() {
+        let mut s = make_state();
+        let key = s.model.columns[0].key.clone();
+        s.apply(GridCommand::MoveColumn {
+            from_idx: 0,
+            to_idx: 99,
+        });
+        assert_eq!(s.model.columns[0].key, key);
+    }
+
+    #[test]
+    fn auto_fit_all_columns_does_not_panic() {
+        let mut s = make_state();
+        s.apply(GridCommand::AutoFitAllColumns {
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 8.0,
+            header_right_reserve: 20.0,
+        });
+    }
+}

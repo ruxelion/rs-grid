@@ -919,4 +919,33 @@ mod tests {
         assert!(!fmt.is_image_text());
         assert!(!fmt.is_image());
     }
+
+    #[test]
+    fn styled_clone_works() {
+        use std::rc::Rc;
+        let fmt = CellFormat::Styled(Rc::new(|raw: &str| {
+            vec![CellElement {
+                text: raw.to_string(),
+                class: "badge".into(),
+                align: CellAlign::Left,
+            }]
+        }));
+        let cloned = fmt.clone();
+        assert!(matches!(cloned, CellFormat::Styled(_)));
+    }
+
+    #[test]
+    fn styled_debug_does_not_panic() {
+        use std::rc::Rc;
+        let fmt = CellFormat::Styled(Rc::new(|_: &str| vec![]));
+        let _ = format!("{:?}", fmt);
+    }
+
+    #[test]
+    fn format_cell_styled_returns_raw_text() {
+        use std::rc::Rc;
+        let fmt = CellFormat::Styled(Rc::new(|_: &str| vec![]));
+        let result = format_cell("hello", &fmt);
+        assert_eq!(result.text, "hello");
+    }
 }
