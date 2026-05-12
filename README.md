@@ -1,5 +1,11 @@
 # rs-grid
 
+[![CI](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml)
+[![Coverage](https://github.com/bpodwinski/rs-grid/actions/workflows/coverage.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/coverage.yml)
+[![Security Audit](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml)
+[![Docs](https://github.com/bpodwinski/rs-grid/actions/workflows/docs.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/docs.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A high-performance data grid engine built in Rust and compiled to WebAssembly.
 Renders on Canvas2D with viewport virtualisation, supporting datasets from
 thousands to **quadrillions** of rows at 60 fps.
