@@ -5,4 +5,7 @@ edition = "2021"
 publish = false
 description = "Headless grid engine core: model, viewport, selection, hit-testing"
 
+[lints]
+workspace = true
+
 [dependencies]
