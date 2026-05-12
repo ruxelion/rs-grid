@@ -15,7 +15,7 @@ impl GridState {
                     .columns
                     .iter()
                     .find(|c| c.key == col_key)
-                    .map_or(true, |c| c.editable);
+                    .is_none_or(|c| c.editable);
                 if !self.model.editable || !col_editable {
                     return CommandOutput::None;
                 }

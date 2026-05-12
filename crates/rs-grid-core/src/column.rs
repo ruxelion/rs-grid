@@ -58,10 +58,11 @@ impl fmt::Debug for CellValidator {
 // ── cell button ────────────────────────────────────────────
 
 /// Visual style variant for a cell button.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum ButtonStyle {
     /// Solid primary-colour fill.
+    #[default]
     Primary,
     /// Muted secondary-colour fill.
     Secondary,
@@ -69,12 +70,6 @@ pub enum ButtonStyle {
     Danger,
     /// Transparent background, border only.
     Ghost,
-}
-
-impl Default for ButtonStyle {
-    fn default() -> Self {
-        Self::Primary
-    }
 }
 
 /// Definition of a single button rendered inside a cell.
