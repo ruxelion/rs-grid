@@ -11,8 +11,6 @@ examples/basic-leptos/node_modules/
 examples/basic-leptos/generated/
 examples/basic-react/node_modules/
 examples/basic-react/dist/
-site/node_modules/
-site/docs/public/wasm/
 *-original.mp4
 .certs/
 mcp/node_modules/
