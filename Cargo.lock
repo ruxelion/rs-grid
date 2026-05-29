@@ -212,6 +212,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "basic-js"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "example-common",
+ "rs-grid-core",
+ "rs-grid-web",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "basic-leptos"
 version = "0.1.0"
 dependencies = [

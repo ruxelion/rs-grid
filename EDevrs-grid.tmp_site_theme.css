@@ -1,0 +1,166 @@
+/* rs-grid dark theme — maps Astro palette to RSPress variables */
+
+:root {
+  /* Brand */
+  --rp-c-brand: #3b82f6;
+  --rp-c-brand-light: #60a5fa;
+  --rp-c-brand-lighter: #93c5fd;
+  --rp-c-brand-dark: #2563eb;
+  --rp-c-brand-darker: #1d4ed8;
+  --rp-c-brand-tint: rgba(59, 130, 246, 0.1);
+
+  /* Layout */
+  --rp-radius: 12px;
+  --rp-radius-small: 8px;
+  --rp-radius-large: 16px;
+}
+
+html.dark {
+  /* Background */
+  --rp-c-bg: #0a0f1e;
+  --rp-c-bg-soft: #0f1629;
+  --rp-c-bg-mute: #111827;
+  --rp-c-bg-alt: #0d1117;
+
+  /* Text */
+  --rp-c-text-1: #f9fafb;
+  --rp-c-text-2: #9ca3af;
+  --rp-c-text-3: #6b7280;
+  --rp-c-text-4: #4b5563;
+  --rp-c-text-code: #93c5fd;
+  --rp-c-text-code-bg: rgba(59, 130, 246, 0.1);
+  --rp-c-text-code-border: rgba(59, 130, 246, 0.2);
+
+  /* Dividers */
+  --rp-c-divider: rgba(255, 255, 255, 0.14);
+  --rp-c-divider-light: rgba(255, 255, 255, 0.08);
+
+  /* Gray scale */
+  --rp-c-gray: #374151;
+  --rp-c-gray-light-1: #4b5563;
+  --rp-c-gray-light-2: #6b7280;
+  --rp-c-gray-light-3: #9ca3af;
+  --rp-c-gray-light-4: #d1d5db;
+  --rp-c-gray-light-5: #f3f4f6;
+
+  /* Link */
+  --rp-c-link: #60a5fa;
+
+  /* Code blocks */
+  --rp-code-block-bg: #0d1117;
+  --rp-code-block-color: #e2e8f0;
+  --rp-code-title-bg: rgba(255, 255, 255, 0.06);
+
+  /* Shadows */
+  --rp-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --rp-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --rp-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Transparent header — background appears on scroll via JS */
+.rp-nav {
+  background: transparent !important;
+  border-bottom: 1px solid transparent !important;
+  transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+}
+
+.rp-nav.rp-nav--scrolled {
+  background: var(--rs-nav-bg) !important;
+  backdrop-filter: var(--rs-blur);
+  border-bottom-color: var(--rs-border) !important;
+}
+
+/* Font family overrides */
+html,
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom properties used by HomeLayout — light defaults */
+:root {
+  --rs-primary: #3b82f6;
+  --rs-primary-hover: #2563eb;
+  --rs-primary-light: rgba(59, 130, 246, 0.1);
+  --rs-primary-border: rgba(59, 130, 246, 0.3);
+  --rs-bg: #f8fafc;
+  --rs-bg-surface: #f1f5f9;
+  --rs-bg-card: #ffffff;
+  --rs-bg-card-hover: #f1f5f9;
+  --rs-border: rgba(0, 0, 0, 0.08);
+  --rs-border-strong: rgba(0, 0, 0, 0.14);
+  --rs-text: #0f172a;
+  --rs-text-muted: #64748b;
+  --rs-text-subtle: #94a3b8;
+  --rs-font-mono: 'Cascadia Code', 'Fira Code', monospace;
+  --rs-radius: 12px;
+  --rs-radius-sm: 8px;
+  --rs-radius-lg: 16px;
+  --rs-blur: blur(8px);
+  --rs-nav-bg: rgba(248, 250, 252, 0.85);
+  /* Adaptive glass & badge */
+  --rs-glass-bg: rgba(0, 0, 0, 0.04);
+  --rs-badge-text: #1d4ed8;
+  --rs-code-text: #1d4ed8;
+  --rs-code-border: rgba(59, 130, 246, 0.25);
+  --rs-hero-overlay: linear-gradient(180deg, #eff6ff 0%, #f8fafc 60%);
+}
+
+/* Dark overrides — html.dark for specificity over :root */
+html.dark {
+  --rs-bg: #0a0f1e;
+  --rs-bg-surface: #0f1629;
+  --rs-bg-card: #111827;
+  --rs-bg-card-hover: #1a2436;
+  --rs-border: rgba(255, 255, 255, 0.08);
+  --rs-border-strong: rgba(255, 255, 255, 0.14);
+  --rs-text: #f9fafb;
+  --rs-text-muted: #9ca3af;
+  --rs-text-subtle: #6b7280;
+  --rs-nav-bg: rgba(10, 15, 30, 0.85);
+  --rs-glass-bg: rgba(255, 255, 255, 0.04);
+  --rs-badge-text: #93c5fd;
+  --rs-code-text: #93c5fd;
+  --rs-code-border: rgba(59, 130, 246, 0.2);
+  --rs-hero-overlay: linear-gradient(180deg, #0a0f1e 0%, transparent 60%);
+}
+
+
+/* rs-grid WASM demo — light theme */
+:root {
+  --rs-grid-bg: #ffffff;
+  --rs-grid-header-bg: #f1f5f9;
+  --rs-grid-header-text: #64748b;
+  --rs-grid-cell-text: #0f172a;
+  --rs-grid-grid-line: #e2e8f0;
+  --rs-grid-header-border: #e2e8f0;
+  --rs-grid-selection-fill: rgba(59, 130, 246, 0.12);
+  --rs-grid-selection-border: rgba(59, 130, 246, 0.7);
+  --rs-grid-scrollbar-track: #f1f5f9;
+  --rs-grid-scrollbar-thumb: rgba(0, 0, 0, 0.22);
+  --rs-grid-row-alt-bg: #f8fafc;
+  --rs-grid-row-hover-bg: rgba(0, 0, 0, 0.03);
+  --rs-grid-font-size: 14px;
+  --rs-grid-header-font-size: 13px;
+  --rs-grid-header-font-bold: 1;
+  --rs-grid-cell-padding: 10px;
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 4px;
+}
+
+/* rs-grid WASM demo — dark theme */
+html.dark {
+  --rs-grid-bg: #1c1c1e;
+  --rs-grid-header-bg: #2c2c2e;
+  --rs-grid-header-text: #b0b0b0;
+  --rs-grid-cell-text: #d0d0d0;
+  --rs-grid-grid-line: #333335;
+  --rs-grid-header-border: #333335;
+  --rs-grid-selection-fill: rgba(60, 130, 245, 0.30);
+  --rs-grid-selection-border: rgba(60, 130, 245, 0.9);
+  --rs-grid-scrollbar-track: #222224;
+  --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
+  --rs-grid-row-alt-bg: #212123;
+  --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
