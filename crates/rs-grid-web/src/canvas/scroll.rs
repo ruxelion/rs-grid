@@ -289,3 +289,135 @@ impl GridCanvas {
             .push(Box::new(switch_cb));
     }
 }
+
+// ── cell-drag edge auto-scroll ───────────────────────────────────────────────
+
+/// Distance from the viewport edge that activates auto-scroll (px).
+const DRAG_EDGE_ZONE: f64 = 50.0;
+/// Maximum scroll step per 16 ms tick at full acceleration (px).
+const DRAG_MAX_STEP: f64 = 40.0;
+/// Interval between scroll ticks (ms).
+const DRAG_INTERVAL_MS: i32 = 16;
+/// Ticks to reach full speed (~2 s at 16 ms/tick).
+const DRAG_ACCEL_TICKS: f64 = 120.0;
+
+/// Returns the raw depth factor (0.0 = zone entry, 1.0 = absolute edge)
+/// for one axis, or `None` if outside the edge zone.
+fn edge_depth(pos: f64, lo: f64, hi: f64) -> Option<f64> {
+    if pos < lo + DRAG_EDGE_ZONE {
+        Some(((lo + DRAG_EDGE_ZONE - pos) / DRAG_EDGE_ZONE).clamp(0.0, 1.0))
+    } else if pos > hi - DRAG_EDGE_ZONE {
+        Some(((pos - (hi - DRAG_EDGE_ZONE)) / DRAG_EDGE_ZONE).clamp(0.0, 1.0))
+    } else {
+        None
+    }
+}
+
+/// Signed scroll velocity combining:
+/// - **position**: cubic depth³ (faster near the edge),
+/// - **time**:     linear ramp over DRAG_ACCEL_TICKS (faster the longer
+///                 the cursor stays in the zone — AG Grid behaviour).
+fn edge_velocity(pos: f64, lo: f64, hi: f64, ticks: u32) -> f64 {
+    // Start at 30% and climb to 100% over ~2 s.
+    let time_factor = 0.3 + 0.7 * (ticks as f64 / DRAG_ACCEL_TICKS).clamp(0.0, 1.0);
+
+    if pos < lo + DRAG_EDGE_ZONE {
+        let d = ((lo + DRAG_EDGE_ZONE - pos) / DRAG_EDGE_ZONE).clamp(0.0, 1.0);
+        -DRAG_MAX_STEP * d * d * time_factor
+    } else if pos > hi - DRAG_EDGE_ZONE {
+        let d = ((pos - (hi - DRAG_EDGE_ZONE)) / DRAG_EDGE_ZONE).clamp(0.0, 1.0);
+        DRAG_MAX_STEP * d * d * time_factor
+    } else {
+        0.0
+    }
+}
+
+impl GridCanvas {
+    /// Called on every mousemove while `ActiveDrag::Cell` is active.
+    /// Starts, updates, or stops the edge auto-scroll interval.
+    pub(super) fn update_cell_drag_scroll(&self, vx: f64, vy: f64) {
+        let (vp_w, vp_h, header_h) = {
+            let s = self.0.state.borrow();
+            (s.viewport.width, s.viewport.height, s.model.header_height)
+        };
+        let in_zone = edge_depth(vy, header_h, vp_h).is_some()
+            || edge_depth(vx, 0.0, vp_w).is_some();
+
+        if !in_zone {
+            // Cursor left the edge zone: stop scroll and reset acceleration.
+            if self.0.drag_scroll_interval.borrow().is_some() {
+                self.stop_cell_drag_scroll();
+                self.0.drag_scroll_ticks.set(0);
+            }
+            return;
+        }
+        // Already running — interval picks up the new last_pos automatically.
+        if self.0.drag_scroll_interval.borrow().is_some() {
+            return;
+        }
+        // Entering the zone fresh: reset ticks so acceleration restarts.
+        self.0.drag_scroll_ticks.set(0);
+        self.start_cell_drag_scroll();
+    }
+
+    fn start_cell_drag_scroll(&self) {
+        let gc = self.clone();
+        let cb = Closure::<dyn FnMut()>::new(move || {
+            gc.step_cell_drag_scroll();
+        });
+        let win = web_sys::window().expect("no window");
+        let id = win
+            .set_interval_with_callback_and_timeout_and_arguments_0(
+                cb.as_ref().unchecked_ref(),
+                DRAG_INTERVAL_MS,
+            )
+            .expect("setInterval drag scroll");
+        *self.0.drag_scroll_interval.borrow_mut() = Some(id);
+        self.0
+            .drag_scroll_closures
+            .borrow_mut()
+            .push(Box::new(cb));
+    }
+
+    pub(super) fn stop_cell_drag_scroll(&self) {
+        if let Some(id) = self.0.drag_scroll_interval.borrow_mut().take() {
+            if let Some(win) = web_sys::window() {
+                win.clear_interval_with_handle(id);
+            }
+        }
+        self.0.drag_scroll_closures.borrow_mut().clear();
+    }
+
+    fn step_cell_drag_scroll(&self) {
+        use super::ActiveDrag;
+        if !matches!(*self.0.drag.borrow(), Some(ActiveDrag::Cell)) {
+            self.stop_cell_drag_scroll();
+            return;
+        }
+        let (vx, vy) = self.0.drag_last_pos.get();
+        let (vp_w, vp_h, header_h) = {
+            let s = self.0.state.borrow();
+            (s.viewport.width, s.viewport.height, s.model.header_height)
+        };
+        // Increment tick counter for time-based acceleration.
+        let ticks = self.0.drag_scroll_ticks.get().saturating_add(1);
+        self.0.drag_scroll_ticks.set(ticks);
+
+        let dy = edge_velocity(vy, header_h, vp_h, ticks);
+        let dx = edge_velocity(vx, 0.0, vp_w, ticks);
+
+        if dx == 0.0 && dy == 0.0 {
+            self.stop_cell_drag_scroll();
+            self.0.drag_scroll_ticks.set(0);
+            return;
+        }
+        self.dispatch(GridCommand::ScrollBy { dx, dy });
+        // Re-hit-test after the scroll so the selection extends to the newly
+        // visible row/column.  Extract the result before the `if let` so the
+        // immutable borrow is released before dispatch tries a mutable one.
+        let maybe_coord = self.0.state.borrow().hit_test(vx, vy);
+        if let Some(coord) = maybe_coord {
+            self.dispatch(GridCommand::ExtendSelection(coord));
+        }
+    }
+}

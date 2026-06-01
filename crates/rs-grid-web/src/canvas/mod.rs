@@ -81,6 +81,18 @@ struct Inner {
     /// Decays each frame via exponential smoothing until negligible.
     scroll_vx: Cell<f64>,
     scroll_vy: Cell<f64>,
+    /// Last mouse position (canvas/viewport coords) during a cell-selection
+    /// drag. Updated on every mousemove so the auto-scroll interval can
+    /// continue extending the selection after the cursor stops moving.
+    drag_last_pos: Cell<(f64, f64)>,
+    /// setInterval handle for cell-drag edge auto-scroll (cleared on mouseup
+    /// or when the cursor leaves the edge zone).
+    drag_scroll_interval: RefCell<Option<i32>>,
+    /// Closures kept alive for the drag-scroll interval callback.
+    drag_scroll_closures: RefCell<Vec<Box<dyn Any>>>,
+    /// Tick counter for time-based acceleration: incremented each interval
+    /// tick, reset to 0 when auto-scroll starts or the cursor leaves the zone.
+    drag_scroll_ticks: Cell<u32>,
     /// Column index whose header menu icon is currently hovered, if any.
     hovered_menu_col: RefCell<Option<usize>>,
     /// Current animated column offsets during a drag
@@ -305,6 +317,10 @@ impl GridCanvas {
             raf_scheduled: Cell::new(false),
             scroll_vx: Cell::new(0.0),
             scroll_vy: Cell::new(0.0),
+            drag_last_pos: Cell::new((0.0, 0.0)),
+            drag_scroll_interval: RefCell::new(None),
+            drag_scroll_closures: RefCell::new(Vec::new()),
+            drag_scroll_ticks: Cell::new(0),
             hovered_menu_col: RefCell::new(None),
             drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
