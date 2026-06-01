@@ -254,9 +254,9 @@ impl Theme {
             // spacing
             cell_padding: 12.0,
             // scrollbar
-            scrollbar_width: 8.0,
-            scrollbar_radius: 4.0,
-            scrollbar_inset: 2.0,
+            scrollbar_width: 14.0,
+            scrollbar_radius: 6.0,
+            scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
             drag_ghost_bg: Color::rgb(248, 249, 251),
@@ -351,9 +351,9 @@ impl Theme {
             // spacing
             cell_padding: 12.0,
             // scrollbar
-            scrollbar_width: 8.0,
-            scrollbar_radius: 4.0,
-            scrollbar_inset: 2.0,
+            scrollbar_width: 14.0,
+            scrollbar_radius: 6.0,
+            scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
             drag_ghost_bg: Color::rgb(44, 44, 46),
@@ -448,9 +448,9 @@ impl Theme {
             // spacing
             cell_padding: 12.0,
             // scrollbar
-            scrollbar_width: 8.0,
-            scrollbar_radius: 4.0,
-            scrollbar_inset: 2.0,
+            scrollbar_width: 14.0,
+            scrollbar_radius: 6.0,
+            scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
             drag_ghost_bg: Color::rgb(45, 51, 59),
