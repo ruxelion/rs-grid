@@ -60,6 +60,7 @@ impl GridCanvas {
         let border_width = var("--rs-grid-editor-border-width", "2px");
         let border_radius = var("--rs-grid-editor-border-radius", "0");
         let bg = var("--rs-grid-editor-bg", "#ffffff");
+        let color = var("--rs-grid-editor-color", "#000000");
         let padding = var("--rs-grid-editor-padding", "0 4px");
         let font_size = var("--rs-grid-editor-font-size", "inherit");
         let shadow = var("--rs-grid-editor-shadow", "none");
@@ -88,6 +89,7 @@ impl GridCanvas {
         let _ = style.set_property("font-size", &font_size);
         let _ = style.set_property("font-family", "inherit");
         let _ = style.set_property("background", &bg);
+        let _ = style.set_property("color", &color);
         let _ = style.set_property("box-shadow", &shadow);
     }
 
