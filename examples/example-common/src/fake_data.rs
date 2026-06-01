@@ -946,7 +946,7 @@ pub fn fake_cell(row: u64, col_key: &str) -> Option<String> {
             let last = pick(LAST_NAMES, row, 2);
             Some(format!("{first}+{last}"))
         }
-        "active" => {
+        "active" | "status" => {
             let h = hash_field(row, 6);
             let active = (h % 100) >= 15;
             Some(active.to_string())

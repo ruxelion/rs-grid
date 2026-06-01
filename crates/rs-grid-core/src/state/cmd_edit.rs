@@ -19,13 +19,26 @@ impl GridState {
                 if !self.model.editable || !col_editable {
                     return CommandOutput::None;
                 }
+                let col_idx = self
+                    .model
+                    .columns
+                    .iter()
+                    .position(|c| c.key == col_key);
                 let initial_value =
                     self.model.get_cell(row, &col_key).unwrap_or_default();
                 self.edit = Some(EditCell {
                     row,
                     col_key,
+                    col_idx: col_idx.unwrap_or(0),
                     initial_value,
                 });
+                // Move the selection to the edited cell so the
+                // highlight always follows the active editor.
+                if self.model.selectable {
+                    if let Some(col) = col_idx {
+                        self.selection.select_cell(row, col);
+                    }
+                }
                 CommandOutput::None
             }
             GridCommand::CommitEdit {
