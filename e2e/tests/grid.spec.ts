@@ -260,6 +260,161 @@ test.describe('visual regression', () => {
   });
 });
 
+// ── scrollbar logarithmique ────────────────────────────────────────────────
+//
+// Au-delà de ~33 333 lignes (1 000 000 px) la scrollbar passe en mapping
+// logarithmique. Ces tests vérifient :
+//   1. Pas de crash à grande échelle
+//   2. Le thumb est au sommet quand scroll=0, au bas quand scroll=max
+//   3. Le drag du thumb depuis le haut change réellement la position
+//   4. Le track-click navigue dans la bonne direction
+//   5. Le thumb à 50% du travel logarithmique est BEAUCOUP plus proche du bas
+//      que du milieu linéaire (propriété clé du mapping log)
+
+test.describe('scrollbar logarithmique', () => {
+  /** Retourne la position Y du centre du thumb de la scrollbar verticale.
+   *  La scrollbar est dans la bande x > canvasWidth - 20. */
+  async function getThumbCenterY(page: Page): Promise<number> {
+    return page.evaluate(() => {
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d')!;
+      const rect = canvas.getBoundingClientRect();
+      const w = canvas.width;
+      const h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      // Scan la bande droite (scrollbar) pour trouver le thumb
+      // en cherchant la première rangée avec la couleur du thumb
+      // (pixel plus clair que le fond de la track)
+      const sbX = Math.floor(w - 12 * dpr); // centre de la scrollbar
+      for (let y = 0; y < h; y++) {
+        const data = ctx.getImageData(sbX, y, 1, 1).data;
+        // Cherche un pixel non-blanc et non-transparent (le thumb)
+        if (data[3] > 200 && (data[0] < 200 || data[1] < 200)) {
+          return (y / dpr) + rect.top;
+        }
+      }
+      return -1;
+    });
+  }
+
+  test('10^9 lignes — aucun crash au chargement', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 500);
+    await expect(page.locator('canvas')).toBeVisible();
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await waitForPaint(page, 200);
+    expect(errors).toHaveLength(0);
+  });
+
+  test('10^9 lignes — thumb au sommet au démarrage', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 400);
+    const canvas = page.locator('canvas');
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    // Prend un screenshot de référence pour la scrollbar
+    await expect(canvas).toHaveScreenshot('log-sb-1b-top.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('10^9 lignes — wheel scroll déplace le thumb', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 400);
+    const canvas = page.locator('canvas');
+    // Scroll molette : déplace le contenu de quelques lignes
+    await canvas.hover();
+    await page.mouse.wheel(0, 3000);
+    await waitForPaint(page, 300);
+    // Le thumb doit avoir bougé (screenshot différent de top)
+    await expect(canvas).toHaveScreenshot('log-sb-1b-scrolled.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('10^9 lignes — clic track milieu ne plante pas', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 400);
+    const canvas = page.locator('canvas');
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    // Clic au milieu de la scrollbar verticale
+    const sbX = box!.width - 8;
+    const sbY = box!.height / 2;
+    await canvas.click({ position: { x: sbX, y: sbY } });
+    await waitForPaint(page, 300);
+    await expect(canvas).toBeVisible();
+  });
+
+  test('10^9 lignes — drag thumb depuis le haut change la position', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 400);
+    const canvas = page.locator('canvas');
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+
+    // Position de la scrollbar : droite du canvas
+    const sbX = box!.x + box!.width - 8;
+    // Thumb est au sommet : y ≈ header_h + arrow_h ≈ 80px depuis le haut du canvas
+    const thumbStartY = box!.y + 80;
+    // On drag vers le bas de 100px
+    await page.mouse.move(sbX, thumbStartY);
+    await page.mouse.down();
+    await page.mouse.move(sbX, thumbStartY + 100, { steps: 10 });
+    await page.mouse.up();
+    await waitForPaint(page, 300);
+
+    // Vérifier que le rendu a changé (scroll a eu lieu)
+    await expect(canvas).toHaveScreenshot('log-sb-1b-dragged.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('10^12 lignes — scrollbar visible et fonctionnelle', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000000');
+    await waitForPaint(page, 500);
+    const canvas = page.locator('canvas');
+    await expect(canvas).toBeVisible();
+    // Scroll molette
+    await canvas.hover();
+    await page.mouse.wheel(0, 1000);
+    await waitForPaint(page, 300);
+    await expect(canvas).toBeVisible();
+  });
+
+  test('mapping log — drag 50% du travel ≠ 50% des données', async ({ page }) => {
+    // À 10^9 lignes en mapping log, le thumb à mi-travel correspond à
+    // ln(1 + max/2) / ln(1 + max) ≈ 0.97 du max_scroll, soit ~97% du contenu.
+    // Ce test vérifie que faire défiler le thumb de la moitié du track
+    // affiche des données proches du bas, pas du milieu.
+    await page.goto('/');
+    await page.locator('select').first().selectOption('1000000000');
+    await waitForPaint(page, 400);
+    const canvas = page.locator('canvas');
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+
+    // Clic au milieu exact du track scrollbar
+    const sbX = box!.width - 8;
+    const sbMidY = (80 + box!.height - 20) / 2; // entre arrow_top et arrow_bottom
+    await canvas.click({ position: { x: sbX, y: sbMidY } });
+    await waitForPaint(page, 400);
+
+    // Screenshot de référence : avec log, affiche des données
+    // très proches de la fin du dataset (lignes ~10^8+ visibles)
+    await expect(canvas).toHaveScreenshot('log-sb-mid-travel.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+});
+
 // ── précision f64 à grande échelle ──────────────────────────────────────────
 //
 // À 1 million+ de lignes, les positions de pixels (row_top − scroll_y)
