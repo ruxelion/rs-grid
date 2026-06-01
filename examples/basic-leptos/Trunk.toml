@@ -18,3 +18,10 @@ addresses = ["0.0.0.0"]
 dist = "dist"
 release = false
 target = "index.html"
+
+# Generate Tailwind CSS before every Trunk build so `generated/tailwind.css`
+# is always present (the file is .gitignore-d; this hook recreates it).
+[[hooks]]
+stage = "pre_build"
+command = "npm"
+command_arguments = ["run", "css"]

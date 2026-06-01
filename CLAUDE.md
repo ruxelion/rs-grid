@@ -137,8 +137,10 @@ cargo fmt --all
 cargo clippy --workspace -- -D warnings
 
 # WASM build (Leptos example)
+# npm install is required once to enable the Tailwind pre-build hook.
 cd examples/basic-leptos
-trunk build
+npm install   # once — installs Tailwind CLI (generates generated/tailwind.css)
+trunk build   # hook runs `npm run css` automatically before each build
 
 # Dev server (hot-reload, écoute sur 0.0.0.0:9080)
 cd examples/basic-leptos
