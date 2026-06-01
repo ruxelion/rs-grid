@@ -140,9 +140,10 @@ cargo clippy --workspace -- -D warnings
 cd examples/basic-leptos
 trunk build
 
-# Dev server
+# Dev server (hot-reload, écoute sur 0.0.0.0:9080)
 cd examples/basic-leptos
 trunk serve
+# → http://localhost:9080  (config dans examples/basic-leptos/Trunk.toml)
 ```
 
 ### One-time tool installation
@@ -217,6 +218,29 @@ Interaction tests use fixed pixel coordinates. If the layout changes, update
 the coordinates in `grid.spec.ts`.
 
 **Claude command**: `/e2e` runs `trunk build` then `npm test` automatically.
+
+### Playwright MCP — tests interactifs en cours de développement
+
+Pour vérifier visuellement un changement avec les outils Playwright MCP
+(`mcp__playwright__browser_*`) **sans relancer la suite complète** :
+
+```sh
+# 1. Démarrer le dev server (une seule fois par session)
+cd examples/basic-leptos && trunk serve
+# Écoute sur 0.0.0.0:9080 — hot-reload automatique à chaque cargo build
+
+# 2. Après chaque modification, recompiler
+cd examples/basic-leptos && trunk build
+```
+
+Puis dans les outils MCP :
+```
+mcp__playwright__browser_navigate → http://localhost:9080
+```
+
+**Règle** : utiliser `http://localhost:9080` (dev server trunk) pour les
+vérifications MCP interactives. Les tests formels `/e2e` utilisent
+`http://localhost:4173` (serveur statique sur le `dist/` pré-compilé).
 
 ## Claude working rules
 
