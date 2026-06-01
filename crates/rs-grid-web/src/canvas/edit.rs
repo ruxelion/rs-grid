@@ -28,10 +28,11 @@ impl GridCanvas {
         let state = self.0.state.borrow();
         let model = &state.model;
         let off = model.column_offsets.offsets[col_idx];
+        let rnw = model.effective_row_number_width();
         let cx = if col_idx < model.pinned_count {
-            off + model.row_number_width
+            off + rnw
         } else {
-            off - state.viewport.scroll_x + model.row_number_width
+            off - state.viewport.scroll_x + rnw
         };
         let cy = model.row_top(row) - state.viewport.scroll_y;
         let w = model.columns[col_idx].width;
@@ -99,22 +100,17 @@ impl GridCanvas {
         self.remove_edit_input();
         self.0.edit_closures.borrow_mut().clear();
 
-        let (row, col_key) = {
+        let (row, col_key, col_idx) = {
             let state = self.0.state.borrow();
             let edit = match &state.edit {
                 Some(e) => e,
                 None => return,
             };
-            (edit.row, edit.col_key.clone())
+            (edit.row, edit.col_key.clone(), edit.col_idx)
         };
-
-        let col_idx = {
-            let state = self.0.state.borrow();
-            match state.model.columns.iter().position(|c| c.key == col_key) {
-                Some(i) => i,
-                None => return,
-            }
-        };
+        if col_idx >= self.0.state.borrow().model.columns.len() {
+            return;
+        }
 
         let (cx, cy, w, h) = self.cell_viewport_rect(row, col_idx);
         let canvas_rect = self.0.canvas.get_bounding_client_rect();
