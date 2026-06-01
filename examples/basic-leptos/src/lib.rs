@@ -237,7 +237,7 @@ fn App() -> impl IntoView {
                     <div class="app-control">
                         <span class="app-control-label">"Layout"</span>
                         <button
-                            class="app-control-select"
+                            class="app-control-button"
                             on:click=move |_| {
                                 if let Some(ls) = web_sys::window()
                                     .and_then(|w| w.local_storage().ok().flatten())
