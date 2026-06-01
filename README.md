@@ -12,7 +12,7 @@ thousands to **quadrillions** of rows at 60 fps.
 
 > **Status:** early development (v0.1.0) — API may change.
 
-![rs-grid demo](docs/screenshot.png)
+<video src="https://rs-grid.com/rsgrid4k.mp4" autoplay loop muted playsinline width="100%"></video>
 
 ## Features
 
