@@ -121,6 +121,28 @@ body {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
 }
 
+.app-control-button {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  font:
+    500 13px/1 system-ui,
+    sans-serif;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.app-control-button:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
 /* ── toggle switch ──────────────────────────────────────────────────────────── */
 
 .app-switch {

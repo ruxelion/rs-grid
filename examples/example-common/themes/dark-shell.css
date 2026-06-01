@@ -41,6 +41,17 @@
   box-shadow: 0 0 0 3px rgba(106, 176, 243, 0.15);
 }
 
+:root.dark .app-control-button {
+  background: #1c1c1e;
+  border-color: #3a3a3c;
+  color: #d0d0d0;
+}
+
+:root.dark .app-control-button:hover {
+  border-color: #555558;
+  background: #252527;
+}
+
 :root.dark .app-validation-error {
   background: #2d1515;
   border-color: #7f1d1d;
