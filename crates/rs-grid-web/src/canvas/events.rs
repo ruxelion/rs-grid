@@ -484,15 +484,18 @@ impl GridCanvas {
             match *drag {
                 Some(ActiveDrag::Thumb(ref ds)) => {
                     let dy = evt.client_y() as f64 - ds.start_client_y;
-                    let start_scroll = ds.start_scroll_y;
+                    let start_scroll_y = ds.start_scroll_y;
                     drop(drag);
 
-                    let scroll_delta = {
+                    let new_scroll_y = {
                         let s = gc.0.state.borrow();
                         let track_w =
                             gc.0.builder.borrow().theme.scrollbar_width;
+                        // Recompute from the drag-start scroll so the
+                        // start-thumb offset is stable under non-linear
+                        // mappings (e.g. logarithmic scale).
                         if let Some(sb) = ScrollbarGeom::compute(
-                            s.viewport.scroll_y,
+                            start_scroll_y,
                             s.viewport.width,
                             s.viewport.height,
                             s.model.header_height,
@@ -500,6 +503,7 @@ impl GridCanvas {
                             track_w,
                         ) {
                             sb.drag_to_scroll(
+                                start_scroll_y,
                                 dy,
                                 s.model.total_height(),
                                 s.viewport.height,
@@ -513,14 +517,14 @@ impl GridCanvas {
                     let current_x = gc.0.state.borrow().viewport.scroll_x;
                     gc.dispatch(GridCommand::ScrollTo {
                         x: current_x,
-                        y: start_scroll + scroll_delta,
+                        y: new_scroll_y,
                     });
                 }
                 Some(ActiveDrag::HThumb(ref ds)) => {
                     let dx = evt.client_x() as f64 - ds.start_client_x;
-                    let start_scroll = ds.start_scroll_x;
+                    let start_scroll_x = ds.start_scroll_x;
                     drop(drag);
-                    let scroll_delta = {
+                    let new_scroll_x = {
                         let s = gc.0.state.borrow();
                         let track_h =
                             gc.0.builder.borrow().theme.scrollbar_width;
@@ -538,8 +542,10 @@ impl GridCanvas {
                         } else {
                             0.0
                         };
+                        // Recompute from drag-start scroll for a stable
+                        // start-thumb offset under non-linear mappings.
                         if let Some(hsb) = HScrollbarGeom::compute(
-                            s.viewport.scroll_x,
+                            start_scroll_x,
                             s.viewport.width,
                             s.viewport.height,
                             s.model.row_number_width,
@@ -548,6 +554,7 @@ impl GridCanvas {
                             track_h,
                         ) {
                             hsb.drag_to_scroll(
+                                start_scroll_x,
                                 dx,
                                 s.model.total_width(),
                                 s.viewport.width,
@@ -560,7 +567,7 @@ impl GridCanvas {
                     };
                     let current_y = gc.0.state.borrow().viewport.scroll_y;
                     gc.dispatch(GridCommand::ScrollTo {
-                        x: start_scroll + scroll_delta,
+                        x: new_scroll_x,
                         y: current_y,
                     });
                 }

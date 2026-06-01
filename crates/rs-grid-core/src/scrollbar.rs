@@ -1,6 +1,39 @@
 const MIN_THUMB_H: f64 = 24.0;
 const MIN_THUMB_W: f64 = 24.0;
 
+/// Content-height above which the scrollbar switches from a linear to a
+/// logarithmic scroll mapping.  1 000 000 px ≈ 33 333 rows at 30 px/row.
+/// Below this threshold the existing linear behaviour is preserved exactly.
+const LOG_SCROLL_THRESHOLD: f64 = 1_000_000.0;
+
+/// Maps `scroll_y ∈ [0, max_scroll]` → thumb offset `∈ [0, thumb_travel]`.
+///
+/// Uses a linear mapping for small content (≤ `LOG_SCROLL_THRESHOLD`) and
+/// a logarithmic mapping for large content so the thumb remains navigable
+/// even at astronomical row counts.
+fn scroll_to_thumb(scroll_y: f64, max_scroll: f64, thumb_travel: f64) -> f64 {
+    if max_scroll <= LOG_SCROLL_THRESHOLD {
+        (scroll_y / max_scroll * thumb_travel).clamp(0.0, thumb_travel)
+    } else {
+        (scroll_y.ln_1p() / max_scroll.ln_1p() * thumb_travel)
+            .clamp(0.0, thumb_travel)
+    }
+}
+
+/// Inverse of [`scroll_to_thumb`]: maps thumb offset → `scroll_y`.
+fn thumb_to_scroll(t: f64, max_scroll: f64, thumb_travel: f64) -> f64 {
+    if thumb_travel <= 0.0 {
+        return 0.0;
+    }
+    if max_scroll <= LOG_SCROLL_THRESHOLD {
+        (t / thumb_travel * max_scroll).clamp(0.0, max_scroll)
+    } else {
+        let t = t.clamp(0.0, thumb_travel);
+        ((t / thumb_travel * max_scroll.ln_1p()).exp() - 1.0)
+            .clamp(0.0, max_scroll)
+    }
+}
+
 /// Pre-computed geometry of the vertical scrollbar for one frame.
 ///
 /// All coordinates are in viewport space (CSS / logical pixels).
@@ -61,8 +94,7 @@ impl ScrollbarGeom {
         let thumb_h = (thumb_ratio * track_h).max(MIN_THUMB_H).min(track_h);
         let max_scroll = (total_h - full_h).max(1.0);
         let thumb_travel = (track_h - thumb_h).max(0.0);
-        let thumb_offset =
-            (scroll_y / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
+        let thumb_offset = scroll_to_thumb(scroll_y, max_scroll, thumb_travel);
 
         Some(Self {
             track_x,
@@ -109,9 +141,11 @@ impl ScrollbarGeom {
             && y <= self.track_y + self.track_h
     }
 
-    /// Scroll delta produced by dragging the thumb `dy` pixels.
+    /// Absolute scroll-y target produced by dragging the thumb `dy` pixels
+    /// from the position it occupied at `start_scroll_y`.
     pub fn drag_to_scroll(
         &self,
+        start_scroll_y: f64,
         dy: f64,
         total_h: f64,
         viewport_h: f64,
@@ -120,7 +154,9 @@ impl ScrollbarGeom {
         let full_h = (viewport_h - header_h).max(0.0);
         let max_scroll = (total_h - full_h).max(1.0);
         let thumb_travel = (self.track_h - self.thumb_h).max(1.0);
-        dy / thumb_travel * max_scroll
+        let start_t = scroll_to_thumb(start_scroll_y, max_scroll, thumb_travel);
+        let new_t = (start_t + dy).clamp(0.0, thumb_travel);
+        thumb_to_scroll(new_t, max_scroll, thumb_travel)
     }
 
     /// Absolute scroll-y for a click on the track at viewport-y `click_y`
@@ -137,7 +173,7 @@ impl ScrollbarGeom {
         let thumb_travel = (self.track_h - self.thumb_h).max(1.0);
         let rel = (click_y - self.track_y - self.thumb_h / 2.0)
             .clamp(0.0, thumb_travel);
-        rel / thumb_travel * max_scroll
+        thumb_to_scroll(rel, max_scroll, thumb_travel)
     }
 }
 
@@ -206,8 +242,7 @@ impl HScrollbarGeom {
         let thumb_w = (thumb_ratio * track_w).max(MIN_THUMB_W).min(track_w);
         let max_scroll = (total_w - available_w).max(1.0);
         let thumb_travel = (track_w - thumb_w).max(0.0);
-        let thumb_offset =
-            (scroll_x / max_scroll * thumb_travel).clamp(0.0, thumb_travel);
+        let thumb_offset = scroll_to_thumb(scroll_x, max_scroll, thumb_travel);
 
         Some(Self {
             track_y,
@@ -254,9 +289,11 @@ impl HScrollbarGeom {
             && x <= self.track_x + self.track_w
     }
 
-    /// Scroll delta produced by dragging the thumb `dx` pixels.
+    /// Absolute scroll-x target produced by dragging the thumb `dx` pixels
+    /// from the position it occupied at `start_scroll_x`.
     pub fn drag_to_scroll(
         &self,
+        start_scroll_x: f64,
         dx: f64,
         total_w: f64,
         viewport_w: f64,
@@ -266,7 +303,9 @@ impl HScrollbarGeom {
         let available_w = (viewport_w - gutter_w - vsb_w).max(0.0);
         let max_scroll = (total_w - available_w).max(1.0);
         let thumb_travel = (self.track_w - self.thumb_w).max(1.0);
-        dx / thumb_travel * max_scroll
+        let start_t = scroll_to_thumb(start_scroll_x, max_scroll, thumb_travel);
+        let new_t = (start_t + dx).clamp(0.0, thumb_travel);
+        thumb_to_scroll(new_t, max_scroll, thumb_travel)
     }
 
     /// Absolute scroll-x for a click on the track at viewport-x `click_x`.
@@ -283,7 +322,7 @@ impl HScrollbarGeom {
         let thumb_travel = (self.track_w - self.thumb_w).max(1.0);
         let rel = (click_x - self.track_x - self.thumb_w / 2.0)
             .clamp(0.0, thumb_travel);
-        rel / thumb_travel * max_scroll
+        thumb_to_scroll(rel, max_scroll, thumb_travel)
     }
 }
 
@@ -359,8 +398,9 @@ mod tests {
     #[test]
     fn vscroll_drag_to_scroll_positive() {
         let g = make_vscroll(0.0);
-        let delta = g.drag_to_scroll(10.0, 3000.0, 600.0, 40.0);
-        assert!(delta > 0.0);
+        // drag_to_scroll now returns absolute position
+        let pos = g.drag_to_scroll(0.0, 10.0, 3000.0, 600.0, 40.0);
+        assert!(pos > 0.0);
     }
 
     // ── HScrollbarGeom
@@ -409,8 +449,9 @@ mod tests {
     #[test]
     fn hscroll_drag_to_scroll_positive() {
         let g = make_hscroll(0.0);
-        let delta = g.drag_to_scroll(10.0, 2000.0, 800.0, 50.0, 16.0);
-        assert!(delta > 0.0);
+        // drag_to_scroll now returns absolute position
+        let pos = g.drag_to_scroll(0.0, 10.0, 2000.0, 800.0, 50.0, 16.0);
+        assert!(pos > 0.0);
     }
 
     #[test]
@@ -496,6 +537,115 @@ mod tests {
         assert!(
             (s1 - max_scroll).abs() < 100.0,
             "click at track right → near max scroll"
+        );
+    }
+
+    // ── Logarithmic mapping — large dataset tests ────────────────────────────
+
+    /// 10^9 rows × 30 px = 30 Gpx total, viewport 800×600, header 40
+    fn make_large_vscroll(scroll_y: f64) -> ScrollbarGeom {
+        ScrollbarGeom::compute(
+            scroll_y, 800.0, 600.0, 40.0, 30_000_000_000.0, 16.0,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn log_vscroll_thumb_at_top() {
+        let g = make_large_vscroll(0.0);
+        assert_eq!(g.thumb_y, g.track_y, "scroll=0 → thumb at track top");
+    }
+
+    #[test]
+    fn log_vscroll_thumb_at_bottom() {
+        let total_h = 30_000_000_000.0_f64;
+        let full_h = 600.0 - 40.0_f64;
+        let max_scroll = total_h - full_h;
+        let g = make_large_vscroll(max_scroll);
+        let expected_bottom = g.track_y + g.track_h;
+        let actual_bottom = g.thumb_y + g.thumb_h;
+        assert!(
+            (actual_bottom - expected_bottom).abs() < 1.0,
+            "scroll=max → thumb at track bottom (got {actual_bottom}, \
+             expected {expected_bottom})"
+        );
+    }
+
+    #[test]
+    fn log_vscroll_midpoint_thumb_near_top_half() {
+        // Under the log mapping, 50% of max_scroll is a VERY large absolute
+        // value, so ln(1 + max/2) / ln(1 + max) ≈ 1 − ln2/ln(max) ≈ 0.97.
+        // The thumb should therefore be past 90% of thumb_travel.
+        let total_h = 30_000_000_000.0_f64;
+        let full_h = 560.0_f64;
+        let max_scroll = total_h - full_h;
+        let g_top = make_large_vscroll(0.0);
+        let g_bot = make_large_vscroll(max_scroll);
+        let g_mid = make_large_vscroll(max_scroll / 2.0);
+        let total_travel = (g_bot.thumb_y - g_top.thumb_y).max(1.0);
+        let fraction = (g_mid.thumb_y - g_top.thumb_y) / total_travel;
+        assert!(
+            fraction > 0.90,
+            "log: at 50% scroll the thumb should be past 90% of travel \
+             (got {fraction:.3})"
+        );
+    }
+
+    #[test]
+    fn log_vscroll_roundtrip() {
+        // scroll_to_thumb → thumb_to_scroll should be the identity within 1px.
+        let total_h = 30_000_000_000.0_f64;
+        let full_h = 560.0_f64;
+        let max_scroll = (total_h - full_h).max(1.0);
+        // Derive thumb_travel the same way compute() does.
+        let track_h = (full_h - 2.0 * 16.0).max(0.0); // arrow_h = track_w = 16
+        let thumb_ratio = (full_h / total_h).clamp(0.0, 1.0);
+        let thumb_h = (thumb_ratio * track_h).max(MIN_THUMB_H).min(track_h);
+        let thumb_travel = (track_h - thumb_h).max(0.0);
+
+        for &scroll_y in &[
+            0.0_f64,
+            1.0,
+            1_000.0,
+            1_000_000.0,
+            1_000_000_000.0,
+            max_scroll * 0.5,
+            max_scroll,
+        ] {
+            let t = scroll_to_thumb(scroll_y, max_scroll, thumb_travel);
+            let back = thumb_to_scroll(t, max_scroll, thumb_travel);
+            assert!(
+                (back - scroll_y).abs() < 1.0,
+                "roundtrip failed at scroll_y={scroll_y}: got {back}"
+            );
+        }
+    }
+
+    #[test]
+    fn log_vscroll_drag_from_zero() {
+        let total_h = 30_000_000_000.0_f64;
+        let g = make_large_vscroll(0.0);
+        let full_h = 600.0 - 40.0_f64;
+        let max_scroll = total_h - full_h;
+        let pos = g.drag_to_scroll(0.0, 1.0, total_h, 600.0, 40.0);
+        assert!(pos > 0.0, "dragging down from top → positive scroll");
+        assert!(pos < max_scroll, "dragging 1px should not jump to max");
+    }
+
+    #[test]
+    fn log_vscroll_track_click_top_and_bottom() {
+        let total_h = 30_000_000_000.0_f64;
+        let full_h = 560.0_f64;
+        let max_scroll = total_h - full_h;
+        let g = make_large_vscroll(0.0);
+        let s0 = g.track_click_scroll(g.track_y, total_h, 600.0, 40.0);
+        assert!(s0 < 1.0, "click at track top → near-zero scroll (got {s0})");
+        let s1 =
+            g.track_click_scroll(g.track_y + g.track_h, total_h, 600.0, 40.0);
+        assert!(
+            (s1 - max_scroll).abs() < max_scroll * 0.01,
+            "click at track bottom → near max_scroll \
+             (got {s1}, expected {max_scroll})"
         );
     }
 }
