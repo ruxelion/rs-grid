@@ -11,11 +11,7 @@ use crate::{
 /// Returns `true` when the selection spans every row of the model —
 /// i.e. the user clicked a column header rather than dragging a cell range.
 /// Full-column selections carry positional/sort intent, not bulk data.
-fn is_full_col_sel(
-    tl: &CellCoord,
-    br: &CellCoord,
-    row_count: u64,
-) -> bool {
+fn is_full_col_sel(tl: &CellCoord, br: &CellCoord, row_count: u64) -> bool {
     row_count > 0 && tl.row == 0 && br.row == row_count - 1
 }
 
@@ -41,9 +37,11 @@ impl GridState {
                         // Full-column selection: copy the column header labels,
                         // not the cell data.  Copying billions of cells into the
                         // clipboard is never useful and would OOM the tab.
-                        return CommandOutput::CopyText(
-                            header_tsv(&self.model, tl.col, br.col),
-                        );
+                        return CommandOutput::CopyText(header_tsv(
+                            &self.model,
+                            tl.col,
+                            br.col,
+                        ));
                     }
                 }
                 match self.selection.to_tsv(&self.model) {
@@ -59,9 +57,11 @@ impl GridState {
                     if is_full_col_sel(&tl, &br, row_count) {
                         // Full-column selection: cutting a column definition
                         // makes no sense — behave like copy.
-                        return CommandOutput::CopyText(
-                            header_tsv(&self.model, tl.col, br.col),
-                        );
+                        return CommandOutput::CopyText(header_tsv(
+                            &self.model,
+                            tl.col,
+                            br.col,
+                        ));
                     }
                 }
                 // Normal cut: copy data then clear cells.
@@ -146,14 +146,18 @@ impl GridState {
                         self.history.push(UndoEntry::SetCells(old_cells));
                     }
                     // Update selection to cover pasted area.
-                    let last_r = (orig.row + target_rows as u64 - 1)
-                        .min(row_count - 1);
+                    let last_r =
+                        (orig.row + target_rows as u64 - 1).min(row_count - 1);
                     let last_c =
                         (orig.col + target_cols - 1).min(col_count - 1);
-                    self.selection.anchor =
-                        Some(CellCoord { row: orig.row, col: orig.col });
-                    self.selection.focus =
-                        Some(CellCoord { row: last_r, col: last_c });
+                    self.selection.anchor = Some(CellCoord {
+                        row: orig.row,
+                        col: orig.col,
+                    });
+                    self.selection.focus = Some(CellCoord {
+                        row: last_r,
+                        col: last_c,
+                    });
                 }
                 CommandOutput::None
             }
@@ -268,7 +272,9 @@ mod tests {
     #[test]
     fn paste_without_selection_is_noop() {
         let mut s = make_state();
-        let out = s.apply(GridCommand::PasteAt { text: "new\n".into() });
+        let out = s.apply(GridCommand::PasteAt {
+            text: "new\n".into(),
+        });
         assert!(matches!(out, CommandOutput::None));
     }
 

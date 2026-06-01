@@ -545,7 +545,12 @@ mod tests {
     /// 10^9 rows × 30 px = 30 Gpx total, viewport 800×600, header 40
     fn make_large_vscroll(scroll_y: f64) -> ScrollbarGeom {
         ScrollbarGeom::compute(
-            scroll_y, 800.0, 600.0, 40.0, 30_000_000_000.0, 16.0,
+            scroll_y,
+            800.0,
+            600.0,
+            40.0,
+            30_000_000_000.0,
+            16.0,
         )
         .unwrap()
     }
