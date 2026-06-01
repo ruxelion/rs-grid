@@ -135,13 +135,15 @@ jobs:
 
       - name: Run E2E tests (smoke + functional)
         working-directory: e2e
-        # Stable on Linux: smoke, contrôles, interaction canvas.
-        # Excluded suites and reasons:
-        #   visual regression     — snapshots generated on Windows
-        #   colonnes pinnées      — select option values differ on Linux build
-        #   précision f64         — missing Linux snapshots + double-click coords
-        #   editing.spec.ts       — all pixel coords need Linux re-calibration
-        run: npx playwright test tests/grid.spec.ts --grep-invert "visual regression|colonnes pinnées|précision f64"
+        # --update-snapshots so Linux-specific baselines are created on first
+        # run (snapshots are platform-specific: *-chromium-linux.png).
+        # Visual regression reference snapshots are maintained on Windows by
+        # developers; Linux CI creates its own baselines each run.
+        # Excluded suites:
+        #   visual regression — snapshots maintained on Windows
+        #   colonnes pinnées  — select option values differ on Linux build
+        #   précision f64     — double-click coords need Linux re-calibration
+        run: npx playwright test tests/grid.spec.ts --update-snapshots --grep-invert "visual regression|colonnes pinnées|précision f64"
 
       - name: Upload Playwright report
         if: failure()
