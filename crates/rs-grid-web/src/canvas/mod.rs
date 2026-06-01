@@ -145,8 +145,6 @@ enum ActiveDrag {
     HThumb(HThumbDrag),
     Cell,
     Row,
-    /// Shift-drag extend column selection.
-    Col,
     /// Single click on column header — deferred sort on mouseup,
     /// upgrades to `ColumnDrag` if mouse moves > 5 px.
     ColClick {

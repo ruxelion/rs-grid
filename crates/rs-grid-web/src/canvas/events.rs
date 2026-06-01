@@ -410,15 +410,15 @@ impl GridCanvas {
                     );
                     return;
                 }
-                if evt.shift_key() {
-                    gc.dispatch(GridCommand::ExtendColSelection(col));
-                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::Col);
-                } else {
-                    *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColClick {
-                        col_idx: col,
-                        start_client_x: evt.client_x() as f64,
-                    });
-                }
+                // Shift+Click is reserved for multi-column sort (not yet
+                // implemented). Treat it identically to a plain click for
+                // now so it doesn't accidentally trigger a cell-range
+                // extension into the column — behaviour that AG Grid and
+                // most grids do not exhibit.
+                *gc.0.drag.borrow_mut() = Some(ActiveDrag::ColClick {
+                    col_idx: col,
+                    start_client_x: evt.client_x() as f64,
+                });
                 return;
             }
 
@@ -585,14 +585,6 @@ impl GridCanvas {
                     let row = gc.0.state.borrow().hit_test_row_header(x, y);
                     if let Some(row) = row {
                         gc.dispatch(GridCommand::ExtendRowSelection(row));
-                    }
-                }
-                Some(ActiveDrag::Col) => {
-                    drop(drag);
-                    let (x, y) = gc.canvas_xy(&evt);
-                    let col = gc.0.state.borrow().hit_test_col_header(x, y);
-                    if let Some(col) = col {
-                        gc.dispatch(GridCommand::ExtendColSelection(col));
                     }
                 }
                 Some(ActiveDrag::ColClick {
