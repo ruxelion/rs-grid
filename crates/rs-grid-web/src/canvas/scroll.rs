@@ -319,13 +319,15 @@ fn edge_depth(pos: f64, lo: f64, hi: f64) -> Option<f64> {
 ///                 the cursor stays in the zone — AG Grid behaviour).
 fn edge_velocity(pos: f64, lo: f64, hi: f64, ticks: u32) -> f64 {
     // Start at 30% and climb to 100% over ~2 s.
-    let time_factor = 0.3 + 0.7 * (ticks as f64 / DRAG_ACCEL_TICKS).clamp(0.0, 1.0);
+    let time_factor =
+        0.3 + 0.7 * (ticks as f64 / DRAG_ACCEL_TICKS).clamp(0.0, 1.0);
 
     if pos < lo + DRAG_EDGE_ZONE {
         let d = ((lo + DRAG_EDGE_ZONE - pos) / DRAG_EDGE_ZONE).clamp(0.0, 1.0);
         -DRAG_MAX_STEP * d * d * time_factor
     } else if pos > hi - DRAG_EDGE_ZONE {
-        let d = ((pos - (hi - DRAG_EDGE_ZONE)) / DRAG_EDGE_ZONE).clamp(0.0, 1.0);
+        let d =
+            ((pos - (hi - DRAG_EDGE_ZONE)) / DRAG_EDGE_ZONE).clamp(0.0, 1.0);
         DRAG_MAX_STEP * d * d * time_factor
     } else {
         0.0
@@ -373,10 +375,7 @@ impl GridCanvas {
             )
             .expect("setInterval drag scroll");
         *self.0.drag_scroll_interval.borrow_mut() = Some(id);
-        self.0
-            .drag_scroll_closures
-            .borrow_mut()
-            .push(Box::new(cb));
+        self.0.drag_scroll_closures.borrow_mut().push(Box::new(cb));
     }
 
     pub(super) fn stop_cell_drag_scroll(&self) {

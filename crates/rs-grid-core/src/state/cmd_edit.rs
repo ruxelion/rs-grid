@@ -19,11 +19,8 @@ impl GridState {
                 if !self.model.editable || !col_editable {
                     return CommandOutput::None;
                 }
-                let col_idx = self
-                    .model
-                    .columns
-                    .iter()
-                    .position(|c| c.key == col_key);
+                let col_idx =
+                    self.model.columns.iter().position(|c| c.key == col_key);
                 let initial_value =
                     self.model.get_cell(row, &col_key).unwrap_or_default();
                 self.edit = Some(EditCell {
