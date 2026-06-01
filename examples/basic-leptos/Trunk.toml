@@ -21,7 +21,9 @@ target = "index.html"
 
 # Generate Tailwind CSS before every Trunk build so `generated/tailwind.css`
 # is always present (the file is .gitignore-d; this hook recreates it).
+# scripts/build-css.mjs installs node_modules when absent (CI / clean clone)
+# then runs `npm run css`. Works on Windows, macOS and Linux.
 [[hooks]]
 stage = "pre_build"
-command = "npm"
-command_arguments = ["run", "css"]
+command = "node"
+command_arguments = ["scripts/build-css.mjs"]
