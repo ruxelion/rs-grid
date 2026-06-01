@@ -32,9 +32,9 @@
   --rs-grid-search-current: rgba(255, 165, 0, 0.55);
   --rs-grid-skeleton-fg: rgba(200, 200, 200, 0.30);
   --rs-grid-cell-padding: 12px;
-  --rs-grid-scrollbar-width: 8px;
-  --rs-grid-scrollbar-radius: 4px;
-  --rs-grid-scrollbar-inset: 2px;
+  --rs-grid-scrollbar-width: 14px;
+  --rs-grid-scrollbar-radius: 6px;
+  --rs-grid-scrollbar-inset: 3px;
   --rs-grid-drag-overlay: rgba(0, 0, 0, 0.03);
   --rs-grid-drag-ghost-bg: #f8f9fb;
   --rs-grid-drag-ghost-text: #181d1f;
