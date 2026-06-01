@@ -313,10 +313,9 @@ fn edge_depth(pos: f64, lo: f64, hi: f64) -> Option<f64> {
     }
 }
 
-/// Signed scroll velocity combining:
-/// - **position**: cubic depth³ (faster near the edge),
-/// - **time**:     linear ramp over DRAG_ACCEL_TICKS (faster the longer
-///                 the cursor stays in the zone — AG Grid behaviour).
+/// Signed scroll velocity combining position (cubic depth³) and time
+/// (linear ramp over `DRAG_ACCEL_TICKS` — faster the longer the cursor
+/// stays near the edge, matching AG Grid behaviour).
 fn edge_velocity(pos: f64, lo: f64, hi: f64, ticks: u32) -> f64 {
     // Start at 30% and climb to 100% over ~2 s.
     let time_factor =
