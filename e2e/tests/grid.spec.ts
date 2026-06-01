@@ -124,7 +124,10 @@ test.describe('interaction canvas', () => {
     await canvas.click({ position: { x: 80, y: 80 } });
     await canvas.click({ position: { x: 200, y: 120 }, modifiers: ['Shift'] });
     await waitForPaint(page, 100);
-    await expect(canvas).toBeVisible();
+    // Vérifie visuellement que la sélection multi-cellules est présente (fond bleu).
+    await expect(canvas).toHaveScreenshot('shift-click-selection.png', {
+      maxDiffPixelRatio: 0.02,
+    });
   });
 });
 
@@ -361,8 +364,11 @@ test.describe('scrollbar logarithmique', () => {
 
     // Position de la scrollbar : droite du canvas
     const sbX = box!.x + box!.width - 8;
-    // Thumb est au sommet : y ≈ header_h + arrow_h ≈ 80px depuis le haut du canvas
-    const thumbStartY = box!.y + 80;
+    // Position du thumb à scroll_y=0 : top of track = header_h + arrow_h.
+    // Constantes issues de editing.spec.ts (HEADER=60) et theme.scrollbar_width=14.
+    const GRID_HEADER_H = 60; // model.header_height
+    const SB_ARROW_H = 14;    // theme.scrollbar_width (= arrow button height)
+    const thumbStartY = box!.y + GRID_HEADER_H + SB_ARROW_H; // top of thumb at scroll=0
     // On drag vers le bas de 100px
     await page.mouse.move(sbX, thumbStartY);
     await page.mouse.down();
@@ -401,9 +407,13 @@ test.describe('scrollbar logarithmique', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Clic au milieu exact du track scrollbar
+    // Clic au milieu du track scrollbar via constantes nommées.
+    const GRID_HEADER_H = 60; // hauteur du header de grille (model.header_height)
+    const SB_ARROW_H = 14;    // hauteur des flèches scrollbar (= theme.scrollbar_width)
+    const trackTop = GRID_HEADER_H + SB_ARROW_H;       // 74 px
+    const trackBottom = box!.height - SB_ARROW_H;      // height - 14 px
     const sbX = box!.width - 8;
-    const sbMidY = (80 + box!.height - 20) / 2; // entre arrow_top et arrow_bottom
+    const sbMidY = Math.round((trackTop + trackBottom) / 2);
     await canvas.click({ position: { x: sbX, y: sbMidY } });
     await waitForPaint(page, 400);
 
