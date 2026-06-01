@@ -6,7 +6,7 @@ use crate::{
     undo::UndoEntry,
 };
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 /// Returns `true` when the selection spans every row of the model —
 /// i.e. the user clicked a column header rather than dragging a cell range.
@@ -24,7 +24,7 @@ fn header_tsv(model: &GridModel, col_start: usize, col_end: usize) -> String {
     format!("{}\n", row.join("\t"))
 }
 
-// ── command handler ───────────────────────────────────────────────────────────
+// ── command handler ──────────────────────────────────────────────────────────
 
 impl GridState {
     pub(super) fn cmd_clipboard(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -34,9 +34,9 @@ impl GridState {
                 if let Some((tl, br)) = self.selection.range() {
                     let row_count = self.model.display_row_count();
                     if is_full_col_sel(&tl, &br, row_count) {
-                        // Full-column selection: copy the column header labels,
-                        // not the cell data.  Copying billions of cells into the
-                        // clipboard is never useful and would OOM the tab.
+                        // Full-column selection: copy the column header
+                        // labels, not the cell data. Copying billions of
+                        // cells into the clipboard would OOM the tab.
                         return CommandOutput::CopyText(header_tsv(
                             &self.model,
                             tl.col,
@@ -87,8 +87,8 @@ impl GridState {
             // ── Paste ────────────────────────────────────────────────────────
             GridCommand::PasteAt { text } => {
                 let sel_range = self.selection.range();
-                // Use the top-left of the normalized selection so that paste
-                // always starts at the visual top-left, regardless of direction.
+                // Use the top-left of the normalized selection so that
+                // paste always starts at the visual top-left.
                 let origin = sel_range
                     .as_ref()
                     .map(|(tl, _)| tl.clone())
@@ -109,8 +109,9 @@ impl GridState {
                     // as-is from the anchor (row 0 for column selections).
                     // Multi-cell range → tile clipboard to fill (Excel-like).
                     //
-                    // `tr_u64` is computed as u64 and capped before `as usize`
-                    // to prevent WASM32 overflow on billion-row column selections.
+                    // `tr_u64` is computed as u64 and capped before
+                    // `as usize` — prevents WASM32 overflow on billion-row
+                    // column selections.
                     let (target_rows, target_cols) = match sel_range {
                         Some((ref tl, ref br))
                             if tl.row != br.row || tl.col != br.col =>
