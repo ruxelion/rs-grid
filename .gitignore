@@ -16,3 +16,5 @@ examples/basic-react/dist/
 mcp/node_modules/
 mcp/dist/
 .env
+.playwright-mcp/
+*.png
