@@ -304,17 +304,25 @@ impl SceneBuilder {
                 }));
             }
 
-            // During a drag, render all non-pinned columns so
-            // that columns shifted to new preview positions are
-            // not missed by the normal visible-range culling.
-            let drag_end = if preview_offsets.is_some() {
-                model.columns.len()
+            // During a drag, columns may have animated into or out
+            // of the viewport. Start from the first non-pinned column
+            // (not just col_start) to catch those that animated
+            // leftward, and cull each column individually by its
+            // current animated viewport position.
+            let (scan_start, scan_end) = if preview_offsets.is_some() {
+                (pinned_count, model.columns.len())
             } else {
-                col_end
+                (col_start, col_end)
             };
-            for ci in col_start..drag_end {
+            for ci in scan_start..scan_end {
                 let col = &model.columns[ci];
                 let cx = col_vx(ci);
+                // Skip columns that are fully outside the viewport.
+                if preview_offsets.is_some()
+                    && (cx + col.width <= rnw || cx >= vp.width)
+                {
+                    continue;
+                }
                 let status = model.cell_status(ri, &col.key);
                 cells::emit_cell(
                     &mut frame,
@@ -507,12 +515,19 @@ impl SceneBuilder {
             }));
 
             // Render column headers for a given index range.
+            // When preview offsets are active (column drag), each
+            // column is culled individually against the viewport.
             let render_col_headers =
                 |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
                     let mid_y = hh * 0.5 + t.header_font_size * 0.35;
                     for ci in range {
                         let col = &model.columns[ci];
                         let cx = col_vx(ci);
+                        if preview_offsets.is_some()
+                            && (cx + col.width <= rnw || cx >= vp.width)
+                        {
+                            continue;
+                        }
 
                         let col_in_sel = sel.range().is_some_and(|(tl, br)| {
                             ci >= tl.col && ci <= br.col
@@ -655,8 +670,15 @@ impl SceneBuilder {
                     }
                 };
 
-            // Scrollable column headers
-            render_col_headers(&mut frame, col_start..col_end);
+            // Scrollable column headers.
+            // During drag, scan all non-pinned columns so animated
+            // headers are visible; culling happens inside the closure.
+            let header_range = if preview_offsets.is_some() {
+                pinned_count..model.columns.len()
+            } else {
+                col_start..col_end
+            };
+            render_col_headers(&mut frame, header_range);
             // Pinned column headers (on top)
             if pinned_count > 0 {
                 // Solid background masking scrollable headers underneath.
