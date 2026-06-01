@@ -574,10 +574,18 @@ impl GridCanvas {
                 Some(ActiveDrag::Cell) => {
                     drop(drag);
                     let (x, y) = gc.canvas_xy(&evt);
+                    // Keep last position for the auto-scroll interval.
+                    gc.0.drag_last_pos.set((x, y));
+                    // Extend selection to the cell under the cursor.
+                    // Use an explicit `let` so the immutable borrow from
+                    // hit_test() is dropped before dispatch() borrows mutably.
                     let coord = gc.0.state.borrow().hit_test(x, y);
                     if let Some(coord) = coord {
                         gc.dispatch(GridCommand::ExtendSelection(coord));
                     }
+                    // Start/stop edge auto-scroll based on cursor proximity
+                    // to the viewport edges.
+                    gc.update_cell_drag_scroll(x, y);
                 }
                 Some(ActiveDrag::Row) => {
                     drop(drag);
@@ -715,6 +723,7 @@ impl GridCanvas {
                 return;
             }
             gc.stop_scroll_repeat();
+            gc.stop_cell_drag_scroll();
 
             let finished_drag = gc.0.drag.borrow_mut().take();
             match finished_drag {
