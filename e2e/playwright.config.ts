@@ -4,6 +4,10 @@ export default defineConfig({
   testDir: './tests',
   // Screenshots de référence stockées à côté des specs
   snapshotDir: './tests/snapshots',
+  // Crée les snapshots manquants (première exécution sur une nouvelle
+  // plateforme) au lieu d'échouer. Les snapshots existants sont comparés
+  // normalement.
+  updateSnapshots: 'missing',
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
