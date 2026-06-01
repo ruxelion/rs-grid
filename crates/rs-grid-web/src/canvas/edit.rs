@@ -498,6 +498,9 @@ impl GridCanvas {
             .expect("create input")
             .dyn_into()
             .expect("cast");
+        // Explicit type="text" so CSS selectors like input[type="text"]
+        // match (without it the attribute is absent, only the IDL default).
+        let _ = input.set_attribute("type", "text");
 
         // For ImageText cells the raw value is
         // "{data_uri} {label}". Show only the label

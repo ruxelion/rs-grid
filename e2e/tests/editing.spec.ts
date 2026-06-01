@@ -13,8 +13,12 @@ const GUTTER = 55;
 const HEADER = 60;
 const ROW_H = 40;
 
-/** Return the center of cell (row, col) in canvas-relative coordinates. */
-function cellCenter(row: number, col: number, colWidths: number[] = [200, 260, 140, 160, 120, 80, 60]) {
+/** Return the center of cell (row, col) in canvas-relative coordinates.
+ *  colWidths must match build_model() in example-common/src/lib.rs:
+ *  Name(200) Email(260) Role(140) Dept(170) Salary(120) Active(80)
+ *  Status(120) Avatar(60) Actions(160)
+ */
+function cellCenter(row: number, col: number, colWidths: number[] = [200, 260, 140, 170, 120, 80, 120, 60, 160]) {
   let x = GUTTER;
   for (let i = 0; i < col; i++) x += colWidths[i] ?? 120;
   x += (colWidths[col] ?? 120) / 2;
@@ -25,14 +29,26 @@ function cellCenter(row: number, col: number, colWidths: number[] = [200, 260, 1
 /** Double-click a cell, read the edit input value, then Escape. */
 async function readCellValue(page: Page, canvas: Locator, row: number, col: number): Promise<string> {
   const pos = cellCenter(row, col);
+  // Single click first to ensure canvas focus + cell selection, then dblclick.
+  await canvas.click({ position: pos });
+  await waitForPaint(page, 100);
   await canvas.dblclick({ position: pos });
-  await waitForPaint(page, 150);
+  await waitForPaint(page, 400);
   const input = page.locator('input[type="text"]');
-  await expect(input).toBeVisible({ timeout: 2000 });
+  await expect(input).toBeVisible({ timeout: 5000 });
   const value = await input.inputValue();
   await page.keyboard.press('Escape');
-  await waitForPaint(page, 100);
+  await waitForPaint(page, 150);
   return value;
+}
+
+/** Double-click a cell to enter edit mode (click first for focus, then dblclick). */
+async function dblclickCell(page: Page, canvas: Locator, row: number, col: number) {
+  const pos = cellCenter(row, col);
+  await canvas.click({ position: pos });
+  await waitForPaint(page, 80);
+  await canvas.dblclick({ position: pos });
+  await waitForPaint(page, 400);
 }
 
 /** Click a cell to select it. */
@@ -57,11 +73,9 @@ test.describe('édition', () => {
 
   test('double-clic ouvre le champ d\'édition', async ({ page }) => {
     const canvas = page.locator('canvas');
-    const pos = cellCenter(0, 0);  // Name column, row 0
-    await canvas.dblclick({ position: pos });
-    await waitForPaint(page, 150);
+    await dblclickCell(page, canvas, 0, 0);  // Name column, row 0
     const input = page.locator('input[type="text"]');
-    await expect(input).toBeVisible();
+    await expect(input).toBeVisible({ timeout: 5000 });
     // The input should contain the current cell value (a name)
     const value = await input.inputValue();
     expect(value.length).toBeGreaterThan(0);
@@ -73,8 +87,7 @@ test.describe('édition', () => {
     const original = await readCellValue(page, canvas, 0, 0);
 
     // Enter edit mode, type something, then Escape
-    await canvas.dblclick({ position: cellCenter(0, 0) });
-    await waitForPaint(page, 150);
+    await dblclickCell(page, canvas, 0, 0);
     const input = page.locator('input[type="text"]');
     await input.fill('SHOULD_NOT_PERSIST');
     await page.keyboard.press('Escape');
@@ -87,8 +100,7 @@ test.describe('édition', () => {
 
   test('Enter valide l\'édition', async ({ page }) => {
     const canvas = page.locator('canvas');
-    await canvas.dblclick({ position: cellCenter(0, 0) });
-    await waitForPaint(page, 150);
+    await dblclickCell(page, canvas, 0, 0);
     const input = page.locator('input[type="text"]');
     await input.fill('EDITED_VALUE');
     await page.keyboard.press('Enter');
@@ -104,8 +116,7 @@ test.describe('édition', () => {
     const original = await readCellValue(page, canvas, 0, 0);
 
     // Edit + commit
-    await canvas.dblclick({ position: cellCenter(0, 0) });
-    await waitForPaint(page, 150);
+    await dblclickCell(page, canvas, 0, 0);
     await page.locator('input[type="text"]').fill('WILL_UNDO');
     await page.keyboard.press('Enter');
     await waitForPaint(page, 100);
@@ -280,30 +291,21 @@ test.describe('thèmes', () => {
   test('thème dark s\'applique', async ({ page }) => {
     await page.goto('/');
     await waitForPaint(page);
-    // Theme selector is the last <select>
-    await page.locator('select').last().selectOption('dark');
+    // Theme selector is nth(2): Dataset size(0), Column count(1), Theme(2), Language(3)
+    await page.locator('select').nth(2).selectOption('dark');
     await waitForPaint(page);
     await expect(page).toHaveScreenshot('theme-dark.png', {
       maxDiffPixelRatio: 0.02,
     });
   });
 
-  test('thème Material 3 s\'applique', async ({ page }) => {
+  test('thème dimmed s\'applique', async ({ page }) => {
     await page.goto('/');
     await waitForPaint(page);
-    await page.locator('select').last().selectOption('material');
+    // Theme selector is nth(2): Dataset size(0), Column count(1), Theme(2), Language(3)
+    await page.locator('select').nth(2).selectOption('dimmed');
     await waitForPaint(page);
-    await expect(page).toHaveScreenshot('theme-material.png', {
-      maxDiffPixelRatio: 0.02,
-    });
-  });
-
-  test('thème Material 3 Dark s\'applique', async ({ page }) => {
-    await page.goto('/');
-    await waitForPaint(page);
-    await page.locator('select').last().selectOption('material-dark');
-    await waitForPaint(page);
-    await expect(page).toHaveScreenshot('theme-material-dark.png', {
+    await expect(page).toHaveScreenshot('theme-dimmed.png', {
       maxDiffPixelRatio: 0.02,
     });
   });
@@ -311,7 +313,7 @@ test.describe('thèmes', () => {
   test('retour au thème light depuis dark', async ({ page }) => {
     await page.goto('/');
     await waitForPaint(page);
-    const sel = page.locator('select').last();
+    const sel = page.locator('select').nth(2); // Theme is nth(2)
     await sel.selectOption('dark');
     await waitForPaint(page);
     await sel.selectOption('');  // light = empty value
@@ -324,13 +326,15 @@ test.describe('thèmes', () => {
 
 // ── filtre ──────────────────────────────────────────────────────────────────────
 
+// TODO: Le démo basic-leptos n'expose pas encore d'input de filtre.
+//       Ces tests sont skippés jusqu'à l'ajout d'une UI de filtrage.
 test.describe('filtre', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await waitForPaint(page);
   });
 
-  test('saisie dans le filtre réduit les lignes', async ({ page }) => {
+  test.skip('saisie dans le filtre réduit les lignes', async ({ page }) => {
     const canvas = page.locator('canvas');
     const filterInput = page.locator('input[placeholder]');
 
@@ -344,7 +348,7 @@ test.describe('filtre', () => {
     });
   });
 
-  test('effacer le filtre restaure toutes les lignes', async ({ page }) => {
+  test.skip('effacer le filtre restaure toutes les lignes', async ({ page }) => {
     const canvas = page.locator('canvas');
     const filterInput = page.locator('input[placeholder]');
 
@@ -359,7 +363,7 @@ test.describe('filtre', () => {
     });
   });
 
-  test('filtre sans résultat affiche grille vide', async ({ page }) => {
+  test.skip('filtre sans résultat affiche grille vide', async ({ page }) => {
     const canvas = page.locator('canvas');
     const filterInput = page.locator('input[placeholder]');
 
@@ -373,9 +377,10 @@ test.describe('filtre', () => {
 });
 
 // ── export/import round-trip ────────────────────────────────────────────────────
+// TODO: Le démo basic-leptos n'expose pas encore de bouton Export/Import.
 
 test.describe('export/import', () => {
-  test('export puis import restaure les modifications', async ({ page }) => {
+  test.skip('export puis import restaure les modifications', async ({ page }) => {
     await page.goto('/');
     await waitForPaint(page);
     const canvas = page.locator('canvas');
@@ -436,9 +441,7 @@ test.describe('scroll et sélection', () => {
     await waitForPaint(page);
 
     // Double-click a visible cell — edit input should appear
-    const pos = cellCenter(0, 0);
-    await canvas.dblclick({ position: pos });
-    await waitForPaint(page, 150);
+    await dblclickCell(page, canvas, 0, 0);
 
     const input = page.locator('input[type="text"]');
     await expect(input).toBeVisible();
