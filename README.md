@@ -62,8 +62,8 @@ rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (edition 2021)
-- [Trunk](https://trunkrs.dev/) — `cargo install trunk`
+- [Rust](https://rust-lang.org/) (edition 2021)
+- [Trunk](https://github.com/trunk-rs/trunk) — `cargo install trunk`
 
 ### Run the demo
 
