@@ -19,7 +19,7 @@ updates:
       - dependencies
 
   - package-ecosystem: npm
-    directory: /site
+    directory: /e2e
     schedule:
       interval: weekly
       day: monday

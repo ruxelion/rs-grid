@@ -1,0 +1,73 @@
+name: Deploy demo to Pages
+
+# Builds the basic-leptos WASM demo and publishes it to GitHub Pages.
+# The site is served from https://ruxelion.github.io/rs-grid/ — hence the
+# `--public-url /rs-grid/` base path so asset URLs resolve under the project
+# sub-path rather than the domain root.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the
+# in-progress run and the latest — but let the in-progress run finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: examples/basic-leptos/package.json
+
+      - name: Generate Tailwind CSS
+        working-directory: examples/basic-leptos
+        run: npm install && npm run css
+
+      - name: Install trunk
+        run: cargo install trunk --locked
+
+      - name: trunk build (basic-leptos)
+        working-directory: examples/basic-leptos
+        run: trunk build --release --public-url /rs-grid/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: examples/basic-leptos/dist/
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
