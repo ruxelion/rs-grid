@@ -6,18 +6,18 @@ description: Using rs-grid from plain JavaScript with wasm-pack.
 ## Overview
 
 rs-grid can be used without any framework via the `JsGrid` class exported
-by `rs-grid-web`. This requires building with `wasm-pack`.
+by the `basic-js` example crate. This requires building with `wasm-pack`.
 
 ## Build
 
 ```bash
-cd crates/rs-grid-web
+cd examples/basic-js
 wasm-pack build --target web
 ```
 
 This produces an ES module in `pkg/`:
-- `rs_grid_web.js` — the JS glue
-- `rs_grid_web_bg.wasm` — the WASM binary
+- `basic_js.js` — the JS glue
+- `basic_js_bg.wasm` — the WASM binary
 
 ## Usage
 
@@ -32,7 +32,7 @@ This produces an ES module in `pkg/`:
 <body>
   <canvas id="grid"></canvas>
   <script type="module">
-    import init, { JsGrid } from './pkg/rs_grid_web.js';
+    import init, { JsGrid } from './pkg/basic_js.js';
 
     await init();
 

@@ -32,7 +32,7 @@ Designed for millions of rows with smooth 60 fps rendering on Canvas2D.
 ## Key features
 
 - **Viewport virtualization** — only visible cells are rendered, regardless of dataset size
-- **O(1) hit-testing** — precomputed column offsets and uniform row height
+- **O(log n) hit-testing** — binary search over precomputed column offsets, O(1) rows via uniform height
 - **Inline editing** — text input and select dropdown editors with undo/redo
 - **Sorting & filtering** — per-column sort and text filter, client or server-side
 - **Copy/cut/paste** — TSV clipboard with RFC 4180 support
@@ -43,7 +43,7 @@ Designed for millions of rows with smooth 60 fps rendering on Canvas2D.
 - **Renderer-agnostic** — scene graph of primitives, swap the backend
 - **Custom scrollbars** — themed, cross-platform consistent
 - **Context menu** — built-in and customizable actions
-- **Leptos & vanilla JS** — use with Leptos CSR or plain JavaScript
+- **Leptos, Dioxus, Yew & vanilla JS** — use with any of three Rust UI frameworks or plain JavaScript
 
 ## Architecture at a glance
 
@@ -63,6 +63,9 @@ two-way bindings. The pipeline is deterministic and easy to test.
 | `rs-grid-render-canvas` | Canvas2D renderer via wasm-bindgen | Yes |
 | `rs-grid-web` | Browser glue — events, DPR, requestAnimationFrame | Yes |
 | `rs-grid-leptos` | Leptos CSR component `<GridCanvas>` | Yes |
+| `rs-grid-dioxus` | Dioxus CSR component `GridCanvas` | Yes |
+| `rs-grid-yew` | Yew CSR component `GridCanvas` | Yes |
+| `rs-grid-icons` | Embedded SVG country flags + icons (base64) | No |
 
 <Warning>
   Dependencies flow in one direction: `leptos → web → render-canvas → scene → core`.

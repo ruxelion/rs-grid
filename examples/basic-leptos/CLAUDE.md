@@ -45,7 +45,7 @@ ligne produit toujours les mêmes valeurs.
 | `dept` | `Engineering`, `Marketing`... | 12 départements |
 | `salary` | `142000`, `65000`... | fourchette liée au rôle |
 | `active` | `true`, `false` | ~85% actifs |
-| `avatar` | `Alice+Johnson` | prénom+nom → ui-avatars.com |
+| `avatar` | `data:image/svg+xml;base64,…` | initiales prénom+nom → SVG data-URI local (aucun appel réseau) |
 | `colN` | `{row}x{N}` | colonnes extra (mode 100 colonnes) |
 
 Pour tester avec des données réelles (VecDataSource), utiliser `GridModel::new`

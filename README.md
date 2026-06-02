@@ -2,16 +2,21 @@
 
 <p align="center"><img src="rs-grid-logo.png" /></p>
 
-[![CI](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bpodwinski/83f89a42144442293ea8d8111edd7c98/raw/coverage.json)](https://github.com/bpodwinski/rs-grid/actions/workflows/coverage.yml)
-[![Security Audit](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml)
+[![CI](https://github.com/ruxelion/rs-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/ruxelion/rs-grid/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ruxelion/REPLACE_WITH_ORG_GIST_ID/raw/coverage.json)](https://github.com/ruxelion/rs-grid/actions/workflows/coverage.yml)
+[![Security Audit](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A high-performance data grid built in Rust and compiled to WebAssembly.
-Renders on Canvas2D with viewport virtualisation, supporting datasets from
-thousands to **quadrillions** of rows at 60 fps.
+Renders on Canvas2D with viewport virtualisation. Viewport work is bounded by
+what's on screen, not by dataset size, so it stays smooth from thousands of
+rows up to very large datasets (row indices are `u64`).
 
-> **Status:** early development, API may change.
+> **Status:** early development (alpha) — the API may change. Performance
+> figures are illustrative, not yet backed by a published benchmark suite.
+
+**[▶ Live demo](https://ruxelion.github.io/rs-grid/)** ·
+**[📖 Documentation](docs/index.mdx)**
 
 ![rs-grid demo](rsgrid4k.webp)
 
@@ -56,6 +61,8 @@ rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene
 | `rs-grid-render-canvas` | Canvas2D rendering backend via `wasm-bindgen`                                         |
 | `rs-grid-web`           | Browser integration: DOM events, DPR, rAF loop, CSS theme, clipboard                  |
 | `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                         |
+| `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                           |
+| `rs-grid-yew`           | Yew CSR component wrapper (`GridCanvas`)                                              |
 | `rs-grid-icons`         | Embedded SVG icons (country flags, gender symbols)                                    |
 
 ## Quick start
@@ -72,7 +79,7 @@ cd examples/basic-leptos
 trunk serve
 ```
 
-Open <http://localhost:8080>. The demo generates fake data on-the-fly via a
+Open <http://localhost:9080>. The demo generates fake data on-the-fly via a
 deterministic hash — no server or database needed.
 
 ### Use in a Leptos app
@@ -143,14 +150,15 @@ The grid reads CSS custom properties from the host page. Define them on `:root`:
 
 ```css
 :root {
-  --rs-grid-bg: #ffffff;
-  --rs-grid-font-family: "Inter", sans-serif;
-  --rs-grid-font-size: 13;
-  --rs-grid-cell-color: #1a1a1a;
-  --rs-grid-header-bg: #f8f8f8;
-  --rs-grid-border-color: #e0e0e0;
-  --rs-grid-selection-bg: rgba(33, 133, 208, 0.15);
-  /* ... see examples/basic-leptos/rs-grid-theme.css for full list */
+  --rs-grid-bg:               #ffffff;
+  --rs-grid-header-bg:        #f8f9fb;
+  --rs-grid-header-text:      #181d1f;
+  --rs-grid-cell-text:        #181d1f;
+  --rs-grid-grid-line:        #e2e8f0;
+  --rs-grid-header-border:    #babfc7;
+  --rs-grid-selection-fill:   rgba(33, 150, 243, 0.20);
+  --rs-grid-selection-border: rgba(33, 150, 243, 0.85);
+  /* see examples/example-common/themes/light.css for the full list */
 }
 ```
 

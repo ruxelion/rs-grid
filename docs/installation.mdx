@@ -52,10 +52,11 @@ rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
 
 ### Vanilla JS integration
 
-Build the WASM package with `wasm-pack`:
+The `JsGrid` class is exported by the `basic-js` example crate. Build it with
+`wasm-pack`:
 
 ```bash
-cd crates/rs-grid-web
+cd examples/basic-js
 wasm-pack build --target web
 ```
 
@@ -63,7 +64,7 @@ Then import the ES module in your HTML:
 
 ```html
 <script type="module">
-  import init, { JsGrid } from './pkg/rs_grid_web.js';
+  import init, { JsGrid } from './pkg/basic_js.js';
   await init();
   const grid = new JsGrid(canvas, 1000, 10);
 </script>

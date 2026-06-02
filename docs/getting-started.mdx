@@ -30,25 +30,39 @@ rs-grid-leptos = { path = "../rs-grid-leptos" }
 Import the component and mount it inside a Leptos view:
 
 ```rust title="src/main.rs"
-use leptos::*;
+use leptos::prelude::*;
+use rs_grid_core::{column::ColumnDef, model::GridModel};
 use rs_grid_leptos::GridCanvas;
 
 #[component]
 pub fn App() -> impl IntoView {
+    let columns = vec![
+        ColumnDef::new("name", "Name", 200.0),
+        ColumnDef::new("email", "Email", 260.0),
+    ];
+    let data = vec![
+        vec!["Alice".into(), "alice@example.com".into()],
+        vec!["Bob".into(), "bob@example.com".into()],
+    ];
+    let model = GridModel::new(columns, data, 32.0, 40.0);
+
     view! {
         <main style="width: 100vw; height: 100vh;">
-            <GridCanvas
-                rows=1_000_000_u64
-                cols=50_usize
-            />
+            <GridCanvas model=model width="100%" height="100%" />
         </main>
     }
 }
 
 fn main() {
-    leptos::mount_to_body(App);
+    mount_to_body(App);
 }
 ```
+
+<Tip>
+  For large or infinite datasets, build the model from a `FnDataSource`
+  (`GridModel::with_data_source`) instead of an in-memory `Vec` — this is the
+  path behind the millions-to-quadrillions row figures.
+</Tip>
 
 ## Run locally
 
@@ -64,8 +78,8 @@ fn main() {
     ```
   </Step>
   <Step title="Open in your browser">
-    Navigate to `http://localhost:8080`. You should see a grid rendering
-    1 million rows at 60 fps.
+    Navigate to `http://localhost:9080`. You should see the demo grid
+    rendering on a `<canvas>`.
   </Step>
 </Steps>
 
