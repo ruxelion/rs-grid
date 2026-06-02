@@ -1,0 +1,73 @@
+name: Content Security Policy (CSP)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "00 3 * * *" # Daily at 3:00am UTC
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DEFAULT_RETENTION_DAYS: 30
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  csp-test:
+    name: CSP Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Rust (WASM)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: examples/basic-leptos/package.json
+
+      - name: Generate Tailwind CSS
+        working-directory: examples/basic-leptos
+        run: npm install && npm run css
+
+      - name: Install trunk
+        run: cargo install trunk --locked
+
+      - name: Build WASM app
+        working-directory: examples/basic-leptos
+        run: trunk build --release
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install chromium --with-deps
+
+      - name: Run CSP tests
+        working-directory: e2e
+        run: npm run test:csp
+
+      - name: Upload CSP report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: csp-report
+          path: e2e/reports/
+          retention-days: ${{ env.DEFAULT_RETENTION_DAYS }}
