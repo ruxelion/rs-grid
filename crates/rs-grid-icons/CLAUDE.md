@@ -7,6 +7,15 @@ time by `build.rs` from the `flags/` and `genders/` source SVGs.
 **Zero runtime dependencies, zero network requests, no WASM/web
 dependency** — usable from native and WASM targets alike.
 
+## Asset provenance
+
+- **Flags** (`flags/*.svg`): [flag-icons](https://github.com/lipis/flag-icons)
+  v7.5.0 (4x3 set), MIT, © 2013 Panayiotis Lipiridis.
+- **Gender symbols** (`genders/*.svg`): original minimal Mars/Venus glyphs,
+  CC0.
+- Attribution lives in `THIRD-PARTY-LICENSES.md` at the workspace root. When
+  updating flags, keep that file in sync.
+
 ## Public API
 
 ```rust

@@ -24,6 +24,59 @@ fn pick<'a>(arr: &'a [&str], row: u64, field: u64) -> &'a str {
     arr[hash_field(row, field) as usize % arr.len()]
 }
 
+// ── avatar ────────────────────────────────────────────
+
+/// Standard base64 alphabet.
+const B64: &[u8; 64] =
+    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/// Minimal base64 encoder — no external dependency.
+fn base64_encode(data: &[u8]) -> String {
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = chunk.get(1).copied().unwrap_or(0) as u32;
+        let b2 = chunk.get(2).copied().unwrap_or(0) as u32;
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        out.push(B64[(n >> 18 & 0x3F) as usize] as char);
+        out.push(B64[(n >> 12 & 0x3F) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            B64[(n >> 6 & 0x3F) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            B64[(n & 0x3F) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
+/// Build a self-contained initials avatar as an SVG data URI.
+/// Replaces the former `ui-avatars.com` network dependency: no
+/// runtime request, deterministic per name.
+fn avatar_data_uri(first: &str, last: &str) -> String {
+    let fi = first.chars().next().unwrap_or('?').to_ascii_uppercase();
+    let li = last.chars().next().unwrap_or('?').to_ascii_uppercase();
+    // Deterministic background colour from a small palette.
+    const PALETTE: &[&str] = &[
+        "4a90d9", "7e57c2", "26a69a", "ef5350", "ffa726", "66bb6a",
+        "ec407a", "5c6bc0", "29b6f6", "8d6e63",
+    ];
+    let bg = PALETTE[(fi as usize + li as usize) % PALETTE.len()];
+    let svg = format!(
+        "<svg xmlns='http://www.w3.org/2000/svg' width='40' \
+         height='40' viewBox='0 0 40 40'><rect width='40' \
+         height='40' rx='20' fill='#{bg}'/><text x='20' y='20' \
+         dy='.35em' font-family='sans-serif' font-size='16' \
+         font-weight='600' fill='#fff' \
+         text-anchor='middle'>{fi}{li}</text></svg>"
+    );
+    format!("data:image/svg+xml;base64,{}", base64_encode(svg.as_bytes()))
+}
+
 // ── base static data ─────────────────────────────────
 
 const FIRST_NAMES: &[&str] = &[
@@ -944,7 +997,7 @@ pub fn fake_cell(row: u64, col_key: &str) -> Option<String> {
         "avatar" => {
             let first = pick(FIRST_NAMES, row, 1);
             let last = pick(LAST_NAMES, row, 2);
-            Some(format!("{first}+{last}"))
+            Some(avatar_data_uri(first, last))
         }
         "active" | "status" => {
             let h = hash_field(row, 6);
