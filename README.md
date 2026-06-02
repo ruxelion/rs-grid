@@ -3,7 +3,7 @@
 <p align="center"><img src="rs-grid-logo.png" /></p>
 
 [![CI](https://github.com/ruxelion/rs-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/ruxelion/rs-grid/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ruxelion/REPLACE_WITH_ORG_GIST_ID/raw/coverage.json)](https://github.com/ruxelion/rs-grid/actions/workflows/coverage.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bpodwinski/83f89a42144442293ea8d8111edd7c98/raw/coverage.json)](https://github.com/ruxelion/rs-grid/actions/workflows/coverage.yml)
 [![Security Audit](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
