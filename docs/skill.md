@@ -10,9 +10,9 @@ compatibility: >
   Requires Rust 2021 edition, wasm32-unknown-unknown target, and Trunk for
   WASM builds. Leptos CSR only (no SSR). Browser Canvas2D API at runtime.
 metadata:
-  author: bpodwinski
+  author: ruxelion
   version: "0.1"
-  repository: https://github.com/bpodwinski/rs-grid
+  repository: https://github.com/ruxelion/rs-grid
 ---
 
 # rs-grid

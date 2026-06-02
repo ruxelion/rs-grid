@@ -15,7 +15,7 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/bpodwinski/rs-grid"
+      "url": "https://github.com/ruxelion/rs-grid"
     }
   ],
   "topbarCtaButton": {
@@ -77,6 +77,8 @@
         "group": "Integrations",
         "pages": [
           "integrations/leptos",
+          "integrations/dioxus",
+          "integrations/yew",
           "integrations/vanilla-js",
           "integrations/custom-renderer"
         ]
@@ -107,6 +109,6 @@
     ]
   },
   "footerSocials": {
-    "github": "https://github.com/bpodwinski/rs-grid"
+    "github": "https://github.com/ruxelion/rs-grid"
   }
 }
