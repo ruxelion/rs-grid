@@ -11,6 +11,11 @@ examples/basic-leptos/node_modules/
 examples/basic-leptos/generated/
 examples/basic-react/node_modules/
 examples/basic-react/dist/
+
+# e2e fixture (Trunk build output) + class-map codegen tool deps
+e2e/fixture-leptos/dist/
+tools/class-map/node_modules/
+
 *-original.mp4
 .certs/
 mcp/node_modules/

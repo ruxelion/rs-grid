@@ -39,17 +39,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: examples/basic-leptos/package.json
-
-      - name: Generate Tailwind CSS
-        working-directory: examples/basic-leptos
-        run: npm install && npm run css
+          cache-dependency-path: e2e/package.json
 
       - name: Install trunk
         run: cargo install trunk --locked
 
+      # CSP runs against the minimal e2e fixture (no Tailwind) — csp-server.js
+      # serves e2e/fixture-leptos/dist.
       - name: Build WASM app
-        working-directory: examples/basic-leptos
+        working-directory: e2e/fixture-leptos
         run: trunk build --release
 
       - name: Install E2E dependencies

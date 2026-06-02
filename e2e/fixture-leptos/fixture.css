@@ -1,0 +1,46 @@
+/* Layout-only stylesheet for the e2e fixture.
+ *
+ * Its sole job is to give the grid container a concrete size so the canvas
+ * gets non-zero dimensions (the smoke test asserts width/height > 200). It
+ * intentionally does NOT theme the grid — rs-grid falls back to Theme::light()
+ * when no `--rs-grid-*` CSS vars are present. Served from 'self', so it is
+ * compatible with the strict CSP applied by `e2e/csp-server.js`. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.fixture-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.fixture-header {
+  padding: 12px 16px;
+}
+
+.fixture-subtitle {
+  margin: 4px 0;
+}
+
+.fixture-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Fills the remaining viewport height; `min-height` guards against a
+ * collapsed flex item so the canvas always clears the 200px smoke threshold. */
+.fixture-grid {
+  flex: 1 1 auto;
+  min-height: 400px;
+}
