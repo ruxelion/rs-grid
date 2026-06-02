@@ -65,9 +65,7 @@ jobs:
             --exclude rs-grid-dioxus \
             --exclude rs-grid-yew \
             --exclude rs-grid-render-canvas \
-            --exclude basic-leptos \
-            --exclude basic-dioxus \
-            --exclude basic-yew \
+            --exclude fixture-leptos \
             --exclude example-common
 
   wasm-build:

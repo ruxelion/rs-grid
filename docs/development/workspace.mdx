@@ -14,9 +14,11 @@ rs-grid/
 │   ├── rs-grid-web/           # Browser integration
 │   └── rs-grid-leptos/        # Leptos component wrapper
 ├── examples/
-│   ├── basic-leptos/          # Leptos demo app
-│   └── basic-js/              # Vanilla JS demo
-├── e2e/                       # Playwright end-to-end tests
+│   └── example-common/        # Shared demo data + theme CSS (used by demo repos)
+├── e2e/
+│   ├── fixture-leptos/        # Minimal Leptos app — the e2e/CI/Pages target
+│   └── tests/                 # Playwright end-to-end tests
+├── tools/class-map/           # DaisyUI → class_map_data.rs codegen
 └── docs/                      # This documentation (Mintlify)
 ```
 
@@ -52,17 +54,17 @@ cargo fmt --all
 cargo clippy --workspace -- -D warnings
 ```
 
-### WASM build (Leptos example)
+### WASM build (e2e fixture)
 
 ```bash
-cd examples/basic-leptos
+cd e2e/fixture-leptos
 trunk build
 ```
 
 ### Dev server
 
 ```bash
-cd examples/basic-leptos
+cd e2e/fixture-leptos
 trunk serve
 ```
 

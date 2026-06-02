@@ -52,11 +52,13 @@ rs-grid-leptos = { path = "../crates/rs-grid-leptos" }
 
 ### Vanilla JS integration
 
-The `JsGrid` class is exported by the `basic-js` example crate. Build it with
-`wasm-pack`:
+The `JsGrid` class is exported by the
+[rs-grid-example-js](https://github.com/ruxelion/rs-grid-example-js) repo. Build
+it with `wasm-pack`:
 
 ```bash
-cd examples/basic-js
+git clone https://github.com/ruxelion/rs-grid-example-js
+cd rs-grid-example-js
 wasm-pack build --target web
 ```
 
@@ -95,7 +97,7 @@ cargo check --workspace
 # Run unit tests
 cargo test --workspace
 
-# Build and serve the demo app
-cd examples/basic-leptos
+# Build and serve the e2e fixture app (a full demo lives in rs-grid-example-leptos)
+cd e2e/fixture-leptos
 trunk serve
 ```

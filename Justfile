@@ -4,9 +4,6 @@
 set shell := ["cmd.exe", "/C"]
 set dotenv-load
 
-tls_cert := ".certs\\localhost+2.pem"
-tls_key  := ".certs\\localhost+2-key.pem"
-
 # Liste des recettes disponibles
 default:
     @just --list
@@ -23,7 +20,7 @@ build:
 
 # Tests unitaires (tout le workspace — crates WASM exclues)
 test:
-    cargo nextest run --workspace --exclude rs-grid-web --exclude rs-grid-leptos --exclude rs-grid-dioxus --exclude rs-grid-yew --exclude rs-grid-render-canvas --exclude basic-leptos --exclude basic-dioxus --exclude basic-yew --exclude example-common
+    cargo nextest run --workspace --exclude rs-grid-web --exclude rs-grid-leptos --exclude rs-grid-dioxus --exclude rs-grid-yew --exclude rs-grid-render-canvas --exclude fixture-leptos --exclude example-common
 
 # Tests unitaires rs-grid-core uniquement
 test-core:
@@ -64,73 +61,15 @@ tls-setup:
     cd .certs && mkcert localhost 127.0.0.1 ::1
 
 # ── Examples ─────────────────────────────────────────────
+#
+# The framework demos now live in standalone repos:
+#   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
+# Clone one and run `trunk serve` (or `wasm-pack build` for js).
 
-# Build WASM d'un exemple (leptos|dioxus|yew|js|react)
-build-wasm name:
-    @just _build-{{name}}
-
-# Serveur de dev d'un exemple (leptos|dioxus|yew|js|react)
-serve name:
-    @just _build-{{name}}
-    @just _serve-{{name}}
-
-# Scaffolder un nouvel exemple wasm-bindgen
-new-example name:
-    if exist "examples\{{name}}" (echo examples\{{name}} already exists & exit /b 1)
-    xcopy /E /I examples\_template-wasm "examples\{{name}}"
-    @echo.
-    @echo Created examples\{{name}}
-    @echo Next steps:
-    @echo   1. Rename .tmpl files and replace placeholders
-    @echo   2. Add "examples\{{name}}" to [workspace] members in Cargo.toml
-    @echo   3. just build-wasm {{name}}
-    @echo   4. just serve {{name}}
-
+# Build the internal e2e fixture (minimal Leptos app, no Tailwind)
 [private]
-_build-leptos:
-    cd examples\basic-leptos && cmd /c npm install --prefer-offline --no-audit --no-fund
-    cd examples\basic-leptos && cmd /c npm run css
-    cd examples\basic-leptos && trunk build
-
-[private]
-_serve-leptos:
-    cd examples\basic-leptos && cmd /c npm install --prefer-offline --no-audit --no-fund
-    cd examples\basic-leptos && cmd /c npm run css
-    cd examples\basic-leptos && trunk serve --address 0.0.0.0 --port 9081 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
-
-[private]
-_build-dioxus:
-    cd examples\basic-dioxus && trunk build
-
-[private]
-_serve-dioxus:
-    cd examples\basic-dioxus && trunk serve --address 0.0.0.0 --port 9082 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
-
-[private]
-_build-yew:
-    cd examples\basic-yew && trunk build
-
-[private]
-_serve-yew:
-    cd examples\basic-yew && trunk serve --address 0.0.0.0 --port 9083 --tls-key-path ..\..\{{tls_key}} --tls-cert-path ..\..\{{tls_cert}}
-
-[private]
-_build-js:
-    if exist "examples\basic-js\Cargo.toml" wasm-pack build examples\basic-js --target web --out-dir pkg
-
-[private]
-_serve-js:
-    cd examples\basic-js && python -m http.server 9080
-
-[private]
-_build-react:
-    just _build-js
-    cd examples\basic-react && npm install
-    cd examples\basic-react && npm run build
-
-[private]
-_serve-react:
-    cd examples\basic-react && npm run dev
+_build-fixture:
+    cd e2e\fixture-leptos && trunk build
 
 # ── E2E (Playwright) ─────────────────────────────────────
 
@@ -138,20 +77,20 @@ _serve-react:
 e2e-install:
     cd e2e && npm install && npx playwright install chromium
 
-# Lancer les tests e2e (build Leptos + Playwright)
+# Lancer les tests e2e (build fixture + Playwright)
 e2e:
-    just _build-leptos
+    just _build-fixture
     cd e2e && npm test
 
 # Regénérer les screenshots de référence
 e2e-update-snapshots:
-    just _build-leptos
+    just _build-fixture
     cd e2e && npm run update-snapshots
 
 # ── MCP (Model Context Protocol) ────────────────────────
 
 # Build le serveur MCP (TypeScript → dist/ + copie des docs)
-mcp-build: build-site
+mcp-build:
     cd mcp && npm install
     cd mcp && npm run build
 
@@ -163,21 +102,3 @@ mcp-dev:
 # Usage: NPM_TOKEN=xxx just mcp-publish
 mcp-publish: mcp-build
     cd mcp && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
-
-# ── Site (RSPress) ───────────────────────────────────────
-
-# Build WASM demo et copie dans le site
-build-site-wasm:
-    just _build-js
-    if not exist "site\docs\public\wasm" mkdir "site\docs\public\wasm"
-    if exist "examples\basic-js\pkg" robocopy examples\basic-js\pkg site\docs\public\wasm basic_js.js basic_js_bg.wasm /IS /IT || exit 0
-
-# Serveur de développement RSPress (port 5173)
-site: build-site-wasm
-    cd site && npm install
-    cd site && npx rspress dev --host 0.0.0.0
-
-# Build du site RSPress (avec démo WASM)
-build-site: build-site-wasm
-    cd site && npm install
-    cd site && npm run build

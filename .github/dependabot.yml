@@ -26,12 +26,3 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
-
-  - package-ecosystem: npm
-    directory: /examples/basic-leptos
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies

@@ -72,10 +72,10 @@ cargo test --workspace
 cargo clippy --workspace -- -D warnings
 ```
 
-### Run demo locally
+### Run the e2e fixture locally
 
 ```
-cd examples/basic-leptos && trunk serve
+cd e2e/fixture-leptos && trunk serve
 ```
 
 ### Build docs site with Docker
