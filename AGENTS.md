@@ -2,66 +2,23 @@
 
 ## Documentation
 
-@site/AGENTS.md
+The project ships a full documentation set under `docs/` (Mintlify MDX).
+Key entry points for context:
 
-The project has a full documentation site built in `site/`. Two files are
-particularly useful for AI context:
+- `docs/index.mdx` — overview and feature list
+- `docs/getting-started.mdx` / `docs/installation.mdx` — onboarding
+- `docs/concepts/` — architecture concepts
+- `docs/api/` — API reference
+- `docs/data/` — data sources
+- `docs/features/` — feature-by-feature reference
 
-- `site/doc_build/llms.txt` — index of all documentation pages
-- `site/doc_build/llms-full.txt` — full documentation concatenated (use for
-  deep API or concept questions)
+Consult these before asking questions about existing behaviour or before
+designing a change.
 
-Individual pages under `site/doc_build/` cover the API reference
-(`api/`), architecture concepts (`concepts/`), data sources (`data/`),
-and all features (`features/`). Consult these before asking questions about
-existing behaviour or before designing a change.
+## Project focus
 
-**MCP search**: use `mcp__rs-grid-docs__search_rs_grid_docs` to search the
-documentation by keywords before working on any documented feature. Prefer
-this over reading raw files when you need to locate a concept quickly.
-
-## Global context
-
-This repository is part of a global roadmap centralised in the private repo:
-https://github.com/bpodwinski/roadmap
-
-If the local `roadmap/` folder is present in this repo, it must be used as the
-primary source of truth.
-
-Before any structural proposal, consult in priority:
-
-- `roadmap/AI_CONTEXT.md`
-- `roadmap/docs/00-hub.md`
-- `roadmap/docs/02-current-focus.md`
-- `roadmap/docs/projects/rs-grid.md`
-
-If `roadmap/` is not available locally, use the private GitHub repo as
-reference.
-
-## Position in the roadmap
-
-`rs-grid` is a strategic cross-cutting project, but it is not the top priority
-while `FDF` is not yet stable.
-
-Role of `rs-grid` in the overall system:
-
-- high-performance Rust/WASM data grid engine
-- reusable UI base for future tools
-- potential foundation for a future AG Grid competitor product
-- reusable building block for the future `Product Data Editor`
-
-## Strategic rules
-
-- Do not drift the project too early toward full AG Grid feature parity
-- Prioritise a solid technical core first
-- Avoid business, SaaS, or broad JS expansion work while the core product is
-  not sufficiently mature
-- If an important decision changes the project direction, propose an update in
-  the `roadmap` repo, specifically in `docs/03-decisions.md`
-
-## Current priorities for rs-grid
-
-Preferred:
+`rs-grid` is a high-performance, renderer-agnostic Rust/WASM data grid engine.
+The current focus is the technical core:
 
 - viewport virtualisation
 - smooth rendering
@@ -70,13 +27,6 @@ Preferred:
 - basic editing
 - renderer-agnostic architecture
 - core stability
-
-Avoid for now:
-
-- feature race against AG Grid
-- dispersion on secondary integrations
-- premature API complexity
-- commercial expansion too early
 
 ## Architecture
 
