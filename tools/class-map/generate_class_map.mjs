@@ -5,7 +5,7 @@
  * resolves CSS var() + calc() chains, converts oklch → sRGB, and
  * writes class_map_data.rs with one Rust module per component.
  *
- * Usage:  node scripts/generate_class_map.mjs  (or: npm run gen)
+ * Usage:  node generate_class_map.mjs  (or: just gen-class-map)
  */
 
 import { createRequire } from 'module';
@@ -392,7 +392,7 @@ const sharedColorLines = SEMANTIC.flatMap(c => {
 
 const output = [
     `// AUTO-GENERATED — do not edit by hand.`,
-    `// Regenerate: just gen-class-map  (or: cd examples/basic-leptos && npm run gen)`,
+    `// Regenerate: just gen-class-map  (or: cd tools/class-map && npm run gen)`,
     `// Source: daisyui/theme/object.js + daisyui/components/*/object.js`,
     `//         Light theme — daisyui v${daisyPkg.version}`,
     `// Generated: ${new Date().toISOString().slice(0, 10)}`,
@@ -419,6 +419,6 @@ const output = [
     modules.join('\n\n'),
 ].join('\n');
 
-const outPath = resolve(__dir, '../../../examples/example-common/src/class_map_data.rs');
+const outPath = resolve(__dir, '../../examples/example-common/src/class_map_data.rs');
 writeFileSync(outPath, output, 'utf8');
 console.log(`\n✓  Written → ${outPath}`);

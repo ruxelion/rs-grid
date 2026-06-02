@@ -48,9 +48,10 @@ lint:
     cargo clippy --workspace -- -D warnings
 
 # Régénérer class_map_data.rs depuis les sources DaisyUI (node_modules)
+# Le générateur vit dans tools/class-map (maintainer codegen, hors démos).
 gen-class-map:
-    cd examples\basic-leptos && cmd /c npm install --prefer-offline --no-audit --no-fund
-    cd examples\basic-leptos && cmd /c npm run gen
+    cd tools\class-map && cmd /c npm install --prefer-offline --no-audit --no-fund
+    cd tools\class-map && cmd /c npm run gen
 
 # fmt + lint + test
 ci: fmt lint test

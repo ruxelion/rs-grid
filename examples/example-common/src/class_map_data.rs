@@ -1,5 +1,5 @@
 // AUTO-GENERATED — do not edit by hand.
-// Regenerate: just gen-class-map  (or: cd examples/basic-leptos && npm run gen)
+// Regenerate: just gen-class-map  (or: cd tools/class-map && npm run gen)
 // Source: daisyui/theme/object.js + daisyui/components/*/object.js
 //         Light theme — daisyui v5.5.19
 // Generated: 2026-04-12

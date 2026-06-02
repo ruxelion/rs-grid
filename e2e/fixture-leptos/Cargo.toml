@@ -1,0 +1,22 @@
+[package]
+name = "fixture-leptos"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Internal e2e fixture — NOT a showcase demo. The smallest Leptos CSR app that
+# satisfies the DOM contract exercised by `e2e/tests/grid.spec.ts` (CI subset)
+# and `csp.spec.ts`. The styled, feature-complete demo lives in the external
+# `rs-grid-example-leptos` repo. Path deps (in-workspace) so it tracks `main`
+# and catches engine regressions on every push.
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rs-grid-scene  = { path = "../../crates/rs-grid-scene" }
+rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
+example-common = { path = "../../examples/example-common" }
+leptos = { version = "0.8", features = ["csr"] }
+wasm-bindgen = { workspace = true }
+console_error_panic_hook = { workspace = true }

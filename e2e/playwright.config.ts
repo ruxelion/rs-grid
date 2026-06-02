@@ -24,9 +24,9 @@ export default defineConfig({
   ],
 
   // Démarre un serveur statique sur le dist/ pré-compilé.
-  // Lancer `trunk build` dans examples/basic-leptos avant les tests.
+  // Lancer `trunk build` dans e2e/fixture-leptos avant les tests.
   webServer: {
-    command: 'npx serve ../examples/basic-leptos/dist -p 4173 --no-clipboard',
+    command: 'npx serve fixture-leptos/dist -p 4173 --no-clipboard',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 15_000,

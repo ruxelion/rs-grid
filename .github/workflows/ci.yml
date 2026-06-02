@@ -82,28 +82,19 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: examples/basic-leptos/package.json
-
-      - name: Generate Tailwind CSS
-        working-directory: examples/basic-leptos
-        run: npm install && npm run css
-
       - name: Install trunk
         run: cargo install trunk --locked
 
-      - name: trunk build (basic-leptos)
-        working-directory: examples/basic-leptos
+      # The e2e fixture is a plain Leptos app (no Tailwind) — no Node step needed.
+      - name: trunk build (fixture-leptos)
+        working-directory: e2e/fixture-leptos
         run: trunk build --release
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
-          name: basic-leptos-dist
-          path: examples/basic-leptos/dist/
+          name: fixture-leptos-dist
+          path: e2e/fixture-leptos/dist/
           retention-days: 1
 
   e2e:
@@ -130,8 +121,8 @@ jobs:
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: basic-leptos-dist
-          path: examples/basic-leptos/dist/
+          name: fixture-leptos-dist
+          path: e2e/fixture-leptos/dist/
 
       - name: Run E2E tests (smoke + functional)
         working-directory: e2e

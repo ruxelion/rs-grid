@@ -1,0 +1,13 @@
+{
+  "name": "rs-grid-class-map-gen",
+  "private": true,
+  "description": "Maintainer codegen: regenerates examples/example-common/src/class_map_data.rs from DaisyUI sources. Not shipped with any demo.",
+  "type": "module",
+  "scripts": {
+    "gen": "node generate_class_map.mjs"
+  },
+  "devDependencies": {
+    "daisyui": "5.5.19",
+    "culori": "^4.0.1"
+  }
+}
