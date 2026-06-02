@@ -16,9 +16,7 @@ Instead, use GitHub's private vulnerability reporting:
 2. Click **Report a vulnerability**.
 3. Provide a description, reproduction steps, affected versions, and impact.
 
-> Maintainers: enable "Private vulnerability reporting" in
-> *Settings → Code security and analysis*, and replace this line with a
-> dedicated contact address (e.g. `security@ruxelion.com`) if you prefer email.
+Alternatively, you can reach us by email at **security@ruxelion.com**.
 
 We aim to acknowledge reports within **5 business days** and to provide a
 remediation timeline after triage. Please give us a reasonable window to
