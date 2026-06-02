@@ -3,6 +3,10 @@
 //! build time. Zero runtime dependencies, zero network
 //! requests.
 //!
+//! Flags are sourced from [flag-icons](https://github.com/lipis/flag-icons)
+//! (MIT, © 2013 Panayiotis Lipiridis); gender symbols are original (CC0).
+//! See `THIRD-PARTY-LICENSES.md` at the workspace root.
+//!
 //! ```
 //! let uri = rs_grid_icons::flag_data_uri("FR");
 //! assert!(uri.is_some());

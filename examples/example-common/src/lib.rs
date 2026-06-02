@@ -104,9 +104,9 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         {
             let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
             c.format = Some(CellFormat::Image {
-                base_url: Some(
-                    "https://ui-avatars.com/api/?size=40&name=".into(),
-                ),
+                // Self-contained SVG data URI generated per row — no
+                // external avatar service, no network request.
+                base_url: None,
                 border_radius: 16.0,
                 padding: 4.0,
             });
