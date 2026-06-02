@@ -16,6 +16,15 @@ members = [
 ]
 resolver = "2"
 
+# Shared package metadata inherited by the library crates via
+# `<field>.workspace = true`. Keeps license/repository/version in one place.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/ruxelion/rs-grid"
+publish = false
+
 [workspace.lints.rust]
 # cfg(coverage) is set by cargo-llvm-cov during instrumented builds.
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
