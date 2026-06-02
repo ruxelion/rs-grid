@@ -43,7 +43,7 @@ GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRend
 | `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                    |
 | `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                      |
 | `rs-grid-yew`           | Yew CSR component wrapper (`GridCanvas`)                                         |
-| `examples/basic-leptos` | Demo application using Trunk                                                     |
+| `e2e/fixture-leptos`    | Minimal Leptos app — the e2e / CI / Pages target                                 |
 
 Dependencies flow in one direction only — never introduce a reverse dependency:
 
@@ -65,8 +65,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude basic-leptos --exclude basic-dioxus \
-  --exclude basic-yew --exclude example-common
+  --exclude fixture-leptos --exclude example-common
 
 # Unit tests — core only
 cargo nextest run -p rs-grid-core
@@ -87,16 +86,17 @@ cargo fmt --all
 # Linting
 cargo clippy --workspace -- -D warnings
 
-# WASM build (Leptos example)
-# npm install is required once to enable the Tailwind pre-build hook.
-cd examples/basic-leptos
-npm install   # once — installs Tailwind CLI (generates generated/tailwind.css)
-trunk build   # hook runs `npm run css` automatically before each build
+# WASM build (e2e fixture — minimal Leptos app, no Tailwind)
+cd e2e/fixture-leptos
+trunk build
 
-# Dev server (hot-reload, écoute sur 0.0.0.0:9080)
-cd examples/basic-leptos
+# Dev server (hot-reload)
+cd e2e/fixture-leptos
 trunk serve
-# → http://localhost:9080  (config dans examples/basic-leptos/Trunk.toml)
+# → http://localhost:9079  (config dans e2e/fixture-leptos/Trunk.toml)
+#
+# The framework demos moved to standalone repos:
+#   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
 ```
 
 ### One-time tool installation
@@ -133,7 +133,8 @@ All mutations go exclusively through `GridState::apply(GridCommand)`.
 ## Theme
 
 The theme is read from CSS variables (`rs-grid-web::theme_from_css_vars`).
-The reference file is `examples/basic-leptos/rs-grid-theme.css`.
+The reference files are in `examples/example-common/themes/` (`light.css`,
+`dark.css`, `dimmed.css`, + shell overrides).
 
 **Rule**: any color or visual value introduced by a change must be exposed in
 `Theme` (`rs-grid-scene/src/theme.rs`) with a default value in both `light()`
@@ -149,8 +150,8 @@ Visual and functional tests are in `e2e/`.
 # 1. Install Playwright (once)
 cd e2e && npm install && npx playwright install chromium
 
-# 2. Build the app (required before each run)
-cd examples/basic-leptos && trunk build
+# 2. Build the fixture app (required before each run)
+cd e2e/fixture-leptos && trunk build
 
 # 3. Run the tests
 cd e2e && npm test
@@ -179,20 +180,20 @@ Pour vérifier visuellement un changement avec les outils Playwright MCP
 
 ```sh
 # 1. Démarrer le dev server (une seule fois par session)
-cd examples/basic-leptos && trunk serve
-# Écoute sur 0.0.0.0:9080 — hot-reload automatique à chaque cargo build
+cd e2e/fixture-leptos && trunk serve
+# Écoute sur localhost:9079 — hot-reload automatique à chaque cargo build
 
 # 2. Après chaque modification, recompiler
-cd examples/basic-leptos && trunk build
+cd e2e/fixture-leptos && trunk build
 ```
 
 Puis dans les outils MCP :
 
 ```
-mcp__playwright__browser_navigate → http://localhost:9080
+mcp__playwright__browser_navigate → http://localhost:9079
 ```
 
-**Règle** : utiliser `http://localhost:9080` (dev server trunk) pour les
+**Règle** : utiliser `http://localhost:9079` (dev server trunk) pour les
 vérifications MCP interactives. Les tests formels `/e2e` utilisent
 `http://localhost:4173` (serveur statique sur le `dist/` pré-compilé).
 

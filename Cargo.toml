@@ -9,10 +9,6 @@ members = [
   "crates/rs-grid-yew",
   "crates/rs-grid-icons",
   "examples/example-common",
-  "examples/basic-js",
-  "examples/basic-leptos",
-  "examples/basic-dioxus",
-  "examples/basic-yew",
   "e2e/fixture-leptos",
 ]
 resolver = "2"
