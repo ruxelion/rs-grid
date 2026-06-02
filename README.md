@@ -1,17 +1,19 @@
-# rs-grid
+# High-performance data grid engine built in Rust
+
+<p align="center"><img src="rs-grid-logo.png" /></p>
 
 [![CI](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bpodwinski/83f89a42144442293ea8d8111edd7c98/raw/coverage.json)](https://github.com/bpodwinski/rs-grid/actions/workflows/coverage.yml)
 [![Security Audit](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/bpodwinski/rs-grid/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A high-performance data grid engine built in Rust and compiled to WebAssembly.
+A high-performance data grid built in Rust and compiled to WebAssembly.
 Renders on Canvas2D with viewport virtualisation, supporting datasets from
 thousands to **quadrillions** of rows at 60 fps.
 
-> **Status:** early development (v0.1.0) — API may change.
+> **Status:** early development, API may change.
 
-<video src="https://rs-grid.com/rsgrid4k.mp4" autoplay loop muted playsinline width="100%"></video>
+![rs-grid demo](rsgrid4k.webp)
 
 ## Features
 
@@ -47,14 +49,14 @@ The dependency graph flows in one direction:
 rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene  →  rs-grid-core
 ```
 
-| Crate | Role |
-|---|---|
-| `rs-grid-core` | Headless grid logic: model, viewport, selection, hit-testing. **No WASM dependency.** |
-| `rs-grid-scene` | Converts `GridState` into renderer-agnostic primitives (`ScenePrimitive`) |
-| `rs-grid-render-canvas` | Canvas2D rendering backend via `wasm-bindgen` |
-| `rs-grid-web` | Browser integration: DOM events, DPR, rAF loop, CSS theme, clipboard |
-| `rs-grid-leptos` | Leptos CSR component wrapper (`<GridCanvas>`) |
-| `rs-grid-icons` | Embedded SVG icons (country flags, gender symbols) |
+| Crate                   | Role                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `rs-grid-core`          | Headless grid logic: model, viewport, selection, hit-testing. **No WASM dependency.** |
+| `rs-grid-scene`         | Converts `GridState` into renderer-agnostic primitives (`ScenePrimitive`)             |
+| `rs-grid-render-canvas` | Canvas2D rendering backend via `wasm-bindgen`                                         |
+| `rs-grid-web`           | Browser integration: DOM events, DPR, rAF loop, CSS theme, clipboard                  |
+| `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                         |
+| `rs-grid-icons`         | Embedded SVG icons (country flags, gender symbols)                                    |
 
 ## Quick start
 
@@ -98,10 +100,10 @@ view! {
 
 rs-grid supports two data source modes:
 
-| Mode | Type | Use case |
-|---|---|---|
-| In-memory | `VecDataSource` | Small datasets loaded upfront |
-| Virtual | `FnDataSource` | Large/infinite datasets generated on demand |
+| Mode      | Type            | Use case                                    |
+| --------- | --------------- | ------------------------------------------- |
+| In-memory | `VecDataSource` | Small datasets loaded upfront               |
+| Virtual   | `FnDataSource`  | Large/infinite datasets generated on demand |
 
 ```rust
 // Virtual data source — generates cells on the fly
@@ -115,25 +117,25 @@ let model = GridModel::with_data_source(columns, Box::new(source), 32.0, 40.0);
 
 All mutations go through `GridState::apply(GridCommand)`. The full command list:
 
-| Command | Description |
-|---|---|
-| `SelectCell` | Set single-cell selection |
-| `ExtendSelection` | Shift-click extend |
-| `ScrollTo` / `ScrollBy` | Absolute or delta scroll |
-| `Resize` | Update canvas dimensions |
-| `ClearSelection` | Deselect |
-| `CopySelection` / `CutSelection` | Clipboard operations |
-| `MoveSelection` | Arrow-key navigation |
-| `PasteAt` | Paste TSV at anchor |
-| `SelectRow` / `SelectCol` | Row or column selection |
-| `ResizeColumn` / `AutoFitColumn` | Column width |
-| `MoveColumn` | Drag & drop reorder |
-| `ToggleSort` | Cycle sort direction |
-| `SetColumnFilter` / `ClearAllFilters` | Text filtering |
-| `StartEdit` / `CommitEdit` / `CancelEdit` | Inline editing |
-| `Undo` / `Redo` | History stack (max 100) |
-| `Search` / `SearchNext` / `SearchPrev` | Find in grid |
-| `SetPinnedColumnCount` | Frozen columns |
+| Command                                   | Description               |
+| ----------------------------------------- | ------------------------- |
+| `SelectCell`                              | Set single-cell selection |
+| `ExtendSelection`                         | Shift-click extend        |
+| `ScrollTo` / `ScrollBy`                   | Absolute or delta scroll  |
+| `Resize`                                  | Update canvas dimensions  |
+| `ClearSelection`                          | Deselect                  |
+| `CopySelection` / `CutSelection`          | Clipboard operations      |
+| `MoveSelection`                           | Arrow-key navigation      |
+| `PasteAt`                                 | Paste TSV at anchor       |
+| `SelectRow` / `SelectCol`                 | Row or column selection   |
+| `ResizeColumn` / `AutoFitColumn`          | Column width              |
+| `MoveColumn`                              | Drag & drop reorder       |
+| `ToggleSort`                              | Cycle sort direction      |
+| `SetColumnFilter` / `ClearAllFilters`     | Text filtering            |
+| `StartEdit` / `CommitEdit` / `CancelEdit` | Inline editing            |
+| `Undo` / `Redo`                           | History stack (max 100)   |
+| `Search` / `SearchNext` / `SearchPrev`    | Find in grid              |
+| `SetPinnedColumnCount`                    | Frozen columns            |
 
 ## Theming
 
@@ -141,14 +143,14 @@ The grid reads CSS custom properties from the host page. Define them on `:root`:
 
 ```css
 :root {
-    --rs-grid-bg:              #ffffff;
-    --rs-grid-font-family:     "Inter", sans-serif;
-    --rs-grid-font-size:       13;
-    --rs-grid-cell-color:      #1a1a1a;
-    --rs-grid-header-bg:       #f8f8f8;
-    --rs-grid-border-color:    #e0e0e0;
-    --rs-grid-selection-bg:    rgba(33, 133, 208, 0.15);
-    /* ... see examples/basic-leptos/rs-grid-theme.css for full list */
+  --rs-grid-bg: #ffffff;
+  --rs-grid-font-family: "Inter", sans-serif;
+  --rs-grid-font-size: 13;
+  --rs-grid-cell-color: #1a1a1a;
+  --rs-grid-header-bg: #f8f8f8;
+  --rs-grid-border-color: #e0e0e0;
+  --rs-grid-selection-bg: rgba(33, 133, 208, 0.15);
+  /* ... see examples/basic-leptos/rs-grid-theme.css for full list */
 }
 ```
 
