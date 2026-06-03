@@ -117,7 +117,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Download dist artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: fixture-leptos-dist
           path: e2e/fixture-leptos/dist/
