@@ -1,0 +1,58 @@
+name: Release
+
+# Runs on version tags (v*). Does a sanity build of the workspace + the WASM
+# fixture, then notifies the public site (ruxelion/site) via repository_dispatch
+# so it rebuilds the demos against this tag.
+#
+# Requires a repo secret SITE_DISPATCH_TOKEN: a PAT (fine-grained or classic
+# `repo` scope) authorised to dispatch workflows on ruxelion/site. The default
+# GITHUB_TOKEN cannot trigger workflows in another repository.
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  sanity:
+    name: Sanity build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo check
+        run: cargo check --workspace
+
+      - name: Install trunk
+        run: cargo install trunk --locked
+
+      # Prove the engine still compiles to WASM at this tag before telling the
+      # site to rebuild its demos against it.
+      - name: trunk build (fixture-leptos)
+        working-directory: e2e/fixture-leptos
+        run: trunk build --release
+
+  notify-site:
+    name: Notify site
+    needs: sanity
+    runs-on: ubuntu-latest
+    steps:
+      # The site's rebuild-demos.yml listens for `rs-grid-released` and reads
+      # client_payload.ref to know which tag to build the demos against.
+      - name: Dispatch rs-grid-released to ruxelion/site
+        run: |
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.SITE_DISPATCH_TOKEN }}" \
+            https://api.github.com/repos/ruxelion/site/dispatches \
+            -d "{\"event_type\":\"rs-grid-released\",\"client_payload\":{\"ref\":\"${GITHUB_REF_NAME}\"}}"
