@@ -62,8 +62,8 @@ fn avatar_data_uri(first: &str, last: &str) -> String {
     let li = last.chars().next().unwrap_or('?').to_ascii_uppercase();
     // Deterministic background colour from a small palette.
     const PALETTE: &[&str] = &[
-        "4a90d9", "7e57c2", "26a69a", "ef5350", "ffa726", "66bb6a",
-        "ec407a", "5c6bc0", "29b6f6", "8d6e63",
+        "4a90d9", "7e57c2", "26a69a", "ef5350", "ffa726", "66bb6a", "ec407a",
+        "5c6bc0", "29b6f6", "8d6e63",
     ];
     let bg = PALETTE[(fi as usize + li as usize) % PALETTE.len()];
     let svg = format!(
@@ -74,7 +74,10 @@ fn avatar_data_uri(first: &str, last: &str) -> String {
          font-weight='600' fill='#fff' \
          text-anchor='middle'>{fi}{li}</text></svg>"
     );
-    format!("data:image/svg+xml;base64,{}", base64_encode(svg.as_bytes()))
+    format!(
+        "data:image/svg+xml;base64,{}",
+        base64_encode(svg.as_bytes())
+    )
 }
 
 // ── base static data ─────────────────────────────────
