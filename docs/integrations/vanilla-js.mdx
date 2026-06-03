@@ -6,12 +6,14 @@ description: Using rs-grid from plain JavaScript with wasm-pack.
 ## Overview
 
 rs-grid can be used without any framework via the `JsGrid` class exported
-by the `basic-js` example crate. This requires building with `wasm-pack`.
+by the [rs-grid-example-js](https://github.com/ruxelion/rs-grid-example-js) repo.
+This requires building with `wasm-pack`.
 
 ## Build
 
 ```bash
-cd examples/basic-js
+git clone https://github.com/ruxelion/rs-grid-example-js
+cd rs-grid-example-js
 wasm-pack build --target web
 ```
 

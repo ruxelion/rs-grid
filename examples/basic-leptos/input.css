@@ -1,7 +1,0 @@
-/* Tailwind v4 — entry point
- * Placed at project root so @plugin resolves from
- * node_modules/ at the same level.
- */
-@import "tailwindcss";
-@source "./src/**/*.rs";
-@plugin "daisyui";

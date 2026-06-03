@@ -1,31 +1,27 @@
 # rs-grid examples
 
-## Available examples
+The framework demo apps now live in standalone repos under the `ruxelion` org:
 
-| Example | Framework | Description |
+| Demo | Framework | Repo |
 |---|---|---|
-| [basic-leptos](basic-leptos/) | Leptos 0.8 CSR + Trunk | Demo with reactive controls and language selector |
-| [basic-dioxus](basic-dioxus/) | Dioxus CSR + Trunk | Demo with reactive controls |
-| [basic-yew](basic-yew/) | Yew CSR + Trunk | Demo with reactive controls |
+| Leptos | Leptos 0.8 CSR + Trunk | [rs-grid-example-leptos](https://github.com/ruxelion/rs-grid-example-leptos) |
+| Dioxus | Dioxus 0.7 CSR + Trunk | [rs-grid-example-dioxus](https://github.com/ruxelion/rs-grid-example-dioxus) |
+| Yew | Yew 0.23 CSR + Trunk | [rs-grid-example-yew](https://github.com/ruxelion/rs-grid-example-yew) |
+| Vanilla JS | wasm-pack library | [rs-grid-example-js](https://github.com/ruxelion/rs-grid-example-js) |
 
-All examples share the same virtual dataset (up to 1 quadrillion rows) and
-the same three themes (Light, Dark, Dimmed).
+Clone one and run `trunk serve` (or `wasm-pack build` for js). They all share
+the same virtual dataset (up to 1 quadrillion rows) and three themes
+(Light, Dark, Dimmed).
 
 ## Shared code
 
-[example-common](example-common/) is a Rust crate containing:
+This directory keeps [example-common](example-common/) — the Rust crate the demo
+repos depend on (via git tag) — containing:
 
 - `build_model()` — creates a `GridModel` backed by a deterministic fake
   data generator (`fake_data.rs`)
-- `fmt_rows()` / `fmt_cols()` — display label helpers shared across examples
+- `fmt_rows()` / `fmt_cols()` — display label helpers shared across the demos
 - `themes/` — CSS theme files (see below)
-
-## Running an example
-
-```sh
-cd examples/basic-leptos   # or basic-dioxus, basic-yew
-trunk serve
-```
 
 ## Themes
 
@@ -58,5 +54,5 @@ To add or change a theme variable, see `crates/rs-grid-web/CLAUDE.md`.
 ## Creating a new example
 
 Copy `_template-wasm/` for a minimal vanilla JS + wasm-pack scaffold (no
-Trunk). For a Trunk-based example, copy one of the existing examples and
-update the crate name and HTML title.
+Trunk). For a Trunk-based example, fork one of the standalone
+`rs-grid-example-*` repos and update the crate name and HTML title.
