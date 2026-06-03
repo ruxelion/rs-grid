@@ -49,7 +49,7 @@ jobs:
         run: trunk build --release --public-url /rs-grid/
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: e2e/fixture-leptos/dist/
 
