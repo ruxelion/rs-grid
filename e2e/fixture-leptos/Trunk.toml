@@ -3,16 +3,16 @@ ignore = ["dist"]
 paths = [
   "src",
   "../../crates/rs-grid-core/src",
+  "../../crates/rs-grid-leptos/src",
   "../../crates/rs-grid-render-canvas/src",
   "../../crates/rs-grid-scene/src",
   "../../crates/rs-grid-web/src",
 ]
 
 [serve]
-port = 9081
+port = 9079
 
 [build]
 dist = "dist"
-# Release build: strips Dioxus devtools WebSocket (debug_assertions = false)
-release = true
+release = false
 target = "index.html"

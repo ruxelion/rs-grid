@@ -50,8 +50,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude basic-leptos --exclude basic-dioxus \
-  --exclude basic-yew --exclude example-common
+  --exclude fixture-leptos --exclude example-common
 ```
 
 End-to-end (Playwright) tests live in `e2e/` — see the README.

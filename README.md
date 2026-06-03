@@ -72,15 +72,21 @@ rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene
 - [Rust](https://rust-lang.org/) (edition 2021)
 - [Trunk](https://github.com/trunk-rs/trunk) — `cargo install trunk`
 
-### Run the demo
+### Run a demo
+
+The framework demos live in standalone repos — clone one and run it:
 
 ```sh
-cd examples/basic-leptos
+git clone https://github.com/ruxelion/rs-grid-example-leptos
+cd rs-grid-example-leptos
 trunk serve
 ```
 
 Open <http://localhost:9080>. The demo generates fake data on-the-fly via a
-deterministic hash — no server or database needed.
+deterministic hash — no server or database needed. Demos are also available for
+[Dioxus](https://github.com/ruxelion/rs-grid-example-dioxus),
+[Yew](https://github.com/ruxelion/rs-grid-example-yew) and
+[vanilla JS](https://github.com/ruxelion/rs-grid-example-js).
 
 ### Use in a Leptos app
 
@@ -177,15 +183,15 @@ cargo fmt --all
 # Linting
 cargo clippy --workspace -- -D warnings
 
-# Build WASM (production)
-cd examples/basic-leptos && trunk build --release
+# Build the e2e fixture app (WASM)
+cd e2e/fixture-leptos && trunk build --release
 ```
 
 ### End-to-end tests (Playwright)
 
 ```sh
 cd e2e && npm install && npx playwright install chromium
-cd examples/basic-leptos && trunk build
+cd e2e/fixture-leptos && trunk build
 cd e2e && npm test
 ```
 
@@ -201,8 +207,11 @@ rs-grid/
 │   ├── rs-grid-leptos/         # Leptos <GridCanvas> component
 │   └── rs-grid-icons/          # Embedded SVG icons
 ├── examples/
-│   └── basic-leptos/           # Demo app (Leptos + Trunk)
-├── e2e/                        # Playwright end-to-end tests
+│   └── example-common/         # Shared demo data + theme CSS (used by demo repos)
+├── e2e/
+│   ├── fixture-leptos/         # Minimal Leptos app — the e2e/CI/Pages target
+│   └── tests/                  # Playwright end-to-end tests
+├── tools/class-map/            # DaisyUI → class_map_data.rs codegen
 └── docs/                       # Technical documentation
 ```
 

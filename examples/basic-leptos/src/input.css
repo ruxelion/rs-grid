@@ -1,7 +1,0 @@
-/* Tailwind v4 — entry point
- * Scans all .rs sources for utility classes.
- * DaisyUI v5 plugin provides component classes (btn, select, card…).
- */
-@import "tailwindcss";
-@source "./src/**/*.rs";
-@plugin "daisyui";

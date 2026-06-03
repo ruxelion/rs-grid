@@ -1,6 +1,6 @@
 name: Deploy demo to Pages
 
-# Builds the basic-leptos WASM demo and publishes it to GitHub Pages.
+# Builds the e2e fixture WASM app and publishes it to GitHub Pages.
 # The site is served from https://ruxelion.github.io/rs-grid/ — hence the
 # `--public-url /rs-grid/` base path so asset URLs resolve under the project
 # sub-path rather than the domain root.
@@ -38,27 +38,20 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: examples/basic-leptos/package.json
-
-      - name: Generate Tailwind CSS
-        working-directory: examples/basic-leptos
-        run: npm install && npm run css
-
       - name: Install trunk
         run: cargo install trunk --locked
 
-      - name: trunk build (basic-leptos)
-        working-directory: examples/basic-leptos
+      # Pages serves the minimal e2e fixture (no Tailwind) — proves the engine
+      # renders on every push. The styled demo lives in rs-grid-example-leptos
+      # and is surfaced via ruxelion.com.
+      - name: trunk build (fixture-leptos)
+        working-directory: e2e/fixture-leptos
         run: trunk build --release --public-url /rs-grid/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: examples/basic-leptos/dist/
+          path: e2e/fixture-leptos/dist/
 
   deploy:
     name: Deploy
