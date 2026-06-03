@@ -63,7 +63,7 @@ jobs:
         run: npm run test:csp
 
       - name: Upload CSP report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: csp-report
