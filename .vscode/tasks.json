@@ -145,6 +145,46 @@
       "detail": "Build site RSPress (avec démo WASM)"
     },
     {
+      "label": "just: bench",
+      "type": "shell",
+      "command": "just bench",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Tous les benchmarks (core + scene) — rapports HTML dans target/criterion/"
+    },
+    {
+      "label": "just: bench-core",
+      "type": "shell",
+      "command": "just bench-core",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench -p rs-grid-core (hit-test + tri + filtre)"
+    },
+    {
+      "label": "just: bench-hit",
+      "type": "shell",
+      "command": "just bench-hit",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench --bench hit_test (cell, col_header, with_scroll)"
+    },
+    {
+      "label": "just: bench-sort",
+      "type": "shell",
+      "command": "just bench-sort",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench --bench sort (numeric cold/cached, string cold/cached, filter)"
+    },
+    {
+      "label": "just: bench-scene",
+      "type": "shell",
+      "command": "just bench-scene",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench --bench scene_builder (small/medium/dense, DPR 1 et 2)"
+    },
+    {
       "label": "just: mcp-build",
       "type": "shell",
       "command": "just mcp-build",

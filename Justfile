@@ -87,6 +87,28 @@ e2e-update-snapshots:
     just _build-fixture
     cd e2e && npm run update-snapshots
 
+# ── Benchmarks ───────────────────────────────────────────
+
+# Tous les benchmarks (core + scene), rapports HTML dans target/criterion/
+bench:
+    cargo bench -p rs-grid-core -p rs-grid-scene
+
+# Benchmarks rs-grid-core uniquement (hit-test + tri + filtre)
+bench-core:
+    cargo bench -p rs-grid-core
+
+# Benchmarks hit-testing uniquement
+bench-hit:
+    cargo bench -p rs-grid-core --bench hit_test
+
+# Benchmarks tri et filtre uniquement
+bench-sort:
+    cargo bench -p rs-grid-core --bench sort
+
+# Benchmarks scene builder uniquement
+bench-scene:
+    cargo bench -p rs-grid-scene --bench scene_builder
+
 # ── MCP (Model Context Protocol) ────────────────────────
 
 # Build le serveur MCP (TypeScript → dist/ + copie des docs)

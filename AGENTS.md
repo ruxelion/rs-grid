@@ -87,6 +87,14 @@ cargo fmt --all
 # Linting
 cargo clippy --workspace -- -D warnings
 
+# Benchmarks — tous les crates (rapports HTML → target/criterion/)
+cargo bench -p rs-grid-core -p rs-grid-scene
+
+# Benchmarks — crate ciblée
+cargo bench -p rs-grid-core --bench hit_test   # hit-testing
+cargo bench -p rs-grid-core --bench sort       # tri + filtre
+cargo bench -p rs-grid-scene --bench scene_builder  # rendu de scène
+
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
 cd e2e/fixture-leptos
 trunk build
@@ -206,6 +214,11 @@ vérifications MCP interactives. Les tests formels `/e2e` utilisent
 - Any visual change or addition (color, size, animation) must be made
   configurable through the theme engine: field in `Theme`, default value in
   `light()`, `dark()`, and `dimmed()`, CSS variable in `css_theme.rs`.
+- **When adding any new runnable command** (cargo, just, npm, trunk…), always
+  add it in all three places in the same commit:
+  1. `Justfile` — a named recipe wrapping the raw command
+  2. `.vscode/tasks.json` — a task calling `just <recipe>`
+  3. `AGENTS.md` → *Common commands* — the raw command with a short comment
 
 ### Documentation sync
 
