@@ -16,7 +16,7 @@ rows up to very large datasets (row indices are `u64`).
 > figures are illustrative, not yet backed by a published benchmark suite.
 
 **[▶ Live demo](https://ruxelion.github.io/rs-grid/)** ·
-**[📖 Documentation](docs/index.mdx)**
+**[📖 Documentation](https://rs-grid.com/getting-started.html)**
 
 ![rs-grid demo](rsgrid4k.webp)
 
@@ -156,13 +156,13 @@ The grid reads CSS custom properties from the host page. Define them on `:root`:
 
 ```css
 :root {
-  --rs-grid-bg:               #ffffff;
-  --rs-grid-header-bg:        #f8f9fb;
-  --rs-grid-header-text:      #181d1f;
-  --rs-grid-cell-text:        #181d1f;
-  --rs-grid-grid-line:        #e2e8f0;
-  --rs-grid-header-border:    #babfc7;
-  --rs-grid-selection-fill:   rgba(33, 150, 243, 0.20);
+  --rs-grid-bg: #ffffff;
+  --rs-grid-header-bg: #f8f9fb;
+  --rs-grid-header-text: #181d1f;
+  --rs-grid-cell-text: #181d1f;
+  --rs-grid-grid-line: #e2e8f0;
+  --rs-grid-header-border: #babfc7;
+  --rs-grid-selection-fill: rgba(33, 150, 243, 0.2);
   --rs-grid-selection-border: rgba(33, 150, 243, 0.85);
   /* see examples/example-common/themes/light.css for the full list */
 }
@@ -212,7 +212,7 @@ rs-grid/
 │   ├── fixture-leptos/         # Minimal Leptos app — the e2e/CI/Pages target
 │   └── tests/                  # Playwright end-to-end tests
 ├── tools/class-map/            # DaisyUI → class_map_data.rs codegen
-└── docs/                       # Technical documentation
+└── docs/                       # Internal refs only — full docs at ruxelion.com
 ```
 
 ## Design constraints

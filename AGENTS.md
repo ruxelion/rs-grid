@@ -2,18 +2,19 @@
 
 ## Documentation
 
-The project ships a full documentation set under `docs/` (Mintlify MDX).
-Key entry points for context:
+The user-facing documentation lives in the **separate `rs-grid-site` repo**
+(rspress, bilingual EN/FR) and is published at <https://ruxelion.com>. Edit the
+docs there — not in this repo.
 
-- `docs/index.mdx` — overview and feature list
-- `docs/getting-started.mdx` / `docs/installation.mdx` — onboarding
-- `docs/concepts/` — architecture concepts
-- `docs/api/` — API reference
-- `docs/data/` — data sources
-- `docs/features/` — feature-by-feature reference
+The in-repo `docs/` folder holds only internal reference files:
 
-Consult these before asking questions about existing behaviour or before
-designing a change.
+- `docs/skill.md` — MCP server skill definition (served as `rs-grid://skill.md`)
+- `docs/row-count-limits.md` — row-count / f64-precision reference, cited from
+  `rs-grid-core/src/selection.rs`
+- `docs/RUSTDOC_HISTORY.md` — rustdoc history notes
+
+Consult the published docs before asking questions about existing behaviour or
+before designing a change.
 
 ## Project focus
 
