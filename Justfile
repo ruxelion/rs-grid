@@ -109,6 +109,23 @@ bench-sort:
 bench-scene:
     cargo bench -p rs-grid-scene --bench scene_builder
 
+# Benchmarks initialisation (O(n_cols), pas O(n_rows))
+bench-init:
+    cargo bench -p rs-grid-core --bench init
+
+# Benchmarks pipeline complet par frame (scroll + rendu scène)
+bench-scroll:
+    cargo bench -p rs-grid-scene --bench scroll_frame
+
+# Mesure l'empreinte mémoire par ligne (allocateur custom, --release)
+mem:
+    cargo run -p rs-grid-core --example mem_per_row --release
+
+# Mesure la taille du bundle WASM (release, wasm-opt inclus via Trunk)
+wasm-size:
+    cd e2e\fixture-leptos && trunk build --release
+    powershell -NoProfile -Command "Get-ChildItem e2e\fixture-leptos\dist\*.wasm | ForEach-Object { $kb = [math]::Round($_.Length/1KB,1); $est_gz = [math]::Round($_.Length*0.35/1KB,1); Write-Host ('{0,-50} {1,8} KB  (~{2} KB gzip)' -f $_.Name, $kb, $est_gz) }"
+
 # ── MCP (Model Context Protocol) ────────────────────────
 
 # Build le serveur MCP (TypeScript → dist/ + copie des docs)

@@ -14,6 +14,10 @@ criterion = { version = "0.5", features = ["html_reports"] }
 name = "scene_builder"
 harness = false
 
+[[bench]]
+name = "scroll_frame"
+harness = false
+
 [dependencies]
 rs-grid-core = { path = "../rs-grid-core" }
 

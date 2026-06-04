@@ -185,6 +185,38 @@
       "detail": "cargo bench --bench scene_builder (small/medium/dense, DPR 1 et 2)"
     },
     {
+      "label": "just: bench-init",
+      "type": "shell",
+      "command": "just bench-init",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench --bench init (init/rows + init/cols — prouve O(n_cols) pas O(n_rows))"
+    },
+    {
+      "label": "just: bench-scroll",
+      "type": "shell",
+      "command": "just bench-scroll",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "cargo bench --bench scroll_frame (pipeline complet ScrollBy + SceneBuilder)"
+    },
+    {
+      "label": "just: mem",
+      "type": "shell",
+      "command": "just mem",
+      "group": "test",
+      "problemMatcher": [],
+      "detail": "Empreinte mémoire par ligne (allocateur custom, --release)"
+    },
+    {
+      "label": "just: wasm-size",
+      "type": "shell",
+      "command": "just wasm-size",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Build WASM release (wasm-opt) + rapport de taille et estimation gzip"
+    },
+    {
       "label": "just: mcp-build",
       "type": "shell",
       "command": "just mcp-build",

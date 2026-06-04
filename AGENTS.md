@@ -94,6 +94,16 @@ cargo bench -p rs-grid-core -p rs-grid-scene
 cargo bench -p rs-grid-core --bench hit_test   # hit-testing
 cargo bench -p rs-grid-core --bench sort       # tri + filtre
 cargo bench -p rs-grid-scene --bench scene_builder  # rendu de scène
+cargo bench -p rs-grid-core --bench init           # init/rows + init/cols
+cargo bench -p rs-grid-scene --bench scroll_frame  # pipeline complet par frame
+cargo run -p rs-grid-core --example mem_per_row --release  # mémoire par ligne
+# just wasm-size  → trunk build --release + rapport taille WASM + estimation gzip
+
+# GitHub Actions — .github/workflows/bench.yml
+# Déclencheurs : push main, PR, workflow_dispatch (sample_size configurable)
+# Artifacts    : rapports HTML Criterion (30 jours)
+# Baseline     : sauvegardée sur main via actions/cache, restaurée sur PR
+# Commentaire  : résumé + indicateurs 🟢🔴 posté automatiquement sur les PRs
 
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
 cd e2e/fixture-leptos

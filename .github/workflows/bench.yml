@@ -1,0 +1,141 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sample_size:
+        description: 'Criterion sample size (10 = rapide, 50 = standard, 100 = précis)'
+        required: false
+        default: '50'
+
+env:
+  CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  bench:
+    name: Benchmarks
+    # Version fixée pour la reproductibilité des mesures.
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      # Restaure la baseline Criterion du dernier run sur main.
+      # Criterion compare automatiquement contre cette baseline et signale
+      # les régressions / améliorations dans sa sortie.
+      - name: Restore criterion baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: target/criterion
+          key: criterion-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            criterion-${{ runner.os }}-
+
+      # Compromis sample-size / durée :
+      #   10  →  ~2 min   push / PR  (feedback rapide, bruit ±20 %)
+      #   50  →  ~8 min   workflow_dispatch par défaut
+      #   100 → ~15 min   baseline de référence précise
+      - name: Run benchmarks
+        run: |
+          cargo bench -p rs-grid-core -p rs-grid-scene \
+            -- --sample-size ${{ inputs.sample_size || '10' }} \
+               --warm-up-time 1 \
+            2>&1 | tee bench_output.txt
+
+      # Toujours uploader les rapports HTML, même si le job échoue.
+      - name: Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: criterion-${{ github.sha }}
+          path: target/criterion/
+          retention-days: 30
+
+      # Sauvegarde la nouvelle baseline uniquement depuis main
+      # pour que les PRs ne dérivent pas la référence.
+      - name: Save criterion baseline
+        if: github.ref == 'refs/heads/main' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: target/criterion
+          key: criterion-${{ runner.os }}-${{ github.sha }}
+
+      # Poste un résumé en commentaire sur la PR.
+      - name: Post benchmark summary to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Criterion peut couper le nom sur une ligne et mettre "time:"
+            // sur la ligne suivante quand le nom est trop long.
+            // On rejoint ces lignes pour simplifier le parsing.
+            const raw = fs.readFileSync('bench_output.txt', 'utf8')
+              .replace(/\n([ \t]{2,}time:)/g, '  $1');
+
+            const rows = [];
+            const lines = raw.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+              // Format Criterion : "bench_name  time:  [low  MEDIAN unit  high]"
+              const m = lines[i].match(
+                /^(.+?)\s{2,}time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)/
+              );
+              if (!m) continue;
+
+              const name = m[1].trim();
+              const val  = parseFloat(m[2]);
+              const unit = m[3];
+
+              // Cherche la ligne "change:" juste après pour les indicateurs
+              // de régression (p < 0.05 = statistiquement significatif).
+              let badge = '';
+              for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+                const cm = lines[j].match(
+                  /change:.*?([-+][\d.]+%)[^)]+\(p = ([\d.]+)/
+                );
+                if (!cm) continue;
+                if (parseFloat(cm[2]) < 0.05) {
+                  badge = cm[1].startsWith('-')
+                    ? ` 🟢 ${cm[1]}`
+                    : ` 🔴 ${cm[1]}`;
+                }
+                break;
+              }
+
+              rows.push(`| \`${name}\` | ${val} ${unit}${badge} |`);
+            }
+
+            const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha = context.sha.slice(0, 7);
+
+            const body = rows.length
+              ? [
+                  `## Benchmarks — \`${sha}\` _(sample-size=10, bruit ±20 %)_`,
+                  '',
+                  '| Benchmark | Médiane |',
+                  '|---|---|',
+                  ...rows,
+                  '',
+                  `> 📊 [Rapports HTML complets](${url}) · 🟢 amélioration · 🔴 régression _(p < 0.05)_`,
+                ].join('\n')
+              : `## Benchmarks\n\n_Aucun résultat parsé — voir les [logs](${url})._`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
