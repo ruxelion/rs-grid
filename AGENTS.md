@@ -208,6 +208,8 @@ vérifications MCP interactives. Les tests formels `/e2e` utilisent
 
 ## Claude working rules
 
+- **Never commit.** Do not run `git commit` or `git push` autonomously. Only
+  the user commits. Prepare changes, then stop and let the user review.
 - After any code change in `rs-grid-core`, always run `/test` to verify tests
   pass.
 - If a test fails, fix it before continuing.
