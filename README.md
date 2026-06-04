@@ -212,7 +212,7 @@ rs-grid/
 │   ├── fixture-leptos/         # Minimal Leptos app — the e2e/CI/Pages target
 │   └── tests/                  # Playwright end-to-end tests
 ├── tools/class-map/            # DaisyUI → class_map_data.rs codegen
-└── docs/                       # Internal refs only — full docs at ruxelion.com
+└── docs/                       # Internal refs only — full docs at rs-grid.com
 ```
 
 ## Design constraints

@@ -3,7 +3,7 @@
 ## Documentation
 
 The user-facing documentation lives in the **separate `rs-grid-site` repo**
-(rspress, bilingual EN/FR) and is published at <https://ruxelion.com>. Edit the
+(rspress, bilingual EN/FR) and is published at <https://rs-grid.com>. Edit the
 docs there — not in this repo.
 
 The in-repo `docs/` folder holds only internal reference files:

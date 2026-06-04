@@ -43,7 +43,7 @@ jobs:
 
       # Pages serves the minimal e2e fixture (no Tailwind) — proves the engine
       # renders on every push. The styled demo lives in rs-grid-example-leptos
-      # and is surfaced via ruxelion.com.
+      # and is surfaced via rs-grid.com.
       - name: trunk build (fixture-leptos)
         working-directory: e2e/fixture-leptos
         run: trunk build --release --public-url /rs-grid/
