@@ -40,7 +40,7 @@ git push origin feat/extract-demos      # pousser la branche (Phase D incluse)
 # puis : PR sur GitHub, OU fast-forward direct de main
 ```
 
-### 2. Phase E — recâbler `ruxelion/site` (local : `e:\Dev\ruxelion\ruxelion-site`)
+### 2. Phase E — recâbler `ruxelion/rs-grid-site` (local : `e:\Dev\ruxelion\rs-grid-site`)
 Le site build encore les démos depuis `rs-grid/examples/*` (supprimés). À faire :
 - **`scripts/update-wasm-demo.sh`** : remplacer `RS_GRID="${1:-../../rs-grid}"` par une source par
   repo (`JS_SRC`/`LEPTOS_SRC`/`DIOXUS_SRC`/`YEW_SRC`, défaut `../../rs-grid-example-<fw>`).
@@ -60,7 +60,7 @@ Sur tag `v*` : build de sanity + `repository_dispatch` `rs-grid-released` (ref=t
 À ajouter sur la branche avant merge si on veut l'auto-rebuild aux futures releases.
 
 ## ⚠️ Gotchas / faits clés
-- `rs-grid` est **privé** ; le site = repo **`ruxelion/site`** (public), local `ruxelion-site/`.
+- `rs-grid` est **privé** ; le site = repo **`ruxelion/rs-grid-site`** (public), local `rs-grid-site/`.
 - `rs-grid/CLAUDE.md` est un **symlink → AGENTS.md** : éditer `AGENTS.md`.
 - Pas de `site/` dans rs-grid (recettes Justfile `site`/`build-site` étaient mortes → supprimées).
 - `tools/class-map` épinglé daisyui **5.5.19** (= version qui a généré `class_map_data.rs`) ;

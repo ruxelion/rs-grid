@@ -1,11 +1,11 @@
 name: Release
 
 # Runs on version tags (v*). Does a sanity build of the workspace + the WASM
-# fixture, then notifies the public site (ruxelion/site) via repository_dispatch
+# fixture, then notifies the public site (ruxelion/rs-grid-site) via repository_dispatch
 # so it rebuilds the demos against this tag.
 #
 # Requires a repo secret SITE_DISPATCH_TOKEN: a PAT (fine-grained or classic
-# `repo` scope) authorised to dispatch workflows on ruxelion/site. The default
+# `repo` scope) authorised to dispatch workflows on ruxelion/rs-grid-site. The default
 # GITHUB_TOKEN cannot trigger workflows in another repository.
 
 on:
@@ -49,10 +49,10 @@ jobs:
     steps:
       # The site's rebuild-demos.yml listens for `rs-grid-released` and reads
       # client_payload.ref to know which tag to build the demos against.
-      - name: Dispatch rs-grid-released to ruxelion/site
+      - name: Dispatch rs-grid-released to ruxelion/rs-grid-site
         run: |
           curl -fsSL -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.SITE_DISPATCH_TOKEN }}" \
-            https://api.github.com/repos/ruxelion/site/dispatches \
+            https://api.github.com/repos/ruxelion/rs-grid-site/dispatches \
             -d "{\"event_type\":\"rs-grid-released\",\"client_payload\":{\"ref\":\"${GITHUB_REF_NAME}\"}}"
