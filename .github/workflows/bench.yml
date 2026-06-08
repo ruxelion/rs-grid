@@ -71,6 +71,122 @@ jobs:
           path: target/criterion
           key: criterion-${{ runner.os }}-${{ github.sha }}
 
+      # Publie les données de benchmark sur rs-grid-site (main uniquement).
+      # Le site reçoit un repository_dispatch, commit benchmarks.json et rebuild.
+      - name: Publish benchmark data to rs-grid-site
+        if: github.ref == 'refs/heads/main' && success()
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          SAMPLE_SIZE: ${{ inputs.sample_size || '10' }}
+          SITE_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const { execSync } = require('child_process');
+
+          // Collapse multi-line entries: "name\n       time:" → "name  time:"
+          const raw = fs.readFileSync('bench_output.txt', 'utf8')
+            .replace(/\n([ \t]{2,}time:)/g, '  $1');
+
+          function extract(name) {
+            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(
+              escaped + String.raw`\s{2,}time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)`
+            );
+            const m = raw.match(re);
+            return m ? { val: parseFloat(m[1]), unit: m[2] } : null;
+          }
+
+          // Criterion outputs ns, µs, or ms. Unknown unit → assume µs.
+          function toNs(r) {
+            if (!r) return null;
+            const v = r.val, u = r.unit;
+            if (u === 'ns') return round(v);
+            if (u === 'ms') return round(v * 1e6);
+            return round(v * 1e3); // µs → ns
+          }
+          function toUs(r) {
+            if (!r) return null;
+            const v = r.val, u = r.unit;
+            if (u === 'ns') return round(v / 1e3);
+            if (u === 'ms') return round(v * 1e3);
+            return round(v); // µs
+          }
+          function toMs(r) {
+            if (!r) return null;
+            const v = r.val, u = r.unit;
+            if (u === 'ms') return round(v);
+            if (u === 'ns') return round(v / 1e6);
+            return round(v / 1e3); // µs → ms
+          }
+          function round(x) { return Math.round(x * 10) / 10; }
+
+          const sha = (process.env.GITHUB_SHA || 'unknown').slice(0, 7);
+
+          const data = {
+            generated: new Date().toISOString(),
+            sha,
+            sample_size: parseInt(process.env.SAMPLE_SIZE || '10'),
+            hit_test_ns: {
+              cell_10cols:       toNs(extract('hit_test/cell/10')),
+              cell_100cols:      toNs(extract('hit_test/cell/100')),
+              cell_1000cols:     toNs(extract('hit_test/cell/1000')),
+              extreme_1k_rows:   toNs(extract('hit_test/extreme/1000')),
+              extreme_1B_rows:   toNs(extract('hit_test/extreme/1000000000')),
+              extreme_1Q_rows:   toNs(extract('hit_test/extreme/1000000000000000')),
+            },
+            init_us: {
+              rows_1k:   toUs(extract('init/rows/1000')),
+              rows_100k: toUs(extract('init/rows/100000')),
+              rows_1M:   toUs(extract('init/rows/1000000')),
+              rows_100M: toUs(extract('init/rows/100000000')),
+              rows_1B:   toUs(extract('init/rows/1000000000')),
+              rows_1Q:   toUs(extract('init/rows/1000000000000000')),
+              cols_5:    toUs(extract('init/cols/5')),
+              cols_20:   toUs(extract('init/cols/20')),
+              cols_50:   toUs(extract('init/cols/50')),
+              cols_100:  toUs(extract('init/cols/100')),
+              cols_1000: toUs(extract('init/cols/1000')),
+            },
+            frame_us: {
+              cols20_10k:  toUs(extract('scroll_frame/20cols_10k_rows')),
+              cols50_1M:   toUs(extract('scroll_frame/50cols_1M_rows')),
+              cols100_10M: toUs(extract('scroll_frame/100cols_10M_rows')),
+              cols1000_1B: toUs(extract('scroll_frame/1000cols_1B_rows')),
+              cols50_1Q:   toUs(extract('scroll_frame/50cols_1Q_rows')),
+            },
+            sort_ms: {
+              numeric_cold_100k:   toMs(extract('sort/numeric/cold/100000')),
+              numeric_cached_100k: toMs(extract('sort/numeric/cached/100000')),
+              string_cold_100k:    toMs(extract('sort/string/cold/100000')),
+            },
+            // Memory values are from the mem_per_row example, not Criterion.
+            // They are stable across runs, so hardcoded here.
+            memory_bytes_per_row: {
+              fn_datasource:    0,
+              vec_empty:        56,
+              vec_10cols_8chars: 1096,
+            },
+          };
+
+          // Write dispatch payload
+          const payload = {
+            event_type: 'benchmarks-updated',
+            client_payload: { data },
+          };
+          fs.writeFileSync('dispatch.json', JSON.stringify(payload));
+          console.log('Dispatching benchmark data for', sha);
+
+          execSync(
+            'curl -sfL -X POST ' +
+            '-H "Authorization: Bearer ' + process.env.SITE_TOKEN + '" ' +
+            '-H "Accept: application/vnd.github+json" ' +
+            'https://api.github.com/repos/ruxelion/rs-grid-site/dispatches ' +
+            '--data-binary @dispatch.json',
+            { stdio: 'inherit' }
+          );
+          EOF
+
       # Poste un résumé en commentaire sur la PR.
       - name: Post benchmark summary to PR
         if: github.event_name == 'pull_request'
