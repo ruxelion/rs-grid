@@ -1,33 +1,32 @@
-name: Deploy demo to Pages
+name: Deploy fixture to rs-grid-site
 
-# Builds the e2e fixture WASM app and publishes it to GitHub Pages.
-# The site is served from https://ruxelion.github.io/rs-grid/ — hence the
-# `--public-url /rs-grid/` base path so asset URLs resolve under the project
-# sub-path rather than the domain root.
+# Builds the e2e fixture WASM app and pushes it to rs-grid-site so it is
+# served at https://rs-grid.com/wasm/fixture/. The deploy.yml workflow on
+# rs-grid-site triggers automatically on any push to its main branch.
+#
+# rs-grid is a private repo — GitHub Pages on private repos requires a paid
+# plan, so we push the built artefacts directly to the public rs-grid-site
+# repo using SITE_TOKEN (same token used by bench.yml for benchmark data).
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# Allow only one concurrent deployment, skipping runs queued between the
-# in-progress run and the latest — but let the in-progress run finish.
 concurrency:
-  group: pages
+  group: fixture-deploy
   cancel-in-progress: false
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
-    name: Build demo
+  build-and-push:
+    name: Build and push fixture
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -46,21 +45,19 @@ jobs:
       # and is surfaced via rs-grid.com.
       - name: trunk build (fixture-leptos)
         working-directory: e2e/fixture-leptos
-        run: trunk build --release --public-url /rs-grid/
+        run: trunk build --release --public-url /wasm/fixture/
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: e2e/fixture-leptos/dist/
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Push fixture to rs-grid-site
+        env:
+          SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
+        run: |
+          git clone https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git _site
+          rm -rf _site/docs/public/wasm/fixture
+          mkdir -p _site/docs/public/wasm/fixture
+          cp -r e2e/fixture-leptos/dist/. _site/docs/public/wasm/fixture/
+          cd _site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/public/wasm/fixture/
+          git diff --staged --quiet || git commit -m "chore: update fixture WASM [${GITHUB_SHA::7}]"
+          git push
