@@ -12,6 +12,11 @@ on:
         required: false
         default: '50'
 
+# Default to read-only; the bench job widens to pull-requests: write for its
+# PR comment (see job-level permissions below).
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -21,6 +26,10 @@ jobs:
     name: Benchmarks
     # Version fixée pour la reproductibilité des mesures.
     runs-on: ubuntu-22.04
+    # contents: read to checkout; pull-requests: write only for the PR comment.
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6

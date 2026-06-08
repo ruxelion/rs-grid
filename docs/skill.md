@@ -34,9 +34,29 @@ virtualized Canvas2D renderer.
 
 ### Add rs-grid to a Leptos project
 
-1. Add `rs-grid-leptos = { path = "../rs-grid-leptos" }` to Cargo.toml
-2. Import and mount `<GridCanvas rows=N cols=M />` in a Leptos view
-3. Include `rs-grid-theme.css` for theming
+1. Add the git-tag dependencies to `Cargo.toml` (rs-grid is consumed by git
+   tag, not from crates.io):
+
+   ```toml
+   rs-grid-core   = { git = "https://github.com/ruxelion/rs-grid", tag = "v0.1.0" }
+   rs-grid-leptos = { git = "https://github.com/ruxelion/rs-grid", tag = "v0.1.0" }
+   ```
+
+2. Build a `GridModel` and mount `GridCanvas` with the `model=` prop:
+
+   ```rust
+   use rs_grid_core::{column::ColumnDef, model::GridModel};
+   use rs_grid_leptos::GridCanvas;
+
+   let columns = vec![ColumnDef::new("name", "Name", 200.0)];
+   let data = vec![vec!["Alice".into()]];
+   let model = GridModel::new(columns, data, 32.0, 40.0);
+
+   view! { <GridCanvas model=model width="100%" height="600px" /> }
+   ```
+
+3. Define `--rs-grid-*` CSS custom properties on `:root` for theming
+   (see `examples/example-common/themes/light.css`).
 
 ### Mutate grid state
 
@@ -76,10 +96,4 @@ cargo clippy --workspace -- -D warnings
 
 ```
 cd e2e/fixture-leptos && trunk serve
-```
-
-### Build docs site with Docker
-
-```
-docker compose up --build
 ```

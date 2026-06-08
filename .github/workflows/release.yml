@@ -12,6 +12,10 @@ on:
   push:
     tags: ['v*']
 
+# Release only reads the repo; cross-repo dispatch uses SITE_DISPATCH_TOKEN.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1

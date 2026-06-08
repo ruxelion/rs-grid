@@ -256,6 +256,12 @@ impl GridCanvas {
         theme: Theme,
         locale: Locale,
     ) -> Self {
+        // Install a panic hook once so a boundary failure surfaces a
+        // readable message + stack in the browser console instead of an
+        // opaque `RuntimeError: unreachable executed`. Idempotent: subsequent
+        // mounts are a no-op. Embedders that set their own hook can ignore it.
+        console_error_panic_hook::set_once();
+
         let win = web_sys::window().expect("no window");
         let dpr = win.device_pixel_ratio();
 

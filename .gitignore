@@ -14,13 +14,16 @@ mcp/dist/
 .playwright-mcp/
 *.mp4
 
-# Internal/private roadmap (kept local, never published)
+# Local-only
 roadmap/
 
-# Local agent & editor config (machine-specific, may contain private infra)
+# Local-only machine/editor config
 .codex/config.toml
 .mcp.json
 .claude/settings.local.json
+
+# Internal status / scratch notes (kept local)
+*-RESUME.md
 
 # Stray temp theme artifacts from build tooling
 *.tmp_*.css

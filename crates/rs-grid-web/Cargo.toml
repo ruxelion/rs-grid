@@ -11,6 +11,7 @@ description = "Browser event handling, canvas sizing, and rAF loop for rs-grid"
 rs-grid-core = { path = "../rs-grid-core" }
 rs-grid-scene = { path = "../rs-grid-scene" }
 rs-grid-render-canvas = { path = "../rs-grid-render-canvas" }
+console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = { workspace = true }

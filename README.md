@@ -15,7 +15,7 @@ rows up to very large datasets (row indices are `u64`).
 > **Status:** early development (alpha) — the API may change. Performance
 > figures are illustrative, not yet backed by a published benchmark suite.
 
-**[▶ Live demo](https://ruxelion.github.io/rs-grid/)** ·
+**[▶ Live demo](https://rs-grid.com/index.html#demo)** ·
 **[📖 Documentation](https://rs-grid.com/getting-started.html)**
 
 ![rs-grid demo](rsgrid4k.webp)
@@ -174,11 +174,15 @@ The grid reads CSS custom properties from the host page. Define them on `:root`:
 # Check the whole workspace
 cargo check --workspace
 
-# Run unit tests (150 tests in rs-grid-core)
-cargo test --workspace
+# Run unit tests (nextest; WASM crates excluded — see CONTRIBUTING.md)
+cargo nextest run --workspace \
+  --exclude rs-grid-web --exclude rs-grid-leptos \
+  --exclude rs-grid-dioxus --exclude rs-grid-yew \
+  --exclude rs-grid-render-canvas \
+  --exclude fixture-leptos --exclude example-common
 
-# Formatting
-cargo fmt --all
+# Formatting (rustfmt.toml uses nightly-only options)
+cargo +nightly fmt --all
 
 # Linting
 cargo clippy --workspace -- -D warnings

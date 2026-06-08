@@ -23,6 +23,10 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 ## Critical invariants
 
 - `GridCanvas::mount()` is the only public entry point — one canvas = one instance.
+- `mount()` calls `console_error_panic_hook::set_once()` (idempotent across
+  mounts) so a boundary panic surfaces a readable message + stack in the
+  browser console instead of `RuntimeError: unreachable`. Embedders that
+  install their own panic hook can disregard it.
 - Events are converted to `GridCommand` before being applied to `GridState`.
   **Do not manipulate `GridState` directly from event handlers.**
 - DPR is read once at mount and on each resize. Do not re-read it every frame.
