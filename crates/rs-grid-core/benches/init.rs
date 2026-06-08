@@ -8,7 +8,7 @@ use rs_grid_core::{
 
 fn make_cols(n: usize) -> Vec<ColumnDef> {
     (0..n)
-        .map(|i| ColumnDef::new(&format!("c{i}"), &format!("Col {i}"), 120.0))
+        .map(|i| ColumnDef::new(format!("c{i}"), format!("Col {i}"), 120.0))
         .collect()
 }
 

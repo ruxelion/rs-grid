@@ -57,7 +57,7 @@
       "type": "shell",
       "command": "just fmt",
       "problemMatcher": [],
-      "detail": "cargo fmt --all"
+      "detail": "cargo +nightly fmt --all"
     },
     {
       "label": "just: lint",
@@ -65,7 +65,7 @@
       "command": "just lint",
       "group": "build",
       "problemMatcher": ["$rustc"],
-      "detail": "cargo clippy --workspace -- -D warnings"
+      "detail": "cargo clippy --workspace --all-targets -- -D warnings"
     },
     {
       "label": "just: ci",

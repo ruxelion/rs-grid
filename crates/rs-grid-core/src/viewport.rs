@@ -247,7 +247,7 @@ mod tests {
     fn scrollable_columns_with_pinned() {
         // 5 columns of 100px each = 500px total.
         let cols: Vec<ColumnDef> = (0..5)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
             .collect();
         let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
         let offsets = ColumnOffsets::compute(&cols);
@@ -307,7 +307,7 @@ mod tests {
         // Scroll right so first column is fully off-screen
         // → the `first += 1` loop should advance
         let cols: Vec<ColumnDef> = (0..5)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
             .collect();
         let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
         let offsets = ColumnOffsets::compute(&cols);
@@ -324,7 +324,7 @@ mod tests {
     #[test]
     fn visible_scrollable_columns_scrolled_past_first() {
         let cols: Vec<ColumnDef> = (0..10)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
             .collect();
         let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
         let offsets = ColumnOffsets::compute(&cols);

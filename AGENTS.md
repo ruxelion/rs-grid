@@ -81,11 +81,12 @@ cargo llvm-cov nextest \
   -p rs-grid-core -p rs-grid-scene -p rs-grid-icons \
   --lcov --output-path target/llvm-cov/lcov.info
 
-# Formatting
-cargo fmt --all
+# Formatting (rustfmt.toml uses nightly-only options — nightly is required,
+# or local formatting will diverge from CI)
+cargo +nightly fmt --all
 
-# Linting
-cargo clippy --workspace -- -D warnings
+# Linting (--all-targets also covers tests, benches and examples)
+cargo clippy --workspace --all-targets -- -D warnings
 
 # Benchmarks — tous les crates (rapports HTML → target/criterion/)
 cargo bench -p rs-grid-core -p rs-grid-scene

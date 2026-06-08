@@ -8,7 +8,7 @@ use rs_grid_core::{
 
 fn make_model(n_cols: usize, n_rows: usize) -> GridModel {
     let cols: Vec<ColumnDef> = (0..n_cols)
-        .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+        .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
         .collect();
     let rows: Vec<RowRecord> = (0..n_rows as u64).map(RowRecord::new).collect();
     GridModel::new(cols, rows, 30.0, 40.0)
@@ -16,7 +16,7 @@ fn make_model(n_cols: usize, n_rows: usize) -> GridModel {
 
 fn make_model_fn(n_cols: usize, n_rows: u64) -> GridModel {
     let cols: Vec<ColumnDef> = (0..n_cols)
-        .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 100.0))
+        .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
         .collect();
     let data = Box::new(FnDataSource::new(n_rows, |_, _| None));
     GridModel::with_data_source(cols, data, 30.0, 40.0)

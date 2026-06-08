@@ -51,7 +51,7 @@ const CONFIGS: &[Config] = &[
 fn make_state(cfg: &Config) -> GridState {
     let cols: Vec<ColumnDef> = (0..cfg.n_cols)
         .map(|i| {
-            ColumnDef::new(&format!("c{i}"), &format!("Col {i}"), cfg.col_width)
+            ColumnDef::new(format!("c{i}"), format!("Col {i}"), cfg.col_width)
         })
         .collect();
     let rows: Vec<RowRecord> = (0..cfg.n_rows as u64)

@@ -36,13 +36,14 @@ coverage-lcov:
     if not exist "target\llvm-cov" mkdir "target\llvm-cov"
     cargo llvm-cov nextest -p rs-grid-core -p rs-grid-scene -p rs-grid-icons --ignore-filename-regex "generate_theme" --lcov --output-path target/llvm-cov/lcov.info
 
-# Formatage
+# Formatage (rustfmt.toml utilise des options nightly — nightly obligatoire,
+# sinon le formatage local diverge de la CI)
 fmt:
-    cargo fmt --all
+    cargo +nightly fmt --all
 
-# Linting
+# Linting (--all-targets couvre aussi tests, benches et examples)
 lint:
-    cargo clippy --workspace -- -D warnings
+    cargo clippy --workspace --all-targets -- -D warnings
 
 # Régénérer class_map_data.rs depuis les sources DaisyUI (node_modules)
 # Le générateur vit dans tools/class-map (maintainer codegen, hors démos).

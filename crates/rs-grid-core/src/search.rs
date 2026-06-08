@@ -113,7 +113,7 @@ mod tests {
     fn run_caps_at_max_matches() {
         // 200 rows × 51 columns = 10 200 cells, all matching.
         let cols: Vec<ColumnDef> = (0..51)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 80.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 80.0))
             .collect();
         let keys: Vec<String> = (0..51).map(|i| format!("c{i}")).collect();
         let ds = FnDataSource::new(200, move |_row, col| {

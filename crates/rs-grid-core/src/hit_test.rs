@@ -140,7 +140,7 @@ mod tests {
             ColumnDef::new("a", "A", 100.0),
             ColumnDef::new("b", "B", 150.0),
         ];
-        let rows = (0..5).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..5).map(RowRecord::new).collect();
         GridModel::new(cols, rows, 30.0, 40.0)
     }
 
@@ -268,7 +268,7 @@ mod tests {
             ColumnDef::new("b", "B", 150.0),
             ColumnDef::new("c", "C", 200.0),
         ];
-        let rows = (0..10).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..10).map(RowRecord::new).collect();
         let mut m = GridModel::new(cols, rows, 30.0, 40.0);
         m.pinned_count = 1; // pin column "a" (100px)
         m

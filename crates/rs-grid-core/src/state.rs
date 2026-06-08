@@ -258,7 +258,7 @@ mod tests {
     #[test]
     fn scroll_to_small_viewport() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..100).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         // total_height = 40 + 100*30 = 3040; max_y = 3040 - 200 = 2840
@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn scroll_to_clamped_above_max() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..100).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         // max_y = 3040 - 200 + 14 (scrollbar) = 2854
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn scroll_by_accumulates() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..100).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         s.apply(GridCommand::ScrollBy { dx: 0.0, dy: 100.0 });
@@ -886,7 +886,7 @@ mod tests {
     #[test]
     fn toggle_sort_resets_scroll_y() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..100).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         s.apply(GridCommand::ScrollTo { x: 0.0, y: 500.0 });
@@ -1331,7 +1331,7 @@ mod tests {
     #[test]
     fn clear_sort_resets_scroll_y() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
-        let rows = (0..100).map(|i| RowRecord::new(i)).collect();
+        let rows = (0..100).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 200.0, 200.0);
         s.apply(GridCommand::ScrollTo { x: 0.0, y: 500.0 });
@@ -1637,7 +1637,7 @@ mod tests {
             ColumnDef::simple("b", "B").with_flex(1.0),
             ColumnDef::simple("c", "C").with_flex(1.0),
         ];
-        let rows: Vec<RowRecord> = (0..5).map(|i| RowRecord::new(i)).collect();
+        let rows: Vec<RowRecord> = (0..5).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         GridState::new(model, 800.0, 600.0)
     }
@@ -1858,12 +1858,12 @@ mod tests {
         // Grid with 10 cols × 200px. Viewport=400px.
         // Scroll right, then search for a value in col 0.
         let cols: Vec<ColumnDef> = (0..10)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 200.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 200.0))
             .collect();
         let mut row = RowRecord::new(0);
         row.set("c0", "findme");
         for i in 1..10 {
-            row.set(&format!("c{i}"), format!("val{i}"));
+            row.set(format!("c{i}"), format!("val{i}"));
         }
         let model = GridModel::new(cols, vec![row], 30.0, 40.0);
         let mut s = GridState::new(model, 400.0, 200.0);
@@ -1886,13 +1886,13 @@ mod tests {
     fn search_next_scrolls_right_to_match() {
         // Wide grid: 10 columns × 200px = 2000px, viewport=400px
         let cols: Vec<ColumnDef> = (0..10)
-            .map(|i| ColumnDef::new(&format!("c{i}"), &format!("C{i}"), 200.0))
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 200.0))
             .collect();
         let mut row = RowRecord::new(0);
         // Put a unique value in the last column
         row.set("c9", "findme");
         for i in 0..9 {
-            row.set(&format!("c{i}"), format!("val{i}"));
+            row.set(format!("c{i}"), format!("val{i}"));
         }
         let model = GridModel::new(cols, vec![row], 30.0, 40.0);
         let mut s = GridState::new(model, 400.0, 200.0);
@@ -1976,7 +1976,7 @@ mod tests {
             ColumnDef::new("a", "A", 100.0),
             ColumnDef::simple("b", "B").with_flex(1.0),
         ];
-        let rows: Vec<RowRecord> = (0..3).map(|i| RowRecord::new(i)).collect();
+        let rows: Vec<RowRecord> = (0..3).map(RowRecord::new).collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let mut s = GridState::new(model, 800.0, 600.0);
         let orig_width = s.model.columns[1].width;
