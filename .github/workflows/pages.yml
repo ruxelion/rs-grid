@@ -51,7 +51,7 @@ jobs:
         env:
           SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
         run: |
-          git clone https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git _site
+          git clone https://github.com/ruxelion/rs-grid-site.git _site
           rm -rf _site/docs/public/wasm/fixture
           mkdir -p _site/docs/public/wasm/fixture
           cp -r e2e/fixture-leptos/dist/. _site/docs/public/wasm/fixture/
@@ -60,4 +60,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/public/wasm/fixture/
           git diff --staged --quiet || git commit -m "chore: update fixture WASM [${GITHUB_SHA::7}]"
-          git push
+          # actions/checkout sets a global http.extraheader that forces GITHUB_TOKEN
+          # for all git operations — unset it so our explicit SITE_TOKEN URL is used.
+          git config --global --unset-all http.extraheader || true
+          git push "https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git" HEAD:main
