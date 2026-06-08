@@ -2,10 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, BenchmarkId, Criterion,
 };
 use rs_grid_core::{
-    column::ColumnDef,
-    datasource::FnDataSource,
-    hit_test,
-    model::GridModel,
+    column::ColumnDef, datasource::FnDataSource, hit_test, model::GridModel,
     row::RowRecord,
 };
 
@@ -115,8 +112,8 @@ fn bench_hit_test_extreme(c: &mut Criterion) {
     let mut group = c.benchmark_group("hit_test/extreme");
     for n_rows in [
         1_000u64,
-        1_000_000_000,           // 1 milliard
-        1_000_000_000_000_000,   // 1 quadrillion
+        1_000_000_000,         // 1 milliard
+        1_000_000_000_000_000, // 1 quadrillion
     ] {
         let model = make_model_fn(1_000, n_rows);
         let rnw = model.effective_row_number_width();

@@ -2,11 +2,8 @@ use criterion::{
     black_box, criterion_group, criterion_main, BenchmarkId, Criterion,
 };
 use rs_grid_core::{
-    column::ColumnDef,
-    commands::GridCommand,
-    datasource::FnDataSource,
-    model::GridModel,
-    state::GridState,
+    column::ColumnDef, commands::GridCommand, datasource::FnDataSource,
+    model::GridModel, state::GridState,
 };
 use rs_grid_scene::builder::SceneBuilder;
 
@@ -56,11 +53,7 @@ const CONFIGS: &[Config] = &[
 fn make_state(cfg: &Config, vp_width: f64, vp_height: f64) -> GridState {
     let cols: Vec<ColumnDef> = (0..cfg.n_cols)
         .map(|i| {
-            ColumnDef::new(
-                &format!("c{i}"),
-                &format!("Col {i}"),
-                cfg.col_width,
-            )
+            ColumnDef::new(&format!("c{i}"), &format!("Col {i}"), cfg.col_width)
         })
         .collect();
     // FnDataSource: data generated on demand — row count has no memory cost.

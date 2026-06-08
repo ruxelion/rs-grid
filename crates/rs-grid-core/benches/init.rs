@@ -2,9 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, BenchmarkId, Criterion,
 };
 use rs_grid_core::{
-    column::ColumnDef,
-    datasource::FnDataSource,
-    model::GridModel,
+    column::ColumnDef, datasource::FnDataSource, model::GridModel,
     state::GridState,
 };
 
@@ -29,8 +27,8 @@ fn bench_init_by_rows(c: &mut Criterion) {
         100_000,
         1_000_000,
         100_000_000,
-        1_000_000_000,           // 1 milliard
-        1_000_000_000_000_000,   // 1 quadrillion
+        1_000_000_000,         // 1 milliard
+        1_000_000_000_000_000, // 1 quadrillion
     ] {
         group.bench_with_input(
             BenchmarkId::from_parameter(n_rows),
@@ -38,11 +36,9 @@ fn bench_init_by_rows(c: &mut Criterion) {
             |b, &n| {
                 b.iter(|| {
                     let cols = make_cols(20);
-                    let data =
-                        Box::new(FnDataSource::new(n, |_, _| None));
-                    let model = GridModel::with_data_source(
-                        cols, data, 30.0, 40.0,
-                    );
+                    let data = Box::new(FnDataSource::new(n, |_, _| None));
+                    let model =
+                        GridModel::with_data_source(cols, data, 30.0, 40.0);
                     black_box(GridState::new(model, 1_200.0, 800.0))
                 })
             },
@@ -65,13 +61,10 @@ fn bench_init_by_cols(c: &mut Criterion) {
             |b, &n| {
                 b.iter(|| {
                     let cols = make_cols(n);
-                    let data = Box::new(FnDataSource::new(
-                        1_000_000,
-                        |_, _| None,
-                    ));
-                    let model = GridModel::with_data_source(
-                        cols, data, 30.0, 40.0,
-                    );
+                    let data =
+                        Box::new(FnDataSource::new(1_000_000, |_, _| None));
+                    let model =
+                        GridModel::with_data_source(cols, data, 30.0, 40.0);
                     black_box(GridState::new(model, 1_200.0, 800.0))
                 })
             },
