@@ -51,7 +51,7 @@ jobs:
         env:
           SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
         run: |
-          git clone https://github.com/ruxelion/rs-grid-site.git _site
+          git clone "https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git" _site
           rm -rf _site/docs/public/wasm/fixture
           mkdir -p _site/docs/public/wasm/fixture
           cp -r e2e/fixture-leptos/dist/. _site/docs/public/wasm/fixture/
