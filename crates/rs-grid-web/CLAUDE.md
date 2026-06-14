@@ -43,9 +43,12 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_validation_error` | A `ColumnDef.validator` returned `Err` |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 
-**Re-entrancy**: callbacks run inside the dispatch path while `state` is
-still borrowed read-only. Do **not** dispatch a command synchronously
-from any callback — defer via microtask / channel.
+**Re-entrancy**: callbacks fire *after* the dispatch path has released its
+borrow on `state` — `apply()` returns its output by value, and each callback
+`Rc` is cloned out of its own cell before invocation. So a callback may both
+read grid state (e.g. `selected_row_indices()`, `cell_at_logical()`) **and**
+synchronously dispatch another `GridCommand` without panicking. (Guard against
+unbounded recursion if a dispatch re-triggers the same callback.)
 
 Layout getters callable from `on_columns_changed`:
 `column_widths()`, `column_order()`, `pinned_count()`.
