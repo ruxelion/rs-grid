@@ -572,17 +572,30 @@ impl GridCanvas {
         }
     }
 
-    /// Read a cell value for a *logical* (display) row, applying the active
-    /// sort and filter mapping internally (delegates to `GridModel::get_cell`).
+    /// Read a cell value for a *logical* (display) row. In client-side mode
+    /// the active sort/filter mapping is resolved internally (delegates to
+    /// `GridModel::get_cell`); in server-side mode no client mapping is
+    /// applied — the logical index is passed straight to the data source.
     ///
     /// Pairs with [`GridCanvas::selected_row_indices`] (which yields logical
     /// indices): from a selection-changed callback a consumer can resolve the
     /// clicked row back to a stable value — typically an id column — to drive a
-    /// detail view, even while the grid is sorted or filtered. Read-only, so it
-    /// is safe to call from inside the
-    /// [`GridCanvas::set_on_selection_changed`] callback.
+    /// detail view, even while the grid is sorted or filtered.
     ///
-    /// Returns `None` when the row or column key is out of range.
+    /// Safe to call from inside the
+    /// [`GridCanvas::set_on_selection_changed`] callback: the dispatch path
+    /// releases its borrow on the grid state *before* invoking callbacks (see
+    /// [`GridCanvas::set_on_change`] for the mechanism), so this read acquires
+    /// a fresh shared borrow without conflicting — the safety comes from that
+    /// release, not merely from the call being read-only.
+    ///
+    /// Returns `None` when `col_key` is unknown, and — for an *in-range*
+    /// logical row — when the value is missing (including a not-yet-loaded
+    /// page in server-side mode). An *out-of-range* logical row is **not**
+    /// guaranteed to yield `None`: under an active sort/filter the index is
+    /// clamped to a raw row and may return an unrelated (e.g. filtered-out)
+    /// value, so pass only indices obtained from
+    /// [`GridCanvas::selected_row_indices`].
     pub fn cell_at_logical(
         &self,
         logical_row: u64,

@@ -866,6 +866,41 @@ mod tests {
     }
 
     #[test]
+    fn get_cell_follows_sort_mapping() {
+        // make_numeric_model(5): physical rows hold "5","4","3","2","1".
+        let mut m = make_numeric_model(5);
+        m.apply_sort("v", &SortDir::Asc);
+        // After ascending sort, logical row 0 is the smallest value.
+        assert_eq!(m.get_cell(0, "v"), Some("1".into()));
+        assert_eq!(m.get_cell(4, "v"), Some("5".into()));
+    }
+
+    #[test]
+    fn get_cell_follows_filter_mapping() {
+        // Only the row whose value contains "1" ("1" itself) survives the
+        // filter; it becomes logical row 0.
+        let mut m = make_numeric_model(5);
+        m.filters.insert("v".into(), "1".into());
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 1);
+        assert_eq!(m.get_cell(0, "v"), Some("1".into()));
+    }
+
+    #[test]
+    fn get_cell_out_of_range_under_filter_clamps_not_none() {
+        // Documents a sharp edge relied on by `cell_at_logical`'s docs: under
+        // an active filter a logical row past the filtered count is *clamped*
+        // to the raw index by `logical_to_physical` rather than mapped to
+        // `None`. With one surviving row (logical 0), logical row 1 falls
+        // through to physical row 1 ("4") — a filtered-OUT, undisplayed row.
+        let mut m = make_numeric_model(5);
+        m.filters.insert("v".into(), "1".into());
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 1);
+        assert_eq!(m.get_cell(1, "v"), Some("4".into()));
+    }
+
+    #[test]
     fn set_cell_patch_overrides_datasource() {
         let mut m = make_model();
         m.set_cell(0, "a", "patched".into());
