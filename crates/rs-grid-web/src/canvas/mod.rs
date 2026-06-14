@@ -551,7 +551,12 @@ impl GridCanvas {
         self.0.state.borrow().model.pinned_count
     }
 
-    /// Physical row indices currently inside the selection rectangle.
+    /// Logical (display) row indices currently inside the selection rectangle.
+    ///
+    /// These are *logical* indices — positions in the current display order,
+    /// after any active sort/filter — not physical row ids. Pair with
+    /// [`GridCanvas::cell_at_logical`] to read a stable value (e.g. an id
+    /// column) for the selected row.
     ///
     /// Returns an empty `Vec` when nothing is selected. The selection model
     /// is anchor + focus (a single rectangle), so the result is always a
@@ -565,6 +570,25 @@ impl GridCanvas {
             Some((tl, br)) => (tl.row..=br.row).collect(),
             None => Vec::new(),
         }
+    }
+
+    /// Read a cell value for a *logical* (display) row, applying the active
+    /// sort and filter mapping internally (delegates to `GridModel::get_cell`).
+    ///
+    /// Pairs with [`GridCanvas::selected_row_indices`] (which yields logical
+    /// indices): from a selection-changed callback a consumer can resolve the
+    /// clicked row back to a stable value — typically an id column — to drive a
+    /// detail view, even while the grid is sorted or filtered. Read-only, so it
+    /// is safe to call from inside the
+    /// [`GridCanvas::set_on_selection_changed`] callback.
+    ///
+    /// Returns `None` when the row or column key is out of range.
+    pub fn cell_at_logical(
+        &self,
+        logical_row: u64,
+        col_key: &str,
+    ) -> Option<String> {
+        self.0.state.borrow().model.get_cell(logical_row, col_key)
     }
 
     // ── public API for new v1 features
