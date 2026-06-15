@@ -245,6 +245,13 @@
       "command": "just release-preview",
       "problemMatcher": [],
       "detail": "Aperçu local release-plz : bumps + CHANGELOG.md par crate (git diff puis git checkout .)"
+    },
+    {
+      "label": "just: publish",
+      "type": "shell",
+      "command": "just publish",
+      "problemMatcher": [],
+      "detail": "Publier les 8 crates sur crates.io dans l'ordre de dépendances (30 s entre chaque)"
     }
   ],
   "inputs": [

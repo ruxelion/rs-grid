@@ -84,6 +84,10 @@ trunk serve
 # to the working tree for review. Inspect with `git diff`, then `git checkout .`.
 # One-time: cargo install release-plz
 release-plz update
+
+# Publish all 8 crates to crates.io in dependency order (30 s between each).
+# Requires: cargo login + owner rights on each crate.
+just publish
 ```
 
 ### Justfile shortcuts
@@ -104,6 +108,7 @@ synchronisées avec `.vscode/tasks.json`.
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
 | `just mcp-publish` | publier le serveur MCP sur npm |
 | `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |
+| `just publish` | publier les 8 crates sur crates.io dans l'ordre de dépendances |
 
 ## Code conventions
 
@@ -111,6 +116,9 @@ synchronisées avec `.vscode/tasks.json`.
 - **Max line width**: 80 characters (rustfmt.toml)
 - **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
 - **Comments**: wrapped at 80 chars, formatted in doc-comments
+- **Comment language**: English (US) in all code files (Rust, TOML, YAML, Justfile,
+  shell scripts, JSON…). Existing French comments are legacy and must be converted
+  to English when a file is edited.
 - No `unwrap()` in production code — use `expect("reason")` or error propagation
 
 ## Invariants non-négociables
