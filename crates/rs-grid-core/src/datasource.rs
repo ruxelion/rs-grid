@@ -84,10 +84,10 @@ impl DataSource for VecDataSource {
         Some(Box::new(self.clone()))
     }
     fn set_cell(&mut self, row: u64, col_key: &str, value: String) {
-        if let Ok(idx) = usize::try_from(row) {
-            if let Some(record) = self.rows.get_mut(idx) {
-                record.set(col_key, value);
-            }
+        if let Ok(idx) = usize::try_from(row)
+            && let Some(record) = self.rows.get_mut(idx)
+        {
+            record.set(col_key, value);
         }
     }
 }

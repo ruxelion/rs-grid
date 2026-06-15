@@ -110,10 +110,10 @@ impl GridCanvas {
                 | GridCommand::SetColumnFilter { .. }
                 | GridCommand::ClearAllFilters
         );
-        if invalidates_cache {
-            if let Some(cache) = self.0.page_cache.borrow().as_ref() {
-                cache.clear();
-            }
+        if invalidates_cache
+            && let Some(cache) = self.0.page_cache.borrow().as_ref()
+        {
+            cache.clear();
         }
         let out = self.0.state.borrow_mut().apply(cmd);
         if let CommandOutput::SortWarning { row_count, limit } = &out {

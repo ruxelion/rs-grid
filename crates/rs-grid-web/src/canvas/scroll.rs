@@ -378,10 +378,10 @@ impl GridCanvas {
     }
 
     pub(super) fn stop_cell_drag_scroll(&self) {
-        if let Some(id) = self.0.drag_scroll_interval.borrow_mut().take() {
-            if let Some(win) = web_sys::window() {
-                win.clear_interval_with_handle(id);
-            }
+        if let Some(id) = self.0.drag_scroll_interval.borrow_mut().take()
+            && let Some(win) = web_sys::window()
+        {
+            win.clear_interval_with_handle(id);
         }
         self.0.drag_scroll_closures.borrow_mut().clear();
     }

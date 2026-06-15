@@ -624,38 +624,38 @@ impl SceneBuilder {
                         }
 
                         // Sort indicator ▲ / ▼
-                        if let Some(s) = &state.sort {
-                            if s.col_key == col.key {
-                                let aw = t.sort_arrow_width;
-                                let ah = t.sort_arrow_height;
-                                // Shifted left to leave room for menu icon.
-                                let ax = cx + col.width
-                                    - t.header_menu_icon_margin_r
-                                    - t.header_menu_icon_btn_w
-                                    - t.cell_padding
-                                    - aw;
-                                let ay = mid_y - t.header_font_size * 0.35;
-                                let points = if s.dir == SortDir::Asc {
-                                    vec![
-                                        [ax, ay - ah],
-                                        [ax + aw, ay + ah * 0.6],
-                                        [ax - aw, ay + ah * 0.6],
-                                    ]
-                                } else {
-                                    vec![
-                                        [ax, ay + ah],
-                                        [ax + aw, ay - ah * 0.6],
-                                        [ax - aw, ay - ah * 0.6],
-                                    ]
-                                };
-                                frame.push(ScenePrimitive::Polygon(
-                                    PolygonPrimitive {
-                                        points,
-                                        fill: t.header_text,
-                                        corner_radius: 0.5,
-                                    },
-                                ));
-                            }
+                        if let Some(s) = &state.sort
+                            && s.col_key == col.key
+                        {
+                            let aw = t.sort_arrow_width;
+                            let ah = t.sort_arrow_height;
+                            // Shifted left to leave room for menu icon.
+                            let ax = cx + col.width
+                                - t.header_menu_icon_margin_r
+                                - t.header_menu_icon_btn_w
+                                - t.cell_padding
+                                - aw;
+                            let ay = mid_y - t.header_font_size * 0.35;
+                            let points = if s.dir == SortDir::Asc {
+                                vec![
+                                    [ax, ay - ah],
+                                    [ax + aw, ay + ah * 0.6],
+                                    [ax - aw, ay + ah * 0.6],
+                                ]
+                            } else {
+                                vec![
+                                    [ax, ay + ah],
+                                    [ax + aw, ay - ah * 0.6],
+                                    [ax - aw, ay - ah * 0.6],
+                                ]
+                            };
+                            frame.push(ScenePrimitive::Polygon(
+                                PolygonPrimitive {
+                                    points,
+                                    fill: t.header_text,
+                                    corner_radius: 0.5,
+                                },
+                            ));
                         }
 
                         let sep_x = cx + col.width - 0.5;

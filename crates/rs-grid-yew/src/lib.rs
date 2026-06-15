@@ -128,9 +128,10 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         use_effect_with((), move |_| {
             let gc_cleanup = gc_handle.clone();
 
-            if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>() {
-                if let Some(model) = model_slot.take() {
-                    let mount_theme =
+            if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>()
+                && let Some(model) = model_slot.take()
+            {
+                let mount_theme =
                         theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
                     let mount_locale = locale.unwrap_or_default();
 
@@ -177,7 +178,6 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                     if let Some(cb) = on_mount {
                         cb.emit(gc);
                     }
-                }
             }
 
             move || {
@@ -193,10 +193,10 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         let gc_handle = gc_handle.clone();
         let theme = props.theme.clone();
         use_effect_with(theme.clone(), move |t| {
-            if let Some(theme) = t {
-                if let Some(gc) = gc_handle.borrow().as_ref() {
-                    gc.set_theme(theme.clone());
-                }
+            if let Some(theme) = t
+                && let Some(gc) = gc_handle.borrow().as_ref()
+            {
+                gc.set_theme(theme.clone());
             }
         });
     }
@@ -206,10 +206,10 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         let gc_handle = gc_handle.clone();
         let locale = props.locale.clone();
         use_effect_with(locale.clone(), move |l| {
-            if let Some(locale) = l {
-                if let Some(gc) = gc_handle.borrow().as_ref() {
-                    gc.set_locale(locale.clone());
-                }
+            if let Some(locale) = l
+                && let Some(gc) = gc_handle.borrow().as_ref()
+            {
+                gc.set_locale(locale.clone());
             }
         });
     }

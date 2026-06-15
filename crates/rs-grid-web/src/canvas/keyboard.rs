@@ -127,12 +127,12 @@ impl GridCanvas {
             if !gc.0.state.borrow().selection.has_selection() {
                 return;
             }
-            if let Some(dt) = evt.clipboard_data() {
-                if let Ok(text) = dt.get_data("text/plain") {
-                    evt.prevent_default();
-                    gc.dispatch(GridCommand::PasteAt { text });
-                    gc.flash_selection();
-                }
+            if let Some(dt) = evt.clipboard_data()
+                && let Ok(text) = dt.get_data("text/plain")
+            {
+                evt.prevent_default();
+                gc.dispatch(GridCommand::PasteAt { text });
+                gc.flash_selection();
             }
         });
         let f: js_sys::Function =

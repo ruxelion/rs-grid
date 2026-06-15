@@ -422,24 +422,22 @@ impl GridCanvas {
         };
         // Compare via the underlying Element pointer.
         let active_el: &web_sys::Element = &active;
-        if let Some(canvas_el) = self.0.canvas.dyn_ref::<web_sys::Element>() {
-            if active_el == canvas_el {
-                return true;
-            }
+        if let Some(canvas_el) = self.0.canvas.dyn_ref::<web_sys::Element>()
+            && active_el == canvas_el
+        {
+            return true;
         }
-        if let Some(ref el) = *self.0.edit_input.borrow() {
-            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
-                if active_el == input_el {
-                    return true;
-                }
-            }
+        if let Some(ref el) = *self.0.edit_input.borrow()
+            && let Some(input_el) = el.dyn_ref::<web_sys::Element>()
+            && active_el == input_el
+        {
+            return true;
         }
-        if let Some(ref el) = *self.0.search_input.borrow() {
-            if let Some(input_el) = el.dyn_ref::<web_sys::Element>() {
-                if active_el == input_el {
-                    return true;
-                }
-            }
+        if let Some(ref el) = *self.0.search_input.borrow()
+            && let Some(input_el) = el.dyn_ref::<web_sys::Element>()
+            && active_el == input_el
+        {
+            return true;
         }
         false
     }

@@ -58,12 +58,12 @@ impl SearchState {
         for r in 0..row_count {
             for ci in 0..col_count {
                 let key = &model.columns[ci].key;
-                if let Some(val) = model.get_cell(r, key) {
-                    if val.to_ascii_lowercase().contains(&query_lower) {
-                        state.matches.push(CellCoord { row: r, col: ci });
-                        if state.matches.len() >= MAX_MATCHES {
-                            return state;
-                        }
+                if let Some(val) = model.get_cell(r, key)
+                    && val.to_ascii_lowercase().contains(&query_lower)
+                {
+                    state.matches.push(CellCoord { row: r, col: ci });
+                    if state.matches.len() >= MAX_MATCHES {
+                        return state;
                     }
                 }
             }

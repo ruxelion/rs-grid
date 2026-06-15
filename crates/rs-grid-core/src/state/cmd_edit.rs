@@ -31,10 +31,10 @@ impl GridState {
                 });
                 // Move the selection to the edited cell so the
                 // highlight always follows the active editor.
-                if self.model.selectable {
-                    if let Some(col) = col_idx {
-                        self.selection.select_cell(row, col);
-                    }
+                if self.model.selectable
+                    && let Some(col) = col_idx
+                {
+                    self.selection.select_cell(row, col);
                 }
                 CommandOutput::None
             }
