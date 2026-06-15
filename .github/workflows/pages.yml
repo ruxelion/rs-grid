@@ -49,7 +49,7 @@ jobs:
 
       - name: Push fixture to rs-grid-site
         env:
-          SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
+          SITE_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
         run: |
           git clone "https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git" _site
           rm -rf _site/docs/public/wasm/fixture
