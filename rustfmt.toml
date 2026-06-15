@@ -1,6 +1,6 @@
 unstable_features = true
 comment_width = 80
-edition = "2021"
+edition = "2024"
 format_code_in_doc_comments = true
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
