@@ -1,6 +1,6 @@
 {
   "name": "rs-grid-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server exposing rs-grid documentation to AI agents",
   "type": "module",
   "bin": {
