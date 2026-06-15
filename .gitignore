@@ -16,6 +16,7 @@ mcp/dist/
 
 # Local-only
 roadmap/
+CLAUDE.local.md
 
 # Local-only machine/editor config
 .codex/config.toml

@@ -2,32 +2,8 @@
 
 ## Documentation
 
-The user-facing documentation lives in the **separate `rs-grid-site` repo**
-(rspress, bilingual EN/FR) and is published at <https://rs-grid.com>. Edit the
-docs there — not in this repo.
-
-The in-repo `docs/` folder holds only internal reference files:
-
-- `docs/skill.md` — MCP server skill definition (served as `rs-grid://skill.md`)
-- `docs/row-count-limits.md` — row-count / f64-precision reference, cited from
-  `rs-grid-core/src/selection.rs`
-- `docs/RUSTDOC_HISTORY.md` — rustdoc history notes
-
-Consult the published docs before asking questions about existing behaviour or
-before designing a change.
-
-## Project focus
-
-`rs-grid` is a high-performance, renderer-agnostic Rust/WASM data grid engine.
-The current focus is the technical core:
-
-- viewport virtualisation
-- smooth rendering
-- selection
-- performant hit-testing
-- basic editing
-- renderer-agnostic architecture
-- core stability
+User docs → <https://rs-grid.com> (repo `rs-grid-site` — do not edit here).
+Internal: `docs/skill.md`, `docs/row-count-limits.md`, `docs/RUSTDOC_HISTORY.md`.
 
 ## Architecture
 
@@ -88,23 +64,9 @@ cargo +nightly fmt --all
 # Linting (--all-targets also covers tests, benches and examples)
 cargo clippy --workspace --all-targets -- -D warnings
 
-# Benchmarks — tous les crates (rapports HTML → target/criterion/)
-cargo bench -p rs-grid-core -p rs-grid-scene
-
-# Benchmarks — crate ciblée
-cargo bench -p rs-grid-core --bench hit_test   # hit-testing
-cargo bench -p rs-grid-core --bench sort       # tri + filtre
-cargo bench -p rs-grid-scene --bench scene_builder  # rendu de scène
-cargo bench -p rs-grid-core --bench init           # init/rows + init/cols
-cargo bench -p rs-grid-scene --bench scroll_frame  # pipeline complet par frame
-cargo run -p rs-grid-core --example mem_per_row --release  # mémoire par ligne
-# just wasm-size  → trunk build --release + rapport taille WASM + estimation gzip
-
-# GitHub Actions — .github/workflows/bench.yml
-# Déclencheurs : push main, PR, workflow_dispatch (sample_size configurable)
-# Artifacts    : rapports HTML Criterion (30 jours)
-# Baseline     : sauvegardée sur main via actions/cache, restaurée sur PR
-# Commentaire  : résumé + indicateurs 🟢🔴 posté automatiquement sur les PRs
+# Benchmarks (HTML reports → target/criterion/)
+just bench        # core + scene
+just wasm-size    # bundle WASM + estimation gzip
 
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
 cd e2e/fixture-leptos
@@ -119,12 +81,23 @@ trunk serve
 #   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
 ```
 
-### One-time tool installation
+### Justfile shortcuts
 
-```sh
-cargo install cargo-nextest --locked
-cargo install cargo-llvm-cov --locked
-```
+Préférer `just <recipe>` aux commandes cargo brutes — les recettes sont
+synchronisées avec `.vscode/tasks.json`.
+
+| Recette | Action |
+|---|---|
+| `just ci` | fmt + lint + tests (gate pré-PR complet) |
+| `just test` | nextest, WASM crates exclus |
+| `just coverage` | rapport HTML couverture (ouvre le navigateur) |
+| `just coverage-lcov` | format lcov pour CI |
+| `just bench` | tous les benchmarks (core + scene) |
+| `just wasm-size` | taille du bundle WASM + estimation gzip |
+| `just e2e` | trunk build + Playwright |
+| `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
+| `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
+| `just mcp-publish` | publier le serveur MCP sur npm |
 
 ## Code conventions
 
@@ -133,6 +106,49 @@ cargo install cargo-llvm-cov --locked
 - **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
 - **Comments**: wrapped at 80 chars, formatted in doc-comments
 - No `unwrap()` in production code — use `expect("reason")` or error propagation
+
+## Invariants non-négociables
+
+1. **Pas de wasm-bindgen dans `rs-grid-core`** — le crate doit rester testable en natif
+2. **Indices de ligne en `u64`**, jamais `usize` (limite WASM32 à 4 Go)
+3. **Hit-testing en O(log n)** via offsets précompilés — ne pas introduire de O(n)
+4. **Toutes les mutations via `GridState::apply(GridCommand)`** — jamais directement
+
+## Slash commands
+
+| Commande | Action |
+|---|---|
+| `/test` | `cargo nextest run -p rs-grid-core` — après chaque changement core |
+| `/e2e` | `trunk build` + Playwright — avant toute PR |
+| `/publish` | Checklist release complète (bump → tag → crates.io) |
+
+## Versioning (SemVer)
+
+The workspace follows **Semantic Versioning**. Current published version: `0.1.0`.
+
+For every feature request, bug fix, or refactor, reason about the version impact
+**before** proposing an implementation:
+
+| Change type | Version bump | Examples |
+|---|---|---|
+| Bug fix, no API change | `0.x.Y+1` (patch) | wrong scroll offset, render glitch |
+| New public API, backward-compatible | `0.X+1.0` (minor) | new column type, new callback prop |
+| Breaking public API change | `0.X+1.0` (minor, pre-1.0 exception) | rename/remove/reorder public fn |
+| Stable API commitment | `1.0.0` | deliberate stability milestone |
+| Breaking post-1.0 | `X+1.0.0` (major) | only after 1.0 is released |
+
+**Pre-1.0 rule**: while the version is `0.x`, breaking API changes bump the
+minor (not major). Users of `0.x` crates accept this instability.
+
+When the user asks for a change, always include in your reasoning:
+
+1. **Classify**: is this a patch, minor, or major bump?
+2. **Propose**: state the new version (e.g. "this is a minor bump → `0.2.0`").
+3. **Remind** (when applicable): a crates.io publish and git tag `vX.Y.Z` will
+   be needed after merging. Use `/publish` for the full release checklist.
+
+Do **not** bump version numbers in `Cargo.toml` automatically — propose the
+bump and let the user confirm before modifying any file.
 
 ## Important limits
 
@@ -249,36 +265,6 @@ commit. The rule: **if the code changed, the docs change too.**
 
 Do not update CLAUDE.md for internal refactors that don't change
 observable behaviour or usage.
-
-## Versioning (SemVer)
-
-The workspace follows **Semantic Versioning**. Current published version: `0.1.0`.
-
-For every feature request, bug fix, or refactor, reason about the version impact
-**before** proposing an implementation:
-
-| Change type | Version bump | Examples |
-|---|---|---|
-| Bug fix, no API change | `0.x.Y+1` (patch) | wrong scroll offset, render glitch |
-| New public API, backward-compatible | `0.X+1.0` (minor) | new column type, new callback prop |
-| Breaking public API change | `0.X+1.0` (minor, pre-1.0 exception) | rename/remove/reorder public fn |
-| Stable API commitment | `1.0.0` | deliberate stability milestone |
-| Breaking post-1.0 | `X+1.0.0` (major) | only after 1.0 is released |
-
-**Pre-1.0 rule**: while the version is `0.x`, breaking API changes bump the
-minor (not major). Users of `0.x` crates accept this instability.
-
-### What to do in practice
-
-When the user asks for a change, always include in your reasoning:
-
-1. **Classify**: is this a patch, minor, or major bump?
-2. **Propose**: state the new version (e.g. "this is a minor bump → `0.2.0`").
-3. **Remind** (when applicable): a crates.io publish and git tag `vX.Y.Z` will
-   be needed after merging.
-
-Do **not** bump version numbers in `Cargo.toml` automatically — propose the
-bump and let the user confirm before modifying any file.
 
 ## Adding a new renderer
 

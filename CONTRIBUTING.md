@@ -7,7 +7,7 @@ so the public API may still change.
 ## Getting set up
 
 ```sh
-# Rust (2021 edition) + the WASM target
+# Rust (2024 edition) + the WASM target
 rustup target add wasm32-unknown-unknown
 
 # One-time dev tools
@@ -57,7 +57,7 @@ End-to-end (Playwright) tests live in `e2e/` — see the README.
 
 ## Code conventions
 
-- Rust 2021 edition, **max line width 80** (`rustfmt.toml`).
+- Rust 2024 edition, **max line width 80** (`rustfmt.toml`).
 - Imports grouped by `StdExternalCrate`, granularity `Crate`.
 - **No `unwrap()` in production code** — use `expect("reason")` or propagate
   errors. (`unwrap()` is fine in tests.)

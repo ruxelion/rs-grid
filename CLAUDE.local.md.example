@@ -1,0 +1,28 @@
+# CLAUDE.local.md — surcharges personnelles (git-ignoré)
+#
+# Copier ce fichier en CLAUDE.local.md et remplir les valeurs.
+# Ce fichier ne doit PAS être commité — il est listé dans .gitignore.
+# Claude Code le charge automatiquement s'il existe, en complément de CLAUDE.md.
+
+## Mon environnement
+
+- OS : ...
+- Version Trunk : ...
+- Playwright installé : oui / non
+- mkcert installé : oui / non
+
+## Notes pour Claude sur cette machine
+
+<!-- Exemples à adapter : -->
+<!-- - WASM compile lentement ici — préférer `cargo check` à `cargo build` pour itérer -->
+<!-- - Playwright n'est pas installé — ignorer les étapes e2e dans /publish -->
+<!-- - Port 9079 déjà occupé — utiliser trunk serve --port 9080 -->
+<!-- - Utiliser `just coverage-lcov` plutôt que HTML (pas de navigateur disponible) -->
+
+## Préférences de branche
+
+<!-- Nom de branche préféré : feat/<sujet>, fix/<sujet>, etc. -->
+
+## Tokens / secrets locaux
+
+<!-- Ne jamais mettre de tokens ici — utiliser .env (aussi gitignore) -->

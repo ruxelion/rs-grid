@@ -7,7 +7,7 @@ description: >
   large-dataset table views in the browser.
 license: MIT
 compatibility: >
-  Requires Rust 2021 edition, wasm32-unknown-unknown target, and Trunk for
+  Requires Rust 2024 edition, wasm32-unknown-unknown target, and Trunk for
   WASM builds. Leptos CSR only (no SSR). Browser Canvas2D API at runtime.
 metadata:
   author: ruxelion
@@ -34,8 +34,14 @@ virtualized Canvas2D renderer.
 
 ### Add rs-grid to a Leptos project
 
-1. Add the git-tag dependencies to `Cargo.toml` (rs-grid is consumed by git
-   tag, not from crates.io):
+1. Add the crates.io dependencies to `Cargo.toml`:
+
+   ```toml
+   rs-grid-core   = "0.1"
+   rs-grid-leptos = "0.1"
+   ```
+
+   For pre-release pinning, the git-tag form is also available:
 
    ```toml
    rs-grid-core   = { git = "https://github.com/ruxelion/rs-grid", tag = "v0.1.0" }
@@ -87,8 +93,14 @@ All mutations use `GridState::apply(GridCommand)`:
 
 ### Run tests
 
-```
-cargo test --workspace
+```sh
+# Native crates (WASM crates excluded — they require a browser)
+cargo nextest run --workspace \
+  --exclude rs-grid-web --exclude rs-grid-leptos \
+  --exclude rs-grid-dioxus --exclude rs-grid-yew \
+  --exclude rs-grid-render-canvas \
+  --exclude fixture-leptos --exclude example-common
+
 cargo clippy --workspace -- -D warnings
 ```
 
