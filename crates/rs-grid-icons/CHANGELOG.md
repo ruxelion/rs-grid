@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-icons-v0.1.1...rs-grid-icons-v0.1.2) - 2026-06-15
+
+### Other
+
+- add crates.io badge links to README files for all crates
+
 ## [0.1.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-icons-v0.1.0...rs-grid-icons-v0.1.1) - 2026-06-15
 
 ### Added
