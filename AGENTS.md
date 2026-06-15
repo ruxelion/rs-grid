@@ -79,6 +79,11 @@ trunk serve
 #
 # The framework demos moved to standalone repos:
 #   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
+
+# Release preview (release-plz) — applies version bumps + per-crate CHANGELOG.md
+# to the working tree for review. Inspect with `git diff`, then `git checkout .`.
+# One-time: cargo install release-plz
+release-plz update
 ```
 
 ### Justfile shortcuts
@@ -98,6 +103,7 @@ synchronisées avec `.vscode/tasks.json`.
 | `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
 | `just mcp-publish` | publier le serveur MCP sur npm |
+| `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |
 
 ## Code conventions
 
@@ -120,11 +126,20 @@ synchronisées avec `.vscode/tasks.json`.
 |---|---|
 | `/test` | `cargo nextest run -p rs-grid-core` — après chaque changement core |
 | `/e2e` | `trunk build` + Playwright — avant toute PR |
-| `/publish` | Checklist release complète (bump → tag → crates.io) |
+| `/publish` | Publication manuelle crates.io + tags per-crate (après merge de la PR release-plz) |
 
 ## Versioning (SemVer)
 
-The workspace follows **Semantic Versioning**. Current published version: `0.1.0`.
+The workspace follows **Semantic Versioning** with **independent per-crate
+versions** (each crate bumps on its own). Initial released version: `0.1.0`.
+
+Version bumps and changelogs are automated by **release-plz** (config
+`release-plz.toml`): on every push to `main` it opens/updates a *release PR* that
+bumps the changed crates and writes `crates/*/CHANGELOG.md` from the
+[Conventional Commits](https://www.conventionalcommits.org/). Merging that PR is
+the version bump — do not edit `version` in `Cargo.toml` by hand. Publishing to
+crates.io + tagging stays manual via `/publish` (see also `.github/workflows/
+release-plz.yml`).
 
 For every feature request, bug fix, or refactor, reason about the version impact
 **before** proposing an implementation:
@@ -144,11 +159,34 @@ When the user asks for a change, always include in your reasoning:
 
 1. **Classify**: is this a patch, minor, or major bump?
 2. **Propose**: state the new version (e.g. "this is a minor bump → `0.2.0`").
-3. **Remind** (when applicable): a crates.io publish and git tag `vX.Y.Z` will
-   be needed after merging. Use `/publish` for the full release checklist.
+3. **Remind** (when applicable): release-plz will open a release PR with the bump
+   + changelog; after it merges, a crates.io publish and per-crate tags
+   (`rs-grid-<crate>-vX.Y.Z`) are needed. Use `/publish` for the manual
+   publish + tag checklist.
 
-Do **not** bump version numbers in `Cargo.toml` automatically — propose the
-bump and let the user confirm before modifying any file.
+Do **not** bump version numbers in `Cargo.toml` automatically — release-plz owns
+the bump via its release PR. Only classify and propose the impact in your
+reasoning.
+
+## MCP servers
+
+| Server | Role | Setup |
+|---|---|---|
+| **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
+| **rs-grid** (internal) | Exposes rs-grid docs to AI agents (`search_rs_grid_docs`) | `mcp/` crate, published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`) |
+| **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
+
+The **GitHub** server is a personal, local config (the PAT must not be committed
+— `.mcp.json` and `.env` are gitignored). To register it:
+
+```sh
+claude mcp add --transport http github \
+  https://api.githubcopilot.com/mcp/ \
+  --header "Authorization: Bearer ${GITHUB_MCP_PAT}"
+```
+
+The PAT needs only **Contents: Read** + **Metadata: Read** (read-only). It is
+unrelated to the internal `rs-grid-mcp` doc server above.
 
 ## Important limits
 

@@ -8,9 +8,18 @@ name: Release
 # `repo` scope) authorised to dispatch workflows on ruxelion/rs-grid-site. The default
 # GITHUB_TOKEN cannot trigger workflows in another repository.
 
+# Versioning indépendant : release-plz crée des tags per-crate
+# (rs-grid-<crate>-v<x.y.z>), tous sur le même commit de release. Le glob ci-dessous
+# les matche ; la concurrency collapse les ~8 push de tags simultanés en un seul
+# rebuild du site (tous les tags pointant sur le même commit, n'importe lequel
+# donne un workspace cohérent).
 on:
   push:
-    tags: ['v*']
+    tags: ['*-v[0-9]*']
+
+concurrency:
+  group: site-notify
+  cancel-in-progress: true
 
 # Release only reads the repo; cross-repo dispatch uses SITE_DISPATCH_TOKEN.
 permissions:

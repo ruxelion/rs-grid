@@ -1,6 +1,8 @@
 [package]
 name = "rs-grid-yew"
-version.workspace = true
+# Explicit (not workspace-inherited): per-crate independent versioning, bumped by
+# release-plz. See release-plz.toml.
+version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true

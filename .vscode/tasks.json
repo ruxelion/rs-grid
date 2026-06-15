@@ -238,6 +238,13 @@
       "command": "just mcp-publish",
       "problemMatcher": [],
       "detail": "Publier rs-grid-mcp sur npm (nécessite npm login)"
+    },
+    {
+      "label": "just: release-preview",
+      "type": "shell",
+      "command": "just release-preview",
+      "problemMatcher": [],
+      "detail": "Aperçu local release-plz : bumps + CHANGELOG.md par crate (git diff puis git checkout .)"
     }
   ],
   "inputs": [

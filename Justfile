@@ -142,3 +142,12 @@ mcp-dev:
 # Usage: NPM_TOKEN=xxx just mcp-publish
 mcp-publish: mcp-build
     cd mcp && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
+
+# ── Release (release-plz) ────────────────────────────────
+
+# Aperçu local de la prochaine release : applique bumps de version + CHANGELOG.md
+# par crate dans le working tree. Inspecter avec `git diff`, puis `git checkout .`
+# pour annuler. Prérequis (une fois) : cargo install release-plz
+release-preview:
+    release-plz update
+    @echo Inspecte 'git diff', puis 'git checkout .' pour annuler.

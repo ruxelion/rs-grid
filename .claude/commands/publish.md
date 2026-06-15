@@ -4,30 +4,36 @@ Commande de release structurée. À chaque étape marquée **[STOP]**, présente
 l'action à effectuer et attendre la confirmation explicite de l'utilisateur avant
 de continuer. Ne jamais exécuter une étape de manière autonome.
 
+## Répartition des rôles
+
+Depuis l'intégration de **release-plz** (mode release-PR-only) :
+
+- **release-plz** (automatique, CI) : ouvre une PR de release qui **bumpe les
+  versions** (indépendantes par crate) et **génère les `crates/*/CHANGELOG.md`**
+  depuis les commits conventionnels.
+- **Humain** : review + merge de la PR de release sur `main`.
+- **`/publish`** (cette commande, manuel) : **publie** les crates modifiés sur
+  crates.io dans l'ordre de dépendances, puis **crée et pousse les tags per-crate**.
+
+`/publish` ne bumpe plus les versions et n'édite plus le changelog — c'est le
+travail de la PR de release-plz, déjà mergée à ce stade.
+
+> Évolution future (« Phase B ») : activer le job `release` de release-plz
+> (publication + tags + GitHub releases automatiques) rendra cette commande
+> obsolète. Voir `.github/workflows/release-plz.yml`.
+
 ## Pré-conditions
 
-- Tous les changements sont commités sur `main`
-- La version cible est confirmée (patch / minor — voir section Versioning dans CLAUDE.md)
+- La PR de release-plz est **mergée sur `main`** (versions + changelogs à jour).
+- Le working tree est propre et à jour sur `main`.
+- Noter la liste **crate → nouvelle version** depuis la description de la PR de
+  release-plz (seuls les crates listés ont changé et sont à publier/tagger).
 
 ---
 
 ## Étapes
 
-### 1. Bump de version [STOP]
-
-Modifier `version` dans `[workspace.package]` du `Cargo.toml` racine :
-
-```toml
-[workspace.package]
-version = "X.Y.Z"   # ← nouvelle version
-```
-
-Vérifier qu'aucun `Cargo.lock` ne réclame l'ancienne version :
-```sh
-cargo check --workspace
-```
-
-### 2. CI locale [STOP]
+### 1. CI locale [STOP]
 
 ```sh
 just ci        # fmt + lint + tests (natif, WASM crates exclus)
@@ -36,30 +42,11 @@ just e2e       # trunk build + Playwright
 
 Les deux doivent passer en vert avant de continuer.
 
-### 3. Mettre à jour CHANGELOG.md [STOP]
+### 2. Publication crates.io (ordre obligatoire) [STOP]
 
-- Renommer la section `[Unreleased]` en `[X.Y.Z] — YYYY-MM-DD`
-- Ajouter une nouvelle section `[Unreleased]` vide en haut
-
-### 4. Commit de release [STOP]
-
-```sh
-git add Cargo.toml Cargo.lock CHANGELOG.md
-git commit -m "release: vX.Y.Z"
-```
-
-### 5. Tag git [STOP]
-
-```sh
-git tag vX.Y.Z
-```
-
-Ne pas pousser encore — attendre que la publication crates.io réussisse.
-
-### 6. Publication crates.io (ordre obligatoire) [STOP]
-
-Publier dans cet ordre exact (respect du graphe de dépendances).
-Attendre ~30 secondes entre chaque publication pour que crates.io indexe le crate.
+Publier **uniquement les crates modifiés** par la PR de release-plz, dans cet
+ordre exact (respect du graphe de dépendances). Attendre ~30 secondes entre
+chaque publication pour que crates.io indexe le crate.
 
 ```sh
 cargo publish -p rs-grid-core
@@ -82,20 +69,32 @@ cargo publish -p rs-grid-yew
 En cas d'erreur 429 (rate limit), attendre le délai indiqué dans le message
 d'erreur avant de relancer le crate bloqué.
 
-### 7. Vérification [STOP]
+### 3. Vérification [STOP]
 
 ```sh
 cargo search rs-grid-core
 ```
 
-Confirmer que la nouvelle version apparaît dans les résultats.
+Confirmer que la nouvelle version de chaque crate publié apparaît.
 
-### 8. Push [STOP]
+### 4. Tags per-crate + push [STOP]
+
+Créer un tag par crate publié, au format `rs-grid-<crate>-v<version>` (les
+versions viennent de la PR de release-plz). Exemple si seuls core et scene ont
+changé :
 
 ```sh
+git tag rs-grid-core-v0.2.0
+git tag rs-grid-scene-v0.1.3
+# … un tag par crate publié
+
 git push origin main
-git push origin vX.Y.Z
+git push origin --tags
 ```
+
+Le push des tags déclenche `release.yml` (sanity build + notification du site
+`rs-grid-site`). Tous les tags pointant sur le même commit, la concurrency
+`site-notify` collapse les notifications en un seul rebuild.
 
 ---
 

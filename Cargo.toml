@@ -14,9 +14,9 @@ members = [
 resolver = "2"
 
 # Shared package metadata inherited by the library crates via
-# `<field>.workspace = true`. Keeps license/repository/version in one place.
+# `<field>.workspace = true`. Keeps license/repository/edition in one place.
+# Versions are per-crate (independent versioning) — see release-plz.toml.
 [workspace.package]
-version = "0.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/ruxelion/rs-grid"
