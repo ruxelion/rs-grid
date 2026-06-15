@@ -116,9 +116,10 @@ synchronisées avec `.vscode/tasks.json`.
 - **Max line width**: 80 characters (rustfmt.toml)
 - **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
 - **Comments**: wrapped at 80 chars, formatted in doc-comments
-- **Comment language**: English (US) in all code files (Rust, TOML, YAML, Justfile,
-  shell scripts, JSON…). Existing French comments are legacy and must be converted
-  to English when a file is edited.
+- **Language**: English (US) everywhere in code files — comments, doc-strings,
+  inline strings, task labels, CI step names, error messages (Rust, TOML, YAML,
+  Justfile, JSON, TypeScript…). Existing French text is legacy and must be
+  converted to English when a file is edited.
 - No `unwrap()` in production code — use `expect("reason")` or error propagation
 
 ## Invariants non-négociables

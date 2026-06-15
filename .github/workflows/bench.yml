@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       sample_size:
-        description: 'Criterion sample size (10 = rapide, 50 = standard, 100 = précis)'
+        description: 'Criterion sample size (10 = fast, 50 = standard, 100 = precise)'
         required: false
         default: '50'
 
@@ -24,7 +24,7 @@ env:
 jobs:
   bench:
     name: Benchmarks
-    # Version fixée pour la reproductibilité des mesures.
+    # Pinned version for measurement reproducibility.
     runs-on: ubuntu-22.04
     # contents: read to checkout; pull-requests: write only for the PR comment.
     permissions:
@@ -40,9 +40,9 @@ jobs:
         with:
           cache-on-failure: true
 
-      # Restaure la baseline Criterion du dernier run sur main.
-      # Criterion compare automatiquement contre cette baseline et signale
-      # les régressions / améliorations dans sa sortie.
+      # Restore the Criterion baseline from the last main run.
+      # Criterion automatically compares against this baseline and reports
+      # regressions / improvements in its output.
       - name: Restore criterion baseline
         uses: actions/cache/restore@v5
         with:
@@ -51,10 +51,10 @@ jobs:
           restore-keys: |
             criterion-${{ runner.os }}-
 
-      # Compromis sample-size / durée :
-      #   10  →  ~2 min   push / PR  (feedback rapide, bruit ±20 %)
-      #   50  →  ~8 min   workflow_dispatch par défaut
-      #   100 → ~15 min   baseline de référence précise
+      # Sample-size / duration trade-off:
+      #   10  →  ~2 min   push / PR  (fast feedback, ±20% noise)
+      #   50  →  ~8 min   workflow_dispatch default
+      #   100 → ~15 min   precise reference baseline
       - name: Run benchmarks
         run: |
           cargo bench -p rs-grid-core -p rs-grid-scene \
@@ -62,7 +62,7 @@ jobs:
                --warm-up-time 1 \
             2>&1 | tee bench_output.txt
 
-      # Toujours uploader les rapports HTML, même si le job échoue.
+      # Always upload HTML reports, even if the job fails.
       - name: Upload HTML reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -71,8 +71,7 @@ jobs:
           path: target/criterion/
           retention-days: 30
 
-      # Sauvegarde la nouvelle baseline uniquement depuis main
-      # pour que les PRs ne dérivent pas la référence.
+      # Save the new baseline only from main so PRs don't drift the reference.
       - name: Save criterion baseline
         if: github.ref == 'refs/heads/main' && success()
         uses: actions/cache/save@v5
@@ -80,8 +79,8 @@ jobs:
           path: target/criterion
           key: criterion-${{ runner.os }}-${{ github.sha }}
 
-      # Publie les données de benchmark sur rs-grid-site (main uniquement).
-      # Le site reçoit un repository_dispatch, commit benchmarks.json et rebuild.
+      # Publish benchmark data to rs-grid-site (main only).
+      # The site receives a repository_dispatch, commits benchmarks.json and rebuilds.
       - name: Publish benchmark data to rs-grid-site
         if: github.ref == 'refs/heads/main' && success()
         env:
@@ -196,7 +195,7 @@ jobs:
           );
           EOF
 
-      # Poste un résumé en commentaire sur la PR.
+      # Post a benchmark summary comment on the PR.
       - name: Post benchmark summary to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v9
@@ -204,9 +203,8 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Criterion peut couper le nom sur une ligne et mettre "time:"
-            // sur la ligne suivante quand le nom est trop long.
-            // On rejoint ces lignes pour simplifier le parsing.
+            // Criterion may split a long benchmark name across lines, putting
+            // "time:" on the next line. Join those lines to simplify parsing.
             const raw = fs.readFileSync('bench_output.txt', 'utf8')
               .replace(/\n([ \t]{2,}time:)/g, '  $1');
 
@@ -214,7 +212,7 @@ jobs:
             const lines = raw.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
-              // Format Criterion : "bench_name  time:  [low  MEDIAN unit  high]"
+              // Criterion format: "bench_name  time:  [low  MEDIAN unit  high]"
               const m = lines[i].match(
                 /^(.+?)\s{2,}time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)/
               );
@@ -224,8 +222,8 @@ jobs:
               const val  = parseFloat(m[2]);
               const unit = m[3];
 
-              // Cherche la ligne "change:" juste après pour les indicateurs
-              // de régression (p < 0.05 = statistiquement significatif).
+              // Look for the "change:" line right after to get regression
+              // indicators (p < 0.05 = statistically significant).
               let badge = '';
               for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
                 const cm = lines[j].match(
@@ -248,15 +246,15 @@ jobs:
 
             const body = rows.length
               ? [
-                  `## Benchmarks — \`${sha}\` _(sample-size=10, bruit ±20 %)_`,
+                  `## Benchmarks — \`${sha}\` _(sample-size=10, noise ±20%)_`,
                   '',
-                  '| Benchmark | Médiane |',
+                  '| Benchmark | Median |',
                   '|---|---|',
                   ...rows,
                   '',
-                  `> 📊 [Rapports HTML complets](${url}) · 🟢 amélioration · 🔴 régression _(p < 0.05)_`,
+                  `> 📊 [Full HTML reports](${url}) · 🟢 improvement · 🔴 regression _(p < 0.05)_`,
                 ].join('\n')
-              : `## Benchmarks\n\n_Aucun résultat parsé — voir les [logs](${url})._`;
+              : `## Benchmarks\n\n_No results parsed — see the [logs](${url})._`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,

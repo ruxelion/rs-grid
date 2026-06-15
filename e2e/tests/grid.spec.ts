@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
-/** Attends que la boucle rAF ait eu le temps de peindre au moins une frame. */
+/** Wait for the rAF loop to paint at least one frame. */
 async function waitForPaint(page: Page, ms = 300) {
   await page.waitForTimeout(ms);
 }
@@ -15,8 +15,8 @@ test.describe('smoke', () => {
     await waitForPaint(page);
   });
 
-  // TODO: Le reload déclenche une erreur "Failed to fetch" liée au chargement
-  //       WASM sur npx serve (pas de hot-reload). À investiguer.
+  // TODO: Reload triggers a "Failed to fetch" error related to WASM loading
+  //       on npx serve (no hot-reload). Needs investigation.
   test.skip('la page se charge sans erreur JS', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
@@ -59,7 +59,7 @@ test.describe('contrôles', () => {
     await select.selectOption('100000');
     await waitForPaint(page);
     await expect(page.locator('strong', { hasText: '100 000 rows' })).toBeVisible();
-    // Le canvas doit rester visible après le re-rendu
+    // Canvas must remain visible after re-render
     await expect(page.locator('canvas')).toBeVisible();
   });
 
@@ -83,11 +83,11 @@ test.describe('contrôles', () => {
 
 // ── interaction canvas ────────────────────────────────────────────────────────
 //
-// Le rendu est sur <canvas> — on interagit par coordonnées viewport.
-// Disposition de la grille (valeurs indicatives) :
-//   - Gutter (row numbers) : ~50 px à gauche
-//   - Header (column labels) : ~60 px en haut
-//   - Première cellule de données : environ (80, 80) dans le canvas
+// Rendering is on <canvas> — interactions use viewport coordinates.
+// Approximate grid layout:
+//   - Gutter (row numbers): ~50 px on the left
+//   - Header (column labels): ~60 px at the top
+//   - First data cell: around (80, 80) in canvas space
 
 test.describe('interaction canvas', () => {
   test.beforeEach(async ({ page }) => {
@@ -97,7 +97,7 @@ test.describe('interaction canvas', () => {
 
   test('clic sur une cellule de données ne plante pas', async ({ page }) => {
     const canvas = page.locator('canvas');
-    // Position approximative : première cellule de données
+    // Approximate position: first data cell
     await canvas.click({ position: { x: 80, y: 80 } });
     await waitForPaint(page, 100);
     await expect(canvas).toBeVisible();
@@ -126,7 +126,7 @@ test.describe('interaction canvas', () => {
     await canvas.click({ position: { x: 80, y: 80 } });
     await canvas.click({ position: { x: 200, y: 120 }, modifiers: ['Shift'] });
     await waitForPaint(page, 100);
-    // Vérifie visuellement que la sélection multi-cellules est présente (fond bleu).
+    // Visual check: multi-cell selection must be visible (blue background).
     await expect(canvas).toHaveScreenshot('shift-click-selection.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -135,13 +135,13 @@ test.describe('interaction canvas', () => {
 
 // ── colonnes pinnées ────────────────────────────────────────────────────────────
 //
-// Le démo n'expose pas de <select> pour le nombre de colonnes pinnées.
-// On passe par le menu contextuel (clic droit sur le header) ou on
-// dispatche la commande via l'API JS exposée par la Leptos app.
-// Pour l'instant on utilise un clic droit sur le header de colonne
-// pour ouvrir le menu et sélectionner "Pin column".
+// The demo does not expose a <select> for pinned column count.
+// We go through the context menu (right-click on header) or dispatch
+// the command via the JS API exposed by the Leptos app.
+// For now we right-click the column header to open the menu and
+// select "Pin column".
 //
-// Helper : right-click column header at index `col` and click the Pin option.
+// Helper: right-click column header at index `col` and click the Pin option.
 async function pinColumnsViaContextMenu(page: Page, count: number) {
   // Right-click the Name column header (first column, x ≈ GUTTER + 100)
   const canvas = page.locator('canvas');
@@ -204,9 +204,9 @@ test.describe('colonnes pinnées', () => {
 
 // ── régression visuelle ────────────────────────────────────────────────────────
 //
-// Ces tests comparent le rendu pixel-à-pixel avec des screenshots de référence.
-// Pour générer les références : npm run update-snapshots
-// Tolérance : 2 % de pixels différents (antialiasing, rendu légèrement variable).
+// These tests compare rendering pixel-by-pixel against reference screenshots.
+// To generate references: npm run update-snapshots
+// Tolerance: 2% of pixels may differ (antialiasing, minor rendering variation).
 
 test.describe('visual regression', () => {
   test('état initial', async ({ page }) => {
@@ -289,14 +289,14 @@ test.describe('visual regression', () => {
 
 // ── features récentes ─────────────────────────────────────────────────────
 //
-// Tests pour les features ajoutées récemment :
-//  - auto-scroll pendant drag-select
-//  - drag de colonne pour réordonnancement
-//  - copy d'une sélection colonne entière → header uniquement
-//  - shift+clic sur header → tri (pas ExtendColSelection)
+// Tests for recently added features:
+//  - auto-scroll during drag-select
+//  - column drag for reordering
+//  - copy of a full column selection → header only
+//  - shift+click on header → sort (not ExtendColSelection)
 
 test.describe('features récentes', () => {
-  // Constantes layout (matching build_model et editing.spec.ts)
+  // Layout constants (matching build_model and editing.spec.ts)
   const GUTTER = 55;
   const HEADER = 60;
   const SB_W = 14; // scrollbar_width (theme)
@@ -311,16 +311,16 @@ test.describe('features récentes', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Commence le drag sur une cellule en haut (row 0, Name col)
+    // Start drag on a top cell (row 0, Name col)
     await page.mouse.move(box!.x + GUTTER + 100, box!.y + HEADER + 20);
     await page.mouse.down();
     await waitForPaint(page, 50);
 
-    // Déplace vers le bord bas (dans la zone d'auto-scroll de 50px)
+    // Move toward the bottom edge (into the 50px auto-scroll zone)
     await page.mouse.move(box!.x + GUTTER + 100, box!.y + box!.height - 10, { steps: 5 });
-    // Attend que l'auto-scroll ait défilé plusieurs lignes (~400ms)
+    // Wait for auto-scroll to advance several rows (~400 ms)
     await waitForPaint(page, 600);
-    // Relâche AVANT le screenshot pour stopper l'auto-scroll et stabiliser le canvas.
+    // Release BEFORE screenshot to stop auto-scroll and let the canvas settle.
     await page.mouse.up();
     await waitForPaint(page, 200);
 
@@ -334,12 +334,12 @@ test.describe('features récentes', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // D'abord scroller en bas pour avoir de l'espace vers le haut
+    // Scroll down first to have room to scroll back up
     await canvas.hover();
     await page.mouse.wheel(0, 400);
     await waitForPaint(page, 200);
 
-    // Démarre un drag et glisse vers le bord haut
+    // Start a drag and move toward the top edge
     await page.mouse.move(box!.x + GUTTER + 100, box!.y + HEADER + 100);
     await page.mouse.down();
     await waitForPaint(page, 50);
@@ -357,12 +357,12 @@ test.describe('features récentes', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Centre du header Name (col 0) et Email (col 1)
-    const nameHeaderX = GUTTER + 100; // milieu approximatif de Name (200px)
-    const emailHeaderX = GUTTER + 200 + 130; // milieu de Email
+    // Center of Name header (col 0) and Email header (col 1)
+    const nameHeaderX = GUTTER + 100; // approximate center of Name (200px wide)
+    const emailHeaderX = GUTTER + 200 + 130; // approximate center of Email
     const headerY = HEADER / 2;
 
-    // Drag Name → après Email
+    // Drag Name → past Email
     await page.mouse.move(box!.x + nameHeaderX, box!.y + headerY);
     await page.mouse.down();
     await page.mouse.move(box!.x + nameHeaderX + 30, box!.y + headerY, { steps: 3 });
@@ -380,20 +380,20 @@ test.describe('features récentes', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Sélectionne une cellule pour avoir un état de sélection
+    // Select a cell to establish a selection state
     await canvas.click({ position: { x: GUTTER + 100, y: HEADER + 20 } });
     await waitForPaint(page, 100);
 
-    // Shift+clic sur le header Role — doit trier, pas étendre la sélection
-    const roleHeaderX = GUTTER + 200 + 260 + 70; // milieu de Role (3e col)
+    // Shift+click on the Role header — must sort, not extend the selection
+    const roleHeaderX = GUTTER + 200 + 260 + 70; // center of Role (3rd col)
     await canvas.click({
       position: { x: roleHeaderX, y: HEADER / 2 },
       modifiers: ['Shift'],
     });
     await waitForPaint(page, 200);
 
-    // La grille doit être triée par Role — première ligne alphabétiquement
-    // ET la sélection ne doit PAS couvrir toutes les lignes de Role
+    // Grid must be sorted by Role — first row alphabetically,
+    // AND the selection must NOT span all Role rows.
     await expect(canvas).toHaveScreenshot('shift-click-header-sorts.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -402,14 +402,14 @@ test.describe('features récentes', () => {
 
 // ── scrollbar logarithmique ────────────────────────────────────────────────
 //
-// Au-delà de ~33 333 lignes (1 000 000 px) la scrollbar passe en mapping
-// logarithmique. Ces tests vérifient :
-//   1. Pas de crash à grande échelle
-//   2. Le thumb est au sommet quand scroll=0, au bas quand scroll=max
-//   3. Le drag du thumb depuis le haut change réellement la position
-//   4. Le track-click navigue dans la bonne direction
-//   5. Le thumb à 50% du travel logarithmique est BEAUCOUP plus proche du bas
-//      que du milieu linéaire (propriété clé du mapping log)
+// Beyond ~33 333 rows (1 000 000 px) the scrollbar switches to logarithmic
+// mapping. These tests verify:
+//   1. No crash at large scale
+//   2. Thumb is at the top when scroll=0, at the bottom when scroll=max
+//   3. Dragging the thumb from the top genuinely changes the position
+//   4. Track-click navigates in the correct direction
+//   5. Thumb at 50% of logarithmic travel is MUCH closer to the bottom
+//      than the linear midpoint (the key property of log mapping)
 
 test.describe('scrollbar logarithmique', () => {
   test('10^9 lignes — aucun crash au chargement', async ({ page }) => {
@@ -430,7 +430,7 @@ test.describe('scrollbar logarithmique', () => {
     const canvas = page.locator('canvas');
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
-    // Prend un screenshot de référence pour la scrollbar
+    // Reference screenshot for the scrollbar position
     await expect(canvas).toHaveScreenshot('log-sb-1b-top.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -441,11 +441,11 @@ test.describe('scrollbar logarithmique', () => {
     await page.locator('select').first().selectOption('1000000000');
     await waitForPaint(page, 400);
     const canvas = page.locator('canvas');
-    // Scroll molette : déplace le contenu de quelques lignes
+    // Wheel scroll: move content a few rows
     await canvas.hover();
     await page.mouse.wheel(0, 3000);
     await waitForPaint(page, 300);
-    // Le thumb doit avoir bougé (screenshot différent de top)
+    // Thumb must have moved (screenshot differs from top reference)
     await expect(canvas).toHaveScreenshot('log-sb-1b-scrolled.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -458,7 +458,7 @@ test.describe('scrollbar logarithmique', () => {
     const canvas = page.locator('canvas');
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
-    // Clic au milieu de la scrollbar verticale
+    // Click the middle of the vertical scrollbar
     const sbX = box!.width - 8;
     const sbY = box!.height / 2;
     await canvas.click({ position: { x: sbX, y: sbY } });
@@ -474,21 +474,21 @@ test.describe('scrollbar logarithmique', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Position de la scrollbar : droite du canvas
+    // Scrollbar position: right edge of canvas
     const sbX = box!.x + box!.width - 8;
-    // Position du thumb à scroll_y=0 : top of track = header_h + arrow_h.
-    // Constantes issues de editing.spec.ts (HEADER=60) et theme.scrollbar_width=14.
+    // Thumb position at scroll_y=0: top of track = header_h + arrow_h.
+    // Constants from editing.spec.ts (HEADER=60) and theme.scrollbar_width=14.
     const GRID_HEADER_H = 60; // model.header_height
     const SB_ARROW_H = 14;    // theme.scrollbar_width (= arrow button height)
     const thumbStartY = box!.y + GRID_HEADER_H + SB_ARROW_H; // top of thumb at scroll=0
-    // On drag vers le bas de 100px
+    // Drag down 100 px
     await page.mouse.move(sbX, thumbStartY);
     await page.mouse.down();
     await page.mouse.move(sbX, thumbStartY + 100, { steps: 10 });
     await page.mouse.up();
     await waitForPaint(page, 300);
 
-    // Vérifier que le rendu a changé (scroll a eu lieu)
+    // Verify the render changed (scroll occurred)
     await expect(canvas).toHaveScreenshot('log-sb-1b-dragged.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -500,7 +500,7 @@ test.describe('scrollbar logarithmique', () => {
     await waitForPaint(page, 500);
     const canvas = page.locator('canvas');
     await expect(canvas).toBeVisible();
-    // Scroll molette
+    // Wheel scroll
     await canvas.hover();
     await page.mouse.wheel(0, 1000);
     await waitForPaint(page, 300);
@@ -508,10 +508,10 @@ test.describe('scrollbar logarithmique', () => {
   });
 
   test('mapping log — drag 50% du travel ≠ 50% des données', async ({ page }) => {
-    // À 10^9 lignes en mapping log, le thumb à mi-travel correspond à
-    // ln(1 + max/2) / ln(1 + max) ≈ 0.97 du max_scroll, soit ~97% du contenu.
-    // Ce test vérifie que faire défiler le thumb de la moitié du track
-    // affiche des données proches du bas, pas du milieu.
+    // At 10^9 rows with log mapping, the thumb at mid-travel corresponds to
+    // ln(1 + max/2) / ln(1 + max) ≈ 0.97 of max_scroll, i.e. ~97% of content.
+    // This test verifies that scrolling the thumb halfway down the track
+    // shows data near the bottom, not the middle.
     await page.goto('/');
     await page.locator('select').first().selectOption('1000000000');
     await waitForPaint(page, 400);
@@ -519,9 +519,9 @@ test.describe('scrollbar logarithmique', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Clic au milieu du track scrollbar via constantes nommées.
-    const GRID_HEADER_H = 60; // hauteur du header de grille (model.header_height)
-    const SB_ARROW_H = 14;    // hauteur des flèches scrollbar (= theme.scrollbar_width)
+    // Click the middle of the scrollbar track using named constants.
+    const GRID_HEADER_H = 60; // grid header height (model.header_height)
+    const SB_ARROW_H = 14;    // scrollbar arrow height (= theme.scrollbar_width)
     const trackTop = GRID_HEADER_H + SB_ARROW_H;       // 74 px
     const trackBottom = box!.height - SB_ARROW_H;      // height - 14 px
     const sbX = box!.width - 8;
@@ -529,8 +529,8 @@ test.describe('scrollbar logarithmique', () => {
     await canvas.click({ position: { x: sbX, y: sbMidY } });
     await waitForPaint(page, 400);
 
-    // Screenshot de référence : avec log, affiche des données
-    // très proches de la fin du dataset (lignes ~10^8+ visibles)
+    // Reference screenshot: with log mapping, shows data very close to the
+    // end of the dataset (rows ~10^8+ visible)
     await expect(canvas).toHaveScreenshot('log-sb-mid-travel.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -539,9 +539,9 @@ test.describe('scrollbar logarithmique', () => {
 
 // ── précision f64 à grande échelle ──────────────────────────────────────────
 //
-// À 1 million+ de lignes, les positions de pixels (row_top − scroll_y)
-// risquent de perdre la précision f64. Ces tests vérifient que le rendu
-// et le hit-testing restent alignés après un scroll en fin de dataset.
+// At 1M+ rows, pixel positions (row_top − scroll_y) risk losing f64 precision.
+// These tests verify that rendering and hit-testing remain aligned after
+// scrolling to the end of a large dataset.
 
 test.describe('précision f64 grande échelle', () => {
   test.beforeEach(async ({ page }) => {
@@ -550,18 +550,17 @@ test.describe('précision f64 grande échelle', () => {
   });
 
   /**
-   * Scrolle la scrollbar verticale tout en bas en cliquant
-   * sur le track juste au-dessus du bas.
+   * Scroll the vertical scrollbar to the bottom by clicking
+   * on the track just above the bottom edge.
    */
   async function scrollToBottom(page: Page, canvas: any, box: any) {
-    // La scrollbar verticale est à droite du canvas.
-    // Cliquer en bas du track pour sauter au fond.
+    // The vertical scrollbar is on the right side of the canvas.
+    // Click near the bottom of the track to jump to the end.
     const sbX = box.width - 5;
     const sbY = box.height - 20;
     await canvas.click({ position: { x: sbX, y: sbY } });
     await waitForPaint(page);
-    // Second clic pour affiner si le thumb n'est pas
-    // tout à fait en bas.
+    // Second click to refine if the thumb is not quite at the bottom.
     await canvas.click({ position: { x: sbX, y: sbY } });
     await waitForPaint(page);
   }
@@ -576,14 +575,14 @@ test.describe('précision f64 grande échelle', () => {
 
     await scrollToBottom(page, canvas, box!);
 
-    // Cliquer sur une cellule visible (milieu du canvas)
+    // Click a visible cell (center of canvas)
     const clickY = box!.height / 2;
     const clickX = box!.width / 3;
     await canvas.click({ position: { x: clickX, y: clickY } });
     await waitForPaint(page);
 
-    // Screenshot : la sélection bleue doit être alignée avec la
-    // ligne sur laquelle on a cliqué — pas de décalage d'une ligne.
+    // Screenshot: the blue selection must align with the clicked row —
+    // no off-by-one row shift.
     await expect(canvas).toHaveScreenshot('1m-bottom-click.png', {
       maxDiffPixelRatio: 0.02,
     });
@@ -617,13 +616,13 @@ test.describe('précision f64 grande échelle', () => {
     const box = await canvas.boundingBox();
     expect(box).not.toBeNull();
 
-    // Scroller à ~50% via clic sur le milieu du track
+    // Scroll to ~50% via click on the middle of the track
     const sbX = box!.width - 5;
     const sbY = box!.height / 2;
     await canvas.click({ position: { x: sbX, y: sbY } });
     await waitForPaint(page);
 
-    // Cliquer puis shift+cliquer pour sélectionner un range
+    // Click then shift+click to select a range
     const y1 = box!.height * 0.3;
     const y2 = box!.height * 0.6;
     const x = box!.width / 3;
@@ -632,15 +631,15 @@ test.describe('précision f64 grande échelle', () => {
     await canvas.click({ position: { x, y: y2 }, modifiers: ['Shift'] });
     await waitForPaint(page);
 
-    // La sélection doit couvrir exactement les lignes entre
-    // les deux clics — pas de décalage.
+    // Selection must cover exactly the rows between the two clicks —
+    // no row offset.
     await expect(canvas).toHaveScreenshot('1m-mid-range-select.png', {
       maxDiffPixelRatio: 0.02,
     });
   });
 
-  // TODO: Le double-clic sur canvas via Playwright échoue sur port 4173 (npx serve).
-  //       Fonctionne sur port 9080 (trunk serve). À investiguer la cause.
+  // TODO: Double-click on canvas via Playwright fails on port 4173 (npx serve).
+  //       Works on port 9080 (trunk serve). Root cause needs investigation.
   test.skip('1M lignes — double-clic édition en bas', async ({ page }) => {
     await page.locator('select').first().selectOption('1000000');
     await waitForPaint(page);
@@ -651,14 +650,13 @@ test.describe('précision f64 grande échelle', () => {
 
     await scrollToBottom(page, canvas, box!);
 
-    // Double-clic pour éditer — l'input doit apparaître
-    // sur la bonne cellule
+    // Double-click to edit — the input must appear on the correct cell
     const clickY = box!.height / 2;
     const clickX = box!.width / 3;
     await canvas.dblclick({ position: { x: clickX, y: clickY } });
     await waitForPaint(page);
 
-    // Vérifier qu'un input d'édition est apparu
+    // Verify an edit input appeared
     const input = page.locator('input[type="text"]');
     await expect(input).toBeVisible();
 

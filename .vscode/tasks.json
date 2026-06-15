@@ -81,7 +81,7 @@
       "command": "just build-wasm ${input:example}",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build WASM d'un exemple"
+      "detail": "Build WASM for an example"
     },
     {
       "label": "just: serve",
@@ -89,21 +89,21 @@
       "command": "just serve ${input:example}",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "Serveur de dev d'un exemple"
+      "detail": "Dev server for an example"
     },
     {
       "label": "just: tls-setup",
       "type": "shell",
       "command": "just tls-setup",
       "problemMatcher": [],
-      "detail": "Générer les certificats TLS locaux (mkcert requis)"
+      "detail": "Generate local TLS certificates (requires mkcert)"
     },
     {
       "label": "just: e2e-install",
       "type": "shell",
       "command": "just e2e-install",
       "problemMatcher": [],
-      "detail": "Installer Playwright + Chromium"
+      "detail": "Install Playwright + Chromium"
     },
     {
       "label": "just: e2e",
@@ -111,14 +111,14 @@
       "command": "just e2e",
       "group": "test",
       "problemMatcher": [],
-      "detail": "Build Leptos + tests Playwright"
+      "detail": "Build Leptos fixture + run Playwright tests"
     },
     {
       "label": "just: e2e-update-snapshots",
       "type": "shell",
       "command": "just e2e-update-snapshots",
       "problemMatcher": [],
-      "detail": "Regénérer screenshots de référence"
+      "detail": "Regenerate Playwright reference screenshots"
     },
     {
       "label": "just: build-site-wasm",
@@ -126,7 +126,7 @@
       "command": "just build-site-wasm",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build WASM demo + copie dans le site"
+      "detail": "Build WASM demo and copy into site"
     },
     {
       "label": "just: site",
@@ -142,7 +142,7 @@
       "command": "just build-site",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build site RSPress (avec démo WASM)"
+      "detail": "Build RSPress site (with WASM demo)"
     },
     {
       "label": "just: bench",
@@ -150,7 +150,7 @@
       "command": "just bench",
       "group": "test",
       "problemMatcher": [],
-      "detail": "Tous les benchmarks (core + scene) — rapports HTML dans target/criterion/"
+      "detail": "All benchmarks (core + scene) — HTML reports in target/criterion/"
     },
     {
       "label": "just: bench-core",
@@ -158,7 +158,7 @@
       "command": "just bench-core",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo bench -p rs-grid-core (hit-test + tri + filtre)"
+      "detail": "cargo bench -p rs-grid-core (hit-test + sort + filter)"
     },
     {
       "label": "just: bench-hit",
@@ -182,7 +182,7 @@
       "command": "just bench-scene",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo bench --bench scene_builder (small/medium/dense, DPR 1 et 2)"
+      "detail": "cargo bench --bench scene_builder (small/medium/dense, DPR 1 and 2)"
     },
     {
       "label": "just: bench-init",
@@ -190,7 +190,7 @@
       "command": "just bench-init",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo bench --bench init (init/rows + init/cols — prouve O(n_cols) pas O(n_rows))"
+      "detail": "cargo bench --bench init (init/rows + init/cols — proves O(n_cols) not O(n_rows))"
     },
     {
       "label": "just: bench-scroll",
@@ -198,7 +198,7 @@
       "command": "just bench-scroll",
       "group": "test",
       "problemMatcher": [],
-      "detail": "cargo bench --bench scroll_frame (pipeline complet ScrollBy + SceneBuilder)"
+      "detail": "cargo bench --bench scroll_frame (full ScrollBy + SceneBuilder pipeline)"
     },
     {
       "label": "just: mem",
@@ -206,7 +206,7 @@
       "command": "just mem",
       "group": "test",
       "problemMatcher": [],
-      "detail": "Empreinte mémoire par ligne (allocateur custom, --release)"
+      "detail": "Memory footprint per row (custom allocator, --release)"
     },
     {
       "label": "just: wasm-size",
@@ -214,7 +214,7 @@
       "command": "just wasm-size",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build WASM release (wasm-opt) + rapport de taille et estimation gzip"
+      "detail": "WASM release build (wasm-opt) + size report with gzip estimate"
     },
     {
       "label": "just: mcp-build",
@@ -222,7 +222,7 @@
       "command": "just mcp-build",
       "group": "build",
       "problemMatcher": [],
-      "detail": "Build site + MCP (TypeScript → dist/ + copie docs)"
+      "detail": "Build MCP server (TypeScript → dist/ + copy docs)"
     },
     {
       "label": "just: mcp-dev",
@@ -230,35 +230,35 @@
       "command": "just mcp-dev",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "Serveur MCP en mode développement (tsx)"
+      "detail": "MCP server in development mode (tsx)"
     },
     {
       "label": "just: mcp-publish",
       "type": "shell",
       "command": "just mcp-publish",
       "problemMatcher": [],
-      "detail": "Publier rs-grid-mcp sur npm (nécessite npm login)"
+      "detail": "Publish rs-grid-mcp to npm (requires npm login)"
     },
     {
       "label": "just: release-preview",
       "type": "shell",
       "command": "just release-preview",
       "problemMatcher": [],
-      "detail": "Aperçu local release-plz : bumps + CHANGELOG.md par crate (git diff puis git checkout .)"
+      "detail": "Local release-plz preview: bumps + per-crate CHANGELOG.md (git diff then git checkout .)"
     },
     {
       "label": "just: publish",
       "type": "shell",
       "command": "just publish",
       "problemMatcher": [],
-      "detail": "Publier les 8 crates sur crates.io dans l'ordre de dépendances (30 s entre chaque)"
+      "detail": "Publish all 8 crates to crates.io in dependency order (30 s between each)"
     }
   ],
   "inputs": [
     {
       "id": "example",
       "type": "pickString",
-      "description": "Exemple à lancer",
+      "description": "Example to run",
       "options": ["leptos", "dioxus", "yew", "js", "react"],
       "default": "leptos"
     }
