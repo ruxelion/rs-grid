@@ -128,7 +128,7 @@ cargo install cargo-llvm-cov --locked
 
 ## Code conventions
 
-- **Edition**: Rust 2021
+- **Edition**: Rust 2024
 - **Max line width**: 80 characters (rustfmt.toml)
 - **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
 - **Comments**: wrapped at 80 chars, formatted in doc-comments
@@ -249,6 +249,36 @@ commit. The rule: **if the code changed, the docs change too.**
 
 Do not update CLAUDE.md for internal refactors that don't change
 observable behaviour or usage.
+
+## Versioning (SemVer)
+
+The workspace follows **Semantic Versioning**. Current published version: `0.1.0`.
+
+For every feature request, bug fix, or refactor, reason about the version impact
+**before** proposing an implementation:
+
+| Change type | Version bump | Examples |
+|---|---|---|
+| Bug fix, no API change | `0.x.Y+1` (patch) | wrong scroll offset, render glitch |
+| New public API, backward-compatible | `0.X+1.0` (minor) | new column type, new callback prop |
+| Breaking public API change | `0.X+1.0` (minor, pre-1.0 exception) | rename/remove/reorder public fn |
+| Stable API commitment | `1.0.0` | deliberate stability milestone |
+| Breaking post-1.0 | `X+1.0.0` (major) | only after 1.0 is released |
+
+**Pre-1.0 rule**: while the version is `0.x`, breaking API changes bump the
+minor (not major). Users of `0.x` crates accept this instability.
+
+### What to do in practice
+
+When the user asks for a change, always include in your reasoning:
+
+1. **Classify**: is this a patch, minor, or major bump?
+2. **Propose**: state the new version (e.g. "this is a minor bump → `0.2.0`").
+3. **Remind** (when applicable): a crates.io publish and git tag `vX.Y.Z` will
+   be needed after merging.
+
+Do **not** bump version numbers in `Cargo.toml` automatically — propose the
+bump and let the user confirm before modifying any file.
 
 ## Adding a new renderer
 
