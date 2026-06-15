@@ -17,7 +17,7 @@ resolver = "2"
 # `<field>.workspace = true`. Keeps license/repository/version in one place.
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 repository = "https://github.com/ruxelion/rs-grid"
 homepage = "https://rs-grid.com"

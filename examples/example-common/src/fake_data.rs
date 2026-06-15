@@ -677,7 +677,7 @@ pub struct ExtraColDef {
     pub width: f64,
     /// Formatting hint for the column's cell renderer.
     pub format_hint: FormatHint,
-    gen: Gen,
+    r#gen: Gen,
 }
 
 /// Shorthand constructor for table readability.
@@ -686,14 +686,14 @@ const fn ec(
     label: &'static str,
     width: f64,
     format_hint: FormatHint,
-    gen: Gen,
+    r#gen: Gen,
 ) -> ExtraColDef {
     ExtraColDef {
         key,
         label,
         width,
         format_hint,
-        gen,
+        r#gen,
     }
 }
 
@@ -858,7 +858,7 @@ fn generate_extra(row: u64, col_key: &str) -> Option<String> {
         .enumerate()
         .find(|(_, c)| c.key == col_key)?;
     let salt = 100 + idx as u64;
-    Some(match col.gen {
+    Some(match col.r#gen {
         Gen::Pick(arr) => pick(arr, row, salt).to_owned(),
         Gen::Int(lo, hi) => {
             let range = (hi - lo + 1) as u64;

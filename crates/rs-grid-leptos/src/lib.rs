@@ -151,7 +151,8 @@ pub fn GridCanvas(
                 cb(row, col.to_string(), btn.to_string());
             });
         }
-        if let Some(cb) = on_mount_slot.borrow_mut().take() {
+        let on_mount_cb = on_mount_slot.borrow_mut().take();
+        if let Some(cb) = on_mount_cb {
             cb(gc);
         }
     });

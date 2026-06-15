@@ -225,10 +225,12 @@ fn make_menu_item(
 
 pub(super) fn remove_ctx_menu() {
     let doc = document();
-    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-backdrop") {
+    let backdrop = doc.get_element_by_id("rs-grid-ctx-backdrop");
+    if let Some(el) = backdrop {
         el.remove();
     }
-    if let Some(el) = doc.get_element_by_id("rs-grid-ctx-menu") {
+    let menu = doc.get_element_by_id("rs-grid-ctx-menu");
+    if let Some(el) = menu {
         el.remove();
     }
 }
