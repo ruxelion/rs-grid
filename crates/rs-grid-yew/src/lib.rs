@@ -132,52 +132,52 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                 && let Some(model) = model_slot.take()
             {
                 let mount_theme =
-                        theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
-                    let mount_locale = locale.unwrap_or_default();
+                    theme.unwrap_or_else(rs_grid_web::theme_from_css_vars);
+                let mount_locale = locale.unwrap_or_default();
 
-                    let rect = canvas.get_bounding_client_rect();
-                    let win = web_sys::window().expect("no window");
-                    let w = {
-                        let bw = rect.width();
-                        if bw > 0.0 {
-                            bw
-                        } else {
-                            win.inner_width()
-                                .ok()
-                                .and_then(|v| v.as_f64())
-                                .unwrap_or(800.0)
-                        }
-                    };
-                    let h = {
-                        let bh = rect.height();
-                        if bh > 0.0 {
-                            bh
-                        } else {
-                            win.inner_height()
-                                .ok()
-                                .and_then(|v| v.as_f64())
-                                .map(|h| h - 80.0)
-                                .unwrap_or(600.0)
-                        }
-                    };
-
-                    let state = GridState::new(model, w, h);
-                    let gc = rs_grid_web::GridCanvas::mount(
-                        canvas,
-                        state,
-                        mount_theme,
-                        mount_locale,
-                    );
-                    *gc_handle.borrow_mut() = Some(gc.clone());
-
-                    if let Some(cb) = on_ve {
-                        gc.set_on_validation_error(move |row, col, msg| {
-                            cb(row, col.to_string(), msg.to_string());
-                        });
+                let rect = canvas.get_bounding_client_rect();
+                let win = web_sys::window().expect("no window");
+                let w = {
+                    let bw = rect.width();
+                    if bw > 0.0 {
+                        bw
+                    } else {
+                        win.inner_width()
+                            .ok()
+                            .and_then(|v| v.as_f64())
+                            .unwrap_or(800.0)
                     }
-                    if let Some(cb) = on_mount {
-                        cb.emit(gc);
+                };
+                let h = {
+                    let bh = rect.height();
+                    if bh > 0.0 {
+                        bh
+                    } else {
+                        win.inner_height()
+                            .ok()
+                            .and_then(|v| v.as_f64())
+                            .map(|h| h - 80.0)
+                            .unwrap_or(600.0)
                     }
+                };
+
+                let state = GridState::new(model, w, h);
+                let gc = rs_grid_web::GridCanvas::mount(
+                    canvas,
+                    state,
+                    mount_theme,
+                    mount_locale,
+                );
+                *gc_handle.borrow_mut() = Some(gc.clone());
+
+                if let Some(cb) = on_ve {
+                    gc.set_on_validation_error(move |row, col, msg| {
+                        cb(row, col.to_string(), msg.to_string());
+                    });
+                }
+                if let Some(cb) = on_mount {
+                    cb.emit(gc);
+                }
             }
 
             move || {
