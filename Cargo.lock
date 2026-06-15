@@ -3323,7 +3323,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-icons"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "rs-grid-leptos"
