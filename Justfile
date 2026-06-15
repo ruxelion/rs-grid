@@ -129,8 +129,14 @@ wasm-size:
 
 # ── MCP (Model Context Protocol) ────────────────────────
 
+# Build the rs-grid-site documentation (sibling repo → doc_build/).
+# Requires rs-grid-site cloned next to this repo (../rs-grid-site).
+build-site:
+    cd ..\rs-grid-site && npm install --prefer-offline --no-audit --no-fund
+    cd ..\rs-grid-site && npm run build
+
 # Build the MCP server (TypeScript → dist/ + copy docs)
-mcp-build:
+mcp-build: build-site
     cd mcp && npm install
     cd mcp && npm run build
 
