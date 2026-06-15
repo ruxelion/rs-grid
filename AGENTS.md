@@ -117,9 +117,10 @@ synchronisées avec `.vscode/tasks.json`.
 - **Imports**: grouped by `StdExternalCrate`, granularity `Crate`
 - **Comments**: wrapped at 80 chars, formatted in doc-comments
 - **Language**: English (US) everywhere in code files — comments, doc-strings,
-  inline strings, task labels, CI step names, error messages (Rust, TOML, YAML,
-  Justfile, JSON, TypeScript…). Existing French text is legacy and must be
-  converted to English when a file is edited.
+  inline strings, task labels, error messages (Rust, TOML, Justfile, JSON,
+  TypeScript…). This includes GitHub Actions workflow files (`.github/workflows/`):
+  step `name:`, `description:`, inline comments, and all string values. Existing
+  French text is legacy and must be converted to English when a file is edited.
 - No `unwrap()` in production code — use `expect("reason")` or error propagation
 
 ## Invariants non-négociables
