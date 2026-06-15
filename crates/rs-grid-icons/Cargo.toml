@@ -4,7 +4,13 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+authors.workspace = true
 publish.workspace = true
 description = "Embedded SVG country flags and icons"
+keywords = ["icons", "flags", "svg", "base64", "country"]
+categories = ["web-programming"]
 
 [dependencies]

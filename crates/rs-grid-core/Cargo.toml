@@ -4,8 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+authors.workspace = true
 publish.workspace = true
 description = "Headless grid engine core: model, viewport, selection, hit-testing"
+keywords = ["grid", "data-grid", "virtual-scroll", "headless", "spreadsheet"]
+categories = ["data-structures", "algorithms"]
 
 [lints]
 workspace = true

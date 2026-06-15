@@ -4,8 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+authors.workspace = true
 publish.workspace = true
 description = "Scene graph: converts GridState into renderer-agnostic primitives"
+keywords = ["grid", "scene-graph", "renderer", "canvas", "primitives"]
+categories = ["graphics", "rendering"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -19,7 +25,7 @@ name = "scroll_frame"
 harness = false
 
 [dependencies]
-rs-grid-core = { path = "../rs-grid-core" }
+rs-grid-core = { path = "../rs-grid-core", version = "0.1.0" }
 
 [[bin]]
 name = "generate-theme"

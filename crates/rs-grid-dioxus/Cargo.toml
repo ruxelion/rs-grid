@@ -4,13 +4,19 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+authors.workspace = true
 publish.workspace = true
 description = "Dioxus CSR component wrapper for rs-grid"
+keywords = ["grid", "dioxus", "component", "wasm", "data-grid"]
+categories = ["gui", "web-programming", "wasm"]
 
 [dependencies]
-rs-grid-core  = { path = "../rs-grid-core" }
-rs-grid-scene = { path = "../rs-grid-scene" }
-rs-grid-web   = { path = "../rs-grid-web" }
+rs-grid-core  = { path = "../rs-grid-core", version = "0.1.0" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.0" }
+rs-grid-web   = { path = "../rs-grid-web", version = "0.1.0" }
 dioxus        = { version = "0.7", features = ["web"] }
 wasm-bindgen  = { workspace = true }
 web-sys       = { workspace = true }

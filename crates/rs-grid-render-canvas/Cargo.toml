@@ -4,11 +4,17 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme = "README.md"
+authors.workspace = true
 publish.workspace = true
 description = "Canvas2D renderer: converts SceneFrame into CanvasRenderingContext2d calls"
+keywords = ["grid", "canvas", "wasm", "renderer", "webassembly"]
+categories = ["graphics", "rendering", "wasm"]
 
 [dependencies]
-rs-grid-scene = { path = "../rs-grid-scene" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.0" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = { workspace = true }
