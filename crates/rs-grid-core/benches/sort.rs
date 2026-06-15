@@ -1,6 +1,7 @@
+use std::hint::black_box;
+
 use criterion::{
-    BatchSize, BenchmarkId, Criterion, black_box, criterion_group,
-    criterion_main,
+    BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use rs_grid_core::{
     column::ColumnDef, model::GridModel, row::RowRecord, sort::SortDir,

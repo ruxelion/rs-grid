@@ -1,6 +1,6 @@
-use criterion::{
-    BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
-};
+use std::hint::black_box;
+
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rs_grid_core::{
     column::ColumnDef, datasource::FnDataSource, hit_test, model::GridModel,
     row::RowRecord,
