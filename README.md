@@ -56,14 +56,14 @@ rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene
 
 | Crate                   | Role                                                                                  |
 | ----------------------- | ------------------------------------------------------------------------------------- |
-| `rs-grid-core`          | Headless grid logic: model, viewport, selection, hit-testing. **No WASM dependency.** |
-| `rs-grid-scene`         | Converts `GridState` into renderer-agnostic primitives (`ScenePrimitive`)             |
-| `rs-grid-render-canvas` | Canvas2D rendering backend via `wasm-bindgen`                                         |
-| `rs-grid-web`           | Browser integration: DOM events, DPR, rAF loop, CSS theme, clipboard                  |
-| `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                         |
-| `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                           |
-| `rs-grid-yew`           | Yew CSR component wrapper (`GridCanvas`)                                              |
-| `rs-grid-icons`         | Embedded SVG icons (country flags, gender symbols)                                    |
+| [`rs-grid-core`](https://crates.io/crates/rs-grid-core) | Headless grid logic: model, viewport, selection, hit-testing. **No WASM dependency.** |
+| [`rs-grid-scene`](https://crates.io/crates/rs-grid-scene) | Converts `GridState` into renderer-agnostic primitives (`ScenePrimitive`)             |
+| [`rs-grid-render-canvas`](https://crates.io/crates/rs-grid-render-canvas) | Canvas2D rendering backend via `wasm-bindgen`                                         |
+| [`rs-grid-web`](https://crates.io/crates/rs-grid-web) | Browser integration: DOM events, DPR, rAF loop, CSS theme, clipboard                  |
+| [`rs-grid-leptos`](https://crates.io/crates/rs-grid-leptos) | Leptos CSR component wrapper (`<GridCanvas>`)                                         |
+| [`rs-grid-dioxus`](https://crates.io/crates/rs-grid-dioxus) | Dioxus CSR component wrapper (`GridCanvas`)                                           |
+| [`rs-grid-yew`](https://crates.io/crates/rs-grid-yew) | Yew CSR component wrapper (`GridCanvas`)                                              |
+| [`rs-grid-icons`](https://crates.io/crates/rs-grid-icons) | Embedded SVG icons (country flags, gender symbols)                                    |
 
 ## Quick start
 

@@ -1,5 +1,7 @@
 # rs-grid-dioxus
 
+[![crates.io](https://img.shields.io/crates/v/rs-grid-dioxus.svg)](https://crates.io/crates/rs-grid-dioxus)
+
 [Dioxus](https://dioxuslabs.com) CSR component wrapper for [rs-grid](https://rs-grid.com) — a high-performance data grid compiled to WebAssembly.
 
 ## Installation
@@ -40,7 +42,7 @@ fn App() -> Element {
 | `on_mount` | `Option<Box<dyn FnOnce(WebGridCanvas)>>` | — | Called after mount with the grid handle |
 | `on_validation_error` | `Option<ValidationErrorCb>` | — | `fn(row, col_key, message)` |
 
-[Live demo](https://rs-grid.com/index.html#demo) · [Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid)
+[Live demo](https://rs-grid.com/index.html#demo) · [Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid) · [crates.io](https://crates.io/crates/rs-grid-dioxus)
 
 ## License
 

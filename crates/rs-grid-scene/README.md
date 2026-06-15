@@ -1,5 +1,7 @@
 # rs-grid-scene
 
+[![crates.io](https://img.shields.io/crates/v/rs-grid-scene.svg)](https://crates.io/crates/rs-grid-scene)
+
 Scene graph layer for [rs-grid](https://rs-grid.com). Converts a `GridState` into renderer-agnostic drawing primitives (`SceneFrame`).
 
 This crate knows nothing about Canvas2D or any renderer — it produces data, it does not draw.
@@ -21,7 +23,7 @@ let frame = SceneBuilder::new(&grid_state, &theme).build();
 // Pass frame to a renderer (e.g. rs-grid-render-canvas)
 ```
 
-[Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid)
+[Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid) · [crates.io](https://crates.io/crates/rs-grid-scene)
 
 ## License
 

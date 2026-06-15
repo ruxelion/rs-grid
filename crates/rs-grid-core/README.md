@@ -1,5 +1,7 @@
 # rs-grid-core
 
+[![crates.io](https://img.shields.io/crates/v/rs-grid-core.svg)](https://crates.io/crates/rs-grid-core)
+
 Headless grid engine core for [rs-grid](https://rs-grid.com) — zero WASM dependency, fully testable on native targets.
 
 Provides the central `GridState` struct combining model, viewport, selection, and hit-testing. All mutations go through `GridState::apply(GridCommand)`.
@@ -37,7 +39,7 @@ state.apply(GridCommand::ScrollTo { x: 0.0, y: 0.0 });
 | rs-grid-yew | Yew component |
 | rs-grid-icons | Embedded SVG flags & icons |
 
-[Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid) · [Live demo](https://rs-grid.com/index.html#demo)
+[Documentation](https://rs-grid.com/getting-started.html) · [Repository](https://github.com/ruxelion/rs-grid) · [Live demo](https://rs-grid.com/index.html#demo) · [crates.io](https://crates.io/crates/rs-grid-core)
 
 ## License
 
