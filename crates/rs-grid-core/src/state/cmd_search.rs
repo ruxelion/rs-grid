@@ -1,4 +1,4 @@
-use super::{clamp_scroll, GridState};
+use super::{GridState, clamp_scroll};
 use crate::{
     commands::{CommandOutput, GridCommand},
     search::SearchState,

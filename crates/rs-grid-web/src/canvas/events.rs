@@ -2,12 +2,12 @@ use rs_grid_core::{
     commands::GridCommand,
     scrollbar::{HScrollbarGeom, ScrollbarGeom},
 };
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{MouseEvent, ResizeObserver, WheelEvent};
 
 use super::{
-    context_menu::remove_ctx_menu, dom_helpers::document, ActiveDrag,
-    GridCanvas, HThumbDrag, ThumbDrag,
+    ActiveDrag, GridCanvas, HThumbDrag, ThumbDrag,
+    context_menu::remove_ctx_menu, dom_helpers::document,
 };
 
 impl GridCanvas {

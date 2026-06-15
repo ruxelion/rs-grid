@@ -15,7 +15,7 @@ use rs_grid_scene::Theme;
 /// Re-exported so callers can name the type in callbacks
 /// without depending on `rs-grid-web` directly.
 pub use rs_grid_web::GridCanvas as WebGridCanvas;
-pub use rs_grid_web::{theme_from_css_vars, Locale};
+pub use rs_grid_web::{Locale, theme_from_css_vars};
 use web_sys::HtmlCanvasElement;
 use yew::prelude::*;
 

@@ -342,8 +342,10 @@ mod tests {
     #[test]
     fn vscroll_none_when_content_fits() {
         // total_h=500 <= viewport_h=600 → None
-        assert!(ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 500.0, 16.0)
-            .is_none());
+        assert!(
+            ScrollbarGeom::compute(0.0, 800.0, 600.0, 40.0, 500.0, 16.0)
+                .is_none()
+        );
     }
 
     #[test]
@@ -417,10 +419,10 @@ mod tests {
     #[test]
     fn hscroll_none_when_content_fits() {
         // total_w=500, available_w=800-50-16=734 → None
-        assert!(HScrollbarGeom::compute(
-            0.0, 800.0, 600.0, 50.0, 500.0, 16.0, 16.0
-        )
-        .is_none());
+        assert!(
+            HScrollbarGeom::compute(0.0, 800.0, 600.0, 50.0, 500.0, 16.0, 16.0)
+                .is_none()
+        );
     }
 
     #[test]

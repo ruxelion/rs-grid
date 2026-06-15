@@ -1,8 +1,8 @@
 use rs_grid_core::commands::GridCommand;
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{HtmlInputElement, KeyboardEvent};
 
-use super::{dom_helpers::document, GridCanvas};
+use super::{GridCanvas, dom_helpers::document};
 use crate::css_theme;
 
 impl GridCanvas {

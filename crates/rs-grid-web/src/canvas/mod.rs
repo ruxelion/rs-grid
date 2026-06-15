@@ -25,9 +25,9 @@ use rs_grid_core::{
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{
-    builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame, Theme,
+    Theme, builder::SceneBuilder, class_map::ClassResolver, frame::SceneFrame,
 };
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{
     HtmlCanvasElement, HtmlElement, HtmlInputElement, ResizeObserver,
 };

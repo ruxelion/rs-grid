@@ -440,11 +440,7 @@ impl GridModel {
                     indices.sort_unstable_by(|&a, &b| {
                         let cmp =
                             cmp_mixed(&keys[a as usize], &keys[b as usize]);
-                        if asc {
-                            cmp
-                        } else {
-                            cmp.reverse()
-                        }
+                        if asc { cmp } else { cmp.reverse() }
                     });
                 }
                 SortKeyCache::None => {
@@ -540,11 +536,7 @@ impl GridModel {
         let rev = *dir == SortDir::Desc;
         indices.sort_unstable_by(|&a, &b| {
             let cmp = cmp_mixed(&keys[a as usize], &keys[b as usize]);
-            if rev {
-                cmp.reverse()
-            } else {
-                cmp
-            }
+            if rev { cmp.reverse() } else { cmp }
         });
 
         self.sort_order = indices;

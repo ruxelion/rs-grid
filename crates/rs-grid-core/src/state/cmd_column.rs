@@ -1,7 +1,7 @@
 use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
-    format::{format_cell, CellFormat},
+    format::{CellFormat, format_cell},
     undo::UndoEntry,
 };
 

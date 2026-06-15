@@ -3,7 +3,7 @@ use std::rc::Rc;
 use rs_grid_core::commands::{CommandOutput, GridCommand};
 use wasm_bindgen::{JsCast, JsValue};
 
-use super::{dom_helpers::document, FlashState, GridCanvas};
+use super::{FlashState, GridCanvas, dom_helpers::document};
 
 impl GridCanvas {
     /// Trigger a brief golden-yellow flash on the currently selected cells.

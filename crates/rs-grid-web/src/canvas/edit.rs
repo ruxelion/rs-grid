@@ -4,10 +4,10 @@ use rs_grid_core::{
     column::{CellEditor, SelectOption},
     commands::GridCommand,
 };
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{HtmlImageElement, HtmlInputElement, KeyboardEvent};
 
-use super::{dom_helpers::document, GridCanvas};
+use super::{GridCanvas, dom_helpers::document};
 use crate::css_theme;
 
 /// Geometry of an inline cell editor (screen coordinates).

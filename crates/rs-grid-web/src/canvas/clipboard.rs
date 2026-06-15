@@ -4,7 +4,7 @@ use rs_grid_core::{
 };
 use wasm_bindgen::JsCast;
 
-use super::{dom_helpers::document, GridCanvas};
+use super::{GridCanvas, dom_helpers::document};
 
 impl GridCanvas {
     // ── native event handlers (Ctrl+C / Ctrl+X) ──────────

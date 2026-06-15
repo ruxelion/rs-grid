@@ -1,5 +1,5 @@
 use rs_grid_core::{commands::GridCommand, scrollbar::ScrollbarGeom};
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 
 use super::GridCanvas;
 

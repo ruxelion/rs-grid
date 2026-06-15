@@ -1,11 +1,11 @@
 use rs_grid_core::{commands::GridCommand, sort::SortDir};
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit};
 
 use super::{
+    GridCanvas,
     context_menu_config::{BuiltinAction, ContextMenuItem},
     dom_helpers::{document, make_el, set_styles},
-    GridCanvas,
 };
 use crate::{css_theme, locale::Locale};
 

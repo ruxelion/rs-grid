@@ -9,7 +9,7 @@
 
 use std::path::PathBuf;
 
-use rs_grid_scene::{primitives::Color, Theme};
+use rs_grid_scene::{Theme, primitives::Color};
 
 // ── formatting helpers
 // ────────────────────────────────────────────────────────
@@ -43,11 +43,7 @@ fn num(v: f64) -> String {
 }
 
 fn b(v: bool) -> &'static str {
-    if v {
-        "1"
-    } else {
-        "0"
-    }
+    if v { "1" } else { "0" }
 }
 
 // ── Theme → CSS variable list

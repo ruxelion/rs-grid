@@ -12,9 +12,9 @@ mod css_theme;
 mod locale;
 
 pub use canvas::{
+    GridCanvas,
     context_menu_config::{BuiltinAction, ContextMenuConfig, ContextMenuItem},
     fetcher::{FetchConfig, PageFetchRequest, PageFetchResponse},
-    GridCanvas,
 };
 pub use css_theme::theme_from_css_vars;
 pub use locale::Locale;

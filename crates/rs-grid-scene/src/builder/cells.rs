@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use rs_grid_core::{
     column::{ButtonStyle, ColumnDef},
     datasource::CellStatus,
-    format::{format_cell, CellAlign, CellElement, CellFormat},
+    format::{CellAlign, CellElement, CellFormat, format_cell},
     selection::SelectionState,
 };
 
@@ -616,10 +616,12 @@ mod tests {
         );
         // selection fill + flash overlay = 2 Rect primitives
         assert_eq!(frame.primitive_count(), 2);
-        assert!(frame
-            .primitives
-            .iter()
-            .all(|p| matches!(p, ScenePrimitive::Rect(_))));
+        assert!(
+            frame
+                .primitives
+                .iter()
+                .all(|p| matches!(p, ScenePrimitive::Rect(_)))
+        );
     }
 
     // ── Search highlight ─────────────────────────────────────

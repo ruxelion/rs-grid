@@ -1,4 +1,4 @@
-use rs_grid_scene::{primitives::Color, Theme};
+use rs_grid_scene::{Theme, primitives::Color};
 
 /// Build a `Theme` by reading `--rs-grid-*` CSS custom properties from the
 /// document root element (`:root`).
