@@ -244,16 +244,24 @@ cd e2e && npm test
 cd e2e && npm run update-snapshots
 ```
 
-**Test structure** (`e2e/tests/grid.spec.ts`):
+**Test structure**:
 
+`e2e/tests/grid.spec.ts`:
 - `smoke` — page loads, canvas visible, default values
 - `controls` — row/column dropdowns
 - `canvas interaction` — clicks, scroll, shift-click (viewport coordinates)
 - `visual regression` — pixel-by-pixel screenshot comparison (2% tolerance)
 
+`e2e/tests/editing.spec.ts`:
+- `dblclick on Name cell (CellEditor::Text) opens text input`
+- `dblclick on Role cell (editor=None) does not open any input` — regression guard for the None-editor fix
+- `Escape closes the text editor`
+
+`e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.
+
 **Canvas note**: the grid is rendered on `<canvas>`, not in the DOM.
 Interaction tests use fixed pixel coordinates. If the layout changes, update
-the coordinates in `grid.spec.ts`.
+the coordinates in `grid.spec.ts` and `editing.spec.ts`.
 
 **Claude command**: `/e2e` runs `trunk build` then `npm test` automatically.
 
