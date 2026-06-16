@@ -29,6 +29,9 @@ It must remain testable with standard native `cargo test`.
 
 - `GridModel.editable: bool` (default `true`) — global edit toggle.
   Per-column `ColumnDef.editable` can opt individual columns out.
+  Set at build time via `GridModelBuilder::editable(bool)` (symmetric with
+  `selectable()` and `column_reorderable()`); toggle at runtime via
+  `GridCommand::SetEditable(bool)`.
 - `GridModel.selectable: bool` (default `true`) — when `false`,
   selection commands are silently ignored. Toggle at runtime via
   `GridCommand::SetEditable(bool)` / `GridCommand::SetSelectable(bool)`.

@@ -32,6 +32,21 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 - DPR is read once at mount and on each resize. Do not re-read it every frame.
 - `theme_from_css_vars()` reads the DOM — call only at mount, not every frame.
 
+## Editing contract (`show_edit_input`)
+
+A `dblclick` on a cell dispatches `StartEdit` then calls `show_edit_input()`.
+The DOM overlay opened depends on `ColumnDef.editor`:
+
+| `column.editor` value | Result |
+|---|---|
+| `Some(CellEditor::Text)` | `<input type="text">` positioned over the cell |
+| `Some(CellEditor::Select { .. })` | Custom `<select>` dropdown with optional icons |
+| `None` | `CancelEdit` is dispatched, no DOM overlay is created |
+
+`None` means "this column is not user-editable via the overlay". Callers who
+want plain-text editing must set `column.editor = Some(CellEditor::Text)`
+explicitly — the grid does not fall back to a text input automatically.
+
 ## Public callbacks
 
 Callbacks fired during `dispatch()` after `GridState::apply()` returns:
