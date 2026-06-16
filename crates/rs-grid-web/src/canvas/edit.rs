@@ -139,8 +139,17 @@ impl GridCanvas {
                     row, &col_key, options, geom, &raw_value,
                 );
             }
-            _ => {
+            Some(_) => {
                 self.show_text_editor(row, &col_key, col_idx, geom, &raw_value);
+            }
+            None => {
+                // No editor configured for this column: cancel the edit state
+                // opened by StartEdit and show no DOM overlay. This prevents a
+                // spurious text <input> when column.editor is None even though
+                // the column is technically editable (model.editable=true,
+                // column.editable=true). Users who want plain-text editing must
+                // set column.editor = Some(CellEditor::Text).
+                self.dispatch(GridCommand::CancelEdit);
             }
         }
     }

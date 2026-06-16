@@ -765,6 +765,15 @@ impl GridModelBuilder {
         self
     }
 
+    /// Allow or disallow inline cell editing grid-wide.
+    ///
+    /// When `false`, `StartEdit` commands are no-ops regardless of
+    /// per-column [`ColumnDef::editable`] flags. Defaults to `true`.
+    pub fn editable(mut self, v: bool) -> Self {
+        self.editable = v;
+        self
+    }
+
     /// Allow or disallow cell/row/column selection.
     pub fn selectable(mut self, v: bool) -> Self {
         self.selectable = v;
@@ -1238,6 +1247,16 @@ mod tests {
                 .column_reorderable(false)
                 .build();
         assert!(!m.column_reorderable);
+    }
+
+    #[test]
+    fn builder_editable_false() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .editable(false)
+                .build();
+        assert!(!m.editable);
     }
 
     // ── recalculate_flex_widths ─────────────────────
