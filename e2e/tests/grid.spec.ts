@@ -638,30 +638,4 @@ test.describe('précision f64 grande échelle', () => {
     });
   });
 
-  // TODO: Double-click on canvas via Playwright fails on port 4173 (npx serve).
-  //       Works on port 9080 (trunk serve). Root cause needs investigation.
-  test.skip('1M lignes — double-clic édition en bas', async ({ page }) => {
-    await page.locator('select').first().selectOption('1000000');
-    await waitForPaint(page);
-
-    const canvas = page.locator('canvas');
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-
-    await scrollToBottom(page, canvas, box!);
-
-    // Double-click to edit — the input must appear on the correct cell
-    const clickY = box!.height / 2;
-    const clickX = box!.width / 3;
-    await canvas.dblclick({ position: { x: clickX, y: clickY } });
-    await waitForPaint(page);
-
-    // Verify an edit input appeared
-    const input = page.locator('input[type="text"]');
-    await expect(input).toBeVisible();
-
-    await expect(canvas).toHaveScreenshot('1m-bottom-edit.png', {
-      maxDiffPixelRatio: 0.02,
-    });
-  });
 });

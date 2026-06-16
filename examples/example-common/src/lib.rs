@@ -29,7 +29,11 @@ use rs_grid_core::{
 /// data with the given number of rows and columns.
 pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
     let base: Vec<ColumnDef> = vec![
-        ColumnDef::new("name", "Name", 200.0),
+        {
+            let mut c = ColumnDef::new("name", "Name", 200.0);
+            c.editor = Some(CellEditor::Text);
+            c
+        },
         ColumnDef::new("email", "Email", 260.0),
         ColumnDef::new("role", "Role", 140.0),
         {
