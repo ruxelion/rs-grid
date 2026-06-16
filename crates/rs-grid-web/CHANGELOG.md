@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.1...rs-grid-web-v0.1.2) - 2026-06-15
 
+### Fixed
+
+- `show_edit_input`: `None` editor no longer opens a text overlay; dispatches `CancelEdit` instead
+
 ### Other
 
 - updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-render-canvas
