@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.1.2...rs-grid-scene-v0.1.3) - 2026-06-17
+
+### Added
+
+- implement value-driven progress bar with customizable styles and rendering
+
 ## [0.1.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.1.1...rs-grid-scene-v0.1.2) - 2026-06-15
 
 ### Other
