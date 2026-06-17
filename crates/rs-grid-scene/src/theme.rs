@@ -85,6 +85,18 @@ pub struct Theme {
     /// Foreground colour of skeleton loading bars.
     pub skeleton_fg: Color,
 
+    // ── progress bar (`CellFormat::ProgressBar`) ─────────────────────────
+    /// Unfilled track colour of a progress bar.
+    pub progress_track: Color,
+    /// Fill colour used when no per-value class resolves to a
+    /// background (e.g. no `class_of` callback). Default = DaisyUI
+    /// primary.
+    pub progress_fill: Color,
+    /// Bar thickness in logical pixels.
+    pub progress_height: f64,
+    /// Corner radius of the track and fill in logical pixels.
+    pub progress_radius: f64,
+
     // ── spacing
     // ──────────────────────────────────────────────────────────────
     /// Horizontal padding inside each cell in logical pixels.
@@ -251,6 +263,11 @@ impl Theme {
             search_current: Color::rgba(255, 165, 0, 140),
             // skeleton
             skeleton_fg: Color::rgba(200, 200, 200, 77),
+            // progress bar — track = light gray, fill = DaisyUI primary
+            progress_track: Color::rgb(226, 232, 240),
+            progress_fill: Color::rgb(66, 42, 213),
+            progress_height: 8.0,
+            progress_radius: 8.0,
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -348,6 +365,11 @@ impl Theme {
             search_current: Color::rgba(255, 165, 0, 140),
             // skeleton — rgba(80, 80, 82, 0.78) → a = 199
             skeleton_fg: Color::rgba(80, 80, 82, 199),
+            // progress bar — track = dark gray, fill = brighter primary
+            progress_track: Color::rgb(60, 63, 68),
+            progress_fill: Color::rgb(99, 80, 240),
+            progress_height: 8.0,
+            progress_radius: 8.0,
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -445,6 +467,11 @@ impl Theme {
             search_current: Color::rgba(255, 165, 0, 140),
             // skeleton — rgba(99, 110, 123, 0.78) → a = 199
             skeleton_fg: Color::rgba(99, 110, 123, 199),
+            // progress bar — track = muted slate, fill = brighter primary
+            progress_track: Color::rgb(55, 62, 71),
+            progress_fill: Color::rgb(99, 80, 240),
+            progress_height: 8.0,
+            progress_radius: 8.0,
             // spacing
             cell_padding: 12.0,
             // scrollbar

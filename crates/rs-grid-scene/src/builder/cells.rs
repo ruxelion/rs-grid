@@ -155,6 +155,28 @@ pub(super) fn emit_cell(
                     *border_radius,
                     *gap,
                 );
+            } else if let Some(CellFormat::ProgressBar {
+                min,
+                max,
+                show_label,
+                class_of,
+            }) = &col.format
+            {
+                emit_progress_bar(
+                    frame,
+                    &raw,
+                    cx,
+                    ry,
+                    col.width,
+                    row_height,
+                    mid_y,
+                    t,
+                    class_resolver,
+                    *min,
+                    *max,
+                    *show_label,
+                    class_of.as_deref(),
+                );
             } else {
                 let (txt, align, bold, italic, color) =
                     if let Some(fmt) = &col.format {
@@ -273,6 +295,111 @@ fn emit_image_text(
             max_width: Some(
                 (col_width - 2.0 * t.cell_padding - image_size - gap).max(0.0),
             ),
+        }));
+    }
+}
+
+/// Emit a value-driven progress bar for
+/// `CellFormat::ProgressBar`.
+///
+/// The raw value is parsed as `f64` and mapped to a fraction in
+/// `[0, 1]` via `(value - min) / (max - min)`. A track rectangle
+/// spans the available width; a fill rectangle is scaled by the
+/// fraction. The fill colour comes from `class_of(raw)` resolved
+/// through `class_resolver` (its `background`), falling back to
+/// `Theme::progress_fill`. When `show_label` is set, the
+/// percentage is drawn right-aligned after the bar.
+#[allow(clippy::too_many_arguments)]
+fn emit_progress_bar(
+    frame: &mut SceneFrame,
+    raw: &str,
+    cx: f64,
+    ry: f64,
+    col_width: f64,
+    row_height: f64,
+    mid_y: f64,
+    t: &Theme,
+    class_resolver: Option<&ClassResolver>,
+    min: f64,
+    max: f64,
+    show_label: bool,
+    class_of: Option<&dyn Fn(&str) -> String>,
+) {
+    let clip = [cx, ry, col_width, row_height];
+
+    // Value → fraction in [0, 1].
+    let value = raw.parse::<f64>().unwrap_or(min);
+    let frac = if max > min {
+        ((value - min) / (max - min)).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+
+    // Resolve the per-value fill colour (and optional radius).
+    let style = class_of
+        .and_then(|f| class_resolver.map(|r| r(&f(raw))))
+        .unwrap_or_default();
+    let fill = style.background.unwrap_or(t.progress_fill);
+
+    // Reserve space for the "NN%" label when shown.
+    let label = if show_label {
+        Some(format!("{:.0}%", frac * 100.0))
+    } else {
+        None
+    };
+    let label_w = label
+        .as_ref()
+        .map(|s| s.len() as f64 * t.font_size * 0.65 + 6.0)
+        .unwrap_or(0.0);
+
+    let bar_x = cx + t.cell_padding;
+    let bar_w = (col_width - 2.0 * t.cell_padding - label_w).max(0.0);
+    let bar_h = t.progress_height.min(row_height - 2.0).max(0.0);
+    let bar_y = ry + (row_height - bar_h) / 2.0;
+    let track_radius = t.progress_radius.min(bar_h / 2.0);
+
+    // Track (unfilled background).
+    frame.push(ScenePrimitive::Rect(RectPrimitive {
+        x: bar_x,
+        y: bar_y,
+        width: bar_w,
+        height: bar_h,
+        fill: t.progress_track,
+        stroke: None,
+        stroke_width: 0.0,
+        corner_radius: track_radius,
+        clip: Some(clip),
+    }));
+
+    // Fill (scaled by the fraction).
+    let fill_w = bar_w * frac;
+    if fill_w > 0.0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: bar_x,
+            y: bar_y,
+            width: fill_w,
+            height: bar_h,
+            fill,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: track_radius.min(fill_w / 2.0),
+            clip: Some(clip),
+        }));
+    }
+
+    // Percentage label, right-aligned in the reserved space.
+    if let Some(text) = label {
+        frame.push(ScenePrimitive::Text(TextPrimitive {
+            x: cx + col_width - t.cell_padding,
+            y: mid_y,
+            text,
+            color: t.cell_text,
+            font_size: t.font_size,
+            bold: false,
+            italic: false,
+            clip: Some(clip),
+            align: TextAlign::Right,
+            max_width: Some(label_w.max(0.0)),
         }));
     }
 }
@@ -1034,6 +1161,198 @@ mod tests {
         );
         // 2 elements → 2 Text primitives (no bg).
         assert_eq!(frame.primitive_count(), 2);
+    }
+
+    // ── CellFormat::ProgressBar ──────────────────────────
+
+    fn progress_col(show_label: bool) -> ColumnDef {
+        ColumnDef::new("p", "P", 120.0).with_format(CellFormat::ProgressBar {
+            min: 0.0,
+            max: 1.0,
+            show_label,
+            class_of: None,
+        })
+    }
+
+    #[test]
+    fn emit_cell_progress_bar_emits_track_and_fill() {
+        let mut frame = make_frame();
+        let col = progress_col(false);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("0.5".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // track + fill = 2 rects (no label).
+        assert_eq!(frame.primitive_count(), 2);
+        assert!(
+            frame
+                .primitives
+                .iter()
+                .all(|p| matches!(p, ScenePrimitive::Rect(_)))
+        );
+        // Fill width is half the track width.
+        let widths: Vec<f64> = frame
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                ScenePrimitive::Rect(r) => Some(r.width),
+                _ => None,
+            })
+            .collect();
+        let track = widths[0];
+        let fill = widths[1];
+        assert!((fill - track * 0.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn emit_cell_progress_bar_with_label_adds_text() {
+        let mut frame = make_frame();
+        let col = progress_col(true);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("0.7".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // track + fill + label text.
+        assert_eq!(frame.primitive_count(), 3);
+        match &frame.primitives[2] {
+            ScenePrimitive::Text(txt) => assert_eq!(txt.text, "70%"),
+            _ => panic!("expected label Text"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_progress_bar_clamps_and_omits_zero_fill() {
+        // Value below min → fraction 0 → no fill rect.
+        let mut frame = make_frame();
+        let col = progress_col(false);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("-1".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // Only the track rect (zero fill is skipped).
+        assert_eq!(frame.primitive_count(), 1);
+    }
+
+    #[test]
+    fn emit_cell_progress_bar_resolved_class_sets_fill() {
+        use crate::{class_map::CellElementStyle, primitives::Color};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("p", "P", 120.0).with_format(
+            CellFormat::ProgressBar {
+                min: 0.0,
+                max: 1.0,
+                show_label: false,
+                class_of: Some(std::rc::Rc::new(|_raw| {
+                    "progress progress-success".into()
+                })),
+            },
+        );
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        let resolver: &crate::class_map::ClassResolver =
+            &|_class: &str| CellElementStyle {
+                background: Some(Color::rgb(0, 211, 144)),
+                ..CellElementStyle::default()
+            };
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("0.9".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            Some(resolver),
+        );
+        // Fill rect (second) uses the resolved background.
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.fill, Color::rgb(0, 211, 144));
+            }
+            _ => panic!("expected fill Rect"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_progress_bar_no_resolver_uses_theme_fill() {
+        let mut frame = make_frame();
+        let col = progress_col(false);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("0.8".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.progress_fill),
+            _ => panic!("expected fill Rect"),
+        }
     }
 
     // ── emit_cell_buttons ────────────────────────────────

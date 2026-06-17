@@ -128,12 +128,35 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             ];
             c
         },
+        {
+            let mut c = ColumnDef::new("completion", "Completion", 160.0);
+            // Value-driven DaisyUI progress bar: the raw value is an
+            // integer percentage (0–100). The fill colour shifts with
+            // the value via the registered class resolver.
+            c.format = Some(CellFormat::ProgressBar {
+                min: 0.0,
+                max: 100.0,
+                show_label: true,
+                class_of: Some(Rc::new(|raw| {
+                    let v = raw.parse::<f64>().unwrap_or(0.0);
+                    if v < 40.0 {
+                        "progress progress-error".into()
+                    } else if v < 70.0 {
+                        "progress progress-warning".into()
+                    } else {
+                        "progress progress-success".into()
+                    }
+                })),
+            });
+            c
+        },
     ];
 
+    let base_len = base.len();
     let mut columns: Vec<ColumnDef> =
-        base.into_iter().take(col_count.min(9)).collect();
+        base.into_iter().take(col_count.min(base_len)).collect();
 
-    let extras_needed = col_count.saturating_sub(9);
+    let extras_needed = col_count.saturating_sub(base_len);
     for col in fake_data::EXTRA_COLUMNS.iter().take(extras_needed) {
         let mut c = ColumnDef::new(col.key, col.label, col.width);
         c.format = match col.format_hint {
@@ -167,8 +190,9 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         columns.push(c);
     }
 
-    // Dynamic columns beyond the 92 hand-crafted extras
-    let dynamic_needed = col_count.saturating_sub(8 + fake_data::EXTRA_COUNT);
+    // Dynamic columns beyond the hand-crafted base + extras.
+    let dynamic_needed =
+        col_count.saturating_sub(base_len - 1 + fake_data::EXTRA_COUNT);
     for i in 0..dynamic_needed {
         let (key, label, width, hint) = fake_data::dynamic_col_def(i);
         let mut c = ColumnDef::new(&key, &label, width);

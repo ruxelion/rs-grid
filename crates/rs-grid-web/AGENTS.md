@@ -72,7 +72,10 @@ Layout getters callable from `on_columns_changed`:
 
 CSS variables are prefixed `--rs-grid-*`. `light.css`, `dark.css`, and
 `dimmed.css` in `examples/example-common/themes/` are **auto-generated**
-— do not edit them directly.
+— do not edit them directly. The full variable → `Theme` field mapping is
+documented in `css_theme.rs`. The progress-bar cell renderer adds
+`--rs-grid-progress-track`, `--rs-grid-progress-fill`,
+`--rs-grid-progress-height`, and `--rs-grid-progress-radius`.
 
 ### Adding a CSS variable to an existing theme
 

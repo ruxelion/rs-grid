@@ -43,6 +43,18 @@
 //! **Sizes:** `btn-xs`, `btn-sm`, `btn-md`,
 //! `btn-lg`, `btn-xl`
 //!
+//! ## progress
+//!
+//! **Base:** `progress`
+//!
+//! **Colour variants:** `progress-primary`,
+//! `progress-secondary`, `progress-accent`,
+//! `progress-success`, `progress-error`, `progress-warning`,
+//! `progress-info`, `progress-neutral`
+//!
+//! Used by `CellFormat::ProgressBar`: the resolved
+//! `background` is the bar fill colour.
+//!
 //! ## Tailwind utilities (canvas-meaningful)
 //!
 //! `font-bold`, `rounded-full`, `rounded-md`, `rounded`,
@@ -57,9 +69,9 @@
 use rs_grid_scene::{class_map::CellElementStyle, primitives::Color};
 
 use crate::class_map_data::{
-    badge, btn, ACCENT_BG, ACCENT_FG, BASE_200, ERROR_BG, ERROR_FG, INFO_BG,
-    INFO_FG, NEUTRAL_BG, NEUTRAL_FG, PRIMARY_BG, PRIMARY_FG, SECONDARY_BG,
-    SECONDARY_FG, SUCCESS_BG, SUCCESS_FG, WARNING_BG, WARNING_FG,
+    badge, btn, progress, ACCENT_BG, ACCENT_FG, BASE_200, ERROR_BG, ERROR_FG,
+    INFO_BG, INFO_FG, NEUTRAL_BG, NEUTRAL_FG, PRIMARY_BG, PRIMARY_FG,
+    SECONDARY_BG, SECONDARY_FG, SUCCESS_BG, SUCCESS_FG, WARNING_BG, WARNING_FG,
 };
 
 /// Resolve space-separated DaisyUI / Tailwind class names
@@ -274,6 +286,47 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
                 s.font_size_delta = btn::XL.fd;
             }
 
+            // ── progress base ─────────────────────────────
+            "progress" => {
+                s.border_radius = progress::RADIUS;
+            }
+
+            // ── progress colour variants ──────────────────
+            // The scene builder uses `background` as the bar
+            // fill colour; `color` is carried for label use.
+            "progress-primary" => {
+                s.background = Some(progress::PRIMARY_BG);
+                s.color = Some(progress::PRIMARY_FG);
+            }
+            "progress-secondary" => {
+                s.background = Some(progress::SECONDARY_BG);
+                s.color = Some(progress::SECONDARY_FG);
+            }
+            "progress-accent" => {
+                s.background = Some(progress::ACCENT_BG);
+                s.color = Some(progress::ACCENT_FG);
+            }
+            "progress-success" => {
+                s.background = Some(progress::SUCCESS_BG);
+                s.color = Some(progress::SUCCESS_FG);
+            }
+            "progress-error" => {
+                s.background = Some(progress::ERROR_BG);
+                s.color = Some(progress::ERROR_FG);
+            }
+            "progress-warning" => {
+                s.background = Some(progress::WARNING_BG);
+                s.color = Some(progress::WARNING_FG);
+            }
+            "progress-info" => {
+                s.background = Some(progress::INFO_BG);
+                s.color = Some(progress::INFO_FG);
+            }
+            "progress-neutral" => {
+                s.background = Some(progress::NEUTRAL_BG);
+                s.color = Some(progress::NEUTRAL_FG);
+            }
+
             // ── Tailwind utilities (canvas-meaningful) ────
             "font-bold" => {
                 s.bold = true;
@@ -331,7 +384,8 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 mod tests {
     use super::*;
     use crate::class_map_data::{
-        badge, btn, ERROR_BG, INFO_BG, PRIMARY_BG, SUCCESS_BG, SUCCESS_FG,
+        badge, btn, progress, ERROR_BG, INFO_BG, PRIMARY_BG, SUCCESS_BG,
+        SUCCESS_FG,
     };
 
     // ── badge ─────────────────────────────────────────────
@@ -584,6 +638,47 @@ mod tests {
             let s = resolve_classes(&format!("btn {v}"));
             assert!(s.background.is_some(), "{v} should have a background");
             assert!(s.color.is_some(), "{v} should have a text colour");
+        }
+    }
+
+    // ── progress ──────────────────────────────────────────
+
+    #[test]
+    fn progress_base_sets_radius() {
+        let s = resolve_classes("progress");
+        assert_eq!(s.border_radius, progress::RADIUS);
+        assert!(s.background.is_none());
+    }
+
+    #[test]
+    fn progress_success_sets_fill() {
+        let s = resolve_classes("progress progress-success");
+        let bg = s.background.expect("fill colour");
+        assert_eq!(
+            (bg.r, bg.g, bg.b),
+            (
+                progress::SUCCESS_BG.r,
+                progress::SUCCESS_BG.g,
+                progress::SUCCESS_BG.b
+            )
+        );
+    }
+
+    #[test]
+    fn progress_all_colour_variants_have_bg() {
+        let variants = [
+            "progress-primary",
+            "progress-secondary",
+            "progress-accent",
+            "progress-success",
+            "progress-error",
+            "progress-warning",
+            "progress-info",
+            "progress-neutral",
+        ];
+        for v in variants {
+            let s = resolve_classes(&format!("progress {v}"));
+            assert!(s.background.is_some(), "{v} should have a fill colour");
         }
     }
 }

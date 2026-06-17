@@ -168,6 +168,54 @@ pub enum CellFormat {
         /// Gap between image and text.
         gap: f64,
     },
+    /// Value-driven progress bar (like DaisyUI's `progress`).
+    ///
+    /// The raw cell value is parsed as `f64` and mapped to a
+    /// fraction in `[0, 1]` via `(value - min) / (max - min)`,
+    /// clamped to that range. The scene layer draws a track
+    /// rectangle plus a fill rectangle scaled by the fraction,
+    /// with an optional `"NN%"` label.
+    ///
+    /// `class_of` is an optional value → class-string callback,
+    /// resolved through the registered `ClassResolver` to pick
+    /// the fill colour per value (e.g. DaisyUI
+    /// `"progress progress-success"`). When `None`, the fill
+    /// uses `Theme::progress_fill` (a single themed colour).
+    ///
+    /// Like [`Custom`](CellFormat::Custom) and
+    /// [`Styled`](CellFormat::Styled), `class_of` uses [`Rc`]
+    /// (single-threaded) and is cloned via `Rc::clone`.
+    ///
+    /// # Example
+    /// ```ignore
+    /// CellFormat::ProgressBar {
+    ///     min: 0.0,
+    ///     max: 1.0,
+    ///     show_label: true,
+    ///     class_of: Some(Rc::new(|raw| {
+    ///         let v = raw.parse::<f64>().unwrap_or(0.0);
+    ///         if v < 0.4 {
+    ///             "progress progress-error".into()
+    ///         } else if v < 0.7 {
+    ///             "progress progress-warning".into()
+    ///         } else {
+    ///             "progress progress-success".into()
+    ///         }
+    ///     })),
+    /// }
+    /// ```
+    #[allow(clippy::type_complexity)]
+    ProgressBar {
+        /// Value mapped to fraction `0.0`.
+        min: f64,
+        /// Value mapped to fraction `1.0`.
+        max: f64,
+        /// Overlay the percentage as text (e.g. `"70%"`).
+        show_label: bool,
+        /// Optional value → class-string mapping for per-value
+        /// fill colours. `None` → `Theme::progress_fill`.
+        class_of: Option<Rc<dyn Fn(&str) -> String>>,
+    },
 }
 
 impl Clone for CellFormat {
@@ -226,6 +274,17 @@ impl Clone for CellFormat {
                 image_size: *image_size,
                 border_radius: *border_radius,
                 gap: *gap,
+            },
+            Self::ProgressBar {
+                min,
+                max,
+                show_label,
+                class_of,
+            } => Self::ProgressBar {
+                min: *min,
+                max: *max,
+                show_label: *show_label,
+                class_of: class_of.as_ref().map(Rc::clone),
             },
         }
     }
@@ -293,6 +352,18 @@ impl std::fmt::Debug for CellFormat {
                 .field("image_size", image_size)
                 .field("border_radius", border_radius)
                 .field("gap", gap)
+                .finish(),
+            Self::ProgressBar {
+                min,
+                max,
+                show_label,
+                class_of,
+            } => f
+                .debug_struct("ProgressBar")
+                .field("min", min)
+                .field("max", max)
+                .field("show_label", show_label)
+                .field("class_of", &class_of.as_ref().map(|_| ".."))
                 .finish(),
         }
     }
@@ -429,6 +500,12 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
                 ..Default::default()
             }
         }
+        // ProgressBar is handled directly by the scene builder;
+        // format_cell is not called for this variant.
+        CellFormat::ProgressBar { .. } => FormattedCell {
+            text: raw.to_owned(),
+            ..Default::default()
+        },
     }
 }
 
@@ -947,5 +1024,65 @@ mod tests {
         let fmt = CellFormat::Styled(Rc::new(|_: &str| vec![]));
         let result = format_cell("hello", &fmt);
         assert_eq!(result.text, "hello");
+    }
+
+    // ── CellFormat::ProgressBar ───────────────────────────
+
+    #[test]
+    fn progress_bar_clone_preserves_fields_and_callback() {
+        let fmt = CellFormat::ProgressBar {
+            min: 0.0,
+            max: 1.0,
+            show_label: true,
+            class_of: Some(Rc::new(|_raw: &str| {
+                "progress progress-success".into()
+            })),
+        };
+        let cloned = fmt.clone();
+        match cloned {
+            CellFormat::ProgressBar {
+                min,
+                max,
+                show_label,
+                class_of,
+            } => {
+                assert_eq!(min, 0.0);
+                assert_eq!(max, 1.0);
+                assert!(show_label);
+                let cb = class_of.expect("callback");
+                assert_eq!(cb("0.9"), "progress progress-success");
+            }
+            _ => panic!("expected ProgressBar"),
+        }
+    }
+
+    #[test]
+    fn progress_bar_debug_does_not_panic() {
+        let with_cb = CellFormat::ProgressBar {
+            min: 0.0,
+            max: 100.0,
+            show_label: false,
+            class_of: Some(Rc::new(|_: &str| String::new())),
+        };
+        let without_cb = CellFormat::ProgressBar {
+            min: 0.0,
+            max: 100.0,
+            show_label: false,
+            class_of: None,
+        };
+        assert!(format!("{with_cb:?}").contains("ProgressBar"));
+        assert!(format!("{without_cb:?}").contains("ProgressBar"));
+    }
+
+    #[test]
+    fn format_cell_progress_bar_returns_raw_text() {
+        let fmt = CellFormat::ProgressBar {
+            min: 0.0,
+            max: 1.0,
+            show_label: true,
+            class_of: None,
+        };
+        let result = format_cell("0.42", &fmt);
+        assert_eq!(result.text, "0.42");
     }
 }

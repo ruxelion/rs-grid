@@ -257,6 +257,12 @@ cd e2e && npm run update-snapshots
 - `dblclick on Role cell (editor=None) does not open any input` — regression guard for the None-editor fix
 - `Escape closes the text editor`
 
+`e2e/tests/progress.spec.ts`:
+- `scrolling to the Completion column does not crash` — scrolls right to the
+  `CellFormat::ProgressBar` column, asserts no page error
+- `renders value-driven progress bars` — visual regression of the DaisyUI
+  progress bars (per-value error/warning/success colours)
+
 `e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.
 
 **Canvas note**: the grid is rendered on `<canvas>`, not in the DOM.

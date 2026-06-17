@@ -1007,6 +1007,11 @@ pub fn fake_cell(row: u64, col_key: &str) -> Option<String> {
             let active = (h % 100) >= 15;
             Some(active.to_string())
         }
+        "completion" => {
+            // Integer percentage in [0, 100] for the progress bar.
+            let pct = hash_field(row, 7) % 101;
+            Some(pct.to_string())
+        }
         _ => {
             if let Some(s) = col_key.strip_prefix("dyn_") {
                 if let Ok(n) = s.parse::<usize>() {

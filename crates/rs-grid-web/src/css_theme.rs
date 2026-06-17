@@ -27,6 +27,10 @@ use rs_grid_scene::{Theme, primitives::Color};
 /// | `--rs-grid-scrollbar-width`    | `Theme::scrollbar_width`     |
 /// | `--rs-grid-scrollbar-radius`   | `Theme::scrollbar_radius`    |
 /// | `--rs-grid-scrollbar-inset`    | `Theme::scrollbar_inset`     |
+/// | `--rs-grid-progress-track`     | `Theme::progress_track`      |
+/// | `--rs-grid-progress-fill`      | `Theme::progress_fill`       |
+/// | `--rs-grid-progress-height`    | `Theme::progress_height`     |
+/// | `--rs-grid-progress-radius`    | `Theme::progress_radius`     |
 /// | `--rs-grid-row-alt-bg`         | `Theme::row_alt_bg`          |
 /// | `--rs-grid-font-size`          | `Theme::font_size`           |
 /// | `--rs-grid-header-font-size`   | `Theme::header_font_size`    |
@@ -118,6 +122,10 @@ pub fn theme_from_css_vars() -> Theme {
         color("--rs-grid-search-highlight", t.search_highlight);
     t.search_current = color("--rs-grid-search-current", t.search_current);
     t.skeleton_fg = color("--rs-grid-skeleton-fg", t.skeleton_fg);
+    t.progress_track = color("--rs-grid-progress-track", t.progress_track);
+    t.progress_fill = color("--rs-grid-progress-fill", t.progress_fill);
+    t.progress_height = px("--rs-grid-progress-height", t.progress_height);
+    t.progress_radius = px("--rs-grid-progress-radius", t.progress_radius);
     t.drag_overlay = color("--rs-grid-drag-overlay", t.drag_overlay);
     t.drag_ghost_bg = color("--rs-grid-drag-ghost-bg", t.drag_ghost_bg);
     t.drag_ghost_text = color("--rs-grid-drag-ghost-text", t.drag_ghost_text);

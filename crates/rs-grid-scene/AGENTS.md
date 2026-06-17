@@ -29,6 +29,17 @@ drawing primitives.
 - `ScenePrimitive::Line` — line segment
 - `ScenePrimitive::Polygon` — filled convex polygon, optional rounded corners
 
+## Cell content rendering (`builder/cells.rs`)
+
+`emit_cell` dispatches on `ColumnDef.format`. Composite renderers build their
+output from the primitives above — no new primitive type is added:
+
+- `CellFormat::ProgressBar` → `emit_progress_bar`: a track `Rect`
+  (`Theme::progress_track`) + a fill `Rect` scaled by the value fraction (colour
+  from the resolved class `background`, else `Theme::progress_fill`) + an
+  optional right-aligned `"NN%"` label. Geometry via `Theme::progress_height`
+  and `Theme::progress_radius`.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

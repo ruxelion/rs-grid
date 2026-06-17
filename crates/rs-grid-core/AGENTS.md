@@ -44,6 +44,21 @@ It must remain testable with standard native `cargo test`.
   through `rs-grid-web` as a callback (`on_cell_button_click` in the
   framework wrappers) carrying `(row, col_key, button_id)`.
 
+## Cell formats (`CellFormat`)
+
+`ColumnDef.format` selects how a cell is drawn. The enum is
+`#[non_exhaustive]`; the scene layer interprets each variant. Besides
+`Number`/`Percent`/`Currency`/`Boolean`/`Custom`/`Image`/`Styled`/`ImageText`,
+there is:
+
+- `ProgressBar { min, max, show_label, class_of }` — a value-driven progress
+  bar. The raw value is parsed as `f64` and mapped to `[0, 1]` via
+  `(value - min) / (max - min)`. `class_of: Option<Rc<dyn Fn(&str) -> String>>`
+  maps the value to a class string (e.g. `"progress progress-success"`),
+  resolved by the registered `ClassResolver` to pick the fill colour per value;
+  `None` uses `Theme::progress_fill`. Stays daisyUI-agnostic — class strings are
+  opaque here.
+
 ## Useful commands
 
 ```sh

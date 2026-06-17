@@ -102,6 +102,11 @@ fn theme_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-search-current", c(t.search_current)),
         // skeleton
         ("--rs-grid-skeleton-fg", c(t.skeleton_fg)),
+        // progress bar
+        ("--rs-grid-progress-track", c(t.progress_track)),
+        ("--rs-grid-progress-fill", c(t.progress_fill)),
+        ("--rs-grid-progress-height", px(t.progress_height)),
+        ("--rs-grid-progress-radius", px(t.progress_radius)),
         // spacing
         ("--rs-grid-cell-padding", px(t.cell_padding)),
         // scrollbar
