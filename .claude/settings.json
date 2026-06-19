@@ -1,28 +1,32 @@
 {
   "permissions": {
     "allow": [
-      "Bash(scoop --version)",
-      "Bash(powershell -Command \"Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression\")",
-      "Bash(choco --version)",
-      "Bash(powershell -Command \":*)",
-      "Bash(mkcert --version)",
-      "Bash(just tls-setup:*)",
-      "Bash(mkcert localhost:*)",
-      "Bash(wc -l /d/Dev/rs-grid/site/docs/en/features/*.mdx)",
-      "Bash(cargo clippy:*)",
+      "Bash(cargo:*)",
+      "Bash(just:*)",
+      "Bash(trunk build:*)",
+      "Bash(trunk serve:*)",
       "Bash(npx playwright:*)",
-      "Bash(find d:\\\\\\\\Dev\\\\\\\\rs-grid -type f -name \"*.rs\")",
-      "Bash(grep -l \"CellFormat\" /d/Dev/rs-grid/examples/example-common/src/*.rs)",
-      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 33672\\\\\"\")",
-      "Bash(cmd /c \"tasklist /FI \\\\\"PID eq 33672\\\\\" /FO LIST\")",
-      "Bash(cmd /c \"wmic process where \\\\\"ProcessId=33672\\\\\" get Name,ProcessId,ExecutablePath 2>&1\")",
-      "Bash(cmd /c \"taskkill /PID 33672 /F\")",
-      "Bash(cmd /c \"netstat -ano | findstr :9081\")",
-      "Bash(cmd /c \"netstat -ano | findstr \\\\\"0.0.0.0:9081 \\\\\"\")",
-      "WebFetch(domain:daisyui.com)",
-      "Bash(cmd /c npm install --prefer-offline --no-audit --no-fund)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(release-plz:*)",
       "Bash(node generate_class_map.mjs)",
-      "Bash(cmd /c \"npm install --no-audit --no-fund\")"
+      "Bash(mkcert:*)",
+      "Bash(scoop:*)",
+      "WebFetch(domain:daisyui.com)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/fmt-check.py\""
+          }
+        ]
+      }
     ]
   }
 }
