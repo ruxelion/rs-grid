@@ -1349,6 +1349,8 @@ dependencies = [
  "rs-grid-core",
  "rs-grid-icons",
  "rs-grid-scene",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

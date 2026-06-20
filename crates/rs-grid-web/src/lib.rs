@@ -10,6 +10,7 @@
 mod canvas;
 mod css_theme;
 mod locale;
+pub mod storage;
 
 pub use canvas::{
     GridCanvas,

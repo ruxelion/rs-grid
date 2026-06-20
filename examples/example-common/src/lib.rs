@@ -12,6 +12,8 @@ pub mod class_map;
 pub mod class_map_data;
 /// Deterministic fake data generation for examples and tests.
 pub mod fake_data;
+/// Persistable column-layout snapshot (widths, order, pinned count).
+pub mod layout;
 
 use std::rc::Rc;
 

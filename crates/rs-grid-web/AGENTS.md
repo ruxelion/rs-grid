@@ -10,6 +10,7 @@ mouse/keyboard events, rAF loop, resize, DPR, CSS theme, localisation.
 | `canvas` | `GridCanvas`: mounts the grid on an `HtmlCanvasElement`, manages rAF and events |
 | `css_theme` | `theme_from_css_vars()`: reads CSS variables to build a `Theme` |
 | `locale` | `Locale`: UI string translations (15 built-in languages, TOML-based) |
+| `storage` | `get_item` / `set_item` / `remove_item`: graceful `localStorage` helpers for persisting small demo state (e.g. a column layout). No-op when storage is unavailable. Pair with `example_common::layout::LayoutSnapshot`. |
 
 ## Responsibilities of `GridCanvas`
 
