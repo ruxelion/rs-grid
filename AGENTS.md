@@ -85,7 +85,8 @@ trunk serve
 # One-time: cargo install release-plz
 release-plz update
 
-# Publish all 8 crates to crates.io in dependency order (30 s between each).
+# Publish to crates.io only the crates whose version is not yet published
+# (dependency order, 30 s waits). Unchanged crates are skipped automatically.
 # Requires: cargo login + owner rights on each crate.
 just publish
 ```
@@ -108,7 +109,7 @@ synchronisées avec `.vscode/tasks.json`.
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
 | `just mcp-publish` | publier le serveur MCP sur npm |
 | `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |
-| `just publish` | publier les 8 crates sur crates.io dans l'ordre de dépendances |
+| `just publish` | publier sur crates.io les crates dont la version n'est pas encore publiée (ordre de dépendances) |
 
 ## Code conventions
 

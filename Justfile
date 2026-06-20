@@ -152,23 +152,10 @@ release-preview:
     release-plz update
     @echo Inspect with 'git diff', then 'git checkout .' to discard.
 
-# Publish all 8 crates to crates.io in dependency order (30 s between each).
+# Publish to crates.io only the crates whose current version is not yet
+# published, in dependency order with index-propagation waits. Robust across
+# releases: unchanged crates are skipped automatically (logic in
+# tools/publish.ps1), so it no longer fails trying to re-publish 0.1.x crates.
 # Requires: cargo login + owner rights on each crate.
 publish:
-    cargo publish -p rs-grid-core
-    @echo Waiting for crates.io index to propagate...
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-icons
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-scene
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-render-canvas
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-web
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-leptos
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-dioxus
-    powershell -NoProfile -Command "Start-Sleep 30"
-    cargo publish -p rs-grid-yew
-    @echo All crates published. Remember to create per-crate tags and run git push origin --tags.
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools/publish.ps1
