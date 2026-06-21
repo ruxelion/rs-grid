@@ -39,8 +39,10 @@ claude mcp add rs-grid -- npx -y rs-grid-mcp
 
 | Tool | Description |
 | --- | --- |
-| `search_rs_grid_docs` | Keyword search across the docs; returns relevant excerpts. `language`: `en` (default) / `fr`. |
-| `get_api_type` | Full doc page for a type by name (e.g. `GridCommand`, `ColumnDef`, `CellFormat`, `GridState`, `Theme`). |
+| `search_rs_grid_docs` | Keyword search across the docs (incl. `skill.md`); relevance-ranked with title/heading boosting. `language`: `en` (default) / `fr`. |
+| `get_api_type` | Full doc page for a type by name (e.g. `GridCommand`, `ColumnDef`, `CellFormat`, `GridState`, `Theme`). Pass `list` to enumerate all known types; suggests the closest name on a typo. |
+| `list_commands` | List `GridCommand` variants (the only way to mutate grid state) with name, category and signature. Optional `category` filter. |
+| `get_command` | Full signature, category and notes for one `GridCommand` variant by name (e.g. `SetSort`, `AutoFitColumn`). |
 | `list_doc_pages` | List doc pages, optionally filtered by section (`api`, `features`, `concepts`, `data`, `theming`, `integrations`, `scene`, `deployment`, `development`). |
 | `list_scenes` | List the canonical render scenarios available to `get_scene`. |
 | `get_scene` | Get a scenario's `SceneFrame` as JSON — every primitive's geometry, color, clip and text. Scenarios: `basic`, `selection`, `pinned`, `scrolled`. |
@@ -78,6 +80,18 @@ tests, so they stay faithful to the real renderer.
 | `rs-grid://llms-full.txt` | Full concatenated documentation. |
 | `rs-grid://skill.md` | Skill definition (capabilities, constraints, workflows). |
 | `rs-grid://docs/{path}` | Any individual documentation page. |
+
+## Building
+
+`npm run build` compiles the TypeScript and populates `dist/` with the rendered
+docs. The doc source is resolved automatically:
+
+- **local** — if the sibling repo `../rs-grid-site/doc_build` exists, docs are
+  copied from it (so local doc edits reach the MCP without pushing to GitHub);
+- **github** — otherwise, docs are downloaded from
+  `ruxelion/rs-grid-site@main` (the default for a published install).
+
+Override with `RS_GRID_DOCS_SOURCE=local` or `RS_GRID_DOCS_SOURCE=github`.
 
 ## Links
 

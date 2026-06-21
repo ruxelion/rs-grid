@@ -147,7 +147,9 @@ gen-scene-fixtures:
 
 # ── MCP (Model Context Protocol) ────────────────────────
 
-# Build the MCP server (TypeScript → dist/ + download docs from GitHub)
+# Build the MCP server (TypeScript → dist/ + docs). Docs are local-first:
+# copied from the sibling rs-grid-site/doc_build if present, else GitHub.
+# Force a source with RS_GRID_DOCS_SOURCE=local|github.
 mcp-build:
     cd mcp && npm install
     cd mcp && npm run build
@@ -156,9 +158,12 @@ mcp-build:
 mcp-dev:
     cd mcp && npm run dev
 
-# Publish the MCP server to npm (requires NPM_TOKEN)
+# Publish the MCP server to npm (requires NPM_TOKEN). Always bundles the
+# canonical GitHub docs (RS_GRID_DOCS_SOURCE=github) — never local edits.
 # Usage: NPM_TOKEN=xxx just mcp-publish
-mcp-publish: mcp-build
+mcp-publish:
+    cd mcp && npm install
+    cd mcp && RS_GRID_DOCS_SOURCE=github npm run build
     cd mcp && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
 
 # ── Release (release-plz) ────────────────────────────────

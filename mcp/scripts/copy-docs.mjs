@@ -1,6 +1,11 @@
 /**
- * Downloads .md and llms*.txt files from ruxelion/rs-grid-site (GitHub)
- * into dist/ so the npm package is self-contained.
+ * Populates dist/ with the rendered docs so the npm package is self-contained.
+ *
+ * Doc source resolution (override with RS_GRID_DOCS_SOURCE=local|github):
+ *   1. local  — copy from the sibling repo ../rs-grid-site/doc_build if present
+ *               (lets local doc edits reach the MCP without pushing to GitHub)
+ *   2. github — download from ruxelion/rs-grid-site@main (the published default)
+ * With no override, local is used when the sibling repo exists, else github.
  */
 
 import fs from "node:fs";
@@ -13,6 +18,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const DEST_DOC_BUILD = path.join(__dirname, "..", "dist", "doc_build");
 const SRC_SKILL = path.join(ROOT, "docs", "skill.md");
 const DEST_SKILL = path.join(__dirname, "..", "dist", "skill.md");
+const SIBLING_DOC_BUILD = path.resolve(ROOT, "..", "rs-grid-site", "doc_build");
 
 const GITHUB_REPO = "ruxelion/rs-grid-site";
 const GITHUB_BRANCH = "main";
@@ -26,30 +32,87 @@ function isDocFile(filePath) {
   return false;
 }
 
-console.log(`Fetching doc_build file list from ${GITHUB_REPO}...`);
-const treeRes = await fetch(GITHUB_TREE_API);
-if (!treeRes.ok) {
-  console.error(`GitHub API error: ${treeRes.status} ${treeRes.statusText}`);
+// Recursively list doc files under `dir`, returned as paths relative to `dir`.
+function walkDocFiles(dir, base = dir) {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...walkDocFiles(full, base));
+    } else if (entry.isFile() && isDocFile(full)) {
+      out.push(path.relative(base, full));
+    }
+  }
+  return out;
+}
+
+function copyLocalDocs() {
+  console.log(`Copying docs from local ${SIBLING_DOC_BUILD}...`);
+  const rels = walkDocFiles(SIBLING_DOC_BUILD);
+  for (const rel of rels) {
+    const dest = path.join(DEST_DOC_BUILD, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(path.join(SIBLING_DOC_BUILD, rel), dest);
+  }
+  return rels.length;
+}
+
+async function downloadGithubDocs() {
+  console.log(`Fetching doc_build file list from ${GITHUB_REPO}...`);
+  const treeRes = await fetch(GITHUB_TREE_API);
+  if (!treeRes.ok) {
+    console.error(`GitHub API error: ${treeRes.status} ${treeRes.statusText}`);
+    process.exit(1);
+  }
+  const { tree } = await treeRes.json();
+
+  const docFiles = tree.filter(
+    (f) =>
+      f.type === "blob" &&
+      f.path.startsWith("doc_build/") &&
+      isDocFile(f.path),
+  );
+
+  console.log(`Downloading ${docFiles.length} files...`);
+  await Promise.all(
+    docFiles.map(async (file) => {
+      const url = `${GITHUB_RAW}/${file.path}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+      const content = await res.text();
+      const dest = path.join(__dirname, "..", "dist", file.path);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, content, "utf-8");
+    }),
+  );
+  return docFiles.length;
+}
+
+// --- Resolve source and populate dist/doc_build/ ---
+
+const override = process.env.RS_GRID_DOCS_SOURCE;
+const localAvailable = fs.existsSync(SIBLING_DOC_BUILD);
+
+if (override && override !== "local" && override !== "github") {
+  console.error(
+    `Invalid RS_GRID_DOCS_SOURCE="${override}" (expected "local" or "github").`,
+  );
   process.exit(1);
 }
-const { tree } = await treeRes.json();
+if (override === "local" && !localAvailable) {
+  console.error(
+    `RS_GRID_DOCS_SOURCE=local but no docs found at ${SIBLING_DOC_BUILD}.`,
+  );
+  process.exit(1);
+}
 
-const docFiles = tree.filter(
-  (f) => f.type === "blob" && f.path.startsWith("doc_build/") && isDocFile(f.path),
-);
+const useLocal = override === "local" || (override !== "github" && localAvailable);
 
-console.log(`Downloading ${docFiles.length} files...`);
-await Promise.all(
-  docFiles.map(async (file) => {
-    const url = `${GITHUB_RAW}/${file.path}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
-    const content = await res.text();
-    const dest = path.join(__dirname, "..", "dist", file.path);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, content, "utf-8");
-  }),
-);
+// Clear stale output so switching sources never leaves orphaned pages behind.
+fs.rmSync(DEST_DOC_BUILD, { recursive: true, force: true });
+fs.mkdirSync(DEST_DOC_BUILD, { recursive: true });
+
+const docCount = useLocal ? copyLocalDocs() : await downloadGithubDocs();
 
 fs.copyFileSync(SRC_SKILL, DEST_SKILL);
 
@@ -72,5 +135,6 @@ if (fs.existsSync(SRC_SCENES)) {
 }
 
 console.log(
-  `Done — ${docFiles.length} doc files + ${sceneCount} scene fixtures into dist/`,
+  `Done — ${docCount} doc files (${useLocal ? "local" : "github"}) + ` +
+    `${sceneCount} scene fixtures into dist/`,
 );

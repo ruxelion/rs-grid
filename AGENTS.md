@@ -197,7 +197,7 @@ reasoning.
 | Server | Role | Setup |
 |---|---|---|
 | **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
-| **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`). Scene fixtures: `just gen-scene-fixtures` |
+| **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`), **structured GridCommand variants** (`list_commands`, `get_command`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`). Scene fixtures: `just gen-scene-fixtures`. Docs source: local sibling `rs-grid-site/doc_build` if present, else GitHub (`RS_GRID_DOCS_SOURCE=local\|github` to force) |
 | **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
 
 The **GitHub** server is a personal, local config (the PAT must not be committed

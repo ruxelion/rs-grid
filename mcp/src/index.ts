@@ -14,11 +14,18 @@ import {
   resolveDocPath,
 } from "./paths.js";
 import { searchDocs, loadDocs } from "./search.js";
-import { TYPE_TO_DOC_PATH, SECTION_PREFIXES } from "./type-map.js";
+import {
+  TYPE_TO_DOC_PATH,
+  SECTION_PREFIXES,
+  knownTypeNames,
+  typesByPage,
+  suggestTypes,
+} from "./type-map.js";
+import { loadCommands, COMMAND_DOC_PAGE } from "./commands.js";
 
 const server = new McpServer({
   name: "rs-grid-docs",
-  version: "0.2.2",
+  version: "0.3.0",
 });
 
 // --- Tool: search_rs_grid_docs ---
@@ -49,16 +56,33 @@ server.tool(
 
 // --- Tool: get_api_type ---
 
+function listKnownTypes(): string {
+  const lines = ["## Known rs-grid types\n"];
+  for (const [page, types] of [...typesByPage()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )) {
+    lines.push(`- **${page}**: ${types.join(", ")}`);
+  }
+  lines.push(
+    "\nCall get_api_type with any of these names (case-insensitive).",
+  );
+  return lines.join("\n");
+}
+
 server.tool(
   "get_api_type",
   "Look up the documentation page for a specific rs-grid type by name. " +
     "Returns the full markdown content of the relevant doc page. " +
     "Example type names: GridCommand, ColumnDef, CellFormat, DataSource, " +
-    "VecDataSource, GridState, Theme, Locale, SortState, SelectionState.",
+    "VecDataSource, GridState, Theme, Locale, SortState, SelectionState. " +
+    "Pass 'list' (or '*') to enumerate every known type name.",
   {
     type_name: z
       .string()
-      .describe("Type name to look up (case-insensitive, e.g. 'GridCommand')"),
+      .describe(
+        "Type name to look up (case-insensitive, e.g. 'GridCommand'). " +
+          "Use 'list' to enumerate all known types.",
+      ),
     language: z
       .enum(["en", "fr"])
       .optional()
@@ -67,22 +91,27 @@ server.tool(
   },
   async ({ type_name, language }) => {
     const key = type_name.toLowerCase().replace(/\s+/g, "");
+
+    // Discovery mode: enumerate every known type name.
+    if (key === "list" || key === "*" || key === "all" || key === "types") {
+      return { content: [{ type: "text", text: listKnownTypes() }] };
+    }
+
     const docPath = TYPE_TO_DOC_PATH[key];
 
     if (!docPath) {
-      const known = Object.keys(TYPE_TO_DOC_PATH)
-        .map((k) => TYPE_TO_DOC_PATH[k])
-        .filter((v, i, a) => a.indexOf(v) === i)
-        .sort()
-        .join(", ");
+      const suggestions = suggestTypes(type_name);
+      const didYouMean = suggestions.length
+        ? `Did you mean: ${suggestions.join(", ")}? `
+        : "";
       return {
         content: [
           {
             type: "text",
             text:
-              `Unknown type: "${type_name}". ` +
-              `Known doc pages: ${known}. ` +
-              `Try search_rs_grid_docs for a keyword search instead.`,
+              `Unknown type: "${type_name}". ${didYouMean}` +
+              `Known type names: ${knownTypeNames().join(", ")}. ` +
+              `Or use search_rs_grid_docs for a keyword search.`,
           },
         ],
       };
@@ -161,6 +190,125 @@ server.tool(
       lines.push(`- **${doc.path}** — ${doc.title}`);
     }
 
+    return { content: [{ type: "text", text: lines.join("\n") }] };
+  },
+);
+
+// --- Tool: list_commands ---
+//
+// GridCommand is the central API — every grid mutation goes through
+// GridState::apply(GridCommand). These tools expose the 44 variants as
+// structured data, parsed from the bundled skill.md (single source of truth).
+
+server.tool(
+  "list_commands",
+  "List GridCommand variants — the only way to mutate grid state " +
+    "(GridState::apply(GridCommand)). Returns name, category and signature " +
+    "for each variant. Optionally filter by category (e.g. 'Sorting', " +
+    "'Selection', 'Editing', 'Columns', 'Clipboard', 'Search').",
+  {
+    category: z
+      .string()
+      .optional()
+      .describe("Filter by category (case-insensitive substring match)"),
+  },
+  async ({ category }) => {
+    const commands = await loadCommands();
+    if (commands.length === 0) {
+      return {
+        content: [
+          { type: "text", text: "No GridCommand variants could be parsed." },
+        ],
+      };
+    }
+
+    const needle = category?.toLowerCase().trim();
+    const filtered = needle
+      ? commands.filter((c) => c.category.toLowerCase().includes(needle))
+      : commands;
+
+    if (filtered.length === 0) {
+      const cats = [...new Set(commands.map((c) => c.category))].join(", ");
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No commands in category "${category}". Categories: ${cats}.`,
+          },
+        ],
+      };
+    }
+
+    const byCat = new Map<string, typeof filtered>();
+    for (const c of filtered) {
+      const arr = byCat.get(c.category) ?? [];
+      arr.push(c);
+      byCat.set(c.category, arr);
+    }
+
+    const lines = [`## ${filtered.length} GridCommand variant(s)\n`];
+    for (const [cat, cmds] of byCat) {
+      lines.push(`### ${cat}`);
+      for (const c of cmds) {
+        lines.push(`- \`${c.signature}\`${c.note ? ` — ${c.note}` : ""}`);
+      }
+      lines.push("");
+    }
+    return { content: [{ type: "text", text: lines.join("\n") }] };
+  },
+);
+
+// --- Tool: get_command ---
+
+server.tool(
+  "get_command",
+  "Get the full signature, category and notes for a single GridCommand " +
+    "variant by name (e.g. 'AutoFitColumn', 'SetSort'). Use list_commands " +
+    "to discover available variants.",
+  {
+    name: z
+      .string()
+      .describe("GridCommand variant name (case-insensitive, e.g. 'SetSort')"),
+  },
+  async ({ name }) => {
+    const commands = await loadCommands();
+    const needle = name.toLowerCase().replace(/\s+/g, "");
+    const exact = commands.find((c) => c.name.toLowerCase() === needle);
+    const match =
+      exact ?? commands.find((c) => c.name.toLowerCase().startsWith(needle));
+
+    if (!match) {
+      const close = commands
+        .filter((c) => c.name.toLowerCase().includes(needle))
+        .map((c) => c.name);
+      const hint = close.length
+        ? `Did you mean: ${close.join(", ")}? `
+        : "";
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `Unknown command: "${name}". ${hint}` +
+              `Use list_commands to see all variants.`,
+          },
+        ],
+      };
+    }
+
+    const lines = [
+      `## GridCommand::${match.name}`,
+      "",
+      `**Category:** ${match.category}`,
+      "",
+      "```rust",
+      match.signature,
+      "```",
+    ];
+    if (match.note) {
+      lines.push("", `**Note:** ${match.note}`);
+    }
+    lines.push("", `Full reference: get_api_type("GridCommand") → ${COMMAND_DOC_PAGE}`);
     return { content: [{ type: "text", text: lines.join("\n") }] };
   },
 );
