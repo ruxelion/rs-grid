@@ -18,7 +18,7 @@ import { TYPE_TO_DOC_PATH, SECTION_PREFIXES } from "./type-map.js";
 
 const server = new McpServer({
   name: "rs-grid-docs",
-  version: "0.1.0",
+  version: "0.2.2",
 });
 
 // --- Tool: search_rs_grid_docs ---
