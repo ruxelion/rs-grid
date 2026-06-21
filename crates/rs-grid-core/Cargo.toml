@@ -18,6 +18,14 @@ categories = ["data-structures", "algorithms"]
 [lints]
 workspace = true
 
+# Disable the default libtest bench harness for the lib target. Without this,
+# `cargo bench -- --sample-size N` also runs the lib's libtest harness, which
+# rejects Criterion's args ("Unrecognized option: 'sample-size'") and aborts the
+# whole `cargo bench` run. Only the `harness = false` Criterion benches below
+# should run.
+[lib]
+bench = false
+
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
 

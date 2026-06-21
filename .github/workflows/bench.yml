@@ -98,8 +98,11 @@ jobs:
 
           function extract(name) {
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // \s+ (not \s{2,}): Criterion pads the benchmark id to a fixed
+            // column, and a name landing exactly on that width gets only a
+            // single trailing space before "time:" (e.g. sort/string/cold/100000).
             const re = new RegExp(
-              escaped + String.raw`\s{2,}time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)`
+              escaped + String.raw`\s+time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)`
             );
             const m = raw.match(re);
             return m ? { val: parseFloat(m[1]), unit: m[2] } : null;
@@ -213,8 +216,10 @@ jobs:
 
             for (let i = 0; i < lines.length; i++) {
               // Criterion format: "bench_name  time:  [low  MEDIAN unit  high]"
+              // \s+ (not \s{2,}): a benchmark id landing exactly on Criterion's
+              // padded column width is separated from "time:" by a single space.
               const m = lines[i].match(
-                /^(.+?)\s{2,}time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)/
+                /^(.+?)\s+time:\s+\[[\d.]+ \S+\s+([\d.]+) (\S+)/
               );
               if (!m) continue;
 
