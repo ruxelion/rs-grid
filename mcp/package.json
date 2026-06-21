@@ -1,7 +1,7 @@
 {
   "name": "rs-grid-mcp",
-  "version": "0.1.2",
-  "description": "MCP server exposing rs-grid documentation to AI agents",
+  "version": "0.2.0",
+  "description": "MCP server exposing rs-grid documentation and rendered scenes to AI agents",
   "type": "module",
   "bin": {
     "rs-grid-mcp": "./dist/index.js"
