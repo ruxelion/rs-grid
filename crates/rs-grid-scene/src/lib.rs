@@ -14,10 +14,16 @@
 pub mod builder;
 /// Generic visual-style types for `CellFormat::Styled` rendering.
 pub mod class_map;
+/// CSS custom-property (de)serialization for [`Theme`] (single source of
+/// truth for the `--rs-grid-*` variables).
+pub mod css_vars;
 /// Immutable per-frame snapshot of drawing primitives.
 pub mod frame;
 /// Renderable primitive types (rect, text, line, polygon, image).
 pub mod primitives;
+/// Sample `GridState`s shared by `scene-dump` and the snapshot tests.
+#[doc(hidden)]
+pub mod sample_scenes;
 /// Visual theme: colors, typography, and spacing.
 pub mod theme;
 

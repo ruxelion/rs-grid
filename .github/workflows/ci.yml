@@ -47,8 +47,23 @@ jobs:
       - name: cargo check
         run: cargo check --workspace
 
+      # The `serde` feature (Serialize on scene types + the scene-dump bin) is
+      # off by default, so the line above does not cover it. Check it builds.
+      - name: cargo check (scene serde feature)
+        run: cargo check -p rs-grid-scene --features serde --all-targets
+
       - name: cargo clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Architecture invariant: rs-grid-core stays free of WASM/web crates so
+      # it remains testable natively (mirror of `just check-arch`).
+      - name: Assert rs-grid-core has no WASM dependency
+        run: |
+          if cargo tree -p rs-grid-core -e normal \
+              | grep -qE 'wasm-bindgen|web-sys|js-sys'; then
+            echo "::error::rs-grid-core must not depend on WASM/web crates"
+            exit 1
+          fi
 
   test:
     name: Unit Tests

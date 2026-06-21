@@ -45,14 +45,20 @@ fmt:
 lint:
     cargo clippy --workspace --all-targets -- -D warnings
 
+# Architecture invariant: rs-grid-core must stay free of WASM/web crates so it
+# remains testable natively. Fails if wasm-bindgen / web-sys / js-sys appear in
+# its dependency tree. (PowerShell script avoids cmd/findstr quoting issues.)
+check-arch:
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-arch.ps1
+
 # Regenerate class_map_data.rs from DaisyUI sources (node_modules)
 # Generator lives in tools/class-map (maintainer codegen, not part of demos)
 gen-class-map:
     cd tools\class-map && cmd /c npm install --prefer-offline --no-audit --no-fund
     cd tools\class-map && cmd /c npm run gen
 
-# fmt + lint + test
-ci: fmt lint test
+# fmt + lint + architecture invariant + test
+ci: fmt lint check-arch test
 
 # ── TLS ──────────────────────────────────────────────────
 
@@ -126,6 +132,18 @@ mem:
 wasm-size:
     cd e2e\fixture-leptos && trunk build --release
     powershell -NoProfile -Command "Get-ChildItem e2e\fixture-leptos\dist\*.wasm | ForEach-Object { $kb = [math]::Round($_.Length/1KB,1); $est_gz = [math]::Round($_.Length*0.35/1KB,1); Write-Host ('{0,-50} {1,8} KB  (~{2} KB gzip)' -f $_.Name, $kb, $est_gz) }"
+
+# ── Scene inspection ─────────────────────────────────────
+
+# Dump a SceneFrame as JSON so an agent (or human) can inspect the rendered
+# scene without a browser. Scenarios: basic | selection | pinned | scrolled
+scene-dump scenario="basic":
+    @cargo run -q -p rs-grid-scene --features serde --bin scene-dump -- {{scenario}}
+
+# Regenerate the committed scene fixtures the MCP server serves (mcp/scenes/).
+# Run whenever the scene builder output changes.
+gen-scene-fixtures:
+    node mcp/scripts/gen-scenes.mjs
 
 # ── MCP (Model Context Protocol) ────────────────────────
 

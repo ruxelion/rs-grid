@@ -7,6 +7,7 @@ use crate::primitives::ScenePrimitive;
 /// detect sub-cell button clicks before dispatching cell
 /// selection.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct ButtonZone {
     /// Data row index.
     pub row: u64,
@@ -38,6 +39,7 @@ impl ButtonZone {
 
 /// A complete, immutable snapshot of what should be drawn for one frame.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SceneFrame {
     /// Ordered drawing primitives (back-to-front).
     pub primitives: Vec<ScenePrimitive>,

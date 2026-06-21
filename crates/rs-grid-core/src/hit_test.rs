@@ -314,3 +314,72 @@ mod tests {
         assert_eq!(row, Some(3));
     }
 }
+
+// ── O(log n) invariant ───────────────────────────────────────────────────────
+//
+// Executable form of the AGENTS.md invariant "hit-testing stays O(log n) via
+// precomputed offsets". Hit-test cost must be independent of the row count
+// (it is O(log n_cols), not O(n_rows)). This catches a regression to an
+// O(n_rows) scan, which the prose rule alone cannot enforce.
+#[cfg(test)]
+mod complexity_invariant {
+    use std::{hint::black_box, time::Instant};
+
+    use super::*;
+    use crate::{
+        column::ColumnDef, datasource::FnDataSource, model::GridModel,
+    };
+
+    fn model_with_rows(n_cols: usize, n_rows: u64) -> GridModel {
+        let cols = (0..n_cols)
+            .map(|i| ColumnDef::new(format!("c{i}"), format!("C{i}"), 100.0))
+            .collect();
+        let data = Box::new(FnDataSource::new(n_rows, |_, _| None));
+        GridModel::with_data_source(cols, data, 30.0, 40.0)
+    }
+
+    /// Minimum wall-clock (ns) of `iters` hit-tests at a mid-scroll position,
+    /// taken over `repeats` runs. Using the minimum filters out scheduler
+    /// noise — noise can only ever *add* time, so the floor is the most
+    /// stable signal available without a hardware op counter.
+    fn min_hit_test_ns(n_rows: u64, iters: u32, repeats: u32) -> u128 {
+        let model = model_with_rows(1_000, n_rows);
+        let rnw = model.effective_row_number_width();
+        let vx = rnw + 400.0;
+        let vy = model.effective_header_height() + 15.0;
+        let scroll_x = model.total_width() / 2.0;
+        let scroll_y = (n_rows / 2) as f64 * 30.0;
+        let mut best = u128::MAX;
+        for _ in 0..repeats {
+            let start = Instant::now();
+            for _ in 0..iters {
+                black_box(hit_test(
+                    black_box(vx),
+                    black_box(vy),
+                    &model,
+                    black_box(scroll_x),
+                    black_box(scroll_y),
+                ));
+            }
+            best = best.min(start.elapsed().as_nanos());
+        }
+        best
+    }
+
+    /// 1 K vs 1 quadrillion rows: under O(n_rows) the gap would be ~10^12; a
+    /// 20× ceiling cleanly separates O(log n) from any linear regression while
+    /// tolerating CI timing noise.
+    #[test]
+    fn hit_test_cost_is_independent_of_row_count() {
+        const ITERS: u32 = 200_000;
+        const REPEATS: u32 = 5;
+        let small = min_hit_test_ns(1_000, ITERS, REPEATS);
+        let huge = min_hit_test_ns(1_000_000_000_000_000, ITERS, REPEATS);
+        let ceiling = small.saturating_mul(20).max(small + 1_000);
+        assert!(
+            huge < ceiling,
+            "hit-test scaled with row count: 1k={small}ns, 1Q={huge}ns \
+             (ceiling {ceiling}ns) — likely an O(n_rows) regression",
+        );
+    }
+}

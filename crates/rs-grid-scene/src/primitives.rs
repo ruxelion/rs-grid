@@ -1,5 +1,6 @@
 /// A simple RGBA color.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Color {
     /// Red channel (0–255).
     pub r: u8,
@@ -43,6 +44,7 @@ impl Color {
 
 /// A filled (and optionally stroked) rectangle.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RectPrimitive {
     /// Left edge in logical pixels.
     pub x: f64,
@@ -66,6 +68,7 @@ pub struct RectPrimitive {
 
 /// Horizontal text alignment.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum TextAlign {
     /// Left-aligned (default).
     #[default]
@@ -78,6 +81,7 @@ pub enum TextAlign {
 
 /// A clipped text run.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TextPrimitive {
     /// Left edge in logical pixels.
     pub x: f64,
@@ -105,6 +109,7 @@ pub struct TextPrimitive {
 
 /// A straight line segment.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct LinePrimitive {
     /// Start x in logical pixels.
     pub x1: f64,
@@ -122,6 +127,7 @@ pub struct LinePrimitive {
 
 /// A filled convex polygon with optional rounded corners.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct PolygonPrimitive {
     /// Vertices as `[x, y]` pairs in logical pixels.
     pub points: Vec<[f64; 2]>,
@@ -137,6 +143,7 @@ pub struct PolygonPrimitive {
 /// caches it, and draws it with object-fit: contain
 /// semantics. While loading, a placeholder is shown.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct ImagePrimitive {
     /// Fully resolved URL of the image.
     pub url: String,
@@ -158,6 +165,7 @@ pub struct ImagePrimitive {
 
 /// Sum type over all renderable primitives.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[non_exhaustive]
 pub enum ScenePrimitive {
     /// Filled rectangle with optional stroke.

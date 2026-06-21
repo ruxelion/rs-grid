@@ -64,9 +64,19 @@ cargo +nightly fmt --all
 # Linting (--all-targets also covers tests, benches and examples)
 cargo clippy --workspace --all-targets -- -D warnings
 
+# Architecture invariant — fail if rs-grid-core gains a WASM/web dependency
+# (keeps the crate natively testable). Underlying check:
+#   cargo tree -p rs-grid-core -e normal   # must list no wasm-bindgen/web-sys/js-sys
+just check-arch                            # local (tools/check-arch.ps1); CI uses grep
+
 # Benchmarks (HTML reports → target/criterion/)
 just bench        # core + scene
 just wasm-size    # bundle WASM + estimation gzip
+
+# Inspect the rendered scene as JSON (no browser) — lets an agent verify
+# primitive positions/colors/clips after a change. Needs the `serde` feature.
+# Scenarios: basic | selection | pinned | scrolled
+cargo run -p rs-grid-scene --features serde --bin scene-dump -- selection
 
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
 cd e2e/fixture-leptos
@@ -98,12 +108,15 @@ synchronisées avec `.vscode/tasks.json`.
 
 | Recette | Action |
 |---|---|
-| `just ci` | fmt + lint + tests (gate pré-PR complet) |
+| `just ci` | fmt + lint + check-arch + tests (gate pré-PR complet) |
+| `just check-arch` | invariant archi : rs-grid-core sans dépendance WASM/web |
 | `just test` | nextest, WASM crates exclus |
 | `just coverage` | rapport HTML couverture (ouvre le navigateur) |
 | `just coverage-lcov` | format lcov pour CI |
 | `just bench` | tous les benchmarks (core + scene) |
 | `just wasm-size` | taille du bundle WASM + estimation gzip |
+| `just scene-dump <scenario>` | sérialise un SceneFrame en JSON (basic/selection/pinned/scrolled) pour inspection IA |
+| `just gen-scene-fixtures` | régénère les fixtures de scène servies par le MCP (`mcp/scenes/`) |
 | `just e2e` | trunk build + Playwright |
 | `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
@@ -184,7 +197,7 @@ reasoning.
 | Server | Role | Setup |
 |---|---|---|
 | **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
-| **rs-grid** (internal) | Exposes rs-grid docs to AI agents (`search_rs_grid_docs`) | `mcp/` crate, published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`) |
+| **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`). Scene fixtures: `just gen-scene-fixtures` |
 | **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
 
 The **GitHub** server is a personal, local config (the PAT must not be committed
@@ -298,6 +311,12 @@ vérifications MCP interactives. Les tests formels `/e2e` utilisent
 
 ## Claude working rules
 
+- **Directed compaction** — on a long session, before the context auto-compacts,
+  write your own checkpoint summary that explicitly preserves the
+  *non-negotiable invariants* (no WASM in core; `u64` row indices; O(log n)
+  hit-test; mutations only via `GridState::apply`; theme values round-trip as
+  CSS vars) and the current task state. Auto-compaction tends to drop exactly
+  these architectural constraints; restate them so they survive.
 - After any code change in `rs-grid-core`, always run `/test` to verify tests
   pass.
 - If a test fails, fix it before continuing.

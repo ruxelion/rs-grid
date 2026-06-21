@@ -23,6 +23,8 @@ bench = false
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
+# Golden snapshots of the full SceneFrame (Debug-based, no serde needed).
+insta = "1"
 
 [[bench]]
 name = "scene_builder"
@@ -32,10 +34,26 @@ harness = false
 name = "scroll_frame"
 harness = false
 
+[features]
+# Optional `serde::Serialize` on the scene output types (SceneFrame and its
+# primitives) so a frame can be dumped to JSON for the `scene-dump` CLI / MCP
+# and golden snapshot tests. Off by default — keeps it out of the WASM bundle.
+serde = ["dep:serde", "dep:serde_json"]
+
 [dependencies]
 rs-grid-core = { path = "../rs-grid-core", version = "0.1.3" }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [[bin]]
 name = "generate-theme"
 path = "src/bin/generate_theme.rs"
+bench = false
+
+# Dumps a SceneFrame as JSON so an agent can inspect the rendered scene without
+# a browser. Needs the `serde` feature (Serialize on the scene types + serde_json).
+[[bin]]
+name = "scene-dump"
+path = "src/bin/scene_dump.rs"
+required-features = ["serde"]
 bench = false

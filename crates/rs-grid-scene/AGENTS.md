@@ -11,6 +11,7 @@ drawing primitives.
 | `frame` | `SceneFrame`: ordered list of `ScenePrimitive` for one frame |
 | `primitives` | Primitive types: `RectPrimitive`, `TextPrimitive`, `LinePrimitive`, `PolygonPrimitive` |
 | `theme` | `Theme`: colours and sizes for rendering |
+| `css_vars` | `Theme` ↔ `--rs-grid-*` CSS variables (writer + reader, single source of truth; round-trip test enforces parity) |
 
 ## Critical invariants
 

@@ -73,18 +73,21 @@ Layout getters callable from `on_columns_changed`:
 
 CSS variables are prefixed `--rs-grid-*`. `light.css`, `dark.css`, and
 `dimmed.css` in `examples/example-common/themes/` are **auto-generated**
-— do not edit them directly. The full variable → `Theme` field mapping is
-documented in `css_theme.rs`. The progress-bar cell renderer adds
-`--rs-grid-progress-track`, `--rs-grid-progress-fill`,
-`--rs-grid-progress-height`, and `--rs-grid-progress-radius`.
+— do not edit them directly. The variable ↔ `Theme` field mapping (both
+directions) is the single source of truth in `rs-grid-scene/src/css_vars.rs`;
+`css_theme.rs` here is only a thin DOM wrapper around its reader. The
+progress-bar cell renderer adds `--rs-grid-progress-track`,
+`--rs-grid-progress-fill`, `--rs-grid-progress-height`, and
+`--rs-grid-progress-radius`.
 
 ### Adding a CSS variable to an existing theme
 
 1. Add the field in `Theme` (`rs-grid-scene/src/theme.rs`) with a value
    in every constructor: `light()`, `dark()`, `dimmed()`
-2. Add the mapping in `css_theme.rs` (reads the CSS var at runtime)
-3. Add the entry in `generate_theme.rs` (`rs-grid-scene/src/bin/`)
-4. `cargo run -p rs-grid-scene --bin generate-theme`
+2. Wire the variable **both ways** in `rs-grid-scene/src/css_vars.rs`:
+   `theme_to_css_vars` (writer) **and** `theme_from_css_vars_with` (reader).
+   The `round_trips_every_field` test fails if you forget either side.
+3. `cargo run -p rs-grid-scene --bin generate-theme`
 
 ### Adding a new theme (e.g. `solarized`)
 
