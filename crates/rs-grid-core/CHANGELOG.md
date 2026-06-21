@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.1.3...rs-grid-core-v0.1.4) - 2026-06-21
+
+### Added
+
+- add scene generation and retrieval tools
+- disable default libtest bench harness for lib targets in Cargo.toml
+
 ## [0.1.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.1.2...rs-grid-core-v0.1.3) - 2026-06-17
 
 ### Added
