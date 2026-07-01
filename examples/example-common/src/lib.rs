@@ -25,6 +25,7 @@ use rs_grid_core::{
     datasource::FnDataSource,
     format::{CellAlign, CellElement, CellFormat},
     model::GridModel,
+    validation::ValidationRule,
 };
 
 /// Build a [`GridModel`] backed by deterministic fake
@@ -34,6 +35,7 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         {
             let mut c = ColumnDef::new("name", "Name", 200.0);
             c.editor = Some(CellEditor::Text);
+            c.rules = vec![ValidationRule::required()];
             c
         },
         ColumnDef::new("email", "Email", 260.0),

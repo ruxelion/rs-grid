@@ -5,6 +5,7 @@ use crate::{
     datasource::{CellStatus, DataSource, VecDataSource},
     row::RowRecord,
     sort::SortDir,
+    validation::InvalidEditMode,
 };
 
 /// Whether sort/filter are performed client-side or
@@ -185,6 +186,11 @@ pub struct GridModel {
     /// When false, the column drag interaction is suppressed.
     /// Programmatic `GridCommand::MoveColumn` still works.
     pub column_reorderable: bool,
+    /// Policy applied when a `CommitEdit` fails validation.
+    /// `Revert` (default) reverts the cell to its previous value;
+    /// `Block` keeps the edit session active until the value is
+    /// corrected.
+    pub invalid_edit_mode: InvalidEditMode,
 }
 
 impl GridModel {
@@ -236,6 +242,7 @@ impl GridModel {
             editable: true,
             selectable: true,
             column_reorderable: true,
+            invalid_edit_mode: InvalidEditMode::default(),
         }
     }
 
@@ -697,6 +704,7 @@ pub struct GridModelBuilder {
     editable: bool,
     selectable: bool,
     column_reorderable: bool,
+    invalid_edit_mode: InvalidEditMode,
 }
 
 impl GridModelBuilder {
@@ -719,6 +727,7 @@ impl GridModelBuilder {
             editable: true,
             selectable: true,
             column_reorderable: true,
+            invalid_edit_mode: InvalidEditMode::default(),
         }
     }
 
@@ -786,6 +795,12 @@ impl GridModelBuilder {
         self
     }
 
+    /// Set the policy applied when a `CommitEdit` fails validation.
+    pub fn invalid_edit_mode(mut self, v: InvalidEditMode) -> Self {
+        self.invalid_edit_mode = v;
+        self
+    }
+
     /// Build the [`GridModel`].
     pub fn build(self) -> GridModel {
         let pinned = self.pinned_count.min(self.columns.len());
@@ -803,6 +818,7 @@ impl GridModelBuilder {
         model.editable = self.editable;
         model.selectable = self.selectable;
         model.column_reorderable = self.column_reorderable;
+        model.invalid_edit_mode = self.invalid_edit_mode;
         model
     }
 }
@@ -1558,6 +1574,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),
@@ -1601,6 +1618,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),

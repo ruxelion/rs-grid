@@ -54,6 +54,10 @@ impl GridState {
                 self.model.column_reorderable = v;
                 CommandOutput::None
             }
+            GridCommand::SetInvalidEditMode(v) => {
+                self.model.invalid_edit_mode = v;
+                CommandOutput::None
+            }
             _ => super::unreachable_cmd("cmd_meta"),
         }
     }
@@ -179,5 +183,14 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnReorderable(false));
         assert!(!s.model.column_reorderable);
+    }
+
+    #[test]
+    fn set_invalid_edit_mode_toggles() {
+        use crate::validation::InvalidEditMode;
+        let mut s = make_state();
+        assert_eq!(s.model.invalid_edit_mode, InvalidEditMode::Revert);
+        s.apply(GridCommand::SetInvalidEditMode(InvalidEditMode::Block));
+        assert_eq!(s.model.invalid_edit_mode, InvalidEditMode::Block);
     }
 }

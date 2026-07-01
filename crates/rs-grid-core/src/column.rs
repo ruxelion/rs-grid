@@ -1,6 +1,9 @@
 use std::{fmt, rc::Rc};
 
-use crate::format::CellFormat;
+use crate::{
+    format::CellFormat,
+    validation::{ValidationRule, validate_rules},
+};
 
 // ── cell validator ──────────────────────────────────────
 
@@ -177,7 +180,13 @@ pub struct ColumnDef {
     pub editor: Option<CellEditor>,
     /// Optional validator called before committing an edit.
     /// Returns `Ok(())` to accept or `Err(message)` to reject.
+    ///
+    /// Kept alongside [`Self::rules`] for backward compatibility;
+    /// prefer `rules` for new code.
     pub validator: Option<CellValidator>,
+    /// Declarative validation rules checked (in order) before
+    /// committing an edit. Evaluated before the legacy `validator`.
+    pub rules: Vec<ValidationRule>,
     /// Render cell text with bold weight (`font-weight: 600`).
     pub bold: bool,
     /// Allow inline editing for this column (`true` by default).
@@ -210,6 +219,7 @@ impl ColumnDef {
             format: None,
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),
@@ -270,6 +280,58 @@ impl ColumnDef {
     pub fn with_validator(mut self, validator: CellValidator) -> Self {
         self.validator = Some(validator);
         self
+    }
+
+    /// Set the declarative validation rules. Returns `self` for
+    /// chaining.
+    pub fn with_rules(mut self, rules: Vec<ValidationRule>) -> Self {
+        self.rules = rules;
+        self
+    }
+
+    /// Require a non-empty value. Returns `self` for chaining.
+    pub fn required(mut self) -> Self {
+        self.rules.push(ValidationRule::required());
+        self
+    }
+
+    /// Require at least `min` characters. Returns `self` for
+    /// chaining.
+    pub fn with_min_length(mut self, min: usize) -> Self {
+        self.rules.push(ValidationRule::min_length(min));
+        self
+    }
+
+    /// Require at most `max` characters. Returns `self` for
+    /// chaining.
+    pub fn with_max_length(mut self, max: usize) -> Self {
+        self.rules.push(ValidationRule::max_length(max));
+        self
+    }
+
+    /// Require a numeric value within `min..=max`. Returns `self`
+    /// for chaining.
+    pub fn with_range(mut self, min: f64, max: f64) -> Self {
+        self.rules.push(ValidationRule::range(min, max));
+        self
+    }
+
+    /// Require the value to match one entry of an allowed-value
+    /// list. Returns `self` for chaining.
+    pub fn with_allowed_values(mut self, values: Vec<String>) -> Self {
+        self.rules.push(ValidationRule::one_of(values));
+        self
+    }
+
+    /// Validate `value` against [`Self::rules`] (in order), then
+    /// against the legacy [`Self::validator`] if all rules passed.
+    /// Returns the first failure's message, if any.
+    pub fn validate_value(&self, value: &str) -> Result<(), String> {
+        validate_rules(&self.rules, value)?;
+        if let Some(v) = &self.validator {
+            v.validate(value)?;
+        }
+        Ok(())
     }
 
     /// Set the cell buttons. Returns `self` for chaining.
@@ -564,6 +626,73 @@ mod tests {
         assert!(col.validator.is_some());
         let v = col.validator.unwrap();
         assert!(v.validate("anything").is_ok());
+    }
+
+    // ── validation rules ──────────────────────────────────
+
+    #[test]
+    fn required_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).required();
+        assert_eq!(col.rules.len(), 1);
+        assert!(col.validate_value("").is_err());
+        assert!(col.validate_value("x").is_ok());
+    }
+
+    #[test]
+    fn with_min_length_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_min_length(3);
+        assert!(col.validate_value("ab").is_err());
+        assert!(col.validate_value("abc").is_ok());
+    }
+
+    #[test]
+    fn with_max_length_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_max_length(3);
+        assert!(col.validate_value("abcd").is_err());
+        assert!(col.validate_value("abc").is_ok());
+    }
+
+    #[test]
+    fn with_range_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_range(0.0, 10.0);
+        assert!(col.validate_value("5").is_ok());
+        assert!(col.validate_value("50").is_err());
+    }
+
+    #[test]
+    fn with_allowed_values_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_allowed_values(vec!["A".into(), "B".into()]);
+        assert!(col.validate_value("A").is_ok());
+        assert!(col.validate_value("C").is_err());
+    }
+
+    #[test]
+    fn with_rules_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_rules(vec![ValidationRule::required()]);
+        assert_eq!(col.rules.len(), 1);
+    }
+
+    #[test]
+    fn rules_default_empty() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.rules.is_empty());
+        assert!(col.validate_value("anything").is_ok());
+    }
+
+    #[test]
+    fn validate_value_runs_rules_before_legacy_validator() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .required()
+            .with_validator(CellValidator::new(|_| Err("legacy".into())));
+        // Required fails first — legacy validator is never reached.
+        assert_eq!(
+            col.validate_value("").unwrap_err(),
+            "This field is required."
+        );
+        // Once rules pass, the legacy validator still runs.
+        assert_eq!(col.validate_value("x").unwrap_err(), "legacy");
     }
 
     #[test]

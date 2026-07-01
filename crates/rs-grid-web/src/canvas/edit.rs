@@ -94,6 +94,42 @@ impl GridCanvas {
         let _ = style.set_property("box-shadow", &shadow);
     }
 
+    /// Swap the edit overlay's border/background between the normal
+    /// and invalid-value look, without touching position/geometry.
+    /// Cheap enough to call on every keystroke.
+    fn apply_edit_validity_style(
+        &self,
+        el: &web_sys::HtmlElement,
+        invalid: bool,
+    ) {
+        let css_style = css_theme::root_computed_style();
+        let var = |name: &str, fb: &str| -> String {
+            css_style
+                .as_ref()
+                .map(|s| css_theme::get_var(s, name))
+                .filter(|v| !v.is_empty())
+                .unwrap_or_else(|| fb.to_string())
+        };
+        let border_width = var("--rs-grid-editor-border-width", "2px");
+        let (border_color, bg) = if invalid {
+            (
+                var("--rs-grid-editor-border-invalid", "#dc2626"),
+                var("--rs-grid-editor-bg-invalid", "#fef2f2"),
+            )
+        } else {
+            (
+                var("--rs-grid-editor-border", "#2563eb"),
+                var("--rs-grid-editor-bg", "#ffffff"),
+            )
+        };
+        let style = el.style();
+        let _ = style.set_property(
+            "border",
+            &format!("{border_width} solid {border_color}"),
+        );
+        let _ = style.set_property("background", &bg);
+    }
+
     /// Create the appropriate DOM overlay for inline
     /// cell editing (text `<input>` or custom dropdown).
     pub(super) fn show_edit_input(&self) {
@@ -555,6 +591,29 @@ impl GridCanvas {
 
         let col_key_owned = col_key.to_owned();
 
+        // After a CommitEdit attempt: if the edit session is still
+        // active (InvalidEditMode::Block kept it open because the
+        // value is still invalid), keep the overlay mounted, reflect
+        // the error visually, and refocus it. Otherwise (success, or
+        // InvalidEditMode::Revert) tear the overlay down as before.
+        fn keep_or_close(gc: &GridCanvas, inp: &HtmlInputElement) {
+            let invalid =
+                gc.0.state
+                    .borrow()
+                    .edit
+                    .as_ref()
+                    .is_some_and(|e| e.validation_error.is_some());
+            if gc.0.state.borrow().edit.is_some() {
+                gc.apply_edit_validity_style(
+                    inp.dyn_ref::<web_sys::HtmlElement>().expect("cast"),
+                    invalid,
+                );
+                let _ = inp.focus();
+            } else {
+                gc.remove_edit_input();
+            }
+        }
+
         // Enter → commit, Escape → cancel
         {
             let gc = self.clone();
@@ -572,7 +631,7 @@ impl GridCanvas {
                                 col_key: ck.clone(),
                                 value: val,
                             });
-                            gc.remove_edit_input();
+                            keep_or_close(&gc, &inp);
                         }
                         "Escape" => {
                             gc.dispatch(GridCommand::CancelEdit);
@@ -593,6 +652,37 @@ impl GridCanvas {
             self.0.edit_closures.borrow_mut().push(Box::new(cb));
         }
 
+        // Input → live validation feedback (no commit).
+        {
+            let gc = self.clone();
+            let inp = input.clone();
+            let pfx = img_prefix.clone();
+            let cb = Closure::<dyn FnMut(_)>::new(move |_: web_sys::Event| {
+                let val = format!("{}{}", pfx, inp.value());
+                gc.dispatch(GridCommand::ValidateEdit { value: val });
+                let invalid =
+                    gc.0.state
+                        .borrow()
+                        .edit
+                        .as_ref()
+                        .is_some_and(|e| e.validation_error.is_some());
+                gc.apply_edit_validity_style(
+                    inp.dyn_ref::<web_sys::HtmlElement>().expect("cast"),
+                    invalid,
+                );
+            });
+            let func: js_sys::Function =
+                cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
+            input
+                .add_event_listener_with_callback("input", &func)
+                .expect("input");
+            self.0
+                .edit_listener_refs
+                .borrow_mut()
+                .push(("input".into(), func));
+            self.0.edit_closures.borrow_mut().push(Box::new(cb));
+        }
+
         // Blur → commit
         {
             let gc = self.clone();
@@ -609,7 +699,7 @@ impl GridCanvas {
                             col_key: ck.clone(),
                             value: val,
                         });
-                        gc.remove_edit_input();
+                        keep_or_close(&gc, &inp);
                     }
                 });
             let func: js_sys::Function =

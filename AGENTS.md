@@ -83,8 +83,8 @@ cd e2e/fixture-leptos
 trunk build
 
 # Dev server (hot-reload)
-cd e2e/fixture-leptos
-trunk serve
+just dev
+# equivalent to: cd e2e/fixture-leptos && trunk serve
 # → http://localhost:9079  (config dans e2e/fixture-leptos/Trunk.toml)
 #
 # The framework demos moved to standalone repos:
@@ -119,6 +119,7 @@ synchronisées avec `.vscode/tasks.json`.
 | `just gen-scene-fixtures` | régénère les fixtures de scène servies par le MCP (`mcp/scenes/`) |
 | `just e2e` | trunk build + Playwright |
 | `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
+| `just dev` | serveur de dev hot-reload pour la fixture e2e (`localhost:9079`) |
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
 | `just mcp-publish` | publier le serveur MCP sur npm |
 | `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |

@@ -159,6 +159,7 @@ ClearAllFilters
 StartEdit { row: u64, col_key: String }
 CommitEdit { row: u64, col_key: String, value: String }
 CancelEdit
+ValidateEdit { value: String }  // live re-check of the in-progress edit, no commit
 ```
 
 #### Clipboard
@@ -201,6 +202,7 @@ SetHoveredRow(Option<u64>)
 SetEditable(bool)           // global inline-edit on/off
 SetSelectable(bool)         // selection on/off; clears selection when false
 SetColumnReorderable(bool)  // header drag-to-reorder on/off
+SetInvalidEditMode(InvalidEditMode)  // Revert (default) or Block on invalid CommitEdit
 ```
 
 #### Server-side data
@@ -226,6 +228,9 @@ canvas.set_on_selection_changed(move || {
 });
 
 canvas.set_on_validation_error(move |row, col_key, message| {
+    // Fires whenever a CommitEdit is rejected, both when the value
+    // reverts (InvalidEditMode::Revert, the default) and when the
+    // editor stays open (InvalidEditMode::Block).
     log::warn!("Validation error at [{row},{col_key}]: {message}");
 });
 
@@ -239,7 +244,7 @@ canvas.set_on_cell_button_click(move |row, col_key, button_id| {
 ```rust
 use rs_grid_core::column::{ColumnDef, CellEditor, CellValidator, SelectOption};
 
-// Text editor with validator
+// Text editor with a legacy free-form validator
 let name_col = ColumnDef::new("name", "Name", 200.0)
     .with_editor(CellEditor::Text)
     .with_validator(CellValidator::new(|v| {
@@ -267,6 +272,53 @@ let role_col = ColumnDef::new("role", "Role", 150.0)
         ],
     });
 ```
+
+### Declarative validation rules (`ValidationRule`)
+
+Business-rule validation, checked (in order) before every `CommitEdit`.
+Each built-in rule has a default message, overridable with
+`.with_message(...)`. Combine with sugar builders on `ColumnDef`, or the
+enum directly via `.with_rules(...)`:
+
+```rust
+use rs_grid_core::{
+    column::{CellEditor, ColumnDef},
+    validation::{InvalidEditMode, ValidationRule},
+};
+
+let doc_label = ColumnDef::new("doc_label", "Document", 200.0)
+    .with_editor(CellEditor::Text)
+    .required()
+    .with_max_length(20)
+    .with_allowed_values(vec!["INV".into(), "PO".into(), "CN".into()])
+    .with_range(0.0, 100.0) // combine as many rules as needed
+    .with_rules(vec![
+        ValidationRule::one_of(vec!["A".into(), "B".into()])
+            .with_message("Must be A or B"),
+    ]);
+```
+
+`ValidationRule` variants: `Required`, `MinLength`, `MaxLength`, `Range`,
+`OneOf` (allowed-value list), `Custom(CellValidator)` (arbitrary closure,
+for regex-like patterns or cross-field checks). Rules run before the
+legacy `validator` field, so both can coexist during a migration.
+
+By default an invalid `CommitEdit` reverts the cell to its previous value
+(`InvalidEditMode::Revert`). Switch to `InvalidEditMode::Block` to keep
+the editor open until the value is corrected:
+
+```rust
+use rs_grid_core::{commands::GridCommand, validation::InvalidEditMode};
+
+canvas.dispatch(GridCommand::SetInvalidEditMode(InvalidEditMode::Block));
+```
+
+The grid also validates live, on every keystroke (not just on commit),
+via `GridCommand::ValidateEdit` dispatched internally by `rs-grid-web`.
+While the value is invalid, the inline editor's border and background
+switch from `--rs-grid-editor-border` / `--rs-grid-editor-bg` to
+`--rs-grid-editor-border-invalid` (default `#dc2626`) /
+`--rs-grid-editor-bg-invalid` (default `#fef2f2`).
 
 ### Enable server-side pagination
 

@@ -1,6 +1,7 @@
 use crate::{
     selection::{CellCoord, CopyError},
     sort::SortDir,
+    validation::InvalidEditMode,
 };
 
 /// All mutations that can be applied to a
@@ -98,6 +99,9 @@ pub enum GridCommand {
     /// Enable or disable header drag-to-reorder of columns.
     /// Does not affect programmatic `MoveColumn` commands.
     SetColumnReorderable(bool),
+    /// Set the grid-wide policy applied when a `CommitEdit` fails
+    /// validation (revert vs. block).
+    SetInvalidEditMode(InvalidEditMode),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.
@@ -162,6 +166,14 @@ pub enum GridCommand {
     },
     /// Cancel the current cell edit.
     CancelEdit,
+    /// Re-validate the value currently typed in the active editor,
+    /// without committing it. Updates the active `EditCell`'s
+    /// `validation_error` for live (per-keystroke) UI feedback.
+    /// No-op if there is no active edit.
+    ValidateEdit {
+        /// Value currently typed in the editor.
+        value: String,
+    },
     /// Undo the last undoable action.
     Undo,
     /// Redo the last undone action.
@@ -250,5 +262,17 @@ pub enum CommandOutput {
         row_count: u64,
         /// Maximum rows supported for client-side sort.
         limit: u64,
+    },
+    /// A `CommitEdit` was rejected by the column's validation rules
+    /// (or legacy validator). Emitted whether the edit reverted
+    /// (`InvalidEditMode::Revert`) or stayed open
+    /// (`InvalidEditMode::Block`).
+    ValidationError {
+        /// Row index of the rejected edit.
+        row: u64,
+        /// Column key of the rejected edit.
+        col_key: String,
+        /// Error message from the failing rule/validator.
+        message: String,
     },
 }

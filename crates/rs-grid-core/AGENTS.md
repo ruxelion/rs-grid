@@ -17,6 +17,7 @@ It must remain testable with standard native `cargo test`.
 | `column` | Column definitions (`ColumnDef`) |
 | `row` | Row metadata |
 | `scrollbar` | Scrollbar state (geometry, dragging) |
+| `validation` | `ValidationRule` (declarative per-column rules) and `InvalidEditMode` (revert vs. block policy) |
 
 ## Critical invariants
 
@@ -43,6 +44,34 @@ It must remain testable with standard native `cargo test`.
   buttons rendered inside each cell of that column. Clicks bubble up
   through `rs-grid-web` as a callback (`on_cell_button_click` in the
   framework wrappers) carrying `(row, col_key, button_id)`.
+
+## Validation (`ValidationRule`, `InvalidEditMode`)
+
+- `ColumnDef.rules: Vec<ValidationRule>` — declarative checks run in order
+  (first failure wins) before every `CommitEdit`. Built-ins: `Required`,
+  `MinLength`, `MaxLength`, `Range`, `OneOf` (allowed-value list),
+  `Custom(CellValidator)` (arbitrary closure). Sugar builders on
+  `ColumnDef`: `.required()`, `.with_min_length(n)`, `.with_max_length(n)`,
+  `.with_range(min, max)`, `.with_allowed_values(values)`, `.with_rules(vec)`.
+  `ColumnDef.validator: Option<CellValidator>` (legacy, pre-dates `rules`)
+  is still checked afterwards for backward compatibility —
+  `ColumnDef::validate_value(&str)` runs both in order.
+- **Validation is enforced inside `GridState::apply(CommitEdit)`**
+  (`state/cmd_edit.rs`), not just at the `rs-grid-web` dispatch layer —
+  this guarantees the invariant "mutations go exclusively through `apply`"
+  actually blocks invalid data, for every consumer (native tests, any
+  future renderer, framework wrappers).
+- `GridModel.invalid_edit_mode: InvalidEditMode` (default `Revert`) — set at
+  build time via `GridModelBuilder::invalid_edit_mode(...)`, toggled at
+  runtime via `GridCommand::SetInvalidEditMode`. On a failing `CommitEdit`:
+  `Revert` drops the edit session and reverts the cell (today's behaviour);
+  `Block` keeps `GridState.edit` active with `EditCell.validation_error`
+  set, so the caller can keep the editor open. Both return
+  `CommandOutput::ValidationError { row, col_key, message }`.
+- `GridCommand::ValidateEdit { value }` re-checks the in-progress edit's
+  pending value **without committing**, updating
+  `EditCell.validation_error` for live (per-keystroke) feedback. No-op
+  without an active edit; produces no undo entry.
 
 ## Cell formats (`CellFormat`)
 

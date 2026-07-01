@@ -78,6 +78,10 @@ tls-setup:
 _build-fixture:
     cd e2e\fixture-leptos && trunk build
 
+# Dev server for the internal e2e fixture (hot-reload) → http://localhost:9079
+dev:
+    cd e2e\fixture-leptos && trunk serve
+
 # ── E2E (Playwright) ─────────────────────────────────────
 
 # Install Playwright dependencies (run once)

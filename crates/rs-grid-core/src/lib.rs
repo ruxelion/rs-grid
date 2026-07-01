@@ -43,5 +43,8 @@ pub mod sort;
 pub mod state;
 /// Undo/redo history stack for reversible grid mutations.
 pub(crate) mod undo;
+/// Declarative per-column validation rules and the
+/// invalid-edit-value handling policy.
+pub mod validation;
 /// Viewport scroll position and visible-range computation.
 pub mod viewport;

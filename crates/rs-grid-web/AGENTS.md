@@ -48,15 +48,32 @@ The DOM overlay opened depends on `ColumnDef.editor`:
 want plain-text editing must set `column.editor = Some(CellEditor::Text)`
 explicitly — the grid does not fall back to a text input automatically.
 
+### Validation feedback on the text editor
+
+The `<input>` created by `show_text_editor` (`canvas/edit.rs`) wires three
+listeners:
+
+| Event | Behaviour |
+|---|---|
+| `input` | Dispatches `GridCommand::ValidateEdit` on every keystroke (no commit), then restyles the input via `apply_edit_validity_style` |
+| `keydown` (`Enter`) / `blur` | Dispatches `GridCommand::CommitEdit`, then calls `keep_or_close`: if `GridState.edit` is still `Some` (`InvalidEditMode::Block` kept it open), restyle as invalid and refocus; otherwise tear the overlay down as before |
+| `keydown` (`Escape`) | Dispatches `GridCommand::CancelEdit` unconditionally, always tears the overlay down |
+
+There is no canvas-rendered overlay for invalid cells: while a cell is being
+edited its DOM `<input>` fully occludes the canvas underneath (opaque
+`--rs-grid-editor-bg`), so the invalid-value indicator is applied directly to
+that `<input>`'s own border/background instead of a `ScenePrimitive` — see
+*CSS theme* below.
+
 ## Public callbacks
 
 Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 
 | Callback | Triggers |
 |---|---|
-| `set_on_change` | `PasteAt`, `CommitEdit` (cell data mutations) |
+| `set_on_change` | `PasteAt`, `CommitEdit` (cell data mutations) — **not** fired when a `CommitEdit` is rejected by validation |
 | `set_on_columns_changed` | `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns`, `SetPinnedColumnCount` (layout mutations — **not** sort/filter) |
-| `set_on_validation_error` | A `ColumnDef.validator` returned `Err` |
+| `set_on_validation_error` | A `CommitEdit` was rejected by `ColumnDef.rules`/`validator` (`CommandOutput::ValidationError`) — fires for both `InvalidEditMode::Revert` and `::Block` |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
@@ -79,6 +96,27 @@ directions) is the single source of truth in `rs-grid-scene/src/css_vars.rs`;
 progress-bar cell renderer adds `--rs-grid-progress-track`,
 `--rs-grid-progress-fill`, `--rs-grid-progress-height`, and
 `--rs-grid-progress-radius`.
+
+### Inline editor overlay variables
+
+`apply_edit_style`/`apply_edit_validity_style` (`canvas/edit.rs`) read a
+**separate** set of `--rs-grid-editor-*` variables directly from the DOM
+(via `css_theme::get_var`), with hard-coded Rust fallbacks — this is *not*
+part of the `Theme`/`css_vars.rs` round-trip system above, since these
+variables style a DOM overlay element, not a canvas primitive:
+
+| Variable | Fallback | Applies to |
+|---|---|---|
+| `--rs-grid-editor-border` | `#2563eb` | Border colour, normal state |
+| `--rs-grid-editor-border-width` | `2px` | Border width (both states) |
+| `--rs-grid-editor-border-radius` | `0` | Border radius |
+| `--rs-grid-editor-bg` | `#ffffff` | Background, normal state |
+| `--rs-grid-editor-color` | `#000000` | Text colour |
+| `--rs-grid-editor-padding` | `0 4px` | Padding |
+| `--rs-grid-editor-font-size` | `inherit` | Font size |
+| `--rs-grid-editor-shadow` | `none` | Box shadow |
+| `--rs-grid-editor-border-invalid` | `#dc2626` | Border colour while `EditCell.validation_error` is `Some` |
+| `--rs-grid-editor-bg-invalid` | `#fef2f2` | Background while `EditCell.validation_error` is `Some` |
 
 ### Adding a CSS variable to an existing theme
 

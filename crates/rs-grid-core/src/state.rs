@@ -144,7 +144,8 @@ impl GridState {
 
             GridCommand::StartEdit { .. }
             | GridCommand::CommitEdit { .. }
-            | GridCommand::CancelEdit => self.cmd_edit(cmd),
+            | GridCommand::CancelEdit
+            | GridCommand::ValidateEdit { .. } => self.cmd_edit(cmd),
 
             GridCommand::Undo | GridCommand::Redo => self.cmd_undo(cmd),
 
@@ -161,6 +162,7 @@ impl GridState {
             | GridCommand::SetEditable(_)
             | GridCommand::SetSelectable(_)
             | GridCommand::SetColumnReorderable(_)
+            | GridCommand::SetInvalidEditMode(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -616,6 +618,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),
@@ -2016,6 +2019,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),
@@ -2060,6 +2064,7 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
             cell_buttons: Vec::new(),

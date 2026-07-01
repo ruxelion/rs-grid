@@ -31,34 +31,6 @@ impl GridCanvas {
         &self,
         cmd: GridCommand,
     ) -> CommandOutput {
-        // Run per-column validator before committing a cell edit.
-        if let GridCommand::CommitEdit {
-            row,
-            ref col_key,
-            ref value,
-        } = cmd
-        {
-            let validation_result = {
-                let state = self.0.state.borrow();
-                state
-                    .model
-                    .columns
-                    .iter()
-                    .find(|c| c.key == *col_key)
-                    .and_then(|c| c.validator.as_ref())
-                    .map(|v| v.validate(value))
-            };
-            if let Some(Err(msg)) = validation_result {
-                self.0.state.borrow_mut().apply(GridCommand::CancelEdit);
-                self.render();
-                let cb = self.0.on_validation_error.borrow().clone();
-                if let Some(cb) = cb {
-                    cb(row, col_key, &msg);
-                }
-                return CommandOutput::None;
-            }
-        }
-
         // Commands that write cell data — fire the on_change callback
         // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
@@ -123,14 +95,32 @@ impl GridCanvas {
                  server-side data source for large datasets."
             )));
         }
+        let validation_error = if let CommandOutput::ValidationError {
+            row,
+            col_key,
+            message,
+        } = &out
+        {
+            Some((*row, col_key.clone(), message.clone()))
+        } else {
+            None
+        };
         self.render();
         // Clone the `Rc` out of each `RefCell` before invoking — that
         // releases the borrow, so a callback that re-dispatches a command
         // of the same kind won't re-borrow the cell and panic.
-        if is_mutation {
+        // A rejected CommitEdit (ValidationError) never wrote to the
+        // model, so it must not fire on_change.
+        if is_mutation && validation_error.is_none() {
             let cb = self.0.on_change.borrow().clone();
             if let Some(cb) = cb {
                 cb();
+            }
+        }
+        if let Some((row, col_key, message)) = &validation_error {
+            let cb = self.0.on_validation_error.borrow().clone();
+            if let Some(cb) = cb {
+                cb(*row, col_key, message);
             }
         }
         if is_column_change {
