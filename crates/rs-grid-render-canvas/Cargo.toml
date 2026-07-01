@@ -2,7 +2,7 @@
 name = "rs-grid-render-canvas"
 # Explicit (not workspace-inherited): per-crate independent versioning, bumped by
 # release-plz. See release-plz.toml.
-version = "0.1.4"
+version = "0.1.5"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -16,7 +16,7 @@ keywords = ["grid", "canvas", "wasm", "renderer", "webassembly"]
 categories = ["graphics", "rendering", "wasm"]
 
 [dependencies]
-rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.4" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.5" }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = { workspace = true }
