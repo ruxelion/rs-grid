@@ -40,6 +40,47 @@ impl GridCanvas {
         (cx, cy, w, h)
     }
 
+    /// Client-space rectangle `(left, top, width, height)` of a cell, in
+    /// CSS pixels relative to the page — ready to position a `position:
+    /// fixed` element (e.g. a custom validation tooltip) above, below, or
+    /// beside the cell. `None` if `col_key` is unknown. Geometry only —
+    /// does not check whether the cell is currently scrolled into view.
+    ///
+    /// rs-grid does not pick where validation feedback renders — pair
+    /// this with [`GridCanvas::validation_error`] (or the `(row,
+    /// col_key, ..)` delivered by
+    /// [`GridCanvas::set_on_validation_state_changed`]) to place your own
+    /// tooltip/banner exactly where you want relative to the failing
+    /// cell:
+    /// ```ignore
+    /// if let Some((row, col_key, _)) = canvas.validation_error()
+    ///     && let Some((left, top, _w, h)) =
+    ///         canvas.cell_client_rect(row, &col_key)
+    /// {
+    ///     // Below the cell:
+    ///     position_tooltip(left, top + h + 4.0);
+    ///     // Above the cell:
+    ///     // position_tooltip(left, top - tooltip_height - 4.0);
+    /// }
+    /// ```
+    pub fn cell_client_rect(
+        &self,
+        row: u64,
+        col_key: &str,
+    ) -> Option<(f64, f64, f64, f64)> {
+        let col_idx = self
+            .0
+            .state
+            .borrow()
+            .model
+            .columns
+            .iter()
+            .position(|c| c.key == col_key)?;
+        let (cx, cy, w, h) = self.cell_viewport_rect(row, col_idx);
+        let canvas_rect = self.0.canvas.get_bounding_client_rect();
+        Some((canvas_rect.left() + cx, canvas_rect.top() + cy, w, h))
+    }
+
     /// Apply shared positioning styles to an edit overlay.
     fn apply_edit_style(
         &self,
@@ -95,13 +136,16 @@ impl GridCanvas {
     }
 
     /// Swap the edit overlay's border/background between the normal
-    /// and invalid-value look, without touching position/geometry.
-    /// Cheap enough to call on every keystroke.
+    /// and invalid-value look, without touching position/geometry, and
+    /// sync the native `title` attribute (unless disabled via
+    /// [`GridCanvas::set_native_validation_tooltip`]). Cheap enough to
+    /// call on every keystroke.
     fn apply_edit_validity_style(
         &self,
         el: &web_sys::HtmlElement,
-        invalid: bool,
+        message: Option<&str>,
     ) {
+        let invalid = message.is_some();
         let css_style = css_theme::root_computed_style();
         let var = |name: &str, fb: &str| -> String {
             css_style
@@ -128,6 +172,17 @@ impl GridCanvas {
             &format!("{border_width} solid {border_color}"),
         );
         let _ = style.set_property("background", &bg);
+
+        if self.0.native_validation_tooltip.get() {
+            match message {
+                Some(msg) => {
+                    let _ = el.set_attribute("title", msg);
+                }
+                None => {
+                    let _ = el.remove_attribute("title");
+                }
+            }
+        }
     }
 
     /// Create the appropriate DOM overlay for inline
@@ -597,16 +652,17 @@ impl GridCanvas {
         // the error visually, and refocus it. Otherwise (success, or
         // InvalidEditMode::Revert) tear the overlay down as before.
         fn keep_or_close(gc: &GridCanvas, inp: &HtmlInputElement) {
-            let invalid =
-                gc.0.state
-                    .borrow()
-                    .edit
-                    .as_ref()
-                    .is_some_and(|e| e.validation_error.is_some());
-            if gc.0.state.borrow().edit.is_some() {
+            let still_editing = gc.0.state.borrow().edit.is_some();
+            if still_editing {
+                let message =
+                    gc.0.state
+                        .borrow()
+                        .edit
+                        .as_ref()
+                        .and_then(|e| e.validation_error.clone());
                 gc.apply_edit_validity_style(
                     inp.dyn_ref::<web_sys::HtmlElement>().expect("cast"),
-                    invalid,
+                    message.as_deref(),
                 );
                 let _ = inp.focus();
             } else {
@@ -660,15 +716,15 @@ impl GridCanvas {
             let cb = Closure::<dyn FnMut(_)>::new(move |_: web_sys::Event| {
                 let val = format!("{}{}", pfx, inp.value());
                 gc.dispatch(GridCommand::ValidateEdit { value: val });
-                let invalid =
+                let message =
                     gc.0.state
                         .borrow()
                         .edit
                         .as_ref()
-                        .is_some_and(|e| e.validation_error.is_some());
+                        .and_then(|e| e.validation_error.clone());
                 gc.apply_edit_validity_style(
                     inp.dyn_ref::<web_sys::HtmlElement>().expect("cast"),
-                    invalid,
+                    message.as_deref(),
                 );
             });
             let func: js_sys::Function =

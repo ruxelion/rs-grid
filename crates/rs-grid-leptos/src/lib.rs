@@ -27,6 +27,10 @@ use web_sys::HtmlCanvasElement;
 /// Callback type for validation error events: `(row, col_key, message)`.
 pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
 
+/// Callback type for live validation-state changes: `Some((row, col_key,
+/// message))` while the in-progress edit is invalid, `None` otherwise.
+pub type ValidationStateChangedCb = Box<dyn Fn(Option<(u64, String, String)>)>;
+
 /// Callback type for cell button click events:
 /// `(row, col_key, button_id)`.
 pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
@@ -57,6 +61,15 @@ pub fn GridCanvas(
     /// Arguments: `(row, col_key, error_message)`.
     #[prop(optional)]
     on_validation_error: Option<ValidationErrorCb>,
+    /// Called after every `StartEdit`/`ValidateEdit`/`CommitEdit`/
+    /// `CancelEdit` with the fresh live validation state — `Some((row,
+    /// col_key, message))` while the in-progress edit is invalid, `None`
+    /// otherwise. Unlike `on_validation_error` (fired only when a commit
+    /// is rejected), this fires on every keystroke — use it to drive a
+    /// custom validation UI (tooltip, banner, icon) with your own
+    /// signal/CSS framework; rs-grid does not impose one.
+    #[prop(optional)]
+    on_validation_state_changed: Option<ValidationStateChangedCb>,
     /// Called when a cell button is clicked.
     /// Arguments: `(row, col_key, button_id)`.
     #[prop(optional)]
@@ -70,6 +83,8 @@ pub fn GridCanvas(
     let model_slot = RefCell::new(Some(model));
     let on_mount_slot = RefCell::new(on_mount);
     let on_validation_error_slot = RefCell::new(on_validation_error);
+    let on_validation_state_changed_slot =
+        RefCell::new(on_validation_state_changed);
     let on_cell_button_click_slot = RefCell::new(on_cell_button_click);
 
     // Holder for the mounted GridCanvas handle, shared across effects and
@@ -145,6 +160,9 @@ pub fn GridCanvas(
             gc.set_on_validation_error(move |row, col, msg| {
                 cb(row, col.to_string(), msg.to_string());
             });
+        }
+        if let Some(cb) = on_validation_state_changed_slot.borrow_mut().take() {
+            gc.set_on_validation_state_changed(cb);
         }
         if let Some(cb) = on_cell_button_click_slot.borrow_mut().take() {
             gc.set_on_cell_button_click(move |row, col, btn| {

@@ -122,6 +122,18 @@ struct Inner {
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
     on_validation_error: RefCell<Option<Rc<dyn Fn(u64, &str, &str)>>>,
+    /// Optional callback fired after `StartEdit`, `ValidateEdit`,
+    /// `CommitEdit`, or `CancelEdit` with the fresh
+    /// `validation_error()` value (`None` when there is no active
+    /// edit or the current value is valid).
+    #[allow(clippy::type_complexity)]
+    on_validation_state_changed:
+        RefCell<Option<Rc<dyn Fn(Option<(u64, String, String)>)>>>,
+    /// Whether the inline edit `<input>` gets a native `title`
+    /// attribute reflecting the current validation error (default
+    /// `true`). Disable when building a custom validation UI to
+    /// avoid a competing browser tooltip.
+    native_validation_tooltip: Cell<bool>,
     /// Optional callback fired when a cell button is clicked.
     /// Arguments: (row, col_key, button_id).
     #[allow(clippy::type_complexity)]
@@ -335,6 +347,8 @@ impl GridCanvas {
             on_columns_changed: RefCell::new(None),
             on_selection_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
+            on_validation_state_changed: RefCell::new(None),
+            native_validation_tooltip: Cell::new(true),
             on_cell_button_click: RefCell::new(None),
             edit_input: RefCell::new(None),
             edit_closures: RefCell::new(Vec::new()),
@@ -547,6 +561,26 @@ impl GridCanvas {
     /// Current count of pinned (frozen) columns.
     pub fn pinned_count(&self) -> usize {
         self.0.state.borrow().model.pinned_count
+    }
+
+    /// Current validation error for the in-progress cell edit, if any.
+    ///
+    /// Returns `(row, col_key, message)` reflecting *live* state — updated
+    /// on every keystroke via `GridCommand::ValidateEdit`, not just on a
+    /// rejected commit. Returns `None` when there is no active edit or the
+    /// current value passes all rules.
+    ///
+    /// Unlike [`GridCanvas::set_on_validation_error`] (fired only when a
+    /// commit is rejected), this getter — paired with
+    /// [`GridCanvas::set_on_validation_state_changed`] — lets a consumer
+    /// build any UI (tooltip, banner, icon) reflecting the live validation
+    /// state, rs-grid does not impose one.
+    pub fn validation_error(&self) -> Option<(u64, String, String)> {
+        self.0.state.borrow().edit.as_ref().and_then(|e| {
+            e.validation_error
+                .as_ref()
+                .map(|msg| (e.row, e.col_key.clone(), msg.clone()))
+        })
     }
 
     /// Logical (display) row indices currently inside the selection rectangle.

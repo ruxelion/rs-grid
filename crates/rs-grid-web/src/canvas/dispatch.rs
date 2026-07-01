@@ -74,6 +74,16 @@ impl GridCanvas {
                 | GridCommand::SetColumnFilter { .. }
                 | GridCommand::ClearAllFilters
         );
+        // Commands that change the active edit session's validation
+        // state — fire on_validation_state_changed with the fresh
+        // value so a consumer can drive a live, custom validation UI.
+        let is_edit_state_change = matches!(
+            cmd,
+            GridCommand::StartEdit { .. }
+                | GridCommand::ValidateEdit { .. }
+                | GridCommand::CommitEdit { .. }
+                | GridCommand::CancelEdit
+        );
         // In server-side mode, sort/filter changes
         // invalidate the entire page cache.
         let invalidates_cache = matches!(
@@ -121,6 +131,12 @@ impl GridCanvas {
             let cb = self.0.on_validation_error.borrow().clone();
             if let Some(cb) = cb {
                 cb(*row, col_key, message);
+            }
+        }
+        if is_edit_state_change {
+            let cb = self.0.on_validation_state_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb(self.validation_error());
             }
         }
         if is_column_change {
@@ -205,6 +221,39 @@ impl GridCanvas {
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
         *self.0.on_validation_error.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired after `StartEdit`, `ValidateEdit`,
+    /// `CommitEdit`, or `CancelEdit` with the fresh
+    /// [`GridCanvas::validation_error`] value.
+    ///
+    /// Unlike [`GridCanvas::set_on_validation_error`] (fired only when a
+    /// commit is rejected), this fires on *every* keystroke while editing —
+    /// use it to drive a custom validation UI (tooltip, banner, icon) built
+    /// with your own framework/CSS, rs-grid does not impose one. Combine
+    /// with [`GridCanvas::set_native_validation_tooltip`] to opt out of the
+    /// built-in `title`-attribute fallback if it competes with your UI.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    #[allow(clippy::type_complexity)]
+    pub fn set_on_validation_state_changed(
+        &self,
+        cb: impl Fn(Option<(u64, String, String)>) + 'static,
+    ) {
+        *self.0.on_validation_state_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Enable or disable the native `title` attribute on the inline edit
+    /// `<input>` (default `true`). The attribute reflects the current
+    /// validation error message, giving a zero-config browser tooltip.
+    /// Disable it when building a custom validation UI via
+    /// [`GridCanvas::set_on_validation_state_changed`] to avoid a competing
+    /// native tooltip.
+    pub fn set_native_validation_tooltip(&self, enabled: bool) {
+        self.0.native_validation_tooltip.set(enabled);
     }
 
     /// Register a callback fired when a cell button is clicked.

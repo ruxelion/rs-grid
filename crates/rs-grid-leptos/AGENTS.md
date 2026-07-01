@@ -7,6 +7,7 @@ for use in Leptos applications.
 
 ```rust
 pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
+pub type ValidationStateChangedCb = Box<dyn Fn(Option<(u64, String, String)>)>;
 pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
 
 #[component]
@@ -18,13 +19,22 @@ pub fn GridCanvas(
     #[prop(optional)] locale: Option<Signal<Locale>>,
     #[prop(optional)] on_mount: Option<Box<dyn FnOnce(WebGridCanvas)>>,
     #[prop(optional)] on_validation_error: Option<ValidationErrorCb>,
+    #[prop(optional)] on_validation_state_changed: Option<ValidationStateChangedCb>,
     #[prop(optional)] on_cell_button_click: Option<CellButtonClickCb>,
 ) -> impl IntoView
 ```
 
 Callback arguments:
-- `on_validation_error(row, col_key, error_message)` — fires when a
-  per-column validator rejects an edit.
+- `on_validation_error(row, col_key, error_message)` — fires only when a
+  per-column validator rejects a **commit**.
+- `on_validation_state_changed(Some((row, col_key, message)) | None)` —
+  fires on every `StartEdit`/`ValidateEdit`/`CommitEdit`/`CancelEdit`,
+  reflecting the *live* validation state (every keystroke, not just
+  commits). Use this to drive a custom validation UI (tooltip, banner,
+  icon) with your own signal/CSS — rs-grid does not impose one. A
+  zero-config native `title` tooltip is applied by `rs-grid-web` by
+  default (see `GridCanvas::set_native_validation_tooltip` on the raw
+  handle from `on_mount` to disable it).
 - `on_cell_button_click(row, col_key, button_id)` — fires when a cell
   button (declared via `ColumnDef::with_cell_buttons`) is clicked.
 

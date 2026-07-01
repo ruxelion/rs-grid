@@ -72,4 +72,46 @@ test.describe('validation', () => {
     await expect(page.locator('input[type="text"]')).toHaveCount(0);
     await expect(canvas).toBeVisible();
   });
+
+  // ── native title fallback ────────────────────────────────────────────────
+  test('invalid value sets a native title attribute, valid value clears it', async ({ page }) => {
+    const canvas = page.locator('canvas');
+    await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
+    await waitForPaint(page, 400);
+
+    const input = page.locator('input[type="text"]');
+    await input.fill('');
+    await waitForPaint(page, 200);
+    await expect(input).toHaveAttribute('title', 'This field is required.');
+
+    await input.fill('Someone');
+    await waitForPaint(page, 200);
+    await expect(input).not.toHaveAttribute('title');
+  });
+
+  // ── generic API: on_validation_state_changed (live, per-keystroke) ───────
+  test('on_validation_state_changed fires live, not just on commit', async ({ page }) => {
+    const canvas = page.locator('canvas');
+    const state = page.locator('[data-testid="validation-state"]');
+
+    // No active edit yet — empty.
+    await expect(state).toHaveText('');
+
+    await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
+    await waitForPaint(page, 400);
+
+    const input = page.locator('input[type="text"]');
+    await input.fill('');
+    await waitForPaint(page, 200);
+    // Fired on the keystroke itself, well before any commit attempt.
+    await expect(state).toHaveText('This field is required.');
+
+    await input.fill('Someone');
+    await waitForPaint(page, 200);
+    await expect(state).toHaveText('');
+
+    await page.keyboard.press('Escape');
+    await waitForPaint(page, 200);
+    await expect(state).toHaveText('');
+  });
 });

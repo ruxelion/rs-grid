@@ -1391,6 +1391,7 @@ dependencies = [
  "leptos",
  "rs-grid-leptos",
  "rs-grid-scene",
+ "send_wrapper",
  "wasm-bindgen",
 ]
 

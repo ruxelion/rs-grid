@@ -234,10 +234,28 @@ canvas.set_on_validation_error(move |row, col_key, message| {
     log::warn!("Validation error at [{row},{col_key}]: {message}");
 });
 
+canvas.set_on_validation_state_changed(move |state| {
+    // Fires on every StartEdit/ValidateEdit/CommitEdit/CancelEdit —
+    // i.e. on every keystroke, not just rejected commits. `state` is
+    // `Some((row, col_key, message))` while the in-progress edit is
+    // invalid, `None` otherwise. rs-grid does not impose a widget for
+    // this — build your own tooltip/banner/icon with it:
+    match state {
+        Some((row, col_key, message)) => show_my_tooltip(row, &col_key, &message),
+        None => hide_my_tooltip(),
+    }
+});
+// A zero-config native `title` attribute is applied to the edit
+// <input> by default. Disable it if it competes with your own UI:
+canvas.set_native_validation_tooltip(false);
+
 canvas.set_on_cell_button_click(move |row, col_key, button_id| {
     // triggered when a ButtonDef cell button is clicked
 });
 ```
+
+The current validation state can also be read on demand (not just via the
+callback) with `canvas.validation_error() -> Option<(u64, String, String)>`.
 
 ### Set up inline editing
 

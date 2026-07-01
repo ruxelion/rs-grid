@@ -15,8 +15,18 @@ pub fn GridCanvas(
     #[props(optional)] locale: Option<Signal<Locale>>,
     #[props(optional)] on_mount: Option<Box<dyn FnOnce(WebGridCanvas)>>,
     #[props(optional)] on_validation_error: Option<ValidationErrorCb>,
+    #[props(default)] on_validation_state_changed: EventHandler<Option<(u64, String, String)>>,
 ) -> Element
 ```
+
+`on_validation_state_changed` fires on every `StartEdit`/`ValidateEdit`/
+`CommitEdit`/`CancelEdit`, reflecting the *live* validation state (every
+keystroke, not just commits) — unlike `on_validation_error` which fires
+only when a commit is rejected. Use it to drive a custom validation UI
+(tooltip, banner, icon) with your own signal/CSS; rs-grid does not impose
+one. A zero-config native `title` tooltip is applied by `rs-grid-web` by
+default (see `GridCanvas::set_native_validation_tooltip` on the raw handle
+from `on_mount` to disable it).
 
 ## Behaviour
 

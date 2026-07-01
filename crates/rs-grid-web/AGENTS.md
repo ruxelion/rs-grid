@@ -65,6 +65,26 @@ edited its DOM `<input>` fully occludes the canvas underneath (opaque
 that `<input>`'s own border/background instead of a `ScenePrimitive` — see
 *CSS theme* below.
 
+### Consuming validation state generically
+
+rs-grid does not impose a validation-error widget (no built-in tooltip
+component, unlike e.g. AG Grid). Instead it exposes the raw state so an
+integrator can build any UI with their own framework/CSS:
+
+- `GridCanvas::validation_error() -> Option<(u64, String, String)>` — reads
+  the live state on demand (`GridState.edit.validation_error`).
+- `set_on_validation_state_changed` — push notification on every keystroke
+  (see *Public callbacks* above), for reactive UIs.
+- `set_native_validation_tooltip(bool)` (default `true`) — toggles the
+  zero-config native `title` attribute set by `apply_edit_validity_style`
+  in `canvas/edit.rs`. Disable it when building a custom UI to avoid a
+  competing browser tooltip.
+
+The three framework wrappers (`rs-grid-leptos`/`dioxus`/`yew`) forward
+`on_validation_state_changed` as a plain callback prop, mirroring the
+existing `on_validation_error` plumbing exactly — no wrapper-managed
+reactive signal exists for this or any other `GridCanvas` state today.
+
 ## Public callbacks
 
 Callbacks fired during `dispatch()` after `GridState::apply()` returns:
@@ -74,6 +94,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_change` | `PasteAt`, `CommitEdit` (cell data mutations) — **not** fired when a `CommitEdit` is rejected by validation |
 | `set_on_columns_changed` | `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns`, `SetPinnedColumnCount` (layout mutations — **not** sort/filter) |
 | `set_on_validation_error` | A `CommitEdit` was rejected by `ColumnDef.rules`/`validator` (`CommandOutput::ValidationError`) — fires for both `InvalidEditMode::Revert` and `::Block` |
+| `set_on_validation_state_changed` | `StartEdit`, `ValidateEdit`, `CommitEdit`, `CancelEdit` — fires with the fresh `validation_error()` value on *every keystroke*, not just rejected commits |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
