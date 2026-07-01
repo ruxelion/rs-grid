@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-dioxus-v0.1.5...rs-grid-dioxus-v0.2.0) - 2026-07-01
+
+### Added
+
+- *(validation)* add live validation state callback and improve validation UI integration
+
 ## [0.1.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-dioxus-v0.1.4...rs-grid-dioxus-v0.1.5) - 2026-06-21
 
 ### Other
