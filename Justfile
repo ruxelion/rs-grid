@@ -158,13 +158,13 @@ mcp-build:
 mcp-dev:
     cd mcp && npm run dev
 
-# Publish the MCP server to npm (requires NPM_TOKEN). Always bundles the
-# canonical GitHub docs (RS_GRID_DOCS_SOURCE=github) — never local edits.
-# Usage: NPM_TOKEN=xxx just mcp-publish
+# Publish the MCP server to npm (NPM_TOKEN auto-loaded from .env via
+# dotenv-load). The prepublishOnly hook rebuilds dist/; RS_GRID_DOCS_SOURCE=
+# github forces the canonical GitHub docs into the package (never local edits).
+# The leading @ suppresses command echo so the auth token is not printed.
 mcp-publish:
     cd mcp && npm install
-    cd mcp && RS_GRID_DOCS_SOURCE=github npm run build
-    cd mcp && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
+    @cd mcp && set "RS_GRID_DOCS_SOURCE=github" && npm publish --//registry.npmjs.org/:_authToken={{env("NPM_TOKEN")}}
 
 # ── Release (release-plz) ────────────────────────────────
 
