@@ -114,4 +114,59 @@ test.describe('validation', () => {
     await waitForPaint(page, 200);
     await expect(state).toHaveText('');
   });
+
+  // ── at-rest hover tooltip (set_validation_tooltip_class) ─────────────────
+  test.describe('at-rest validation tooltip', () => {
+    // Row 10's "name" is seeded empty (invalid, required()) by the fixture,
+    // without ever going through CommitEdit/PasteAt — simulates data
+    // loaded already-invalid from an external source. Row 0 is left alone
+    // since other specs dblclick it for edit-flow tests.
+    const INVALID_X = NAME_X;
+    const INVALID_Y = HEADER + ROW_H * 10 + ROW_H / 2; // row 10, seeded invalid
+    const VALID_Y = NAME_Y; // row 0, untouched / valid
+
+    function tooltip(page: Page) {
+      return page.locator('div[data-tip]');
+    }
+
+    test('hovering the seeded at-rest-invalid cell shows the tooltip', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.hover({ position: { x: INVALID_X, y: INVALID_Y } });
+      await waitForPaint(page, 200);
+
+      const tip = tooltip(page);
+      await expect(tip).toHaveAttribute('data-tip', 'This field is required.');
+      await expect(tip).toHaveClass('tooltip tooltip-open tooltip-error');
+      await expect(tip).toBeVisible();
+    });
+
+    test('moving off the invalid cell hides the tooltip', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.hover({ position: { x: INVALID_X, y: INVALID_Y } });
+      await waitForPaint(page, 200);
+      await expect(tooltip(page)).toBeVisible();
+
+      await canvas.hover({ position: { x: INVALID_X, y: VALID_Y } });
+      await waitForPaint(page, 200);
+      await expect(tooltip(page)).toBeHidden();
+    });
+
+    test('hovering a valid cell never shows the tooltip', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.hover({ position: { x: INVALID_X, y: VALID_Y } });
+      await waitForPaint(page, 200);
+      await expect(tooltip(page)).toBeHidden();
+    });
+
+    test('scrolling while hovering hides the tooltip', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.hover({ position: { x: INVALID_X, y: INVALID_Y } });
+      await waitForPaint(page, 200);
+      await expect(tooltip(page)).toBeVisible();
+
+      await canvas.dispatchEvent('wheel', { deltaY: 200 });
+      await waitForPaint(page, 200);
+      await expect(tooltip(page)).toBeHidden();
+    });
+  });
 });

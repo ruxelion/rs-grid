@@ -257,6 +257,22 @@ canvas.set_on_cell_button_click(move |row, col_key, button_id| {
 The current validation state can also be read on demand (not just via the
 callback) with `canvas.validation_error() -> Option<(u64, String, String)>`.
 
+A cell can be invalid *at rest* — never edited, just loaded that way from the
+data source. `canvas.cell_validation_error(row, col_key) -> Option<String>`
+checks this independently of any active edit session. rs-grid also has a
+built-in (no-visual-of-its-own) hover mechanism for it: a single reused DOM
+tooltip, positioned automatically, shown only while hovering an invalid
+cell — reproduce daisyUI's tooltip by giving it a class:
+
+```rust
+canvas.set_validation_tooltip_class(Some(
+    "tooltip tooltip-open tooltip-error".into(),
+));
+// `tooltip-open` is required — this element never receives a real
+// `:hover` (pointer-events: none; the mouse stays over the canvas).
+// Without a class set, the tooltip is positioned but invisible.
+```
+
 ### Set up inline editing
 
 ```rust

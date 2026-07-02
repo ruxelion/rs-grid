@@ -190,7 +190,16 @@ fn App() -> impl IntoView {
             </div>
             <div class="fixture-grid">
                 {move || {
-                    let model = build_model(row_count.get(), col_count.get());
+                    let mut model = build_model(row_count.get(), col_count.get());
+                    // e2e-only: row 10's "name" is required() but seeded
+                    // empty, simulating data loaded already-invalid from
+                    // an external source — exercises the at-rest
+                    // validation border/tooltip without going through
+                    // CommitEdit/PasteAt (both skip writing invalid
+                    // values, so neither can produce this state). Row 0
+                    // is left untouched — other specs (editing.spec.ts,
+                    // this file's own edit-flow tests) dblclick it.
+                    model.set_cell(10, "name", String::new());
 
                     let on_mount = {
                         let gc_holder = gc_holder.clone();
@@ -199,6 +208,14 @@ fn App() -> impl IntoView {
                             gc.set_editable(true);
                             gc.set_selectable(true);
                             gc.set_column_reorderable(true);
+                            // e2e-only: reproduces daisyUI's tooltip via
+                            // the class hook — rs-grid renders no
+                            // visual of its own, this is entirely
+                            // caller-owned styling.
+                            gc.set_validation_tooltip_class(Some(
+                                "tooltip tooltip-open tooltip-error"
+                                    .to_string(),
+                            ));
                             *gc_holder.borrow_mut() = Some(gc);
                         })
                     };

@@ -69,11 +69,55 @@ fails validation regardless of whether it's being edited — see
 `rs-grid-scene/AGENTS.md`'s "At-rest invalid-value border". The two never
 overlap: the DOM input hides the canvas cell underneath while editing.
 
+### At-rest validation tooltip (hover)
+
+A cell can be invalid without ever being edited — data loaded already-bad
+from the source (see `rs-grid-scene/AGENTS.md`'s "At-rest invalid-value
+border"). `refresh_validation_tooltip(vx, vy)` (`canvas/tooltip.rs`), called
+from `attach_mousemove`'s hover branch right after `refresh_hover_cursor`,
+surfaces this on hover via a single reused DOM `<div>`
+(`tooltip_el: RefCell<Option<HtmlElement>>`, mirroring `edit_input`) — **not**
+one element per invalid cell, so cost stays O(1) regardless of how many
+cells in the grid are invalid. It is:
+
+- Positioned via the existing `cell_client_rect(row, col_key)` (`canvas/
+  edit.rs`) — no new geometry.
+- Given `pointer-events: none` (the mouse stays over the `<canvas>`, never
+  over this element) and `data-tip="<message>"` — the attribute daisyUI
+  reads via `content: attr(data-tip)`.
+- Change-guarded on `(row, col)` (`tooltip_cell`) so DOM writes only happen
+  when the hovered cell actually changes, not on every `mousemove`.
+- Hidden (not removed) on wheel/scroll (`attach_wheel`) since its position
+  is computed once at hover time in fixed client coordinates and would
+  otherwise desync from the cell it targets; it reappears on the next
+  `mousemove` if still hovering an invalid cell.
+
+rs-grid renders **no visual of its own** for this tooltip — the wrapper's
+`class` attribute is fully caller-controlled via
+`set_validation_tooltip_class(Option<String>)`; with no class set, the
+element exists but is invisible. This is the same "rs-grid does not pick
+where/how validation feedback renders" stance as `cell_client_rect`'s own
+doc comment. To reproduce daisyUI's tooltip:
+```rust
+canvas.set_validation_tooltip_class(Some(
+    "tooltip tooltip-open tooltip-error".into(),
+));
+```
+`tooltip-open` (or an equivalent always-open modifier) is required in the
+class — daisyUI's tooltip CSS normally shows on native `:hover`, which this
+element can never receive (`pointer-events: none`); rs-grid owns
+show/hide entirely via its own `display` toggle, not CSS `:hover`.
+`GridCanvas::cell_validation_error(row, col_key) -> Option<String>` is also
+public standalone (mirrors `validation_error()`, but for at-rest values) —
+useful to build a fully custom indicator without the built-in hover
+mechanism.
+
 ### Consuming validation state generically
 
-rs-grid does not impose a validation-error widget (no built-in tooltip
-component, unlike e.g. AG Grid). Instead it exposes the raw state so an
-integrator can build any UI with their own framework/CSS:
+rs-grid does not impose a validation-error widget for the *in-progress edit*
+case (no built-in styled tooltip component, unlike e.g. AG Grid). Instead it
+exposes the raw state so an integrator can build any UI with their own
+framework/CSS:
 
 - `GridCanvas::validation_error() -> Option<(u64, String, String)>` — reads
   the live state on demand (`GridState.edit.validation_error`).

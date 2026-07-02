@@ -88,6 +88,11 @@ impl GridCanvas {
             // Close any active cell editor on scroll.
             gc.cancel_and_close_edit();
 
+            // The tooltip is positioned in fixed client coordinates at
+            // hover time — a scroll without a new mousemove would leave
+            // it visually detached from the cell it targeted.
+            gc.hide_validation_tooltip();
+
             // Convert delta to logical pixels regardless of unit.
             let (dx, dy) = {
                 let state = gc.0.state.borrow();
@@ -680,16 +685,19 @@ impl GridCanvas {
                     // Skip hover while an edit overlay or the
                     // context menu is open.
                     if gc.0.edit_input.borrow().is_some() {
+                        gc.hide_validation_tooltip();
                         return;
                     }
                     if super::dom_helpers::document()
                         .get_element_by_id("rs-grid-ctx-menu")
                         .is_some()
                     {
+                        gc.hide_validation_tooltip();
                         return;
                     }
                     let (x, y) = gc.canvas_xy(&evt);
                     gc.refresh_hover_cursor(x, y);
+                    gc.refresh_validation_tooltip(x, y);
                     let new_row = gc.row_at(x, y);
                     if gc.0.state.borrow().hovered_row != new_row {
                         gc.dispatch(GridCommand::SetHoveredRow(new_row));

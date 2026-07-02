@@ -11,6 +11,7 @@ mod hittest;
 mod keyboard;
 mod scroll;
 mod search;
+mod tooltip;
 
 use std::{
     any::Any,
@@ -150,6 +151,18 @@ struct Inner {
     search_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Event listener refs on the search input, for explicit removal.
     search_listener_refs: RefCell<Vec<(String, js_sys::Function)>>,
+    /// DOM element for the at-rest validation hover tooltip — a single
+    /// node reused across cells (never one per invalid cell), so cost is
+    /// O(1) regardless of how many cells are invalid.
+    tooltip_el: RefCell<Option<HtmlElement>>,
+    /// `(row, col)` of the cell the tooltip is currently showing for, if
+    /// any — change-guards `refresh_validation_tooltip` so DOM writes
+    /// only happen when the hovered cell actually changes.
+    tooltip_cell: RefCell<Option<(u64, usize)>>,
+    /// CSS class applied to the tooltip element (e.g. daisyUI's
+    /// `"tooltip tooltip-open tooltip-error"`). `None` = no visual
+    /// (rs-grid renders no fallback style of its own).
+    tooltip_class: RefCell<Option<String>>,
     /// Text waiting to be placed on the clipboard by the next
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
@@ -360,6 +373,9 @@ impl GridCanvas {
             search_input: RefCell::new(None),
             search_closures: RefCell::new(Vec::new()),
             search_listener_refs: RefCell::new(Vec::new()),
+            tooltip_el: RefCell::new(None),
+            tooltip_cell: RefCell::new(None),
+            tooltip_class: RefCell::new(None),
             pending_clipboard: RefCell::new(None),
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
@@ -488,9 +504,10 @@ impl GridCanvas {
         // 4. Stop any running scroll timers.
         self.stop_scroll_repeat();
 
-        // 5. Remove ephemeral overlays (edit / search).
+        // 5. Remove ephemeral overlays (edit / search / tooltip).
         self.remove_edit_input();
         self.remove_search_input();
+        self.remove_validation_tooltip();
 
         // 6. Drop all stored closures (invalidates their JS functions and
         //    breaks Rc<Inner> cycles).
