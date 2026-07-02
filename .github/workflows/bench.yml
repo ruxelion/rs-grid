@@ -44,7 +44,7 @@ jobs:
       # Criterion automatically compares against this baseline and reports
       # regressions / improvements in its output.
       - name: Restore criterion baseline
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: target/criterion
           key: criterion-${{ runner.os }}-${{ github.sha }}
@@ -74,7 +74,7 @@ jobs:
       # Save the new baseline only from main so PRs don't drift the reference.
       - name: Save criterion baseline
         if: github.ref == 'refs/heads/main' && success()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: target/criterion
           key: criterion-${{ runner.os }}-${{ github.sha }}
