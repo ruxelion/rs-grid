@@ -16,9 +16,9 @@ keywords = ["grid", "wasm", "canvas", "browser", "event-handling"]
 categories = ["web-programming", "wasm"]
 
 [dependencies]
-rs-grid-core = { path = "../rs-grid-core", version = "0.2.2" }
-rs-grid-scene = { path = "../rs-grid-scene", version = "0.2.0" }
-rs-grid-render-canvas = { path = "../rs-grid-render-canvas", version = "0.1.7" }
+rs-grid-core = { path = "../rs-grid-core", version = "0.2.3" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.2.1" }
+rs-grid-render-canvas = { path = "../rs-grid-render-canvas", version = "0.1.8" }
 console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
