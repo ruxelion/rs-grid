@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.7...rs-grid-web-v0.1.8) - 2026-07-02
+
+### Fixed
+
+- *(canvas)* optimize canvas resizing to prevent visual flash during drag-resize
+
 ## [0.1.7](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.6...rs-grid-web-v0.1.7) - 2026-07-02
 
 ### Added
