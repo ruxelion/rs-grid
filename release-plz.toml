@@ -1,18 +1,22 @@
-# release-plz — automatise le bump de version + le changelog de rs-grid.
+# release-plz — automates version bumps + changelog for rs-grid.
 #
-# Mode actuel : release-PR-only (cf .github/workflows/release-plz.yml). release-plz
-# ouvre une PR avec les bumps + CHANGELOG.md par crate dérivés des commits
-# conventionnels ; la publication crates.io reste manuelle via /publish.
+# release-plz opens a PR with per-crate bumps + CHANGELOG.md derived from
+# conventional commits (the release-plz-pr job). Once that PR is merged, the
+# release-plz-release job publishes the bumped crates to crates.io and creates
+# tags + GitHub Releases (gated by the AUTO_PUBLISH repo variable; see
+# .github/workflows/release-plz.yml). `just publish` stays as a local fallback.
 #
-# Versioning indépendant par crate (défaut release-plz) : chaque crate suit sa
-# propre version. Un tag par crate, tous pointant sur le même commit de release.
-# Docs : https://release-plz.dev/docs/config
+# Independent per-crate versioning (release-plz default): each crate has its own
+# version. One tag per crate, all pointing at the same release commit.
+# Docs: https://release-plz.dev/docs/config
 
 [workspace]
 git_tag_name = "{{ package }}-v{{ version }}"
+# Create a GitHub Release per crate on publish (explicit; this is the default).
+git_release_enable = true
 
-# Crates internes (publish = false dans leur Cargo.toml) : exclues des releases —
-# pas de bump, pas de changelog, jamais publiées.
+# Internal crates (publish = false in their Cargo.toml): excluded from releases —
+# no bump, no changelog, never published.
 [[package]]
 name = "example-common"
 release = false

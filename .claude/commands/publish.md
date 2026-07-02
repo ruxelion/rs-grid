@@ -1,26 +1,26 @@
-# /publish — Release checklist (crates.io)
+# /publish — crates.io release (LOCAL FALLBACK)
 
-Commande de release structurée. À chaque étape marquée **[STOP]**, présenter
-l'action à effectuer et attendre la confirmation explicite de l'utilisateur avant
-de continuer. Ne jamais exécuter une étape de manière autonome.
+> **Publishing is automated.** The normal flow is: merge the release-plz PR →
+> the `release-plz-release` job publishes to crates.io + creates tags + GitHub
+> Releases (token-less via OIDC Trusted Publishing), gated by the `AUTO_PUBLISH`
+> repo variable. See `.github/workflows/release-plz.yml`.
+>
+> Use this command only as a **manual fallback** — CI/OIDC down, a partial
+> publish to resume, or `AUTO_PUBLISH` deliberately off. It is idempotent
+> (`tools/publish.ps1` skips already-published versions).
 
-## Répartition des rôles
+At each step marked **[STOP]**, present the action and wait for explicit
+confirmation before continuing. Never run a step autonomously.
 
-Depuis l'intégration de **release-plz** (mode release-PR-only) :
+## Roles
 
-- **release-plz** (automatique, CI) : ouvre une PR de release qui **bumpe les
-  versions** (indépendantes par crate) et **génère les `crates/*/CHANGELOG.md`**
-  depuis les commits conventionnels.
-- **Humain** : review + merge de la PR de release sur `main`.
-- **`/publish`** (cette commande, manuel) : **publie** les crates modifiés sur
-  crates.io dans l'ordre de dépendances, puis **crée et pousse les tags per-crate**.
-
-`/publish` ne bumpe plus les versions et n'édite plus le changelog — c'est le
-travail de la PR de release-plz, déjà mergée à ce stade.
-
-> Évolution future (« Phase B ») : activer le job `release` de release-plz
-> (publication + tags + GitHub releases automatiques) rendra cette commande
-> obsolète. Voir `.github/workflows/release-plz.yml`.
+- **release-plz** (CI): opens the release PR (per-crate version bumps +
+  `crates/*/CHANGELOG.md` from conventional commits), and — once merged and with
+  `AUTO_PUBLISH=true` — publishes + tags + creates GitHub Releases.
+- **Human**: review + merge the release PR. With automation on, that is the only
+  required step.
+- **`/publish`** (this command): the manual fallback for the publish + tag step
+  when CI did not do it. It never bumps versions or edits changelogs.
 
 ## Pré-conditions
 

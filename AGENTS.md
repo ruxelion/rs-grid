@@ -151,7 +151,7 @@ synchronisées avec `.vscode/tasks.json`.
 |---|---|
 | `/test` | `cargo nextest run -p rs-grid-core` — après chaque changement core |
 | `/e2e` | `trunk build` + Playwright — avant toute PR |
-| `/publish` | Publication manuelle crates.io + tags per-crate (après merge de la PR release-plz) |
+| `/publish` | **Fallback local** crates.io + tags (la publication est normalement automatisée par le job `release-plz-release`, gate `AUTO_PUBLISH`) |
 
 ## Versioning (SemVer)
 
@@ -163,8 +163,10 @@ Version bumps and changelogs are automated by **release-plz** (config
 bumps the changed crates and writes `crates/*/CHANGELOG.md` from the
 [Conventional Commits](https://www.conventionalcommits.org/). Merging that PR is
 the version bump — do not edit `version` in `Cargo.toml` by hand. Publishing to
-crates.io + tagging stays manual via `/publish` (see also `.github/workflows/
-release-plz.yml`).
+crates.io + tags + GitHub Releases is then **automated** by the
+`release-plz-release` job (token-less OIDC Trusted Publishing), gated by the
+`AUTO_PUBLISH` repo variable. `/publish` (`tools/publish.ps1`) is the local
+fallback. See `.github/workflows/release-plz.yml`.
 
 For every feature request, bug fix, or refactor, reason about the version impact
 **before** proposing an implementation:
@@ -198,7 +200,7 @@ reasoning.
 | Server | Role | Setup |
 |---|---|---|
 | **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
-| **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`), **structured GridCommand variants** (`list_commands`, `get_command`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`). Scene fixtures: `just gen-scene-fixtures`. Docs source: local sibling `rs-grid-site/doc_build` if present, else GitHub (`RS_GRID_DOCS_SOURCE=local\|github` to force) |
+| **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`), **structured GridCommand variants** (`list_commands`, `get_command`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` — **auto-published by `.github/workflows/mcp-publish.yml`** when `mcp/package.json` version changes (token-less OIDC + provenance, gate `AUTO_PUBLISH`); `just mcp-publish` is the local fallback. Build: `just mcp-build`; scene fixtures: `just gen-scene-fixtures`. Docs source: local sibling `rs-grid-site/doc_build` if present, else GitHub (`RS_GRID_DOCS_SOURCE=local\|github` to force) |
 | **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
 
 The **GitHub** server is a personal, local config (the PAT must not be committed
