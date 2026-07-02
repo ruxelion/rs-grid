@@ -23,7 +23,7 @@ use crate::{
 /// | **Clipboard** | `CopySelection`, `CutSelection`, `PasteAt` |
 /// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters` |
 /// | **Columns** | `ResizeColumn`, `CommitColumnResize`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
-/// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit` |
+/// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
 /// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `NotifyPageLoaded`, `SetTotalRowCount` |
@@ -166,6 +166,16 @@ pub enum GridCommand {
     },
     /// Cancel the current cell edit.
     CancelEdit,
+    /// Clear every editable cell in the current selection to an empty
+    /// string (Delete/Backspace) — validated the same way as
+    /// `CutSelection`'s clear step (a cell whose rules reject an empty
+    /// value, e.g. `.required()`, keeps its original value instead of
+    /// being cleared). Unlike `CutSelection`, does not touch the
+    /// clipboard. No-op without a selection, or on a full-column
+    /// selection (same rationale as `CutSelection`: a header click
+    /// carries positional intent, not "clear this entire column of
+    /// potentially billions of rows").
+    ClearCells,
     /// Re-validate the value currently typed in the active editor,
     /// without committing it. Updates the active `EditCell`'s
     /// `validation_error` for live (per-keystroke) UI feedback.
@@ -284,6 +294,18 @@ pub enum CommandOutput {
     /// which still covers the full target area regardless of skips.
     PasteApplied {
         /// Coordinates of cells that were actually written.
+        cells: Vec<CellCoord>,
+    },
+    /// A `ClearCells` completed and wrote at least one cell. `cells`
+    /// holds the coordinates actually cleared — a subset of the
+    /// selection, since locked or validation-rejecting cells (e.g.
+    /// `.required()`) are silently skipped, same as `PasteApplied`.
+    /// Not emitted when nothing was cleared (empty/full-column
+    /// selection, or every cell in range was skipped) — consumers use
+    /// this to scope success feedback (e.g. a flash animation) to
+    /// cells that were genuinely written.
+    CellsCleared {
+        /// Coordinates of cells that were actually cleared.
         cells: Vec<CellCoord>,
     },
 }

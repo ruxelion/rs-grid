@@ -90,6 +90,17 @@ It must remain testable with standard native `cargo test`.
   cell a rule like `.required()` would reject empty. The copy side
   (`to_tsv`, placed on the clipboard) is unaffected — it always copies
   the full original values regardless of what the clear side skips.
+- `GridCommand::ClearCells` (Delete/Backspace) shares `CutSelection`'s
+  clearing logic via a private `clear_cell_range` helper
+  (`state/cmd_clipboard.rs`) — same `is_cell_editable` +
+  `validate_value("")` skip, same full-column-selection guard (a header
+  click carries positional intent, not "clear this entire column of
+  potentially billions of rows"). It never touches the clipboard, unlike
+  `CutSelection`. Returns `CommandOutput::CellsCleared { cells }` — the
+  coordinates actually cleared, a subset of the selection — when at
+  least one cell was written; `rs-grid-web` passes this to
+  `flash_cells` (same success-flash mechanism as `PasteApplied`) so a
+  skipped cell doesn't get a misleading "success" flash.
 - Validation is also evaluated **at rest**, not just during an edit
   session: `rs-grid-scene`'s `emit_cell` calls `validate_value` against
   every rendered cell's current value and draws a themed border

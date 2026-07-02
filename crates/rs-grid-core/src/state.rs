@@ -125,9 +125,12 @@ impl GridState {
             | GridCommand::ScrollBy { .. }
             | GridCommand::Resize { .. } => self.cmd_scroll(cmd),
 
+            // ClearCells doesn't touch the clipboard, but shares
+            // `cmd_clipboard`'s cell-clearing helper with CutSelection.
             GridCommand::CopySelection
             | GridCommand::CutSelection
-            | GridCommand::PasteAt { .. } => self.cmd_clipboard(cmd),
+            | GridCommand::PasteAt { .. }
+            | GridCommand::ClearCells => self.cmd_clipboard(cmd),
 
             GridCommand::ToggleSort { .. }
             | GridCommand::SetSort { .. }

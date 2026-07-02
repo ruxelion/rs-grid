@@ -147,21 +147,27 @@ shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
 overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
 `Theme` fields (see *CSS theme* below) for the themed visual.
 
-## Paste-flash feedback
+## Success-flash feedback (paste, clear)
 
 `GridCanvas::flash_cells(&[CellCoord])` (`canvas/dispatch.rs`) arms a
 400 ms fading yellow overlay on exactly the given cells — **not** a
-selection rectangle. Both paste call sites (Ctrl+V in `canvas/keyboard.rs`,
-context-menu Paste in `canvas/context_menu.rs`) call
-`dispatch_with_output(GridCommand::PasteAt { .. })` and pass the
-`CommandOutput::PasteApplied { cells }` result straight to `flash_cells`.
-This matters because `PasteAt` always expands the *selection* to the full
-target rectangle regardless of skips, but `cells` only contains what was
-actually written — cells skipped for being locked or failing validation
-must not get a "success" flash. `FlashState` (`canvas/mod.rs`) stores the
-cell set; `compute_flash_hint` (`canvas/animation.rs`) clones it into
-`FlashHint` each frame, and `rs-grid-scene`'s `emit_cell` checks membership
-directly instead of reusing the selection highlight.
+selection rectangle. Two call sites use it, both via `dispatch_with_output`
+so they can read the `CommandOutput`:
+
+- Paste — Ctrl+V in `canvas/keyboard.rs` and context-menu Paste in
+  `canvas/context_menu.rs` dispatch `GridCommand::PasteAt { .. }` and pass
+  `CommandOutput::PasteApplied { cells }` to `flash_cells`.
+- Clear — Delete/Backspace in `canvas/keyboard.rs` dispatch
+  `GridCommand::ClearCells` and pass `CommandOutput::CellsCleared { cells }`
+  to `flash_cells`.
+
+In both cases this matters because the *selection* still covers the full
+target/cleared rectangle regardless of skips, but `cells` only contains
+what was actually written — cells skipped for being locked or failing
+validation must not get a "success" flash. `FlashState` (`canvas/mod.rs`)
+stores the cell set; `compute_flash_hint` (`canvas/animation.rs`) clones it
+into `FlashHint` each frame, and `rs-grid-scene`'s `emit_cell` checks
+membership directly instead of reusing the selection highlight.
 
 ## Public callbacks
 
@@ -169,7 +175,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 
 | Callback | Triggers |
 |---|---|
-| `set_on_change` | `PasteAt`, `CommitEdit` (cell data mutations) — **not** fired when a `CommitEdit` is rejected by validation |
+| `set_on_change` | `PasteAt`, `CommitEdit`, `ClearCells` (cell data mutations) — **not** fired when a `CommitEdit` is rejected by validation |
 | `set_on_columns_changed` | `CommitColumnResize`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns`, `SetPinnedColumnCount` (layout mutations — **not** sort/filter) |
 | `set_on_validation_error` | A `CommitEdit` was rejected by `ColumnDef.rules`/`validator` (`CommandOutput::ValidationError`) — fires for both `InvalidEditMode::Revert` and `::Block` |
 | `set_on_validation_state_changed` | `StartEdit`, `ValidateEdit`, `CommitEdit`, `CancelEdit` — fires with the fresh `validation_error()` value on *every keystroke*, not just rejected commits |

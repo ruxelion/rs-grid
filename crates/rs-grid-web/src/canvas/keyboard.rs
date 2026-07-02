@@ -42,6 +42,16 @@ impl GridCanvas {
                         extend: shift,
                     });
                 }
+                "Delete" | "Backspace" => {
+                    if !gc.0.state.borrow().selection.has_selection() {
+                        return;
+                    }
+                    evt.prevent_default();
+                    let out = gc.dispatch_with_output(GridCommand::ClearCells);
+                    if let CommandOutput::CellsCleared { cells } = out {
+                        gc.flash_cells(&cells);
+                    }
+                }
                 "Escape" => {
                     if gc.0.state.borrow().edit.is_some() {
                         gc.dispatch(GridCommand::CancelEdit);

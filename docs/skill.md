@@ -160,6 +160,7 @@ StartEdit { row: u64, col_key: String }
 CommitEdit { row: u64, col_key: String, value: String }
 CancelEdit
 ValidateEdit { value: String }  // live re-check of the in-progress edit, no commit
+ClearCells  // Delete/Backspace — clears selected cells to "" (→ CommandOutput::CellsCleared), no clipboard involved
 ```
 
 #### Clipboard

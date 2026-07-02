@@ -14,8 +14,9 @@ impl GridCanvas {
     /// No-op for an empty slice. Multiple calls restart the animation
     /// from full intensity, replacing the previous cell set. Callers
     /// should pass the cells actually written by a mutation (e.g.
-    /// `CommandOutput::PasteApplied`'s `cells`), not a selection
-    /// rectangle, which may extend past cells that were skipped.
+    /// `CommandOutput::PasteApplied`'s or `CommandOutput::CellsCleared`'s
+    /// `cells`), not a selection rectangle, which may extend past cells
+    /// that were skipped.
     pub fn flash_cells(&self, cells: &[CellCoord]) {
         if cells.is_empty() {
             return;
@@ -42,7 +43,9 @@ impl GridCanvas {
         // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
             cmd,
-            GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
+            GridCommand::PasteAt { .. }
+                | GridCommand::CommitEdit { .. }
+                | GridCommand::ClearCells
         );
         // Commands that mutate column layout (width, order, pin count) —
         // fire the on_columns_changed callback so JS callers can persist

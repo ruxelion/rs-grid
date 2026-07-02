@@ -20,6 +20,25 @@ const NAME_Y  = HEADER + ROW_H / 2;                           //  80
 const ROLE_X  = GUTTER + NAME_W + EMAIL_W + ROLE_W / 2;       // 590
 const ROLE_Y  = NAME_Y;                                        //  80
 
+// "Notes" is the only other dblclick-editable (CellEditor::Text) base
+// column besides "Name", and unlike "Name" it has no validation rules —
+// needed to test clearing without the required() rule interfering. It's
+// the last base column, locked on even rows via editable_predicate (see
+// editable-predicate.spec.ts), so tests below stick to odd rows and must
+// scroll it into view first (same pattern as that spec).
+const NOTES_ABS_START = 1470; // cumulative width of every column before it
+const NOTES_W = 160;
+const SCROLL_X = 1400;
+const NOTES_X = GUTTER + (NOTES_ABS_START + NOTES_W / 2) - SCROLL_X; // 210
+
+async function scrollToNotes(page: Page) {
+  const canvas = page.locator('canvas');
+  await canvas.hover();
+  await page.mouse.wheel(SCROLL_X, 0);
+  await waitForPaint(page);
+  return canvas;
+}
+
 async function waitForPaint(page: Page, ms = 300) {
   await page.waitForTimeout(ms);
 }
@@ -69,5 +88,59 @@ test.describe('editing', () => {
 
     await expect(page.locator('input[type="text"]')).toHaveCount(0);
     await expect(canvas).toBeVisible();
+  });
+
+  // ── Delete/Backspace clear the selected cell(s) ──────────────────────────
+  test.describe('clearing with Delete/Backspace', () => {
+    async function cellInputValue(page: Page, x: number, y: number) {
+      const canvas = page.locator('canvas');
+      await canvas.dblclick({ position: { x, y } });
+      await waitForPaint(page, 400);
+      const value = await page.locator('input[type="text"]').inputValue();
+      await page.keyboard.press('Escape');
+      await waitForPaint(page, 200);
+      return value;
+    }
+
+    test('Delete clears the selected cell', async ({ page }) => {
+      const canvas = await scrollToNotes(page);
+      const y = HEADER + ROW_H * 3 + ROW_H / 2; // row 3 (odd → unlocked)
+      await canvas.click({ position: { x: NOTES_X, y } });
+      await page.keyboard.press('Delete');
+      await waitForPaint(page, 200);
+
+      expect(await cellInputValue(page, NOTES_X, y)).toBe('');
+    });
+
+    test('Backspace also clears the selected cell', async ({ page }) => {
+      const canvas = await scrollToNotes(page);
+      const y = HEADER + ROW_H * 5 + ROW_H / 2; // row 5 (odd → unlocked), distinct from the Delete test
+      await canvas.click({ position: { x: NOTES_X, y } });
+      await page.keyboard.press('Backspace');
+      await waitForPaint(page, 200);
+
+      expect(await cellInputValue(page, NOTES_X, y)).toBe('');
+    });
+
+    test('Delete without a selection does nothing', async ({ page }) => {
+      // No click first — nothing selected on a fresh page load.
+      await page.keyboard.press('Delete');
+      await waitForPaint(page, 200);
+
+      const value = await cellInputValue(page, NAME_X, NAME_Y);
+      expect(value).not.toBe('');
+    });
+
+    test('Delete on a required cell keeps its value (validation)', async ({ page }) => {
+      // "Name" is required() — clearing it would fail validation, so the
+      // cell must keep its original value instead of being cleared.
+      const canvas = page.locator('canvas');
+      await canvas.click({ position: { x: NAME_X, y: NAME_Y } });
+      await page.keyboard.press('Delete');
+      await waitForPaint(page, 200);
+
+      const value = await cellInputValue(page, NAME_X, NAME_Y);
+      expect(value).not.toBe('');
+    });
   });
 });

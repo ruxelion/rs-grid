@@ -382,6 +382,13 @@ vérifications MCP interactives. Les tests formels `/e2e` utilisent
 
 ## Claude working rules
 
+<!-- keep in sync with the "Before coding" section in every other repo's AGENTS.md -->
+- **Plan before coding non-trivial changes.** For a bug fix or feature that
+  touches more than one file, changes a public API, or isn't an obvious
+  one-liner, propose a short plan (approach, files touched, version-bump
+  impact — see *Versioning* above) before writing code, using Plan Mode
+  rather than diving straight into edits. Skip this for trivial fixes;
+  planning every one-line change only adds friction.
 - **Directed compaction** — on a long session, before the context auto-compacts,
   write your own checkpoint summary that explicitly preserves the
   *non-negotiable invariants* (no WASM in core; `u64` row indices; O(log n)

@@ -88,16 +88,17 @@ resolves `Err`:
   mutually exclusive (e.g. read-only column seeded with bad data) — the
   fill and the border layer without conflict.
 
-### Paste-flash cell scoping
+### Success-flash cell scoping (paste, clear)
 
 `FlashHint.cells: HashSet<(u64, usize)>` (`builder.rs`) carries the exact
-coordinates to flash, supplied by `rs-grid-web` from
-`CommandOutput::PasteApplied`. `emit_cell` checks `flash.cells.contains(&(ri,
+coordinates to flash, supplied by `rs-grid-web` from either
+`CommandOutput::PasteApplied` (paste) or `CommandOutput::CellsCleared`
+(Delete/Backspace clear). `emit_cell` checks `flash.cells.contains(&(ri,
 ci))` directly — it does **not** reuse `SelectionState::is_selected`, since
-`PasteAt` always expands the selection to the full target rectangle even
-when some cells were skipped (locked or failing validation). Flashing by
-selection would give a skipped cell the same "success" overlay as a cell
-that was actually written.
+both `PasteAt` and `ClearCells` always expand the selection to the full
+target/cleared rectangle even when some cells were skipped (locked or
+failing validation). Flashing by selection would give a skipped cell the
+same "success" overlay as a cell that was actually written.
 
 ## Adding a primitive
 
