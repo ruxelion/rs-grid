@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.1.6...rs-grid-scene-v0.2.0) - 2026-07-02
+
+### Added
+
+- *(validation)* enhance cell validation during paste operations and add visual indicators for invalid cells
+
 ## [0.1.6](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.1.5...rs-grid-scene-v0.1.6) - 2026-07-02
 
 ### Added
