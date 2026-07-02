@@ -109,21 +109,34 @@ synchronisées avec `.vscode/tasks.json`.
 | Recette | Action |
 |---|---|
 | `just ci` | fmt + lint + check-arch + tests (gate pré-PR complet) |
+| `just fmt` | `cargo +nightly fmt --all` |
+| `just lint` | `cargo clippy --workspace --all-targets -- -D warnings` |
+| `just check` | `cargo check --workspace` (vérif rapide) |
 | `just check-arch` | invariant archi : rs-grid-core sans dépendance WASM/web |
+| `just build` | build natif de `rs-grid-core` |
 | `just test` | nextest, WASM crates exclus |
+| `just test-core` | nextest sur `rs-grid-core` uniquement |
 | `just coverage` | rapport HTML couverture (ouvre le navigateur) |
 | `just coverage-lcov` | format lcov pour CI |
 | `just bench` | tous les benchmarks (core + scene) |
+| `just bench-core` / `bench-hit` / `bench-sort` / `bench-scene` / `bench-init` / `bench-scroll` | benchmarks ciblés (voir Justfile pour le détail par bench) |
+| `just mem` | empreinte mémoire par ligne (`--release`) |
 | `just wasm-size` | taille du bundle WASM + estimation gzip |
 | `just scene-dump <scenario>` | sérialise un SceneFrame en JSON (basic/selection/pinned/scrolled) pour inspection IA |
 | `just gen-scene-fixtures` | régénère les fixtures de scène servies par le MCP (`mcp/scenes/`) |
+| `just gen-class-map` | régénère `class_map_data.rs` depuis les sources DaisyUI |
+| `just tls-setup` | génère les certificats TLS locaux (requiert `mkcert`) |
+| `just e2e-install` | installe les dépendances Playwright (une fois) |
 | `just e2e` | trunk build + Playwright |
 | `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
 | `just dev` | serveur de dev hot-reload pour la fixture e2e (`localhost:9079`) |
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
+| `just mcp-dev` | serveur MCP en mode dev (tsx, sans build) |
 | `just mcp-publish` | publier le serveur MCP sur npm |
 | `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |
 | `just publish` | publier sur crates.io les crates dont la version n'est pas encore publiée (ordre de dépendances) |
+
+(`just --list` liste toujours l'ensemble exact des recettes ; ce tableau doit rester synchronisé avec le Justfile à chaque ajout/suppression de recette.)
 
 ## Code conventions
 
@@ -151,6 +164,7 @@ synchronisées avec `.vscode/tasks.json`.
 |---|---|
 | `/test` | `cargo nextest run -p rs-grid-core` — après chaque changement core |
 | `/e2e` | `trunk build` + Playwright — avant toute PR |
+| `/new-command` | Checklist pour ajouter une variante `GridCommand` (classification version, handler `apply`, undo/redo, clipboard, callbacks, test, docs) |
 | `/publish` | Publication manuelle crates.io + tags per-crate (après merge de la PR release-plz) |
 
 ## Versioning (SemVer)
@@ -200,6 +214,13 @@ reasoning.
 | **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
 | **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`), **structured GridCommand variants** (`list_commands`, `get_command`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` (`just mcp-build` / `just mcp-publish`). Scene fixtures: `just gen-scene-fixtures`. Docs source: local sibling `rs-grid-site/doc_build` if present, else GitHub (`RS_GRID_DOCS_SOURCE=local\|github` to force) |
 | **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
+| **docs** (personal) | Personal MCP doc server | `https://mcp.benoitpodwinski.com/mcp` — local-only, not project-specific; prune from `.mcp.json` if no longer needed |
+| **openai-docs** | OpenAI developer docs lookup, for cross-referencing API design against another provider | `https://developers.openai.com/mcp` — local-only, exploratory |
+| **ag-grid** | AG Grid (competing grid library) API reference, for competitive/API-shape comparisons | `npx -y -p ag-mcp@1.0.0 -p ajv ag-mcp` — local-only, exploratory |
+
+These 3 are configured in `.mcp.json` but personal/exploratory rather than
+project infrastructure — prune whichever are unused; the 3 above (GitHub,
+rs-grid, Playwright) are the ones every contributor session actually needs.
 
 The **GitHub** server is a personal, local config (the PAT must not be committed
 — `.mcp.json` and `.env` are gitignored). To register it:

@@ -76,6 +76,14 @@
       "detail": "Assert rs-grid-core has no WASM/web dependency (architecture invariant)"
     },
     {
+      "label": "just: gen-class-map",
+      "type": "shell",
+      "command": "just gen-class-map",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Regenerate class_map_data.rs from DaisyUI sources (node_modules)"
+    },
+    {
       "label": "just: ci",
       "type": "shell",
       "command": "just ci",
