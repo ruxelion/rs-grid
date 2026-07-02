@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.6...rs-grid-web-v0.1.7) - 2026-07-02
+
+### Added
+
+- add per-cell editability with editable predicates
+
 ## [0.1.6](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.5...rs-grid-web-v0.1.6) - 2026-07-01
 
 ### Added

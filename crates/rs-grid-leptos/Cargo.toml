@@ -2,7 +2,7 @@
 name = "rs-grid-leptos"
 # Explicit (not workspace-inherited): per-crate independent versioning, bumped by
 # release-plz. See release-plz.toml.
-version = "0.2.0"
+version = "0.2.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -16,9 +16,9 @@ keywords = ["grid", "leptos", "component", "wasm", "data-grid"]
 categories = ["gui", "web-programming", "wasm"]
 
 [dependencies]
-rs-grid-core  = { path = "../rs-grid-core", version = "0.2.0" }
-rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.5" }
-rs-grid-web   = { path = "../rs-grid-web", version = "0.1.6" }
+rs-grid-core  = { path = "../rs-grid-core", version = "0.2.1" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.1.6" }
+rs-grid-web   = { path = "../rs-grid-web", version = "0.1.7" }
 # No leptos feature is enabled here so that consumers can pick the
 # rendering mode (`csr` or `hydrate`) that fits their app. Enabling
 # `csr` unconditionally would conflict with `hydrate` in SSR/hydrate
