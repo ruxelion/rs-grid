@@ -78,6 +78,17 @@ impl GridState {
                             {
                                 continue;
                             }
+                            // Clearing still writes a value (an empty
+                            // string) — a `.required()` (or other)
+                            // rule can reject it just like a pasted
+                            // value. Skip silently, same precedent as
+                            // `PasteAt` below.
+                            if self.model.columns[ci]
+                                .validate_value("")
+                                .is_err()
+                            {
+                                continue;
+                            }
                             let key = self.model.columns[ci].key.clone();
                             let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
@@ -470,6 +481,32 @@ mod tests {
             s.model.get_cell(1, "a").as_deref(),
             Some("a1"),
             "row 1's invalid pasted value is skipped, not written"
+        );
+    }
+
+    #[test]
+    fn cut_selection_skips_cells_that_would_become_invalid() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::CutSelection);
+        // The copy side is unaffected — the full original values are
+        // still placed on the clipboard.
+        if let CommandOutput::CopyText(t) = out {
+            assert_eq!(t, "a0\tb0\n");
+        } else {
+            panic!("expected CopyText");
+        }
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "required column keeps its value — clearing it would fail \
+             validation"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some(""),
+            "unvalidated column is cleared normally"
         );
     }
 

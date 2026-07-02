@@ -78,14 +78,18 @@ It must remain testable with standard native `cargo test`.
   ones that fail (`continue`, not `break` — one invalid cell in a tiled
   paste doesn't imply its neighbours are invalid too), leaving the rest
   of the paste to apply normally — same silent-skip precedent as the
-  `is_cell_editable` check in the same loop. `CutSelection` is
-  unaffected (it only ever writes an empty string, never a pasted
-  value). `PasteAt` returns `CommandOutput::PasteApplied { cells }` —
-  the coordinates actually written, a subset of the target rectangle.
-  `rs-grid-web` uses this (not the selection, which still covers the
-  full target area) to scope the paste-flash animation to cells that
-  were genuinely written, so a skipped cell doesn't get a misleading
-  "success" flash.
+  `is_cell_editable` check in the same loop. `PasteAt` returns
+  `CommandOutput::PasteApplied { cells }` — the coordinates actually
+  written, a subset of the target rectangle. `rs-grid-web` uses this
+  (not the selection, which still covers the full target area) to scope
+  the paste-flash animation to cells that were genuinely written, so a
+  skipped cell doesn't get a misleading "success" flash.
+- `GridCommand::CutSelection` clears cells by writing an empty string —
+  still a write, so it validates `validate_value("")` per cell exactly
+  like `PasteAt` validates its pasted value, and skips (`continue`) any
+  cell a rule like `.required()` would reject empty. The copy side
+  (`to_tsv`, placed on the clipboard) is unaffected — it always copies
+  the full original values regardless of what the clear side skips.
 - Validation is also evaluated **at rest**, not just during an edit
   session: `rs-grid-scene`'s `emit_cell` calls `validate_value` against
   every rendered cell's current value and draws a themed border
