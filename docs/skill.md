@@ -331,6 +331,15 @@ use rs_grid_core::{commands::GridCommand, validation::InvalidEditMode};
 canvas.dispatch(GridCommand::SetInvalidEditMode(InvalidEditMode::Block));
 ```
 
+Validation isn't limited to `CommitEdit`: `GridCommand::PasteAt` also
+validates each target cell and silently skips writing the ones that fail,
+applying the rest of the pasted block normally (mirrors Excel/AG Grid — a
+rejection, when it exists, is always per-cell, never all-or-nothing). And a
+cell doesn't need an active edit session to be flagged — `rs-grid-scene`'s
+cell renderer checks every visible cell's current value and draws a themed
+`Theme::invalid_cell_border` around it when invalid, so data that's already
+bad when loaded is visible immediately, not just after the user clicks in.
+
 The grid also validates live, on every keystroke (not just on commit),
 via `GridCommand::ValidateEdit` dispatched internally by `rs-grid-web`.
 While the value is invalid, the inline editor's border and background

@@ -1,4 +1,4 @@
-use rs_grid_core::commands::GridCommand;
+use rs_grid_core::commands::{CommandOutput, GridCommand};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{ClipboardEvent, KeyboardEvent};
 
@@ -131,8 +131,11 @@ impl GridCanvas {
                 && let Ok(text) = dt.get_data("text/plain")
             {
                 evt.prevent_default();
-                gc.dispatch(GridCommand::PasteAt { text });
-                gc.flash_selection();
+                let out =
+                    gc.dispatch_with_output(GridCommand::PasteAt { text });
+                if let CommandOutput::PasteApplied { cells } = out {
+                    gc.flash_cells(&cells);
+                }
             }
         });
         let f: js_sys::Function =

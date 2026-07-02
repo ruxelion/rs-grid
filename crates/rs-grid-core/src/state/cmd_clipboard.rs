@@ -130,6 +130,7 @@ impl GridState {
                     };
 
                     let mut old_cells = Vec::new();
+                    let mut written_cells = Vec::new();
                     for dr in 0..target_rows {
                         let r = orig.row.saturating_add(dr as u64);
                         if r >= row_count {
@@ -147,10 +148,17 @@ impl GridState {
                                 continue;
                             }
                             let val = &src_row[dc % clip_cols];
+                            if self.model.columns[c]
+                                .validate_value(val)
+                                .is_err()
+                            {
+                                continue;
+                            }
                             let key = self.model.columns[c].key.clone();
                             let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, val.clone());
+                            written_cells.push(CellCoord { row: r, col: c });
                         }
                     }
                     if !old_cells.is_empty() {
@@ -169,6 +177,9 @@ impl GridState {
                         row: last_r,
                         col: last_c,
                     });
+                    return CommandOutput::PasteApplied {
+                        cells: written_cells,
+                    };
                 }
                 CommandOutput::None
             }
@@ -358,6 +369,27 @@ mod tests {
     }
 
     #[test]
+    fn paste_at_reports_only_written_cells() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
+        match out {
+            CommandOutput::PasteApplied { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![CellCoord { row: 0, col: 0 }],
+                    "only the editable column's cell is reported written, \
+                     not the locked one"
+                );
+            }
+            other => panic!("expected PasteApplied, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn cut_selection_skips_locked_cells_but_copies_everything() {
         let mut s = make_locked_state();
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
@@ -381,5 +413,85 @@ mod tests {
             Some("b0"),
             "read-only column is left untouched"
         );
+    }
+
+    // ── validation ───────────────────────────────────────────────────────
+
+    fn make_validated_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "Name", 100.0).required(),
+            ColumnDef::new("b", "Email", 150.0),
+        ];
+        let rows = (0..4)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn paste_at_skips_invalid_values() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        // Empty string fails "a"'s `required()` rule; "b" has no rules.
+        s.apply(GridCommand::PasteAt {
+            text: "\tY\n".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "the required column keeps its original value"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("Y"),
+            "the unvalidated column still receives the pasted value"
+        );
+    }
+
+    #[test]
+    fn paste_at_tiled_partial_validity() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 0 }));
+        // Tiled single-column paste: row 0 gets a valid value, row 1
+        // gets a whitespace-only (invalid per `required()`) one.
+        s.apply(GridCommand::PasteAt {
+            text: "Z\n \n".into(),
+        });
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("Z"));
+        assert_eq!(
+            s.model.get_cell(1, "a").as_deref(),
+            Some("a1"),
+            "row 1's invalid pasted value is skipped, not written"
+        );
+    }
+
+    #[test]
+    fn paste_at_reports_only_valid_cells() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        // Empty string fails "a"'s `required()` rule; "b" has no rules.
+        let out = s.apply(GridCommand::PasteAt {
+            text: "\tY\n".into(),
+        });
+        match out {
+            CommandOutput::PasteApplied { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![CellCoord { row: 0, col: 1 }],
+                    "only the unvalidated column's cell is reported \
+                     written, not the one that failed validation"
+                );
+            }
+            other => panic!("expected PasteApplied, got {other:?}"),
+        }
     }
 }

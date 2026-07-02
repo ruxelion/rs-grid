@@ -111,6 +111,9 @@ impl GridCanvas {
             return None;
         }
         let alpha_factor = 1.0 - elapsed / f.duration_ms;
-        Some(FlashHint { alpha_factor })
+        Some(FlashHint {
+            alpha_factor,
+            cells: f.cells.clone(),
+        })
     }
 }

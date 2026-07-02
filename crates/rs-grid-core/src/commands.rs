@@ -275,4 +275,15 @@ pub enum CommandOutput {
         /// Error message from the failing rule/validator.
         message: String,
     },
+    /// A `PasteAt` completed. `cells` holds the coordinates actually
+    /// written — a subset of the target rectangle, since cells that
+    /// are locked (`ColumnDef::is_cell_editable` false) or whose
+    /// pasted value fails validation are silently skipped. Consumers
+    /// that give paste-success feedback (e.g. a flash animation)
+    /// should use this list rather than the selection rectangle,
+    /// which still covers the full target area regardless of skips.
+    PasteApplied {
+        /// Coordinates of cells that were actually written.
+        cells: Vec<CellCoord>,
+    },
 }

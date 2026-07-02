@@ -211,6 +211,10 @@ struct FlashState {
     start_ms: f64,
     /// Total fade duration in milliseconds.
     duration_ms: f64,
+    /// Coordinates of the cells to flash — the ones actually written
+    /// by the paste, not the full selection rectangle (which may
+    /// extend past cells skipped for being locked or invalid).
+    cells: std::collections::HashSet<(u64, usize)>,
 }
 
 // ── impl ──────────────────────────────────────────────────────────────────────

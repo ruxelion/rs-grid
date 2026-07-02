@@ -64,6 +64,41 @@ static `editable` flag, and the dynamic `editable_predicate`
   needed; the background wash already gives every locked cell a visible
   affordance regardless of format.
 
+### At-rest invalid-value border
+
+`emit_cell` also calls `ColumnDef::validate_value` against the cell's
+current `CellStatus::Ready` value (peeked by reference before the
+format-dispatch `match` consumes it) — a cell with no `rules`/`validator`
+always resolves `Ok`, so this is a no-op for unvalidated columns. When it
+resolves `Err`:
+
+- A border-only `Rect` (`fill` fully transparent, `stroke:
+  Some(Theme::invalid_cell_border)`, `stroke_width:
+  Theme::invalid_cell_border_width`) is pushed right after the
+  locked-cell overlay, before the format dispatch — same
+  format-agnostic placement as the locked overlay, so it applies to
+  composite `CellFormat`s too.
+- Skipped entirely when `Theme::invalid_cell_border.a == 0` (same
+  "transparent = disabled" convention).
+- This fires independently of an active edit session — a cell that's
+  invalid because the *data source* loaded it that way is flagged
+  immediately, unlike the DOM editor's invalid style
+  (`rs-grid-web`'s `apply_edit_validity_style`), which only exists while
+  `GridState.edit` is `Some`. A locked cell and an invalid cell aren't
+  mutually exclusive (e.g. read-only column seeded with bad data) — the
+  fill and the border layer without conflict.
+
+### Paste-flash cell scoping
+
+`FlashHint.cells: HashSet<(u64, usize)>` (`builder.rs`) carries the exact
+coordinates to flash, supplied by `rs-grid-web` from
+`CommandOutput::PasteApplied`. `emit_cell` checks `flash.cells.contains(&(ri,
+ci))` directly — it does **not** reuse `SelectionState::is_selected`, since
+`PasteAt` always expands the selection to the full target rectangle even
+when some cells were skipped (locked or failing validation). Flashing by
+selection would give a skipped cell the same "success" overlay as a cell
+that was actually written.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

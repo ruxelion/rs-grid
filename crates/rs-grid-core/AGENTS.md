@@ -73,6 +73,26 @@ It must remain testable with standard native `cargo test`.
   pending value **without committing**, updating
   `EditCell.validation_error` for live (per-keystroke) feedback. No-op
   without an active edit; produces no undo entry.
+- `GridCommand::PasteAt` (`state/cmd_clipboard.rs`) also calls
+  `ColumnDef::validate_value` per target cell and silently skips writing
+  ones that fail (`continue`, not `break` — one invalid cell in a tiled
+  paste doesn't imply its neighbours are invalid too), leaving the rest
+  of the paste to apply normally — same silent-skip precedent as the
+  `is_cell_editable` check in the same loop. `CutSelection` is
+  unaffected (it only ever writes an empty string, never a pasted
+  value). `PasteAt` returns `CommandOutput::PasteApplied { cells }` —
+  the coordinates actually written, a subset of the target rectangle.
+  `rs-grid-web` uses this (not the selection, which still covers the
+  full target area) to scope the paste-flash animation to cells that
+  were genuinely written, so a skipped cell doesn't get a misleading
+  "success" flash.
+- Validation is also evaluated **at rest**, not just during an edit
+  session: `rs-grid-scene`'s `emit_cell` calls `validate_value` against
+  every rendered cell's current value and draws a themed border
+  (`Theme::invalid_cell_border`) when it fails — so a cell that was
+  already invalid when loaded from the data source is flagged without
+  requiring the user to click into it first. See
+  `rs-grid-scene/AGENTS.md`.
 
 ## Per-cell editability (`EditablePredicate`)
 

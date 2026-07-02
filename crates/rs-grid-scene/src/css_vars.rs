@@ -88,6 +88,14 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-row-hover-bg", fmt_color(t.row_hover_bg)),
         ("--rs-grid-locked-cell-bg", fmt_color(t.locked_cell_bg)),
         ("--rs-grid-locked-cell-text", fmt_color(t.locked_cell_text)),
+        (
+            "--rs-grid-invalid-cell-border",
+            fmt_color(t.invalid_cell_border),
+        ),
+        (
+            "--rs-grid-invalid-cell-border-width",
+            fmt_px(t.invalid_cell_border_width),
+        ),
         // dimensions
         ("--rs-grid-header-height", fmt_px(t.header_height)),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
@@ -268,6 +276,12 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.locked_cell_bg = color("--rs-grid-locked-cell-bg", t.locked_cell_bg);
     t.locked_cell_text =
         color("--rs-grid-locked-cell-text", t.locked_cell_text);
+    t.invalid_cell_border =
+        color("--rs-grid-invalid-cell-border", t.invalid_cell_border);
+    t.invalid_cell_border_width = px(
+        "--rs-grid-invalid-cell-border-width",
+        t.invalid_cell_border_width,
+    );
     t.header_height = px("--rs-grid-header-height", t.header_height);
     t.row_height = px("--rs-grid-row-height", t.row_height);
     t.font_size = px("--rs-grid-font-size", t.font_size);
@@ -554,6 +568,8 @@ mod tests {
             cell_btn_margin_r: 73.0,
             locked_cell_bg: c(74),
             locked_cell_text: c(75),
+            invalid_cell_border: c(76),
+            invalid_cell_border_width: 77.0,
         }
     }
 

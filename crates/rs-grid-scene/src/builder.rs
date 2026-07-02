@@ -48,11 +48,16 @@ pub struct ColumnDragHint {
 /// This is **not** persistent state — it exists only for a
 /// single frame render cycle. Computed by the web layer
 /// from elapsed time; consumed by the scene builder to
-/// render a fading overlay on selected cells.
-#[derive(Debug, Clone, Copy)]
+/// render a fading overlay on the cells that were actually
+/// written by the paste (`cells`) — **not** the whole
+/// selection rectangle, which may extend past cells skipped
+/// for being locked or failing validation.
+#[derive(Debug, Clone)]
 pub struct FlashHint {
     /// Normalised intensity: 1.0 = full flash, 0.0 = invisible.
     pub alpha_factor: f64,
+    /// Coordinates of the cells to flash.
+    pub cells: HashSet<(u64, usize)>,
 }
 
 // ── builder
@@ -1361,7 +1366,10 @@ mod tests {
         state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let flash = FlashHint { alpha_factor: 0.5 };
+        let flash = FlashHint {
+            alpha_factor: 0.5,
+            cells: [(0, 0)].into_iter().collect(),
+        };
         let frame = b.build(&state, None, Some(&flash), None);
 
         // Border lines should use flash_border color (alpha-adjusted).
@@ -1389,7 +1397,10 @@ mod tests {
         state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let flash = FlashHint { alpha_factor: 1.0 };
+        let flash = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+        };
         let frame = b.build(&state, None, Some(&flash), None);
 
         // Should have a flash fill rect on the selected cell.
@@ -1811,10 +1822,14 @@ mod tests {
     }
 
     #[test]
-    fn flash_hint_debug_and_copy() {
-        let f = FlashHint { alpha_factor: 0.75 };
-        let f2 = f; // Copy
+    fn flash_hint_debug_and_clone() {
+        let f = FlashHint {
+            alpha_factor: 0.75,
+            cells: [(0, 0)].into_iter().collect(),
+        };
+        let f2 = f.clone();
         assert_eq!(f.alpha_factor, f2.alpha_factor);
+        assert_eq!(f.cells, f2.cells);
         let s = format!("{:?}", f);
         assert!(s.contains("FlashHint"));
     }

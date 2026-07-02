@@ -60,6 +60,17 @@ pub struct Theme {
     /// variant of `cell_text`.
     pub locked_cell_text: Color,
 
+    // ── invalid cell (at-rest validation)
+    // ─────────────────────────────────
+    /// Border drawn around a cell whose current value fails
+    /// `ColumnDef::validate_value` — shown even when the cell isn't
+    /// being edited, unlike the DOM editor's invalid style. Transparent
+    /// = no visual change (same "opt out via alpha 0" convention as
+    /// `locked_cell_bg`).
+    pub invalid_cell_border: Color,
+    /// Width of `invalid_cell_border` in logical pixels.
+    pub invalid_cell_border_width: f64,
+
     // ── row / header dimensions
     // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
@@ -262,6 +273,9 @@ impl Theme {
             // rgba(0, 0, 0, 0.035) → a = round(0.035 × 255) = 9
             locked_cell_bg: Color::rgba(0, 0, 0, 9),
             locked_cell_text: Color::rgba(24, 29, 31, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            invalid_cell_border: Color::rgb(239, 68, 68),
+            invalid_cell_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -367,6 +381,9 @@ impl Theme {
             // locked cell — rgba(255, 255, 255, 0.04) → a = 10
             locked_cell_bg: Color::rgba(255, 255, 255, 10),
             locked_cell_text: Color::rgba(208, 208, 208, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            invalid_cell_border: Color::rgb(220, 38, 38),
+            invalid_cell_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -472,6 +489,9 @@ impl Theme {
             // locked cell — rgba(255, 255, 255, 0.035) → a = 9
             locked_cell_bg: Color::rgba(255, 255, 255, 9),
             locked_cell_text: Color::rgba(173, 186, 199, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            invalid_cell_border: Color::rgb(218, 54, 51),
+            invalid_cell_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -635,6 +655,27 @@ mod tests {
     fn dimmed_locked_cell_bg_is_subtle() {
         let t = Theme::dimmed();
         assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn light_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::light();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn dark_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::dark();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::dimmed();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
     }
 
     #[test]

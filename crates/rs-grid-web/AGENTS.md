@@ -59,11 +59,15 @@ listeners:
 | `keydown` (`Enter`) / `blur` | Dispatches `GridCommand::CommitEdit`, then calls `keep_or_close`: if `GridState.edit` is still `Some` (`InvalidEditMode::Block` kept it open), restyle as invalid and refocus; otherwise tear the overlay down as before |
 | `keydown` (`Escape`) | Dispatches `GridCommand::CancelEdit` unconditionally, always tears the overlay down |
 
-There is no canvas-rendered overlay for invalid cells: while a cell is being
-edited its DOM `<input>` fully occludes the canvas underneath (opaque
-`--rs-grid-editor-bg`), so the invalid-value indicator is applied directly to
-that `<input>`'s own border/background instead of a `ScenePrimitive` — see
-*CSS theme* below.
+While a cell is being edited, its DOM `<input>` fully occludes the canvas
+underneath (opaque `--rs-grid-editor-bg`), so the invalid-value indicator for
+the *in-progress edit* is applied directly to that `<input>`'s own
+border/background instead of a `ScenePrimitive` — see *CSS theme* below. This
+is separate from the canvas-rendered `invalid_cell_border` overlay
+(`rs-grid-scene`'s `emit_cell`), which flags any cell whose *current* value
+fails validation regardless of whether it's being edited — see
+`rs-grid-scene/AGENTS.md`'s "At-rest invalid-value border". The two never
+overlap: the DOM input hides the canvas cell underneath while editing.
 
 ### Consuming validation state generically
 
@@ -99,6 +103,22 @@ shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
 overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
 `Theme` fields (see *CSS theme* below) for the themed visual.
 
+## Paste-flash feedback
+
+`GridCanvas::flash_cells(&[CellCoord])` (`canvas/dispatch.rs`) arms a
+400 ms fading yellow overlay on exactly the given cells — **not** a
+selection rectangle. Both paste call sites (Ctrl+V in `canvas/keyboard.rs`,
+context-menu Paste in `canvas/context_menu.rs`) call
+`dispatch_with_output(GridCommand::PasteAt { .. })` and pass the
+`CommandOutput::PasteApplied { cells }` result straight to `flash_cells`.
+This matters because `PasteAt` always expands the *selection* to the full
+target rectangle regardless of skips, but `cells` only contains what was
+actually written — cells skipped for being locked or failing validation
+must not get a "success" flash. `FlashState` (`canvas/mod.rs`) stores the
+cell set; `compute_flash_hint` (`canvas/animation.rs`) clones it into
+`FlashHint` each frame, and `rs-grid-scene`'s `emit_cell` checks membership
+directly instead of reusing the selection highlight.
+
 ## Public callbacks
 
 Callbacks fired during `dispatch()` after `GridState::apply()` returns:
@@ -132,7 +152,9 @@ progress-bar cell renderer adds `--rs-grid-progress-track`,
 `--rs-grid-progress-fill`, `--rs-grid-progress-height`, and
 `--rs-grid-progress-radius`. The locked-cell overlay (see *Locked-cell
 cursor feedback* above) adds `--rs-grid-locked-cell-bg` and
-`--rs-grid-locked-cell-text`.
+`--rs-grid-locked-cell-text`. The at-rest invalid-cell border (see
+*Validation feedback on the text editor* above) adds
+`--rs-grid-invalid-cell-border` and `--rs-grid-invalid-cell-border-width`.
 
 ### Inline editor overlay variables
 

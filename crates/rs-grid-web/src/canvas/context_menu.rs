@@ -1,4 +1,7 @@
-use rs_grid_core::{commands::GridCommand, sort::SortDir};
+use rs_grid_core::{
+    commands::{CommandOutput, GridCommand},
+    sort::SortDir,
+};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{HtmlCanvasElement, HtmlElement, MouseEvent, MouseEventInit};
 
@@ -654,8 +657,15 @@ impl GridCanvas {
                         {
                             Ok(val) => {
                                 if let Some(text) = val.as_string() {
-                                    gc2.dispatch(GridCommand::PasteAt { text });
-                                    gc2.flash_selection();
+                                    let out = gc2.dispatch_with_output(
+                                        GridCommand::PasteAt { text },
+                                    );
+                                    if let CommandOutput::PasteApplied {
+                                        cells,
+                                    } = out
+                                    {
+                                        gc2.flash_cells(&cells);
+                                    }
                                 }
                             }
                             Err(e) => {

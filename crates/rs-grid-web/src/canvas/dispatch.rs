@@ -1,17 +1,23 @@
 use std::rc::Rc;
 
-use rs_grid_core::commands::{CommandOutput, GridCommand};
+use rs_grid_core::{
+    commands::{CommandOutput, GridCommand},
+    selection::CellCoord,
+};
 use wasm_bindgen::{JsCast, JsValue};
 
 use super::{FlashState, GridCanvas, dom_helpers::document};
 
 impl GridCanvas {
-    /// Trigger a brief golden-yellow flash on the currently selected cells.
+    /// Trigger a brief golden-yellow flash on exactly `cells`.
     ///
-    /// No-op if there is no active selection. Multiple calls restart
-    /// the animation from full intensity.
-    pub fn flash_selection(&self) {
-        if !self.0.state.borrow().selection.has_selection() {
+    /// No-op for an empty slice. Multiple calls restart the animation
+    /// from full intensity, replacing the previous cell set. Callers
+    /// should pass the cells actually written by a mutation (e.g.
+    /// `CommandOutput::PasteApplied`'s `cells`), not a selection
+    /// rectangle, which may extend past cells that were skipped.
+    pub fn flash_cells(&self, cells: &[CellCoord]) {
+        if cells.is_empty() {
             return;
         }
         let now = web_sys::window()
@@ -22,6 +28,7 @@ impl GridCanvas {
         *self.0.flash.borrow_mut() = Some(FlashState {
             start_ms: now,
             duration_ms: 400.0,
+            cells: cells.iter().map(|c| (c.row, c.col)).collect(),
         });
         self.render();
     }

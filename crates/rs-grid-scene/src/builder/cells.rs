@@ -56,26 +56,32 @@ pub(super) fn emit_cell(
             corner_radius: 0.0,
             clip: None,
         }));
-        // Flash overlay — themed fade on paste
-        if let Some(f) = flash {
-            let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: cx,
-                y: ry,
-                width: col.width,
-                height: row_height,
-                fill: Color::rgba(
-                    t.flash_fill.r,
-                    t.flash_fill.g,
-                    t.flash_fill.b,
-                    a,
-                ),
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: 0.0,
-                clip: None,
-            }));
-        }
+    }
+
+    // Flash overlay — themed fade on paste, restricted to the cells
+    // actually written (`flash.cells`), not the whole selection
+    // rectangle, which may extend past cells skipped for being
+    // locked or failing validation.
+    if let Some(f) = flash
+        && f.cells.contains(&(ri, ci))
+    {
+        let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: Color::rgba(
+                t.flash_fill.r,
+                t.flash_fill.g,
+                t.flash_fill.b,
+                a,
+            ),
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
     }
 
     // Search highlight
@@ -112,6 +118,29 @@ pub(super) fn emit_cell(
             fill: t.locked_cell_bg,
             stroke: None,
             stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
+    }
+
+    // At-rest invalid-value border — a cell can fail `ColumnDef.rules`/
+    // `validator` without ever being edited (e.g. loaded that way from
+    // the data source), so this doesn't wait for an active edit session
+    // the way the DOM editor's invalid style does. Skipped when fully
+    // transparent (same convention as `locked_cell_bg` above).
+    let invalid = matches!(
+        &cell_status,
+        CellStatus::Ready(raw) if col.validate_value(raw).is_err()
+    );
+    if invalid && t.invalid_cell_border.a > 0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: Color::rgba(0, 0, 0, 0),
+            stroke: Some(t.invalid_cell_border),
+            stroke_width: t.invalid_cell_border_width,
             corner_radius: 0.0,
             clip: None,
         }));
@@ -766,7 +795,10 @@ mod tests {
         let mut sel = SelectionState::default();
         sel.select_cell(0, 0);
         let t = Theme::light();
-        let flash = FlashHint { alpha_factor: 0.5 };
+        let flash = FlashHint {
+            alpha_factor: 0.5,
+            cells: [(0, 0)].into_iter().collect(),
+        };
         emit_cell(
             &mut frame,
             &col,
@@ -793,6 +825,47 @@ mod tests {
                 .iter()
                 .all(|p| matches!(p, ScenePrimitive::Rect(_)))
         );
+    }
+
+    #[test]
+    fn emit_cell_selected_but_not_flashed_emits_no_flash_overlay() {
+        // A cell can be selected (e.g. part of a paste's target
+        // rectangle) without being in `flash.cells` (e.g. it was
+        // skipped for being locked or failing validation) — only
+        // the selection fill should render, no flash overlay.
+        let mut frame = make_frame();
+        let col = make_col();
+        let mut sel = SelectionState::default();
+        sel.select_cell(0, 1);
+        let t = Theme::light();
+        let flash = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+        };
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            1,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            Some(&flash),
+            None,
+        );
+        // Only the selection fill — no flash overlay for (0, 1).
+        assert_eq!(frame.primitive_count(), 1);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.selection_fill),
+            _ => panic!("expected the selection fill Rect"),
+        }
     }
 
     // ── Search highlight ─────────────────────────────────────
@@ -1717,5 +1790,147 @@ mod tests {
         // No overlay rect — only the text primitive.
         assert_eq!(frame.primitive_count(), 1);
         assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    // ── at-rest invalid-value border ─────────────────────────
+
+    #[test]
+    fn emit_cell_invalid_value_emits_border_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            // Empty value fails `.required()` even though the cell
+            // was never edited.
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.primitive_count(), 1);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.stroke, Some(t.invalid_cell_border));
+                assert_eq!(r.stroke_width, t.invalid_cell_border_width);
+                assert_eq!(r.fill.a, 0);
+            }
+            _ => panic!("expected the invalid-cell border Rect"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_valid_value_emits_no_border_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // Only the text primitive — no invalid-cell border.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_invalid_border_skipped_when_theme_transparent() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        t.invalid_cell_border = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // No border rect — empty text yields no primitives at all.
+        assert_eq!(frame.primitive_count(), 0);
+    }
+
+    #[test]
+    fn emit_cell_invalid_and_locked_both_render() {
+        let mut frame = make_frame();
+        let col = make_col().read_only().with_rules(vec![
+            rs_grid_core::validation::ValidationRule::required(),
+        ]);
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // Locked overlay (fill) + invalid overlay (stroke) — both
+        // conditions can hold at once and don't suppress each other.
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.stroke, Some(t.invalid_cell_border))
+            }
+            _ => panic!("expected the invalid-cell border Rect second"),
+        }
     }
 }
