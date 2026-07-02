@@ -10,14 +10,15 @@ impl GridState {
     pub(super) fn cmd_edit(&mut self, cmd: GridCommand) -> CommandOutput {
         match cmd {
             GridCommand::StartEdit { row, col_key } => {
-                // Respect grid-wide and per-column editable flags.
+                // `is_cell_editable` already folds in grid-wide,
+                // static per-column, and dynamic per-cell flags.
                 let col_editable = self
                     .model
                     .columns
                     .iter()
                     .find(|c| c.key == col_key)
-                    .is_none_or(|c| c.editable);
-                if !self.model.editable || !col_editable {
+                    .is_none_or(|c| c.is_cell_editable(row, &self.model));
+                if !col_editable {
                     return CommandOutput::None;
                 }
                 let col_idx =
@@ -68,12 +69,36 @@ impl GridState {
                 {
                     return CommandOutput::None;
                 }
-                let validation = self
-                    .model
-                    .columns
-                    .iter()
-                    .find(|c| c.key == col_key)
-                    .map(|c| c.validate_value(&value));
+                let col = self.model.columns.iter().find(|c| c.key == col_key);
+                // Editability can change between `StartEdit` and
+                // `CommitEdit` (e.g. a cross-column predicate whose
+                // dependency was edited via another command in the
+                // meantime) — re-check rather than trusting the
+                // `StartEdit`-time result.
+                if col.is_some_and(|c| !c.is_cell_editable(row, &self.model)) {
+                    let message = "Cell is no longer editable".to_string();
+                    return match self.model.invalid_edit_mode {
+                        InvalidEditMode::Revert => {
+                            self.edit = None;
+                            CommandOutput::ValidationError {
+                                row,
+                                col_key,
+                                message,
+                            }
+                        }
+                        InvalidEditMode::Block => {
+                            if let Some(edit) = self.edit.as_mut() {
+                                edit.validation_error = Some(message.clone());
+                            }
+                            CommandOutput::ValidationError {
+                                row,
+                                col_key,
+                                message,
+                            }
+                        }
+                    };
+                }
+                let validation = col.map(|c| c.validate_value(&value));
                 if let Some(Err(message)) = validation {
                     return match self.model.invalid_edit_mode {
                         InvalidEditMode::Revert => {
@@ -316,5 +341,138 @@ mod tests {
         let mut s = make_validated_state();
         s.apply(GridCommand::ValidateEdit { value: "".into() });
         assert!(s.edit.is_none());
+    }
+
+    // ── per-cell editable predicate ──────────────────────────
+
+    fn make_predicate_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0).editable_when(|row, _| row != 0),
+            ColumnDef::new("ro", "ReadOnly", 100.0)
+                .read_only()
+                .editable_when(|_, _| panic!("predicate must not be called")),
+        ];
+        let rows = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("val{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn start_edit_predicate_false_is_noop() {
+        let mut s = make_predicate_state();
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "a".into(),
+        });
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn start_edit_predicate_true_allows_edit() {
+        let mut s = make_predicate_state();
+        s.apply(GridCommand::StartEdit {
+            row: 1,
+            col_key: "a".into(),
+        });
+        assert!(s.edit.is_some());
+    }
+
+    #[test]
+    fn start_edit_static_false_short_circuits_predicate() {
+        let mut s = make_predicate_state();
+        // The "ro" column's predicate panics if called — this must
+        // not panic, proving the static `editable=false` check
+        // short-circuits before the predicate is ever evaluated.
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "ro".into(),
+        });
+        assert!(s.edit.is_none());
+    }
+
+    #[test]
+    fn start_edit_predicate_reads_cross_column_value() {
+        let cols = vec![
+            ColumnDef::new("status", "Status", 100.0),
+            ColumnDef::new("notes", "Notes", 100.0).editable_when(
+                |row, model| {
+                    model.get_cell(row, "status").as_deref() != Some("locked")
+                },
+            ),
+        ];
+        let rows = vec![
+            {
+                let mut r = RowRecord::new(0);
+                r.set("status", "locked");
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("status", "open");
+                r
+            },
+        ];
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "notes".into(),
+        });
+        assert!(s.edit.is_none(), "row 0 is locked via the status column");
+
+        s.apply(GridCommand::StartEdit {
+            row: 1,
+            col_key: "notes".into(),
+        });
+        assert!(s.edit.is_some(), "row 1 is not locked");
+    }
+
+    #[test]
+    fn commit_edit_rejects_cell_locked_mid_edit() {
+        let cols = vec![
+            ColumnDef::new("status", "Status", 100.0),
+            ColumnDef::new("notes", "Notes", 100.0).editable_when(
+                |row, model| {
+                    model.get_cell(row, "status").as_deref() != Some("locked")
+                },
+            ),
+        ];
+        let rows = vec![{
+            let mut r = RowRecord::new(0);
+            r.set("status", "open");
+            r
+        }];
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+
+        s.apply(GridCommand::StartEdit {
+            row: 0,
+            col_key: "notes".into(),
+        });
+        assert!(s.edit.is_some(), "row 0 starts unlocked");
+
+        // Simulate another command changing the predicate's
+        // dependency while the edit session is still open.
+        s.model.set_cell(0, "status", "locked".to_string());
+
+        s.apply(GridCommand::CommitEdit {
+            row: 0,
+            col_key: "notes".into(),
+            value: "new value".into(),
+        });
+
+        assert_eq!(
+            s.model.get_cell(0, "notes").unwrap_or_default(),
+            "",
+            "the write must not go through on a now-locked cell"
+        );
+        assert!(s.edit.is_none(), "Revert mode drops the edit session");
     }
 }

@@ -1577,6 +1577,7 @@ mod tests {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }];
         let values = ["us 3", "fr 1", "de 2"];
@@ -1621,6 +1622,7 @@ mod tests {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }];
         // Mix of numeric and string labels → mixed sort path

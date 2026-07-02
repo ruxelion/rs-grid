@@ -621,6 +621,7 @@ mod tests {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }];
         // base64-like key + short label
@@ -2022,6 +2023,7 @@ mod tests {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }];
         let mut row = RowRecord::new(0);
@@ -2067,6 +2069,7 @@ mod tests {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }];
         let mut row = RowRecord::new(0);

@@ -307,11 +307,25 @@ cd e2e && npm run update-snapshots
 - `dblclick on Role cell (editor=None) does not open any input` — regression guard for the None-editor fix
 - `Escape closes the text editor`
 
+`e2e/tests/validation.spec.ts`:
+- `typing an empty value into a required cell shows the invalid style` /
+  `typing a valid value clears the invalid style`
+- `invalid value sets a native title attribute, valid value clears it`
+- `Enter with an invalid value reverts and closes the editor (default Revert mode)`
+- `on_validation_state_changed fires live, not just on commit`
+
 `e2e/tests/progress.spec.ts`:
 - `scrolling to the Completion column does not crash` — scrolls right to the
   `CellFormat::ProgressBar` column, asserts no page error
 - `renders value-driven progress bars` — visual regression of the DaisyUI
   progress bars (per-value error/warning/success colours)
+
+`e2e/tests/editable-predicate.spec.ts` — the "Notes" column (last base
+column, locked on even row indices via `ColumnDef::editable_predicate`):
+- `dblclick on an unlocked (odd row) Notes cell opens the text input` /
+  `dblclick on a locked (even row) Notes cell does not open the text input`
+- `hovering a locked cell shows the not-allowed cursor` /
+  `hovering an unlocked cell shows the default cursor`
 
 `e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.
 

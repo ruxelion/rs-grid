@@ -4,6 +4,7 @@ use rs_grid_core::{
     column::{ButtonStyle, ColumnDef},
     datasource::CellStatus,
     format::{CellAlign, CellElement, CellFormat, format_cell},
+    model::GridModel,
     selection::SelectionState,
 };
 
@@ -27,6 +28,7 @@ use crate::{
 pub(super) fn emit_cell(
     frame: &mut SceneFrame,
     col: &ColumnDef,
+    model: &GridModel,
     ri: u64,
     ci: usize,
     cx: f64,
@@ -89,6 +91,25 @@ pub(super) fn emit_cell(
             width: col.width,
             height: row_height,
             fill,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
+    }
+
+    // Locked-cell overlay (static `editable=false` or a
+    // false-resolving `editable_predicate`). Skipped when fully
+    // transparent to avoid an extra draw call (mirrors the
+    // `row_hover_bg` "transparent = disabled" convention).
+    let locked = !col.is_cell_editable(ri, model);
+    if locked && t.locked_cell_bg.a > 0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: t.locked_cell_bg,
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
@@ -187,13 +208,23 @@ pub(super) fn emit_cell(
                             CellAlign::Center => TextAlign::Center,
                             _ => TextAlign::Left,
                         };
+                        let default_color = if locked {
+                            t.locked_cell_text
+                        } else {
+                            t.cell_text
+                        };
                         let c = fc
                             .color
                             .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
-                            .unwrap_or(t.cell_text);
+                            .unwrap_or(default_color);
                         (fc.text, a, fc.bold || col.bold, fc.italic, c)
                     } else {
-                        (raw, TextAlign::Left, col.bold, false, t.cell_text)
+                        let default_color = if locked {
+                            t.locked_cell_text
+                        } else {
+                            t.cell_text
+                        };
+                        (raw, TextAlign::Left, col.bold, false, default_color)
                     };
                 let x = match align {
                     TextAlign::Right => cx + col.width - t.cell_padding,
@@ -622,6 +653,15 @@ mod tests {
         ColumnDef::new("a", "Alpha", 100.0)
     }
 
+    fn make_model(col: &ColumnDef) -> rs_grid_core::model::GridModel {
+        rs_grid_core::model::GridModel::new(
+            vec![col.clone()],
+            vec![rs_grid_core::row::RowRecord::new(0)],
+            42.0,
+            30.0,
+        )
+    }
+
     fn no_search() -> HashSet<(u64, usize)> {
         HashSet::new()
     }
@@ -637,6 +677,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -671,6 +712,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -697,6 +739,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -727,6 +770,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -764,6 +808,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -798,6 +843,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -838,6 +884,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -876,6 +923,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -919,6 +967,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -962,6 +1011,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1000,6 +1050,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1047,6 +1098,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1097,6 +1149,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1145,6 +1198,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1183,6 +1237,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1228,6 +1283,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1260,6 +1316,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1303,6 +1360,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1335,6 +1393,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1370,6 +1429,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             1,
             0,
             0.0,
@@ -1406,6 +1466,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1440,6 +1501,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1475,6 +1537,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1494,5 +1557,165 @@ mod tests {
             matches!(frame.primitives[0], ScenePrimitive::Image(_)),
             "expected Image only"
         );
+    }
+
+    // ── locked cell overlay ──────────────────────────────────
+
+    #[test]
+    fn emit_cell_locked_static_editable_false_emits_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_locked_predicate_false_emits_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().editable_when(|_, _| false);
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_editable_emits_no_overlay() {
+        let mut frame = make_frame();
+        let col = make_col();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // Only the text primitive — no locked-cell overlay.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_locked_uses_locked_cell_text_color() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        match &frame.primitives[1] {
+            ScenePrimitive::Text(txt) => {
+                assert_eq!(txt.color, t.locked_cell_text);
+            }
+            _ => panic!("expected Text primitive after the overlay"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_locked_bg_skipped_when_theme_transparent() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        t.locked_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // No overlay rect — only the text primitive.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
     }
 }

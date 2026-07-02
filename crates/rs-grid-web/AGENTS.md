@@ -85,6 +85,20 @@ The three framework wrappers (`rs-grid-leptos`/`dioxus`/`yew`) forward
 existing `on_validation_error` plumbing exactly — no wrapper-managed
 reactive signal exists for this or any other `GridCanvas` state today.
 
+## Locked-cell cursor feedback
+
+The mousemove hover handler (`canvas/events.rs`) sets `cursor: not-allowed`
+when hovering a cell that resolves to non-editable via
+`ColumnDef::is_cell_editable` — the single source of truth combining the
+grid-wide `GridModel.editable` toggle, the column's static `editable` flag,
+and a false-resolving `editable_predicate` (all in `rs-grid-core`) — using
+the `hit_locked_cell(vx, vy)` helper in `canvas/hittest.rs` (delegates to
+`GridState::hit_test` for an O(log n) row+col lookup). Because
+`is_cell_editable` folds in `GridModel.editable`, a globally read-only grid
+shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
+overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
+`Theme` fields (see *CSS theme* below) for the themed visual.
+
 ## Public callbacks
 
 Callbacks fired during `dispatch()` after `GridState::apply()` returns:
@@ -116,7 +130,9 @@ directions) is the single source of truth in `rs-grid-scene/src/css_vars.rs`;
 `css_theme.rs` here is only a thin DOM wrapper around its reader. The
 progress-bar cell renderer adds `--rs-grid-progress-track`,
 `--rs-grid-progress-fill`, `--rs-grid-progress-height`, and
-`--rs-grid-progress-radius`.
+`--rs-grid-progress-radius`. The locked-cell overlay (see *Locked-cell
+cursor feedback* above) adds `--rs-grid-locked-cell-bg` and
+`--rs-grid-locked-cell-text`.
 
 ### Inline editor overlay variables
 

@@ -29,10 +29,11 @@ It must remain testable with standard native `cargo test`.
 ## Behaviour flags & cell buttons
 
 - `GridModel.editable: bool` (default `true`) — global edit toggle.
-  Per-column `ColumnDef.editable` can opt individual columns out.
-  Set at build time via `GridModelBuilder::editable(bool)` (symmetric with
-  `selectable()` and `column_reorderable()`); toggle at runtime via
-  `GridCommand::SetEditable(bool)`.
+  Per-column `ColumnDef.editable` can opt individual columns out. See
+  *Per-cell editability* below for how this combines with per-column and
+  per-cell overrides. Set at build time via `GridModelBuilder::editable(bool)`
+  (symmetric with `selectable()` and `column_reorderable()`); toggle at
+  runtime via `GridCommand::SetEditable(bool)`.
 - `GridModel.selectable: bool` (default `true`) — when `false`,
   selection commands are silently ignored. Toggle at runtime via
   `GridCommand::SetEditable(bool)` / `GridCommand::SetSelectable(bool)`.
@@ -72,6 +73,31 @@ It must remain testable with standard native `cargo test`.
   pending value **without committing**, updating
   `EditCell.validation_error` for live (per-keystroke) feedback. No-op
   without an active edit; produces no undo entry.
+
+## Per-cell editability (`EditablePredicate`)
+
+- `ColumnDef.editable: bool` locks an entire column statically. For
+  per-cell (row+col) locking — AG Grid's `colDef.editable` callback
+  equivalent — attach a dynamic predicate via
+  `ColumnDef::editable_when(f: impl Fn(u64, &GridModel) -> bool)`, stored
+  as `ColumnDef.editable_predicate: Option<EditablePredicate>`. The
+  closure receives the row index and the full `GridModel`, so it can
+  implement cross-column logic, not just this column's own value.
+- `ColumnDef::is_cell_editable(row, model) -> bool` is the single source
+  of truth, combining all three layers in order (each short-circuits the
+  next, mirroring the `rules` → `validator` layering above):
+  `GridModel.editable` (grid-wide) → `ColumnDef.editable` (static
+  per-column) → `editable_predicate` (dynamic per-cell, not even called
+  if either static layer is `false`).
+- Consumed by every mutation/render path that needs to know whether a
+  cell can be edited: `GridState::apply(StartEdit)` and `CommitEdit`
+  (`state/cmd_edit.rs` — `CommitEdit` re-checks it, since the predicate's
+  result can change between `StartEdit` and `CommitEdit`),
+  `PasteAt`/`CutSelection` (`state/cmd_clipboard.rs` — locked cells are
+  silently skipped, `continue`, not `break`, since a locked cell says
+  nothing about its neighbours), `rs-grid-web`'s `hit_locked_cell`
+  (`not-allowed` cursor), and `rs-grid-scene`'s `emit_cell` (themed
+  locked-cell overlay — see `rs-grid-scene/AGENTS.md`).
 
 ## Cell formats (`CellFormat`)
 

@@ -327,6 +327,7 @@ impl SceneBuilder {
                 cells::emit_cell(
                     &mut frame,
                     col,
+                    model,
                     ri,
                     ci,
                     cx,
@@ -412,6 +413,7 @@ impl SceneBuilder {
                     cells::emit_cell(
                         &mut frame,
                         col,
+                        model,
                         ri,
                         ci,
                         cx,

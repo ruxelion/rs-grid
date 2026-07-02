@@ -91,6 +91,43 @@ impl GridCanvas {
         let _ = self.0.canvas.style().set_property("cursor", cursor);
     }
 
+    /// Returns `true` when the data cell under viewport point `(vx, vy)`
+    /// resolves to non-editable via `ColumnDef::is_cell_editable` — the
+    /// grid-wide `GridModel.editable` toggle, the column's static
+    /// `editable=false`, or a false-resolving `editable_predicate`.
+    /// `false` (not locked) for any point outside a data cell (header,
+    /// gutter, out of bounds) — callers should treat that as "no
+    /// override", falling through to the existing cursor logic.
+    pub(super) fn hit_locked_cell(&self, vx: f64, vy: f64) -> bool {
+        let state = self.0.state.borrow();
+        let Some(coord) = state.hit_test(vx, vy) else {
+            return false;
+        };
+        state
+            .model
+            .columns
+            .get(coord.col)
+            .is_some_and(|c| !c.is_cell_editable(coord.row, &state.model))
+    }
+
+    /// Recomputes and applies the hover cursor for viewport point
+    /// `(vx, vy)` — the same precedence used by the mousemove handler
+    /// (header menu icon > resize separator > locked cell > default).
+    /// Also called after a column drag/resize ends, so the cursor
+    /// doesn't stay stale (e.g. showing `default` over a locked cell,
+    /// or over a resize separator) until the next `mousemove` fires.
+    pub(super) fn refresh_hover_cursor(&self, vx: f64, vy: f64) {
+        if self.hit_header_menu_icon(vx, vy).is_some() {
+            self.set_cursor("pointer");
+        } else if self.hit_col_resize_separator(vx, vy).is_some() {
+            self.set_cursor("w-resize");
+        } else if self.hit_locked_cell(vx, vy) {
+            self.set_cursor("not-allowed");
+        } else {
+            self.set_cursor("default");
+        }
+    }
+
     /// Returns the data row index under viewport point `(vx, vy)`, or `None`
     /// if the point is in the header, gutter, or below the last row.
     pub(super) fn row_at(&self, vx: f64, vy: f64) -> Option<u64> {

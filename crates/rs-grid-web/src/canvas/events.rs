@@ -680,13 +680,7 @@ impl GridCanvas {
                         return;
                     }
                     let (x, y) = gc.canvas_xy(&evt);
-                    if gc.hit_header_menu_icon(x, y).is_some() {
-                        gc.set_cursor("pointer");
-                    } else if gc.hit_col_resize_separator(x, y).is_some() {
-                        gc.set_cursor("w-resize");
-                    } else {
-                        gc.set_cursor("default");
-                    }
+                    gc.refresh_hover_cursor(x, y);
                     let new_row = gc.row_at(x, y);
                     if gc.0.state.borrow().hovered_row != new_row {
                         gc.dispatch(GridCommand::SetHoveredRow(new_row));
@@ -745,7 +739,8 @@ impl GridCanvas {
                     ..
                 }) => {
                     gc.0.drag_col_offsets.borrow_mut().clear();
-                    gc.set_cursor("default");
+                    let (x, y) = gc.canvas_xy(&evt);
+                    gc.refresh_hover_cursor(x, y);
                     let insert = gc.insertion_index(current_vx);
                     let to = if insert > col_idx { insert - 1 } else { insert };
                     if to != col_idx {
@@ -770,7 +765,8 @@ impl GridCanvas {
                         old_width: start_width,
                         old_flex: start_flex,
                     });
-                    gc.set_cursor("default");
+                    let (x, y) = gc.canvas_xy(&evt);
+                    gc.refresh_hover_cursor(x, y);
                 }
                 _ => {}
             }

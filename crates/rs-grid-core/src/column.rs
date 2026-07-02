@@ -2,6 +2,7 @@ use std::{fmt, rc::Rc};
 
 use crate::{
     format::CellFormat,
+    model::GridModel,
     validation::{ValidationRule, validate_rules},
 };
 
@@ -55,6 +56,61 @@ impl Clone for CellValidator {
 impl fmt::Debug for CellValidator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("CellValidator(..)")
+    }
+}
+
+// ── cell editability predicate ──────────────────────────
+
+/// Per-cell editability predicate signature.
+///
+/// Receives the row index and full read access to the [`GridModel`]
+/// so the closure can implement cross-column logic (e.g. lock a cell
+/// when another column's value is `"locked"`), not just this
+/// column's own value.
+pub type EditablePredicateFn = dyn Fn(u64, &GridModel) -> bool;
+
+/// Dynamic per-cell editability override.
+///
+/// Checked *after* the static [`ColumnDef::editable`] flag — if the
+/// column is statically non-editable, the predicate is never called
+/// (mirrors the `rules` → `validator` layering of
+/// [`ColumnDef::validate_value`]).
+///
+/// Wrap your closure with [`EditablePredicate::new`]:
+/// ```ignore
+/// EditablePredicate::new(|row, model| {
+///     model.get_cell(row, "status").as_deref() != Some("locked")
+/// })
+/// ```
+///
+/// # Thread safety
+///
+/// `EditablePredicate` is `!Send + !Sync` (it wraps an `Rc`), matching
+/// [`CellValidator`] — the grid targets single-threaded WASM / browser
+/// environments.
+pub struct EditablePredicate(pub Rc<EditablePredicateFn>);
+
+impl EditablePredicate {
+    /// Create a new predicate from a closure.
+    pub fn new(f: impl Fn(u64, &GridModel) -> bool + 'static) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Evaluate the predicate for `row` against `model`.
+    pub fn is_editable(&self, row: u64, model: &GridModel) -> bool {
+        (self.0)(row, model)
+    }
+}
+
+impl Clone for EditablePredicate {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+impl fmt::Debug for EditablePredicate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("EditablePredicate(..)")
     }
 }
 
@@ -192,6 +248,11 @@ pub struct ColumnDef {
     /// Allow inline editing for this column (`true` by default).
     /// When `false`, double-clicking the column does nothing.
     pub editable: bool,
+    /// Optional dynamic per-cell editability override, checked after
+    /// `editable` (only when `editable` is `true`). `None` = every
+    /// cell in the column follows the static `editable` flag
+    /// unconditionally. See [`ColumnDef::is_cell_editable`].
+    pub editable_predicate: Option<EditablePredicate>,
     /// Clickable buttons rendered at the right side of every
     /// cell in this column.
     ///
@@ -222,6 +283,7 @@ impl ColumnDef {
             rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
             cell_buttons: Vec::new(),
         }
     }
@@ -241,6 +303,17 @@ impl ColumnDef {
     /// Disable inline editing for this column. Returns `self` for chaining.
     pub fn read_only(mut self) -> Self {
         self.editable = false;
+        self
+    }
+
+    /// Set a dynamic per-cell editability predicate. Returns `self`
+    /// for chaining. Checked only when `editable` (the static flag)
+    /// is `true` — see [`ColumnDef::editable_predicate`].
+    pub fn editable_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> bool + 'static,
+    ) -> Self {
+        self.editable_predicate = Some(EditablePredicate::new(f));
         self
     }
 
@@ -332,6 +405,22 @@ impl ColumnDef {
             v.validate(value)?;
         }
         Ok(())
+    }
+
+    /// Resolve whether `row` is editable in this column — the single
+    /// source of truth combining all three editability layers, in
+    /// order (each short-circuits the next): `model.editable` (grid-wide
+    /// toggle), then the static per-column `editable` flag, then the
+    /// dynamic `editable_predicate` (not even called if either static
+    /// layer is `false`); `true` if no predicate is set and both static
+    /// layers pass.
+    pub fn is_cell_editable(&self, row: u64, model: &GridModel) -> bool {
+        model.editable
+            && self.editable
+            && self
+                .editable_predicate
+                .as_ref()
+                .is_none_or(|p| p.is_editable(row, model))
     }
 
     /// Set the cell buttons. Returns `self` for chaining.
@@ -588,6 +677,105 @@ mod tests {
         let v = CellValidator::new(|_| Ok(()));
         let s = format!("{v:?}");
         assert!(s.contains("CellValidator"));
+    }
+
+    // ── EditablePredicate / editable_when ──────────────────
+
+    fn model_with_status(row0_status: &str) -> GridModel {
+        use crate::row::RowRecord;
+        let cols = vec![
+            ColumnDef::new("status", "Status", 100.0),
+            ColumnDef::new("notes", "Notes", 100.0),
+        ];
+        let rows = vec![
+            {
+                let mut r = RowRecord::new(0);
+                r.set("status", row0_status);
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("status", "open");
+                r
+            },
+        ];
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn editable_predicate_default_none() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.editable_predicate.is_none());
+    }
+
+    #[test]
+    fn editable_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0).editable_when(|_, _| false);
+        assert!(col.editable_predicate.is_some());
+    }
+
+    #[test]
+    fn is_cell_editable_true_when_no_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert!(col.is_cell_editable(0, &model));
+        assert!(col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_false_when_static_false_predicate_not_called() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .read_only()
+            .editable_when(|_, _| panic!("predicate must not be called"));
+        let model = model_with_status("open");
+        assert!(!col.is_cell_editable(0, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_delegates_to_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .editable_when(|row, _| row % 2 == 0);
+        let model = model_with_status("open");
+        assert!(col.is_cell_editable(0, &model));
+        assert!(!col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_predicate_reads_other_column() {
+        let col = ColumnDef::new("notes", "Notes", 100.0).editable_when(
+            |row, model| {
+                model.get_cell(row, "status").as_deref() != Some("locked")
+            },
+        );
+        let model = model_with_status("locked");
+        assert!(!col.is_cell_editable(0, &model));
+        assert!(col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_false_when_grid_wide_editable_false_predicate_not_called()
+     {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .editable_when(|_, _| panic!("predicate must not be called"));
+        let mut model = model_with_status("open");
+        model.editable = false;
+        assert!(!col.is_cell_editable(0, &model));
+    }
+
+    #[test]
+    fn editable_predicate_debug_format() {
+        let p = EditablePredicate::new(|_, _| true);
+        let s = format!("{p:?}");
+        assert!(s.contains("EditablePredicate"));
+    }
+
+    #[test]
+    fn editable_predicate_clone_shares_closure() {
+        let p = EditablePredicate::new(|row, _| row == 0);
+        let p2 = p.clone();
+        let model = model_with_status("open");
+        assert!(p2.is_editable(0, &model));
+        assert!(!p2.is_editable(1, &model));
     }
 
     // ── with_editor ───────────────────────────────────────

@@ -41,6 +41,29 @@ output from the primitives above — no new primitive type is added:
   optional right-aligned `"NN%"` label. Geometry via `Theme::progress_height`
   and `Theme::progress_radius`.
 
+### Locked-cell visual feedback
+
+`emit_cell` takes a `model: &GridModel` parameter (in addition to `col`)
+so it can call `ColumnDef::is_cell_editable(row, model)` — the single
+source of truth combining `GridModel.editable` (grid-wide toggle), the
+static `editable` flag, and the dynamic `editable_predicate`
+(rs-grid-core). When a cell resolves to non-editable:
+
+- A `locked_cell_bg` overlay `Rect` is pushed right before the cell's
+  content, **regardless of `CellFormat`** — it applies to
+  `Styled`/`Image`/`ImageText`/`ProgressBar` composite cells exactly the
+  same as plain text, since it's pushed before the format dispatch.
+  Skipped entirely when `Theme::locked_cell_bg.a == 0` (mirrors the
+  `row_hover_bg` "transparent = disabled" convention — no extra draw call
+  for themes that don't opt in).
+- The **text color** swap (`Theme::locked_cell_text` instead of
+  `Theme::cell_text`) is scoped to the default plain-text renderer only —
+  the `Styled`/`Image`/`ImageText`/`ProgressBar` composite branches keep
+  their own colors (badge class, image, progress-bar fill). Extending the
+  text-color treatment to those is a separate, explicit follow-up if
+  needed; the background wash already gives every locked cell a visible
+  affordance regardless of format.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

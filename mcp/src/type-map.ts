@@ -14,6 +14,7 @@ export const TYPE_TO_DOC_PATH: Record<string, string> = {
   celleditor: "api/column-def",
   cellvalidator: "api/column-def",
   validationrule: "api/column-def",
+  editablepredicate: "api/column-def",
   buttondef: "api/column-def",
   buttonstyle: "api/column-def",
   selectoption: "api/column-def",

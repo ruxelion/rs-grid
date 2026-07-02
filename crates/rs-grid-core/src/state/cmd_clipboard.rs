@@ -73,6 +73,11 @@ impl GridState {
                     let mut old_cells = Vec::new();
                     for r in tl.row..=br.row {
                         for ci in tl.col..=br.col {
+                            if !self.model.columns[ci]
+                                .is_cell_editable(r, &self.model)
+                            {
+                                continue;
+                            }
                             let key = self.model.columns[ci].key.clone();
                             let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
@@ -135,6 +140,11 @@ impl GridState {
                             let c = orig.col + dc;
                             if c >= col_count {
                                 break;
+                            }
+                            if !self.model.columns[c]
+                                .is_cell_editable(r, &self.model)
+                            {
+                                continue;
                             }
                             let val = &src_row[dc % clip_cols];
                             let key = self.model.columns[c].key.clone();
@@ -306,5 +316,70 @@ mod tests {
         let out = s.apply(GridCommand::CutSelection);
         assert!(matches!(out, CommandOutput::CopyText(_)));
         assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+    }
+
+    // ── locked cells ─────────────────────────────────────────────────────
+
+    fn make_locked_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "Name", 100.0),
+            ColumnDef::new("b", "Email", 150.0).read_only(),
+        ];
+        let rows = (0..4)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn paste_at_skips_locked_cells() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("X"),
+            "editable column receives the pasted value"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("b0"),
+            "read-only column keeps its original value"
+        );
+    }
+
+    #[test]
+    fn cut_selection_skips_locked_cells_but_copies_everything() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::CutSelection);
+        if let CommandOutput::CopyText(t) = out {
+            assert_eq!(
+                t, "a0\tb0\n",
+                "the copy side is unaffected by editability"
+            );
+        } else {
+            panic!("expected CopyText");
+        }
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some(""),
+            "editable column is cleared"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("b0"),
+            "read-only column is left untouched"
+        );
     }
 }

@@ -338,6 +338,39 @@ switch from `--rs-grid-editor-border` / `--rs-grid-editor-bg` to
 `--rs-grid-editor-border-invalid` (default `#dc2626`) /
 `--rs-grid-editor-bg-invalid` (default `#fef2f2`).
 
+### Per-cell editability (`EditablePredicate`)
+
+`ColumnDef::editable` locks an entire column. For per-cell (row+col)
+locking — AG Grid's `colDef.editable` callback equivalent — attach a
+dynamic predicate with `.editable_when(...)`. The closure receives the
+row index and the full `GridModel`, so it can implement cross-column
+logic (not just this column's own value):
+
+```rust
+use rs_grid_core::column::ColumnDef;
+
+let notes = ColumnDef::new("notes", "Notes", 160.0).editable_when(
+    |row, model| model.get_cell(row, "status").as_deref() != Some("locked"),
+);
+```
+
+Checked only when the grid-wide `GridModel.editable` and the static
+per-column `editable` flag are both `true` — either one short-circuits
+before the predicate is ever called (mirrors the `rules` → `validator`
+layering above). `ColumnDef::is_cell_editable(row, model)` resolves all
+three layers and is the single source of truth reused by `rs-grid-web`'s
+cursor logic, `PasteAt`/`CutSelection`, and `rs-grid-scene`'s cell
+renderer.
+
+When a cell resolves to non-editable: `rs-grid-web` shows a
+`not-allowed` cursor on hover and `PasteAt`/`CutSelection` skip the cell,
+and the canvas paints a `--rs-grid-locked-cell-bg` background wash behind
+the cell regardless of its `CellFormat` (transparent `locked_cell_bg` = no
+visual change). The `--rs-grid-locked-cell-text` color swap is scoped to
+the default plain-text renderer only — `Styled`/`Image`/`ImageText`/
+`ProgressBar` composite formats keep their own colors, but still get the
+background wash.
+
 ### Enable server-side pagination
 
 ```rust

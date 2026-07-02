@@ -86,6 +86,8 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-scrollbar-thumb", fmt_color(t.scrollbar_thumb)),
         ("--rs-grid-row-alt-bg", fmt_color(t.row_alt_bg)),
         ("--rs-grid-row-hover-bg", fmt_color(t.row_hover_bg)),
+        ("--rs-grid-locked-cell-bg", fmt_color(t.locked_cell_bg)),
+        ("--rs-grid-locked-cell-text", fmt_color(t.locked_cell_text)),
         // dimensions
         ("--rs-grid-header-height", fmt_px(t.header_height)),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
@@ -263,6 +265,9 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.scrollbar_thumb = color("--rs-grid-scrollbar-thumb", t.scrollbar_thumb);
     t.row_alt_bg = color("--rs-grid-row-alt-bg", t.row_alt_bg);
     t.row_hover_bg = color("--rs-grid-row-hover-bg", t.row_hover_bg);
+    t.locked_cell_bg = color("--rs-grid-locked-cell-bg", t.locked_cell_bg);
+    t.locked_cell_text =
+        color("--rs-grid-locked-cell-text", t.locked_cell_text);
     t.header_height = px("--rs-grid-header-height", t.header_height);
     t.row_height = px("--rs-grid-row-height", t.row_height);
     t.font_size = px("--rs-grid-font-size", t.font_size);
@@ -547,6 +552,8 @@ mod tests {
             cell_btn_padding_x: 71.0,
             cell_btn_gap: 72.0,
             cell_btn_margin_r: 73.0,
+            locked_cell_bg: c(74),
+            locked_cell_text: c(75),
         }
     }
 

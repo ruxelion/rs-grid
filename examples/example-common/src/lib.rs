@@ -20,7 +20,7 @@ use std::rc::Rc;
 use rs_grid_core::{
     column::{
         ButtonDef, ButtonStyle, CellEditor, CellValidator, ColumnDef,
-        SelectOption,
+        EditablePredicate, SelectOption,
     },
     datasource::FnDataSource,
     format::{CellAlign, CellElement, CellFormat},
@@ -152,6 +152,16 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
                     }
                 })),
             });
+            c
+        },
+        {
+            let mut c = ColumnDef::new("notes", "Notes", 160.0);
+            c.editor = Some(CellEditor::Text);
+            // Demo: locked for even row indices, to exercise the
+            // per-cell editable predicate (not-allowed cursor +
+            // locked-cell style) in the e2e fixture.
+            c.editable_predicate =
+                Some(EditablePredicate::new(|row, _model| row % 2 == 1));
             c
         },
     ];

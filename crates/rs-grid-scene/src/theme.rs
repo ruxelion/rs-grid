@@ -49,6 +49,17 @@ pub struct Theme {
     /// disabled).
     pub row_hover_bg: Color,
 
+    // ── locked cell (non-editable)
+    // ────────────────────────────────────────────────────
+    /// Background overlay drawn over a cell that resolves to
+    /// non-editable (static `ColumnDef::editable == false`, or the
+    /// dynamic `editable_predicate` returns `false`). Transparent =
+    /// no visual change.
+    pub locked_cell_bg: Color,
+    /// Text color for a locked cell's content. Defaults to a dimmed
+    /// variant of `cell_text`.
+    pub locked_cell_text: Color,
+
     // ── row / header dimensions
     // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
@@ -247,6 +258,10 @@ impl Theme {
             row_alt_bg: Color::rgb(255, 255, 255),
             // rgba(33, 150, 243, 0.07) → a = round(0.07 × 255) = 18
             row_hover_bg: Color::rgba(33, 150, 243, 18),
+            // locked cell — subtle gray wash, dimmed text
+            // rgba(0, 0, 0, 0.035) → a = round(0.035 × 255) = 9
+            locked_cell_bg: Color::rgba(0, 0, 0, 9),
+            locked_cell_text: Color::rgba(24, 29, 31, 140),
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -349,6 +364,9 @@ impl Theme {
             row_alt_bg: Color::rgb(33, 33, 35),
             // rgba(255, 255, 255, 0.05) → a = round(0.05 × 255) = 13
             row_hover_bg: Color::rgba(255, 255, 255, 13),
+            // locked cell — rgba(255, 255, 255, 0.04) → a = 10
+            locked_cell_bg: Color::rgba(255, 255, 255, 10),
+            locked_cell_text: Color::rgba(208, 208, 208, 140),
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -451,6 +469,9 @@ impl Theme {
             row_alt_bg: Color::rgb(34, 39, 46),
             // rgba(255, 255, 255, 0.04) → a = round(0.04 × 255) = 10
             row_hover_bg: Color::rgba(255, 255, 255, 10),
+            // locked cell — rgba(255, 255, 255, 0.035) → a = 9
+            locked_cell_bg: Color::rgba(255, 255, 255, 9),
+            locked_cell_text: Color::rgba(173, 186, 199, 140),
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -596,6 +617,24 @@ mod tests {
         let t = Theme::light();
         assert!(t.selection_fill.a > 0);
         assert!(t.selection_fill.a < 255);
+    }
+
+    #[test]
+    fn light_locked_cell_bg_is_subtle() {
+        let t = Theme::light();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dark_locked_cell_bg_is_subtle() {
+        let t = Theme::dark();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dimmed_locked_cell_bg_is_subtle() {
+        let t = Theme::dimmed();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
     }
 
     #[test]
