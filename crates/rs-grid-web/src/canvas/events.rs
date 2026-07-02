@@ -32,10 +32,15 @@ impl GridCanvas {
 
                 // Only reset the canvas when physical dimensions
                 // actually change.  set_width/set_height wipe all
-                // pixels to transparent, which can produce a
-                // visible flash if the browser paints between the
-                // clear and the subsequent render() call.
-                if canvas.width() != new_w || canvas.height() != new_h {
+                // pixels to transparent — draw synchronously right
+                // after (render_immediate, not the rAF-deferred
+                // render()) so the browser never gets a chance to
+                // paint the just-cleared canvas, which is especially
+                // visible during a continuous drag-resize where this
+                // fires on every intermediate size.
+                let dims_changed =
+                    canvas.width() != new_w || canvas.height() != new_h;
+                if dims_changed {
                     canvas.set_width(new_w);
                     canvas.set_height(new_h);
                 }
@@ -46,6 +51,10 @@ impl GridCanvas {
                     width: css_w,
                     height: css_h,
                 });
+
+                if dims_changed {
+                    gc.render_immediate();
+                }
             },
         );
 
