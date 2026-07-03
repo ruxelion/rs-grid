@@ -3348,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-dioxus"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "dioxus",
  "rs-grid-core",
@@ -3364,7 +3364,7 @@ version = "0.1.2"
 
 [[package]]
 name = "rs-grid-leptos"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "leptos",
  "rs-grid-core",
@@ -3377,7 +3377,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-render-canvas"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "js-sys",
  "rs-grid-scene",
@@ -3387,7 +3387,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-scene"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "criterion",
  "insta",
@@ -3398,7 +3398,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-web"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -3412,7 +3412,7 @@ dependencies = [
 
 [[package]]
 name = "rs-grid-yew"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "rs-grid-core",
  "rs-grid-scene",
