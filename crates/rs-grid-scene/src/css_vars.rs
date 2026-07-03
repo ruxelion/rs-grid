@@ -96,6 +96,10 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-invalid-cell-border-width",
             fmt_px(t.invalid_cell_border_width),
         ),
+        (
+            "--rs-grid-decoration-border-width",
+            fmt_px(t.decoration_border_width),
+        ),
         // dimensions
         ("--rs-grid-header-height", fmt_px(t.header_height)),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
@@ -281,6 +285,10 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.invalid_cell_border_width = px(
         "--rs-grid-invalid-cell-border-width",
         t.invalid_cell_border_width,
+    );
+    t.decoration_border_width = px(
+        "--rs-grid-decoration-border-width",
+        t.decoration_border_width,
     );
     t.header_height = px("--rs-grid-header-height", t.header_height);
     t.row_height = px("--rs-grid-row-height", t.row_height);
@@ -570,6 +578,7 @@ mod tests {
             locked_cell_text: c(75),
             invalid_cell_border: c(76),
             invalid_cell_border_width: 77.0,
+            decoration_border_width: 78.0,
         }
     }
 

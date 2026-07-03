@@ -134,6 +134,32 @@ It must remain testable with standard native `cargo test`.
   (`not-allowed` cursor), and `rs-grid-scene`'s `emit_cell` (themed
   locked-cell overlay — see `rs-grid-scene/AGENTS.md`).
 
+## Per-cell decoration (`CellDecorator`)
+
+- Persistent, at-rest visual annotation (border color / background tint
+  / reserved message) for a single cell — purely cosmetic, never affects
+  whether a value can be written (contrast with `rules`/`validator`).
+  Mirrors `EditablePredicate` exactly in shape: attach via
+  `ColumnDef::decorated_when(f: impl Fn(u64, &GridModel) -> Option<CellDecoration>)`,
+  stored as `ColumnDef.decorator: Option<CellDecorator>`. The closure
+  receives the row index and the full `GridModel`, so it can implement
+  cross-column logic (e.g. flag a cell when a paired column is
+  inconsistent).
+- `ColumnDef::cell_decoration(row, model) -> Option<CellDecoration>` is
+  the resolver. Unlike `is_cell_editable`, there is no static
+  short-circuit layer — a decoration is purely cosmetic and not gated by
+  `editable`/`model.editable`.
+- `CellDecoration` is `#[non_exhaustive]`; build one from
+  `CellDecoration::default()` chained with `.with_border_color(...)`,
+  `.with_background_tint(...)`, `.with_message(...)`. `border_color`/
+  `background_tint` are consumer-supplied `[u8; 4]` RGBA (same convention
+  as `FormattedCell::color`), not read from the theme. `message` is
+  reserved for a future native hover tooltip — not rendered anywhere yet.
+- Consumed only by `rs-grid-scene`'s `emit_cell` (themed border width,
+  consumer-supplied colors — see `rs-grid-scene/AGENTS.md`). No other
+  crate needs to call it — there is no hit-test/cursor semantics for
+  decoration, unlike `editable_predicate`'s `hit_locked_cell`.
+
 ## Cell formats (`CellFormat`)
 
 `ColumnDef.format` selects how a cell is drawn. The enum is

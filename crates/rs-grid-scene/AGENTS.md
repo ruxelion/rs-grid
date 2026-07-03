@@ -88,6 +88,33 @@ resolves `Err`:
   mutually exclusive (e.g. read-only column seeded with bad data) — the
   fill and the border layer without conflict.
 
+### At-rest cell decoration
+
+`emit_cell` also calls `ColumnDef::cell_decoration(row, model)` right
+after the invalid-value border block, before the format dispatch — same
+format-agnostic placement, so a decoration applies uniformly to
+composite `CellFormat`s too. When it resolves `Some(CellDecoration)`:
+
+- A fill-only `Rect` (`fill: Color::rgba` from `background_tint`,
+  `stroke: None`) is pushed first, only if `background_tint` is set.
+- A border-only `Rect` (`fill` fully transparent, `stroke: Color::rgba`
+  from `border_color`, `stroke_width: Theme::decoration_border_width`)
+  is pushed second, only if `border_color` is set. Two independent
+  primitives, so a decoration can set either, both, or neither without
+  an empty draw call for the unset one.
+- Unlike `locked_cell_bg`/`invalid_cell_border`, the colors themselves
+  are **not** themed — they're consumer-supplied `[u8; 4]` RGBA read
+  straight from `CellDecoration`, the same "app controls the value"
+  precedent as `FormattedCell::color`. Only the border's stroke width
+  is themed (`Theme::decoration_border_width`), since it's uniform
+  across every decorated cell regardless of which color the consumer
+  picked.
+- Resolved (and pushed) after the locked/invalid overlays, so a
+  decoration layers on top of them rather than being suppressed — same
+  "layer, don't suppress" precedent as invalid-and-locked composing
+  above. `CellDecoration::message` is not consumed here — no tooltip
+  rendering exists yet.
+
 ### Success-flash cell scoping (paste, clear)
 
 `FlashHint.cells: HashSet<(u64, usize)>` (`builder.rs`) carries the exact

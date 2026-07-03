@@ -146,6 +146,40 @@ pub(super) fn emit_cell(
         }));
     }
 
+    // At-rest cell decoration — consumer-supplied border/tint driven by
+    // `ColumnDef::decorator`, resolved after the built-in locked/invalid
+    // overlays so it layers on top of them rather than being suppressed.
+    if let Some(deco) = col.cell_decoration(ri, model) {
+        if let Some(tint) = deco.background_tint {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill: Color::rgba(tint[0], tint[1], tint[2], tint[3]),
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+                clip: None,
+            }));
+        }
+        if let Some(border) = deco.border_color {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill: Color::rgba(0, 0, 0, 0),
+                stroke: Some(Color::rgba(
+                    border[0], border[1], border[2], border[3],
+                )),
+                stroke_width: t.decoration_border_width,
+                corner_radius: 0.0,
+                clip: None,
+            }));
+        }
+    }
+
     // Cell text, image, or skeleton
     match cell_status {
         CellStatus::Ready(raw) if !raw.is_empty() => {
@@ -662,7 +696,9 @@ mod tests {
     use std::collections::HashSet;
 
     use rs_grid_core::{
-        column::ColumnDef, datasource::CellStatus, format::CellFormat,
+        column::{CellDecoration, ColumnDef},
+        datasource::CellStatus,
+        format::CellFormat,
         selection::SelectionState,
     };
 
@@ -1931,6 +1967,196 @@ mod tests {
                 assert_eq!(r.stroke, Some(t.invalid_cell_border))
             }
             _ => panic!("expected the invalid-cell border Rect second"),
+        }
+    }
+
+    // ── at-rest cell decoration ───────────────────────────────
+
+    #[test]
+    fn emit_cell_decoration_emits_tint_and_border() {
+        let mut frame = make_frame();
+        let col = make_col().decorated_when(|_, _| {
+            Some(
+                CellDecoration::default()
+                    .with_border_color([239, 68, 68, 255])
+                    .with_background_tint([255, 0, 0, 40]),
+            )
+        });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // tint Rect + border Rect + text primitive.
+        assert_eq!(frame.primitive_count(), 3);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.fill,
+                    crate::primitives::Color::rgba(255, 0, 0, 40)
+                );
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the tint Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.stroke,
+                    Some(crate::primitives::Color::rgba(239, 68, 68, 255))
+                );
+                assert_eq!(r.stroke_width, t.decoration_border_width);
+                assert_eq!(r.fill.a, 0);
+            }
+            _ => panic!("expected the border Rect second"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_decoration_skipped_when_none() {
+        let mut frame = make_frame();
+        let col = make_col(); // no decorator attached
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_decoration_border_only_emits_single_rect() {
+        let mut frame = make_frame();
+        let col = make_col().decorated_when(|_, _| {
+            Some(
+                CellDecoration::default().with_border_color([239, 68, 68, 255]),
+            )
+        });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // border Rect + text — no tint Rect since it wasn't set.
+        assert_eq!(frame.primitive_count(), 2);
+    }
+
+    #[test]
+    fn emit_cell_decoration_composes_with_locked_and_invalid() {
+        let mut frame = make_frame();
+        let col = make_col()
+            .read_only()
+            .with_rules(vec![
+                rs_grid_core::validation::ValidationRule::required(),
+            ])
+            .decorated_when(|_, _| {
+                Some(
+                    CellDecoration::default()
+                        .with_border_color([0, 0, 255, 255])
+                        .with_background_tint([0, 0, 255, 30]),
+                )
+            });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        // locked fill + invalid border + decoration tint + decoration
+        // border — 4 overlay Rects, none suppressing the others.
+        assert_eq!(frame.primitive_count(), 4);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.stroke, Some(t.invalid_cell_border))
+            }
+            _ => panic!("expected the invalid-cell border Rect second"),
+        }
+        match &frame.primitives[2] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.fill,
+                    crate::primitives::Color::rgba(0, 0, 255, 30)
+                );
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the decoration tint Rect third"),
+        }
+        match &frame.primitives[3] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.stroke,
+                    Some(crate::primitives::Color::rgba(0, 0, 255, 255))
+                );
+            }
+            _ => panic!("expected the decoration border Rect fourth"),
         }
     }
 }

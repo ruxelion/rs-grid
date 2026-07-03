@@ -397,6 +397,45 @@ the default plain-text renderer only — `Styled`/`Image`/`ImageText`/
 `ProgressBar` composite formats keep their own colors, but still get the
 background wash.
 
+### Per-cell decoration (`CellDecorator`)
+
+Persistent, at-rest visual annotation for a single cell — a red border or
+tinted background that stays visible whenever the cell is on screen, not
+just while it's being edited. Purely cosmetic: unlike `rules`/`validator`,
+it never blocks a commit, only changes how the cell is painted. Attach a
+dynamic decorator with `.decorated_when(...)`, mirroring `.editable_when`'s
+`Fn(row, &GridModel) -> ...` shape so the closure can implement
+cross-column logic — e.g. flagging a row where two paired columns are
+inconsistent:
+
+```rust
+use rs_grid_core::column::{CellDecoration, ColumnDef};
+
+let doc1_file = ColumnDef::new("doc1_file", "Doc 1 file", 160.0)
+    .decorated_when(|row, model| {
+        let file = model.get_cell(row, "doc1_file").unwrap_or_default();
+        let label = model.get_cell(row, "doc1_label").unwrap_or_default();
+        (file.is_empty() != label.is_empty()).then(|| {
+            CellDecoration::default().with_border_color([239, 68, 68, 255])
+        })
+    });
+```
+
+`#[non_exhaustive]` blocks struct-literal construction for `CellDecoration`
+from outside `rs-grid-core` — build one from `CellDecoration::default()`
+chained with `.with_border_color(...)`, `.with_background_tint(...)`, and/or
+`.with_message(...)`.
+
+Evaluated every frame for every visible cell, same cost profile as
+`CellFormat::Custom` and `EditablePredicate` — no static gate (unlike
+`is_cell_editable`'s 3-layer stack), since decoration is purely cosmetic. The
+border/tint colors are consumer-supplied `[u8; 4]` RGBA, not read from the
+theme (same precedent as `FormattedCell::color`) — only the border's stroke
+width is themed, via `--rs-grid-decoration-border-width` (default `1.5px`).
+Rendered after the built-in locked/invalid overlays, so a decoration layers
+on top of them rather than being suppressed. `CellDecoration::message` is
+reserved for a future native hover tooltip — it's not rendered anywhere yet.
+
 ### Enable server-side pagination
 
 ```rust

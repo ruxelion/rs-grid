@@ -20,6 +20,11 @@
   --rs-grid-scrollbar-thumb: rgba(0, 0, 0, 0.28);
   --rs-grid-row-alt-bg: #ffffff;
   --rs-grid-row-hover-bg: rgba(33, 150, 243, 0.07);
+  --rs-grid-locked-cell-bg: rgba(0, 0, 0, 0.04);
+  --rs-grid-locked-cell-text: rgba(24, 29, 31, 0.55);
+  --rs-grid-invalid-cell-border: #ef4444;
+  --rs-grid-invalid-cell-border-width: 1.5px;
+  --rs-grid-decoration-border-width: 1.5px;
   --rs-grid-header-height: 48px;
   --rs-grid-row-height: 42px;
   --rs-grid-font-size: 14px;

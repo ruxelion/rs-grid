@@ -114,6 +114,114 @@ impl fmt::Debug for EditablePredicate {
     }
 }
 
+// ── cell decoration ─────────────────────────────────────
+
+/// Per-cell decoration callback signature. Mirrors
+/// [`EditablePredicateFn`] exactly — row index + full `GridModel` access
+/// for cross-column logic.
+pub type CellDecoratorFn = dyn Fn(u64, &GridModel) -> Option<CellDecoration>;
+
+/// Persistent, at-rest visual annotation for a single cell. Purely
+/// cosmetic — never affects whether a value can be written (contrast
+/// with `rules`/`validator`). RGBA fields follow the `[u8; 4]`
+/// convention used by
+/// [`FormattedCell::color`](crate::format::FormattedCell::color),
+/// not `rs-grid-scene`'s `Color`, so `rs-grid-core` stays
+/// renderer-agnostic.
+#[non_exhaustive]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CellDecoration {
+    /// RGBA border color. `None` = no border drawn. The stroke width
+    /// itself is themed (`Theme::decoration_border_width` in
+    /// `rs-grid-scene`) since it's uniform across every decorated cell
+    /// regardless of color.
+    pub border_color: Option<[u8; 4]>,
+    /// RGBA background tint, blended over the cell's normal background.
+    /// `None` = no tint drawn.
+    pub background_tint: Option<[u8; 4]>,
+    /// Reserved for a future native hover tooltip — **not rendered
+    /// anywhere yet**. Safe to leave `None`.
+    pub message: Option<String>,
+}
+
+impl CellDecoration {
+    /// Set the border color. Returns `self` for chaining.
+    ///
+    /// `#[non_exhaustive]` blocks struct-literal construction from
+    /// outside this crate, so these builders (mirroring `ColumnDef`'s
+    /// own `with_*`/`.*_when` chaining style) are the public way to
+    /// build a `CellDecoration`, starting from `CellDecoration::default()`.
+    pub fn with_border_color(mut self, color: [u8; 4]) -> Self {
+        self.border_color = Some(color);
+        self
+    }
+
+    /// Set the background tint. Returns `self` for chaining.
+    pub fn with_background_tint(mut self, color: [u8; 4]) -> Self {
+        self.background_tint = Some(color);
+        self
+    }
+
+    /// Set the reserved tooltip message. Returns `self` for chaining.
+    pub fn with_message(mut self, message: impl Into<String>) -> Self {
+        self.message = Some(message.into());
+        self
+    }
+}
+
+/// Dynamic per-cell decoration override.
+///
+/// Evaluated every frame for every visible cell — same cost profile as
+/// [`EditablePredicate`] and `CellFormat::Custom`. Not gated by any
+/// static flag: a column either has a decorator or it doesn't.
+///
+/// Wrap your closure with [`CellDecorator::new`]:
+/// ```ignore
+/// CellDecorator::new(|row, model| {
+///     let mismatched = model.get_cell(row, "doc1_file").as_deref().unwrap_or("").is_empty()
+///         != model.get_cell(row, "doc1_label").as_deref().unwrap_or("").is_empty();
+///     mismatched.then(|| {
+///         CellDecoration::default().with_border_color([239, 68, 68, 255])
+///     })
+/// })
+/// ```
+///
+/// # Thread safety
+///
+/// `CellDecorator` is `!Send + !Sync` (it wraps an `Rc`), matching
+/// [`EditablePredicate`] and [`CellValidator`].
+pub struct CellDecorator(pub Rc<CellDecoratorFn>);
+
+impl CellDecorator {
+    /// Create a new decorator from a closure.
+    pub fn new(
+        f: impl Fn(u64, &GridModel) -> Option<CellDecoration> + 'static,
+    ) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Evaluate the decorator for `row` against `model`.
+    pub fn decorate(
+        &self,
+        row: u64,
+        model: &GridModel,
+    ) -> Option<CellDecoration> {
+        (self.0)(row, model)
+    }
+}
+
+impl Clone for CellDecorator {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+impl fmt::Debug for CellDecorator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CellDecorator(..)")
+    }
+}
+
 // ── cell button ────────────────────────────────────────────
 
 /// Visual style variant for a cell button.
@@ -253,6 +361,10 @@ pub struct ColumnDef {
     /// cell in the column follows the static `editable` flag
     /// unconditionally. See [`ColumnDef::is_cell_editable`].
     pub editable_predicate: Option<EditablePredicate>,
+    /// Optional dynamic per-cell decoration (border/tint/message),
+    /// evaluated every frame. Purely cosmetic. `None` = no decoration.
+    /// See [`ColumnDef::cell_decoration`].
+    pub decorator: Option<CellDecorator>,
     /// Clickable buttons rendered at the right side of every
     /// cell in this column.
     ///
@@ -284,6 +396,7 @@ impl ColumnDef {
             bold: false,
             editable: true,
             editable_predicate: None,
+            decorator: None,
             cell_buttons: Vec::new(),
         }
     }
@@ -314,6 +427,16 @@ impl ColumnDef {
         f: impl Fn(u64, &GridModel) -> bool + 'static,
     ) -> Self {
         self.editable_predicate = Some(EditablePredicate::new(f));
+        self
+    }
+
+    /// Set a dynamic per-cell decoration callback. Returns `self` for
+    /// chaining. Purely visual — see [`ColumnDef::decorator`].
+    pub fn decorated_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> Option<CellDecoration> + 'static,
+    ) -> Self {
+        self.decorator = Some(CellDecorator::new(f));
         self
     }
 
@@ -421,6 +544,16 @@ impl ColumnDef {
                 .editable_predicate
                 .as_ref()
                 .is_none_or(|p| p.is_editable(row, model))
+    }
+
+    /// Resolve this cell's decoration, if any. No static gate (unlike
+    /// `is_cell_editable`'s 3-layer stack) — purely cosmetic.
+    pub fn cell_decoration(
+        &self,
+        row: u64,
+        model: &GridModel,
+    ) -> Option<CellDecoration> {
+        self.decorator.as_ref().and_then(|d| d.decorate(row, model))
     }
 
     /// Set the cell buttons. Returns `self` for chaining.
@@ -776,6 +909,80 @@ mod tests {
         let model = model_with_status("open");
         assert!(p2.is_editable(0, &model));
         assert!(!p2.is_editable(1, &model));
+    }
+
+    // ── decorator ────────────────────────────────────────
+
+    #[test]
+    fn decorator_default_none() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.decorator.is_none());
+    }
+
+    #[test]
+    fn decorated_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0).decorated_when(|_, _| None);
+        assert!(col.decorator.is_some());
+    }
+
+    #[test]
+    fn cell_decoration_none_when_no_decorator() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert_eq!(col.cell_decoration(0, &model), None);
+    }
+
+    #[test]
+    fn cell_decoration_delegates_to_closure() {
+        let col = ColumnDef::new("a", "A", 100.0).decorated_when(|row, _| {
+            (row == 0).then(|| CellDecoration {
+                border_color: Some([239, 68, 68, 255]),
+                ..Default::default()
+            })
+        });
+        let model = model_with_status("open");
+        assert!(col.cell_decoration(0, &model).is_some());
+        assert!(col.cell_decoration(1, &model).is_none());
+    }
+
+    #[test]
+    fn cell_decoration_predicate_reads_other_column() {
+        let col = ColumnDef::new("notes", "Notes", 100.0).decorated_when(
+            |row, model| {
+                let mismatched =
+                    model.get_cell(row, "status").as_deref() == Some("locked");
+                mismatched.then(CellDecoration::default)
+            },
+        );
+        let model = model_with_status("locked");
+        assert!(col.cell_decoration(0, &model).is_some());
+        assert!(col.cell_decoration(1, &model).is_none());
+    }
+
+    #[test]
+    fn decorator_debug_format() {
+        let d = CellDecorator::new(|_, _| None);
+        let s = format!("{d:?}");
+        assert!(s.contains("CellDecorator"));
+    }
+
+    #[test]
+    fn decorator_clone_shares_closure() {
+        let d = CellDecorator::new(|row, _| {
+            (row == 0).then(CellDecoration::default)
+        });
+        let d2 = d.clone();
+        let model = model_with_status("open");
+        assert!(d2.decorate(0, &model).is_some());
+        assert!(d2.decorate(1, &model).is_none());
+    }
+
+    #[test]
+    fn cell_decoration_default_all_none() {
+        let deco = CellDecoration::default();
+        assert!(deco.border_color.is_none());
+        assert!(deco.background_tint.is_none());
+        assert!(deco.message.is_none());
     }
 
     // ── with_editor ───────────────────────────────────────

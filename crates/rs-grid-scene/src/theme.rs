@@ -71,6 +71,14 @@ pub struct Theme {
     /// Width of `invalid_cell_border` in logical pixels.
     pub invalid_cell_border_width: f64,
 
+    // ── cell decoration (at-rest, consumer-driven)
+    // ──────────────────────────
+    /// Stroke width for `CellDecoration::border_color`, in logical
+    /// pixels. The color is consumer-supplied per cell (not themed —
+    /// same precedent as `FormattedCell::color`), but the width is
+    /// uniform, so it lives here like `invalid_cell_border_width`.
+    pub decoration_border_width: f64,
+
     // ── row / header dimensions
     // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
@@ -276,6 +284,7 @@ impl Theme {
             // invalid cell — same red as `cell_btn_danger_bg` below
             invalid_cell_border: Color::rgb(239, 68, 68),
             invalid_cell_border_width: 1.5,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -384,6 +393,7 @@ impl Theme {
             // invalid cell — same red as `cell_btn_danger_bg` below
             invalid_cell_border: Color::rgb(220, 38, 38),
             invalid_cell_border_width: 1.5,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -492,6 +502,7 @@ impl Theme {
             // invalid cell — same red as `cell_btn_danger_bg` below
             invalid_cell_border: Color::rgb(218, 54, 51),
             invalid_cell_border_width: 1.5,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
             row_height: 42.0,
@@ -676,6 +687,21 @@ mod tests {
         let t = Theme::dimmed();
         assert_eq!(t.invalid_cell_border.a, 255);
         assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn light_decoration_border_width_positive() {
+        assert!(Theme::light().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn dark_decoration_border_width_positive() {
+        assert!(Theme::dark().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_decoration_border_width_positive() {
+        assert!(Theme::dimmed().decoration_border_width > 0.0);
     }
 
     #[test]
