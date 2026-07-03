@@ -29,6 +29,22 @@ impl Color {
         format!("rgba({},{},{},{:.4})", self.r, self.g, self.b, a_f)
     }
 
+    /// Linearly interpolate all four channels between `self` (at
+    /// `t == 0.0`) and `other` (at `t == 1.0`). `t` is clamped to
+    /// `0.0..=1.0`, so out-of-range inputs saturate to an endpoint
+    /// rather than extrapolating or panicking.
+    pub fn lerp(self, other: Color, t: f64) -> Self {
+        let t = t.clamp(0.0, 1.0);
+        let mix =
+            |a: u8, b: u8| (a as f64 + (b as f64 - a as f64) * t).round() as u8;
+        Color::rgba(
+            mix(self.r, other.r),
+            mix(self.g, other.g),
+            mix(self.b, other.b),
+            mix(self.a, other.a),
+        )
+    }
+
     /// Format as a CSS custom-property value.
     /// Opaque (`a == 255`) → `#rrggbb`; semi-transparent →
     /// `rgba(r, g, b, a)` with `a` as a 0–1 float (2 decimal places).
@@ -190,6 +206,35 @@ mod tests {
     fn color_rgba_stores_all_channels() {
         let c = Color::rgba(10, 20, 30, 40);
         assert_eq!((c.r, c.g, c.b, c.a), (10, 20, 30, 40));
+    }
+
+    #[test]
+    fn color_lerp_at_zero_is_self() {
+        let a = Color::rgba(10, 20, 30, 40);
+        let b = Color::rgba(200, 210, 220, 230);
+        assert_eq!(a.lerp(b, 0.0), a);
+    }
+
+    #[test]
+    fn color_lerp_at_one_is_other() {
+        let a = Color::rgba(10, 20, 30, 40);
+        let b = Color::rgba(200, 210, 220, 230);
+        assert_eq!(a.lerp(b, 1.0), b);
+    }
+
+    #[test]
+    fn color_lerp_at_half_is_midpoint() {
+        let a = Color::rgba(0, 0, 0, 0);
+        let b = Color::rgba(100, 100, 100, 100);
+        assert_eq!(a.lerp(b, 0.5), Color::rgba(50, 50, 50, 50));
+    }
+
+    #[test]
+    fn color_lerp_clamps_out_of_range_t() {
+        let a = Color::rgba(10, 20, 30, 40);
+        let b = Color::rgba(200, 210, 220, 230);
+        assert_eq!(a.lerp(b, -1.0), a);
+        assert_eq!(a.lerp(b, 2.0), b);
     }
 
     #[test]

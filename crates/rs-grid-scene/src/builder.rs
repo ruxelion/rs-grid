@@ -9,7 +9,7 @@ use crate::{
     class_map::ClassResolver,
     frame::SceneFrame,
     primitives::{
-        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
         TextAlign, TextPrimitive,
     },
     theme::Theme,
@@ -502,17 +502,18 @@ impl SceneBuilder {
             let x2 = col_vx(br.col) + model.columns[br.col].width;
             let y2 = row_vy(br.row) + model.row_height;
 
-            // During a flash the border adopts the flash colour;
-            // otherwise use the normal selection border colour.
+            // During a flash the border fades from the flash colour
+            // (alpha_factor == 1.0) back to the normal selection border
+            // colour (alpha_factor == 0.0) — interpolating toward
+            // `selection_border` rather than toward transparent means
+            // this exactly matches the `else` branch's color at the
+            // animation's end, so there's no discontinuous "pop" when
+            // the flash finishes and `flash` becomes `None` (this holds
+            // even when `flash_border` and `selection_border` share the
+            // same RGB, where only the alpha channel would otherwise
+            // visibly jump).
             let border_color = if let Some(f) = flash {
-                let a =
-                    (t.flash_border.a as f64 * f.alpha_factor).round() as u8;
-                Color::rgba(
-                    t.flash_border.r,
-                    t.flash_border.g,
-                    t.flash_border.b,
-                    a,
-                )
+                t.selection_border.lerp(t.flash_border, f.alpha_factor)
             } else {
                 t.selection_border
             };
@@ -1493,14 +1494,10 @@ mod tests {
         };
         let frame = b.build(&state, None, Some(&flash), None);
 
-        // Border lines should use flash_border color (alpha-adjusted).
-        let expected_a = (t.flash_border.a as f64 * 0.5).round() as u8;
-        let expected_color = Color::rgba(
-            t.flash_border.r,
-            t.flash_border.g,
-            t.flash_border.b,
-            expected_a,
-        );
+        // Border lines should be interpolated halfway between
+        // selection_border (at alpha_factor 0.0) and flash_border (at
+        // alpha_factor 1.0), not flash_border-with-fading-alpha.
+        let expected_color = t.selection_border.lerp(t.flash_border, 0.5);
         let flash_borders: Vec<_> = line_primitives(&frame)
             .into_iter()
             .filter(|l| l.color == expected_color)
@@ -1508,7 +1505,68 @@ mod tests {
         assert_eq!(
             flash_borders.len(),
             4,
-            "flash should produce 4 border lines with flash color"
+            "flash should produce 4 border lines with the interpolated color"
+        );
+    }
+
+    #[test]
+    fn build_flash_border_color_continuous_at_animation_boundaries() {
+        // Regression test for the "color pops back" bug: the flash
+        // border must converge exactly to `selection_border` as
+        // alpha_factor -> 0.0 (matching the color used once `flash`
+        // becomes `None`), and exactly to `flash_border` at
+        // alpha_factor == 1.0 — no discontinuity at either end, even
+        // when flash_border and selection_border share the same RGB.
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        let mut t = Theme::light();
+        t.flash_border = Color::rgba(
+            t.selection_border.r,
+            t.selection_border.g,
+            t.selection_border.b,
+            255,
+        );
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let count_border_lines =
+            |frame: &crate::frame::SceneFrame, color: Color| {
+                line_primitives(frame)
+                    .into_iter()
+                    .filter(|l| l.color == color)
+                    .count()
+            };
+
+        // At alpha_factor 0.0, the flash border must already be exactly
+        // `selection_border` — matching what renders once `flash`
+        // becomes `None` a frame later, so there's no visible pop.
+        let flash_end = FlashHint {
+            alpha_factor: 0.0,
+            cells: [(0, 0)].into_iter().collect(),
+        };
+        let frame_end = b.build(&state, None, Some(&flash_end), None);
+        assert_eq!(
+            count_border_lines(&frame_end, t.selection_border),
+            4,
+            "at alpha_factor 0.0 the border should already be selection_border"
+        );
+
+        let frame_none = b.build(&state, None, None, None);
+        assert_eq!(
+            count_border_lines(&frame_none, t.selection_border),
+            4,
+            "with no flash, the border should be selection_border"
+        );
+
+        // At alpha_factor 1.0, the flash border must be exactly
+        // `flash_border`.
+        let flash_start = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+        };
+        let frame_start = b.build(&state, None, Some(&flash_start), None);
+        assert_eq!(
+            count_border_lines(&frame_start, t.flash_border),
+            4,
+            "at alpha_factor 1.0 the border should be flash_border"
         );
     }
 
