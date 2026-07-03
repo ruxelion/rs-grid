@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-dioxus-v0.2.4...rs-grid-dioxus-v0.2.5) - 2026-07-03
+
+### Other
+
+- updated the following local packages: rs-grid-scene, rs-grid-web
+
 ## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-dioxus-v0.2.3...rs-grid-dioxus-v0.2.4) - 2026-07-03
 
 ### Other
