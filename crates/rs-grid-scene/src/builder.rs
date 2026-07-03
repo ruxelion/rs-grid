@@ -356,8 +356,37 @@ impl SceneBuilder {
                 x2: vp.width,
                 y2: ry + model.row_height - 0.5,
                 color: t.grid_line,
-                width: 1.0,
+                width: t.grid_line_width,
             }));
+        }
+
+        // Vertical column separators (data rows only), drawn once per
+        // column boundary rather than once per cell — column x-positions
+        // don't vary by row, so this is O(columns) not O(rows × columns).
+        if t.column_separator_width > 0.0 {
+            let (sep_start, sep_end) = if preview_offsets.is_some() {
+                (pinned_count, model.columns.len())
+            } else {
+                (col_start, col_end)
+            };
+            for ci in sep_start..sep_end {
+                let col = &model.columns[ci];
+                let cx = col_vx(ci);
+                if preview_offsets.is_some()
+                    && (cx + col.width <= rnw || cx >= vp.width)
+                {
+                    continue;
+                }
+                let sep_x = cx + col.width - 0.5;
+                frame.push(ScenePrimitive::Line(LinePrimitive {
+                    x1: sep_x,
+                    y1: hh,
+                    x2: sep_x,
+                    y2: vp.height,
+                    color: t.column_separator_color,
+                    width: t.column_separator_width,
+                }));
+            }
         }
 
         // ── pinned-column data overlay
@@ -433,6 +462,25 @@ impl SceneBuilder {
                         flash,
                         self.class_resolver.as_deref(),
                     );
+                }
+            }
+
+            // Vertical separators between individual pinned columns (not
+            // including the band's own right edge — that already has a
+            // dedicated separator via pinned_separator_color/width below).
+            if t.column_separator_width > 0.0 && pinned_count > 1 {
+                for ci in 0..pinned_count - 1 {
+                    let col = &model.columns[ci];
+                    let cx = col_vx(ci);
+                    let sep_x = cx + col.width - 0.5;
+                    frame.push(ScenePrimitive::Line(LinePrimitive {
+                        x1: sep_x,
+                        y1: hh,
+                        x2: sep_x,
+                        y2: vp.height,
+                        color: t.column_separator_color,
+                        width: t.column_separator_width,
+                    }));
                 }
             }
 
@@ -783,7 +831,7 @@ impl SceneBuilder {
                         x2: rnw,
                         y2: line_y,
                         color: t.grid_line,
-                        width: 1.0,
+                        width: t.grid_line_width,
                     }));
                 }
             }
@@ -1131,6 +1179,79 @@ mod tests {
             })
             .collect();
         assert!(!h_lines.is_empty(), "should have horizontal grid lines");
+    }
+
+    #[test]
+    fn build_horizontal_grid_lines_use_themed_width() {
+        let state = make_state();
+        let mut t = Theme::light();
+        t.grid_line_width = 3.0;
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        let h_lines: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                l.x1 == 0.0
+                    && (l.x2 - 800.0).abs() < 0.01
+                    && (l.y1 - l.y2).abs() < 0.01
+                    && l.y1 > 40.0
+            })
+            .collect();
+        assert!(!h_lines.is_empty(), "should have horizontal grid lines");
+        assert!(
+            h_lines.iter().all(|l| l.width == 3.0),
+            "horizontal grid lines should use Theme::grid_line_width"
+        );
+    }
+
+    // ── vertical column separators (data rows) ───────────────
+
+    #[test]
+    fn build_vertical_column_separators_in_data_rows() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        // 3 columns (Alpha 100, Beta 150, Gamma 200) → 3 boundary lines,
+        // one per column right edge, drawn once (not once per row).
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - l.x2).abs() < 0.01
+                    && l.color == t.column_separator_color
+                    && l.width == t.column_separator_width
+                    && (l.y1 - 40.0).abs() < 0.01
+                    && (l.y2 - 600.0).abs() < 0.01
+            })
+            .collect();
+        assert_eq!(
+            seps.len(),
+            3,
+            "should have exactly one column separator per column boundary, not per cell"
+        );
+    }
+
+    #[test]
+    fn build_vertical_column_separators_disabled_when_width_zero() {
+        let state = make_state();
+        let mut t = Theme::light();
+        t.column_separator_width = 0.0;
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let lines = line_primitives(&frame);
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - l.x2).abs() < 0.01
+                    && l.color == t.column_separator_color
+            })
+            .collect();
+        assert!(
+            seps.is_empty(),
+            "column separators should be skipped when width is 0"
+        );
     }
 
     // ── column separators ────────────────────────────────────
@@ -1708,6 +1829,86 @@ mod tests {
                 && l.y1 >= 39.0
         });
         assert!(sep, "should have pinned column separator line");
+    }
+
+    #[test]
+    fn build_pinned_column_separators_between_pinned_columns() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows: Vec<RowRecord> = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 2;
+        let rnw = model.row_number_width;
+        let t = Theme::light();
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        // Boundary between the 2 pinned columns (a: 0..100, b: 100..250).
+        let sep_x = rnw + 100.0 - 0.5;
+        let lines = line_primitives(&frame);
+        let sep = lines.iter().any(|l| {
+            (l.x1 - sep_x).abs() < 0.01
+                && (l.x2 - sep_x).abs() < 0.01
+                && l.color == t.column_separator_color
+                && l.width == t.column_separator_width
+        });
+        assert!(sep, "should have a separator between the pinned columns");
+    }
+
+    #[test]
+    fn build_pinned_column_separator_not_duplicated_at_band_edge() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows: Vec<RowRecord> = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 1;
+        let rnw = model.row_number_width;
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+
+        // Only the dedicated pinned-band-boundary line should exist at
+        // this x in the data-row area (y1 >= header height) — the new
+        // inter-pinned-column loop must not also draw one here
+        // (pinned_count == 1 means no inter-pinned boundary). Restrict to
+        // the data-row y-range so the header's own column-separator line
+        // (drawn at the same x for every header column) isn't counted.
+        let sep_x = rnw + 100.0 - 0.5;
+        let lines = line_primitives(&frame);
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - sep_x).abs() < 0.01
+                    && (l.x2 - sep_x).abs() < 0.01
+                    && l.y1 >= 39.0
+            })
+            .collect();
+        assert_eq!(
+            seps.len(),
+            1,
+            "should have exactly one line at the pinned-band boundary, not duplicated"
+        );
     }
 
     // ── scrollbars ───────────────────────────────────────────

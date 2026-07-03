@@ -1781,6 +1781,66 @@ SceneFrame {
                 width: 1.0,
             },
         ),
+        Line(
+            LinePrimitive {
+                x1: 401.5,
+                y1: 40.0,
+                x2: 401.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 521.5,
+                y1: 40.0,
+                x2: 521.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 641.5,
+                y1: 40.0,
+                x2: 641.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 761.5,
+                y1: 40.0,
+                x2: 761.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
         Rect(
             RectPrimitive {
                 x: 42.0,
@@ -2633,6 +2693,21 @@ SceneFrame {
                 max_width: Some(
                     96.0,
                 ),
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 161.5,
+                y1: 40.0,
+                x2: 161.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
             },
         ),
         Line(

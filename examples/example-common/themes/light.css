@@ -9,6 +9,7 @@
   --rs-grid-header-text: #181d1f;
   --rs-grid-cell-text: #181d1f;
   --rs-grid-grid-line: #e2e8f0;
+  --rs-grid-grid-line-width: 1px;
   --rs-grid-header-border: #babfc7;
   --rs-grid-header-separator-inset: 15px;
   --rs-grid-header-separator-width: 2px;
@@ -64,6 +65,8 @@
   --rs-grid-pinned-header-bg: #f8f9fb;
   --rs-grid-pinned-separator-color: #babfc7;
   --rs-grid-pinned-separator-width: 1px;
+  --rs-grid-column-separator-color: #e2e8f0;
+  --rs-grid-column-separator-width: 1px;
   --rs-grid-gutter-bg: #f8f9fb;
   --rs-grid-gutter-text: rgba(24, 29, 31, 0.71);
   --rs-grid-gutter-font-size: 14px;

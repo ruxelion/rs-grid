@@ -63,6 +63,7 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-header-text", fmt_color(t.header_text)),
         ("--rs-grid-cell-text", fmt_color(t.cell_text)),
         ("--rs-grid-grid-line", fmt_color(t.grid_line)),
+        ("--rs-grid-grid-line-width", fmt_px(t.grid_line_width)),
         ("--rs-grid-header-border", fmt_color(t.header_border)),
         (
             "--rs-grid-header-separator-inset",
@@ -187,6 +188,14 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-pinned-separator-width",
             fmt_px(t.pinned_separator_width),
         ),
+        (
+            "--rs-grid-column-separator-color",
+            fmt_color(t.column_separator_color),
+        ),
+        (
+            "--rs-grid-column-separator-width",
+            fmt_px(t.column_separator_width),
+        ),
         // row-number gutter
         ("--rs-grid-gutter-bg", fmt_color(t.gutter_bg)),
         ("--rs-grid-gutter-text", fmt_color(t.gutter_text)),
@@ -261,6 +270,7 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.header_text = color("--rs-grid-header-text", t.header_text);
     t.cell_text = color("--rs-grid-cell-text", t.cell_text);
     t.grid_line = color("--rs-grid-grid-line", t.grid_line);
+    t.grid_line_width = px("--rs-grid-grid-line-width", t.grid_line_width);
     t.header_border = color("--rs-grid-header-border", t.header_border);
     t.header_separator_inset =
         px("--rs-grid-header-separator-inset", t.header_separator_inset);
@@ -354,6 +364,10 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         color("--rs-grid-pinned-separator-color", t.pinned_separator_color);
     t.pinned_separator_width =
         px("--rs-grid-pinned-separator-width", t.pinned_separator_width);
+    t.column_separator_color =
+        color("--rs-grid-column-separator-color", t.column_separator_color);
+    t.column_separator_width =
+        px("--rs-grid-column-separator-width", t.column_separator_width);
     t.gutter_bg = color("--rs-grid-gutter-bg", t.gutter_bg);
     t.gutter_text = color("--rs-grid-gutter-text", t.gutter_text);
     t.gutter_font_size = px("--rs-grid-gutter-font-size", t.gutter_font_size);
@@ -506,6 +520,7 @@ mod tests {
             header_text: c(3),
             cell_text: c(4),
             grid_line: c(5),
+            grid_line_width: 79.0,
             header_border: c(6),
             header_separator_inset: 7.0,
             header_separator_width: 8.0,
@@ -579,6 +594,8 @@ mod tests {
             invalid_cell_border: c(76),
             invalid_cell_border_width: 77.0,
             decoration_border_width: 78.0,
+            column_separator_color: c(80),
+            column_separator_width: 81.0,
         }
     }
 

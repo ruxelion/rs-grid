@@ -115,6 +115,33 @@ composite `CellFormat`s too. When it resolves `Some(CellDecoration)`:
   above. `CellDecoration::message` is not consumed here — no tooltip
   rendering exists yet.
 
+### Column separators (data rows)
+
+A themed vertical line at each column boundary in the data-row area
+(`Theme::column_separator_color` / `Theme::column_separator_width`),
+drawn in `builder.rs` right after the per-row loop closes — **once per
+column boundary, not once per cell**. Column x-positions don't vary by
+row (only scroll/drag-preview do, both already resolved before the row
+loop starts), so looping `row_count × column_count` times to draw this
+line would be an unjustified O(rows × columns) cost for geometry that's
+actually O(columns). This is the precedent to follow for any *future*
+per-column (not per-cell) decoration: hoist it out of the row loop
+rather than adding it inside `emit_cell`.
+
+- Guarded by `t.column_separator_width > 0.0` ("width = 0 disables it"
+  — there's no natural alpha channel to gate on for a line, unlike a
+  fill, so width is the off-switch).
+- `column_separator_color` defaults to the same RGB as `grid_line` in
+  every theme, so enabling this feature causes **no visual change**
+  until a consumer explicitly diverges the two — locked in by
+  `theme.rs`'s `*_column_separator_color_matches_grid_line_by_default`
+  tests.
+- Pinned columns get separators between themselves too (`0..pinned_count
+  - 1`), explicitly excluding the pinned band's own right edge — that
+  edge already has a dedicated line (`pinned_separator_color`/`width`,
+  pushed a few lines later). Drawing both there would double-stack or
+  z-fight; the two features must not overlap.
+
 ### Success-flash cell scoping (paste, clear)
 
 `FlashHint.cells: HashSet<(u64, usize)>` (`builder.rs`) carries the exact

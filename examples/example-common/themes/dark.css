@@ -31,6 +31,7 @@
   --rs-grid-pinned-bg: #1c1c1e;
   --rs-grid-pinned-header-bg: #2c2c2e;
   --rs-grid-pinned-separator-color: #333335;
+  --rs-grid-column-separator-color: #333335;
   --rs-grid-gutter-bg: #2c2c2e;
   --rs-grid-gutter-text: rgba(176, 176, 176, 0.70);
   --rs-grid-gutter-border: #333335;

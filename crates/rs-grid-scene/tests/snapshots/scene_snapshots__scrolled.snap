@@ -3494,6 +3494,126 @@ SceneFrame {
                 width: 1.0,
             },
         ),
+        Line(
+            LinePrimitive {
+                x1: 110.5,
+                y1: 40.0,
+                x2: 110.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 230.5,
+                y1: 40.0,
+                x2: 230.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 350.5,
+                y1: 40.0,
+                x2: 350.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 470.5,
+                y1: 40.0,
+                x2: 470.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 590.5,
+                y1: 40.0,
+                x2: 590.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 710.5,
+                y1: 40.0,
+                x2: 710.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 830.5,
+                y1: 40.0,
+                x2: 830.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
+        Line(
+            LinePrimitive {
+                x1: 950.5,
+                y1: 40.0,
+                x2: 950.5,
+                y2: 400.0,
+                color: Color {
+                    r: 226,
+                    g: 232,
+                    b: 240,
+                    a: 255,
+                },
+                width: 1.0,
+            },
+        ),
         Rect(
             RectPrimitive {
                 x: 0.0,

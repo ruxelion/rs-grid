@@ -20,6 +20,17 @@ pub struct Theme {
     pub cell_text: Color,
     /// Grid line (cell border) color.
     pub grid_line: Color,
+    /// Width of the horizontal grid line between data rows, and of the
+    /// row-number gutter's matching line, in logical pixels.
+    pub grid_line_width: f64,
+    /// Color of the vertical line separating adjacent data-row columns.
+    /// Defaults to the same value as `grid_line` so enabling this
+    /// feature causes no visual change until the user diverges it. See
+    /// also `pinned_separator_color` for the pinned-band boundary line.
+    pub column_separator_color: Color,
+    /// Width of the vertical column-separator line in logical pixels.
+    /// See also `pinned_separator_width`.
+    pub column_separator_width: f64,
     /// Bottom border below the header row.
     pub header_border: Color,
     /// Vertical inset applied to each end of the column separator
@@ -262,6 +273,9 @@ impl Theme {
             header_text: Color::rgb(24, 29, 31),
             cell_text: Color::rgb(24, 29, 31),
             grid_line: Color::rgb(226, 232, 240),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(226, 232, 240),
+            column_separator_width: 1.0,
             header_border: Color::rgb(186, 191, 199),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -371,6 +385,9 @@ impl Theme {
             header_text: Color::rgb(176, 176, 176),
             cell_text: Color::rgb(208, 208, 208),
             grid_line: Color::rgb(51, 51, 53),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(51, 51, 53),
+            column_separator_width: 1.0,
             header_border: Color::rgb(51, 51, 53),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -480,6 +497,9 @@ impl Theme {
             header_text: Color::rgb(173, 186, 199),
             cell_text: Color::rgb(173, 186, 199),
             grid_line: Color::rgb(55, 62, 71),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(55, 62, 71),
+            column_separator_width: 1.0,
             header_border: Color::rgb(68, 76, 86),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -702,6 +722,39 @@ mod tests {
     #[test]
     fn dimmed_decoration_border_width_positive() {
         assert!(Theme::dimmed().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn light_column_separator_width_positive() {
+        assert!(Theme::light().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn dark_column_separator_width_positive() {
+        assert!(Theme::dark().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_column_separator_width_positive() {
+        assert!(Theme::dimmed().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn light_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::light();
+        assert_eq!(t.column_separator_color, t.grid_line);
+    }
+
+    #[test]
+    fn dark_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::dark();
+        assert_eq!(t.column_separator_color, t.grid_line);
+    }
+
+    #[test]
+    fn dimmed_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::dimmed();
+        assert_eq!(t.column_separator_color, t.grid_line);
     }
 
     #[test]
