@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.3...rs-grid-core-v0.2.4) - 2026-07-03
+
+### Added
+
+- add per-cell decoration support with CellDecorator for visual annotations
+
 ## [0.2.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.2...rs-grid-core-v0.2.3) - 2026-07-02
 
 ### Added
