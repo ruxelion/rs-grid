@@ -411,14 +411,20 @@ impl SceneBuilder {
                 if ry + model.row_height < hh || ry > vp.height {
                     continue;
                 }
+                // Clamp alt/hover backgrounds to below the sticky
+                // header — mirrors the row-number gutter's own clamp
+                // further down ("Clamp everything to below the
+                // sticky header").
+                let clip_y = ry.max(hh);
+                let clip_h = (ry + model.row_height - clip_y).max(0.0);
                 let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
 
                 if ri % 2 == 1 {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: rnw,
-                        y: ry,
+                        y: clip_y,
                         width: pinned_width,
-                        height: model.row_height,
+                        height: clip_h,
                         fill: t.row_alt_bg,
                         stroke: None,
                         stroke_width: 0.0,
@@ -429,9 +435,9 @@ impl SceneBuilder {
                 if state.hovered_row == Some(ri) {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: rnw,
-                        y: ry,
+                        y: clip_y,
                         width: pinned_width,
-                        height: model.row_height,
+                        height: clip_h,
                         fill: t.row_hover_bg,
                         stroke: None,
                         stroke_width: 0.0,
@@ -1635,6 +1641,38 @@ mod tests {
             data_texts.is_empty(),
             "empty grid should have no data cell text"
         );
+    }
+
+    // ── header/gutter clip clamping ──────────────────────────
+
+    #[test]
+    fn scrolled_row_straddling_header_has_no_text_bleeding_above_header() {
+        // make_state() uses row_height=30.0, header_height=40.0.
+        // scroll_y=25.0 puts row 0's ry at 40-25=15, i.e. straddling
+        // the header boundary (15 < hh=40).
+        let mut state = make_state();
+        state.apply(GridCommand::ScrollTo { x: 0.0, y: 25.0 });
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let hh = state.model.effective_header_height();
+        // Column header labels ("Alpha"/"Beta"/"Gamma") legitimately
+        // have clip.y == 0 — they're the header's own content, not
+        // scrolled data. Only data-cell text (values like "a0", "b3")
+        // must stay clipped below the header boundary.
+        let data_texts = text_primitives(&frame)
+            .into_iter()
+            .filter(|t| !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma"));
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[1] >= hh,
+                    "Text primitive clip.y ({}) must not start above \
+                     the header boundary ({hh}) — cell text is \
+                     bleeding into the sticky header",
+                    clip[1]
+                );
+            }
+        }
     }
 
     // ── column drag ──────────────────────────────────────────

@@ -180,6 +180,21 @@ pub(super) fn emit_cell(
         }
     }
 
+    // Clamp cell-content clip rects to the sticky header/gutter
+    // boundary, mirroring the row-number gutter's own clamp in
+    // builder.rs ("Clamp everything to below the sticky header").
+    // Without this, an overscanned row (ry < hh) or column (cx < rnw)
+    // paints its text/image past the header/gutter's opaque overlay,
+    // which becomes visible whenever that overlay has any
+    // transparency or transiently disagrees with these bounds.
+    let hh = model.effective_header_height();
+    let rnw = model.effective_row_number_width();
+    let clip_x = cx.max(rnw);
+    let clip_w = (cx + col.width - clip_x).max(0.0);
+    let clip_y = ry.max(hh);
+    let clip_h = (ry + row_height - clip_y).max(0.0);
+    let clip: [f64; 4] = [clip_x, clip_y, clip_w, clip_h];
+
     // Cell text, image, or skeleton
     match cell_status {
         CellStatus::Ready(raw) if !raw.is_empty() => {
@@ -192,6 +207,7 @@ pub(super) fn emit_cell(
                     mid_y,
                     col.width,
                     row_height,
+                    clip,
                     t,
                     class_resolver,
                 );
@@ -213,7 +229,7 @@ pub(super) fn emit_cell(
                     width: col.width - pad * 2.0,
                     height: row_height - pad * 2.0,
                     corner_radius: *border_radius,
-                    clip: Some([cx, ry, col.width, row_height]),
+                    clip: Some(clip),
                     placeholder_color: t.skeleton_fg,
                 }));
             } else if let Some(CellFormat::ImageText {
@@ -231,6 +247,7 @@ pub(super) fn emit_cell(
                     ry,
                     col.width,
                     row_height,
+                    clip,
                     mid_y,
                     t,
                     base_url,
@@ -253,6 +270,7 @@ pub(super) fn emit_cell(
                     ry,
                     col.width,
                     row_height,
+                    clip,
                     mid_y,
                     t,
                     class_resolver,
@@ -302,7 +320,7 @@ pub(super) fn emit_cell(
                     font_size: t.font_size,
                     bold,
                     italic,
-                    clip: Some([cx, ry, col.width, row_height]),
+                    clip: Some(clip),
                     align,
                     max_width: Some(
                         (col.width - 2.0 * t.cell_padding).max(0.0),
@@ -331,7 +349,7 @@ pub(super) fn emit_cell(
     }
 
     // Cell buttons — always rendered, on top of cell content.
-    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, t);
+    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, clip, t);
 }
 
 /// Emit an image + text pair for `CellFormat::ImageText`.
@@ -347,6 +365,7 @@ fn emit_image_text(
     ry: f64,
     col_width: f64,
     row_height: f64,
+    clip: [f64; 4],
     mid_y: f64,
     t: &Theme,
     base_url: &str,
@@ -369,7 +388,7 @@ fn emit_image_text(
         width: image_size,
         height: image_size,
         corner_radius: border_radius,
-        clip: Some([cx, ry, col_width, row_height]),
+        clip: Some(clip),
         placeholder_color: t.skeleton_fg,
     }));
 
@@ -384,7 +403,7 @@ fn emit_image_text(
             font_size: t.font_size,
             bold: false,
             italic: false,
-            clip: Some([cx, ry, col_width, row_height]),
+            clip: Some(clip),
             align: TextAlign::Left,
             max_width: Some(
                 (col_width - 2.0 * t.cell_padding - image_size - gap).max(0.0),
@@ -411,6 +430,7 @@ fn emit_progress_bar(
     ry: f64,
     col_width: f64,
     row_height: f64,
+    clip: [f64; 4],
     mid_y: f64,
     t: &Theme,
     class_resolver: Option<&ClassResolver>,
@@ -419,8 +439,6 @@ fn emit_progress_bar(
     show_label: bool,
     class_of: Option<&dyn Fn(&str) -> String>,
 ) {
-    let clip = [cx, ry, col_width, row_height];
-
     // Value → fraction in [0, 1].
     let value = raw.parse::<f64>().unwrap_or(min);
     let frac = if max > min {
@@ -514,10 +532,10 @@ fn emit_styled(
     mid_y: f64,
     cell_w: f64,
     row_height: f64,
+    clip: [f64; 4],
     t: &Theme,
     class_resolver: Option<&ClassResolver>,
 ) {
-    let clip = [cx, ry, cell_w, row_height];
     let mut x = cx + t.cell_padding;
 
     for el in elements {
@@ -594,6 +612,7 @@ fn emit_cell_buttons(
     cx: f64,
     ry: f64,
     row_height: f64,
+    clip: [f64; 4],
     t: &Theme,
 ) {
     use crate::frame::ButtonZone;
@@ -609,7 +628,6 @@ fn emit_cell_buttons(
     // Baseline for vertically-centred text inside the button.
     // 0.35 ≈ half cap-height for system-ui.
     let mid_y = btn_y + btn_h * 0.5 + t.font_size * 0.35;
-    let clip = [cx, ry, col.width, row_height];
 
     // Accumulate right edge inward from the cell's right border.
     let mut right_x = cx + col.width - t.cell_btn_margin_r;
@@ -1666,6 +1684,89 @@ mod tests {
             matches!(frame.primitives[0], ScenePrimitive::Image(_)),
             "expected Image only"
         );
+    }
+
+    // ── header/gutter clip clamping ──────────────────────────
+
+    #[test]
+    fn emit_cell_text_clip_clamped_below_header_when_row_overlaps() {
+        // make_model() uses header_height = 30.0. ry = 10.0 simulates
+        // an overscanned row whose top edge is still under the header.
+        let mut frame = make_frame();
+        let col = make_col();
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            10.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        match &frame.primitives[0] {
+            ScenePrimitive::Text(txt) => {
+                let clip = txt.clip.expect("text should carry a clip rect");
+                assert_eq!(
+                    clip[1], 30.0,
+                    "clip.y must clamp to header_height, not ry"
+                );
+                assert!(
+                    clip[3] < 42.0,
+                    "clip.h must shrink to exclude the header overlap"
+                );
+            }
+            _ => panic!("expected Text primitive"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_text_clip_clamped_right_of_gutter_when_col_overlaps() {
+        // make_model() auto-computes row_number_width = 40.0 for a
+        // 1-row model. cx = 0.0 simulates a column whose left edge
+        // sits under the gutter.
+        let mut frame = make_frame();
+        let col = make_col();
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            50.0,
+            71.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        match &frame.primitives[0] {
+            ScenePrimitive::Text(txt) => {
+                let clip = txt.clip.expect("text should carry a clip rect");
+                assert_eq!(
+                    clip[0], 40.0,
+                    "clip.x must clamp to row_number_width, not cx"
+                );
+            }
+            _ => panic!("expected Text primitive"),
+        }
     }
 
     // ── locked cell overlay ──────────────────────────────────

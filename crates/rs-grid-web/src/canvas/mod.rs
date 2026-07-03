@@ -516,12 +516,26 @@ impl GridCanvas {
     }
 
     /// Update the theme in-place without remounting the grid.
+    ///
+    /// Also re-syncs the two layout-affecting theme fields —
+    /// `header_height` and `row_height` — into the model via
+    /// `GridCommand::SetHeaderHeight`/`SetRowHeight`, mirroring what
+    /// `mount()` does at construction time. Without this, row
+    /// positions, the header rect's own drawn height, row
+    /// virtualization, and scroll clamping would stay frozen at
+    /// whatever was passed to `mount()` regardless of how the theme
+    /// changes afterward.
     pub fn set_theme(&self, theme: Theme) {
         let _ = self
             .0
             .canvas
             .style()
             .set_property("background-color", &theme.bg.to_css());
+        {
+            let mut state = self.0.state.borrow_mut();
+            state.apply(GridCommand::SetHeaderHeight(theme.header_height));
+            state.apply(GridCommand::SetRowHeight(theme.row_height));
+        }
         self.0.builder.borrow_mut().theme = theme;
         self.render();
     }
