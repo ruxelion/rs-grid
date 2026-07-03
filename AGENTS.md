@@ -269,6 +269,13 @@ Source: `mcp/src/{index.ts,commands.ts,type-map.ts,search.ts,paths.ts}`.
    named type that should resolve via `get_api_type`.
 4. `just mcp-build` (+ `just mcp-publish` to ship it) to pick up 1–3.
 
+**Do not skip step 1 as "out of scope, separate repo."** `rs-grid-site` is
+a sibling checkout in the same local workspace (alongside the other repos
+listed in the workspace's own root guide), not an inaccessible external
+system — verify with `ls`/a directory listing before treating any
+checklist item as unreachable. Run all four steps mechanically and confirm
+each target file was actually edited; don't reason a step away.
+
 ## Important limits
 
 - **Row count**: `u64` (max ~9×10¹⁴ with f64 precision). See `docs/row-count-limits.md`.
