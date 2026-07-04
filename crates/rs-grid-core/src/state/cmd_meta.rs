@@ -20,6 +20,12 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SetRowNumberWidth(w) => {
+                if w >= 0.0 {
+                    self.model.row_number_width = w;
+                }
+                CommandOutput::None
+            }
             GridCommand::NotifyPageLoaded => {
                 // No-op — triggers a re-render via dispatch.
                 CommandOutput::None
@@ -123,6 +129,29 @@ mod tests {
         let before = s.model.row_height;
         s.apply(GridCommand::SetRowHeight(0.0));
         assert_eq!(s.model.row_height, before);
+    }
+
+    #[test]
+    fn set_row_number_width_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(120.0));
+        assert_eq!(s.model.row_number_width, 120.0);
+    }
+
+    #[test]
+    fn set_row_number_width_zero_updates() {
+        // Unlike header/row height, 0 is a valid gutter width (hidden).
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(0.0));
+        assert_eq!(s.model.row_number_width, 0.0);
+    }
+
+    #[test]
+    fn set_row_number_width_negative_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.row_number_width;
+        s.apply(GridCommand::SetRowNumberWidth(-10.0));
+        assert_eq!(s.model.row_number_width, before);
     }
 
     #[test]

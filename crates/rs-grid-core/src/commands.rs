@@ -26,7 +26,7 @@ use crate::{
 /// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
-/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `NotifyPageLoaded`, `SetTotalRowCount` |
+/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum GridCommand {
@@ -88,6 +88,9 @@ pub enum GridCommand {
     SetHeaderHeight(f64),
     /// Set the data row height in logical pixels.
     SetRowHeight(f64),
+    /// Set the row-number gutter width in logical pixels (0 hides it,
+    /// same meaning as `SetShowRowNumbers(false)`).
+    SetRowNumberWidth(f64),
     /// Show or hide the column header row.
     SetShowHeader(bool),
     /// Show or hide the row-number gutter.

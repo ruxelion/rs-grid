@@ -285,6 +285,31 @@ test.describe('visual regression', () => {
       maxDiffPixelRatio: 0.02,
     });
   });
+
+  // Regression guard for the header/gutter resize clipping bug — cell text
+  // must stay clamped below the header / right of the gutter after a
+  // runtime resize, not just at the initial fixed size (see
+  // rs-grid-scene's body_clip_tracks_header_height_after_resize /
+  // body_clip_tracks_row_number_width_after_resize unit tests).
+  test('augmenter la hauteur du header garde le texte clippé en dessous', async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+    await page.getByTestId('header-height-select').selectOption('150');
+    await waitForPaint(page);
+    await expect(page.locator('canvas')).toHaveScreenshot('header-resized.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
+
+  test('augmenter la largeur du gutter garde le texte clippé à droite', async ({ page }) => {
+    await page.goto('/');
+    await waitForPaint(page);
+    await page.getByTestId('gutter-width-select').selectOption('150');
+    await waitForPaint(page);
+    await expect(page.locator('canvas')).toHaveScreenshot('gutter-resized.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
 });
 
 // ── features récentes ─────────────────────────────────────────────────────

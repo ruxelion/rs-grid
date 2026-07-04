@@ -160,6 +160,7 @@ impl GridState {
             GridCommand::SetHoveredRow(_)
             | GridCommand::SetHeaderHeight(_)
             | GridCommand::SetRowHeight(_)
+            | GridCommand::SetRowNumberWidth(_)
             | GridCommand::SetShowHeader(_)
             | GridCommand::SetShowRowNumbers(_)
             | GridCommand::SetEditable(_)

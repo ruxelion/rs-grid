@@ -9,7 +9,7 @@
 //! suite. Being a path-dep workspace member, it tracks `main` and catches
 //! engine regressions on every push.
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use example_common::{
     build_model, class_map::resolve_classes, fmt_cols, fmt_rows,
@@ -17,6 +17,7 @@ use example_common::{
 use leptos::prelude::*;
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
+use send_wrapper::SendWrapper;
 use wasm_bindgen::prelude::*;
 
 #[component]
@@ -32,6 +33,15 @@ fn App() -> impl IntoView {
     // value in the DOM so Playwright can assert it fires on every
     // keystroke, not just on rejected commits.
     let validation_state = RwSignal::new(None::<(u64, String, String)>);
+    // e2e-only: lets the header-height/gutter-width selects below call
+    // methods on the mounted grid to reproduce the resize-clipping bug
+    // (rs-grid-scene's body_clip_tracks_header_height_after_resize /
+    // body_clip_tracks_row_number_width_after_resize) visually.
+    // SendWrapper: WASM is single-threaded, this never actually crosses a
+    // thread boundary — needed because the reactive view closure below
+    // requires its captures to be `Send`.
+    let gc_holder: SendWrapper<Rc<RefCell<Option<WebGridCanvas>>>> =
+        SendWrapper::new(Rc::new(RefCell::new(None)));
 
     view! {
         <main class="fixture-layout">
@@ -87,6 +97,46 @@ fn App() -> impl IntoView {
                         <option value="100">"100 columns"</option>
                         <option value="1000">"1 000 columns"</option>
                     </select>
+                    // e2e-only: resize the header/gutter live to exercise
+                    // the clip-clamp bug (see rs-grid-scene's
+                    // body_clip_tracks_header_height_after_resize /
+                    // body_clip_tracks_row_number_width_after_resize).
+                    <select
+                        data-testid="header-height-select"
+                        on:change={
+                            let gc_holder = gc_holder.clone();
+                            move |e| {
+                                let h = event_target_value(&e)
+                                    .parse::<f64>()
+                                    .unwrap_or(40.0);
+                                if let Some(gc) = gc_holder.borrow().as_ref() {
+                                    let mut theme = theme_memo.get_untracked();
+                                    theme.header_height = h;
+                                    gc.set_theme(theme);
+                                }
+                            }
+                        }
+                    >
+                        <option value="40" selected=true>"Header: 40px"</option>
+                        <option value="150">"Header: 150px"</option>
+                    </select>
+                    <select
+                        data-testid="gutter-width-select"
+                        on:change={
+                            let gc_holder = gc_holder.clone();
+                            move |e| {
+                                let w = event_target_value(&e)
+                                    .parse::<f64>()
+                                    .unwrap_or(60.0);
+                                if let Some(gc) = gc_holder.borrow().as_ref() {
+                                    gc.set_row_number_width(w);
+                                }
+                            }
+                        }
+                    >
+                        <option value="60" selected=true>"Gutter: 60px"</option>
+                        <option value="150">"Gutter: 150px"</option>
+                    </select>
                 </div>
             </div>
             <div class="fixture-grid">
@@ -102,19 +152,23 @@ fn App() -> impl IntoView {
                     // this file's own edit-flow tests) dblclick it.
                     model.set_cell(10, "name", String::new());
 
-                    let on_mount = Box::new(move |gc: WebGridCanvas| {
-                        gc.set_class_resolver(Rc::new(resolve_classes));
-                        gc.set_editable(true);
-                        gc.set_selectable(true);
-                        gc.set_column_reorderable(true);
-                        // e2e-only: reproduces daisyUI's tooltip via
-                        // the class hook — rs-grid renders no
-                        // visual of its own, this is entirely
-                        // caller-owned styling.
-                        gc.set_validation_tooltip_class(Some(
-                            "tooltip tooltip-open tooltip-error".to_string(),
-                        ));
-                    });
+                    let on_mount = {
+                        let gc_holder = gc_holder.clone();
+                        Box::new(move |gc: WebGridCanvas| {
+                            gc.set_class_resolver(Rc::new(resolve_classes));
+                            gc.set_editable(true);
+                            gc.set_selectable(true);
+                            gc.set_column_reorderable(true);
+                            // e2e-only: reproduces daisyUI's tooltip via
+                            // the class hook — rs-grid renders no
+                            // visual of its own, this is entirely
+                            // caller-owned styling.
+                            gc.set_validation_tooltip_class(Some(
+                                "tooltip tooltip-open tooltip-error".to_string(),
+                            ));
+                            *gc_holder.borrow_mut() = Some(gc);
+                        })
+                    };
                     let on_validation_error = Box::new(
                         move |_row: u64, _col: String, _msg: String| {},
                     );

@@ -705,6 +705,12 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetShowRowNumbers(show));
     }
 
+    /// Set the row-number gutter width in logical pixels at runtime
+    /// (0 hides it, same as `set_show_row_numbers(false)`).
+    pub fn set_row_number_width(&self, width: f64) {
+        self.dispatch(GridCommand::SetRowNumberWidth(width));
+    }
+
     /// Set a text filter on a column (case-insensitive contains).
     /// Pass an empty string to clear the filter for that column.
     pub fn set_filter(&self, col_key: &str, text: &str) {
