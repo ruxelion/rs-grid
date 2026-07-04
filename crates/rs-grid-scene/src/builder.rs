@@ -1675,6 +1675,52 @@ mod tests {
         }
     }
 
+    #[test]
+    fn body_clip_tracks_header_height_after_resize() {
+        let mut state = make_state();
+        state.model.header_height = 90.0;
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let hh = state.model.effective_header_height();
+        let data_texts = text_primitives(&frame)
+            .into_iter()
+            .filter(|t| !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma"));
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[1] >= hh,
+                    "clip.y ({}) must track the resized header_height ({hh})",
+                    clip[1]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn body_clip_tracks_row_number_width_after_resize() {
+        let mut state = make_state();
+        state.model.row_number_width = 120.0;
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None);
+        let rnw = state.model.effective_row_number_width();
+        // Exclude the gutter's own row-number labels ("1".."10") — like
+        // the header's column labels, they legitimately have clip.x == 0
+        // since they *are* the gutter content, not scrolled data.
+        let data_texts = text_primitives(&frame).into_iter().filter(|t| {
+            !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma")
+                && !t.text.chars().all(|c| c.is_ascii_digit())
+        });
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[0] >= rnw,
+                    "clip.x ({}) must track the resized row_number_width ({rnw})",
+                    clip[0]
+                );
+            }
+        }
+    }
+
     // ── column drag ──────────────────────────────────────────
 
     #[test]
