@@ -20,7 +20,7 @@ build:
 
 # Unit tests (entire workspace — WASM crates excluded)
 test:
-    cargo nextest run --workspace --exclude rs-grid-web --exclude rs-grid-leptos --exclude rs-grid-dioxus --exclude rs-grid-yew --exclude rs-grid-render-canvas --exclude fixture-leptos --exclude example-common
+    cargo nextest run --workspace --exclude rs-grid-web --exclude rs-grid-leptos --exclude rs-grid-dioxus --exclude rs-grid-yew --exclude rs-grid-render-canvas --exclude leptos-harness --exclude example-common
 
 # Unit tests — rs-grid-core only
 test-core:
@@ -76,11 +76,11 @@ tls-setup:
 # Build the internal e2e fixture (minimal Leptos app, no Tailwind)
 [private]
 _build-fixture:
-    cd e2e\fixture-leptos && trunk build
+    cd e2e\leptos-harness && trunk build
 
 # Dev server for the internal e2e fixture (hot-reload) → http://localhost:9079
 dev:
-    cd e2e\fixture-leptos && trunk serve
+    cd e2e\leptos-harness && trunk serve
 
 # ── E2E (Playwright) ─────────────────────────────────────
 
@@ -134,8 +134,8 @@ mem:
 
 # WASM bundle size (release build with wasm-opt via Trunk)
 wasm-size:
-    cd e2e\fixture-leptos && trunk build --release
-    powershell -NoProfile -Command "Get-ChildItem e2e\fixture-leptos\dist\*.wasm | ForEach-Object { $kb = [math]::Round($_.Length/1KB,1); $est_gz = [math]::Round($_.Length*0.35/1KB,1); Write-Host ('{0,-50} {1,8} KB  (~{2} KB gzip)' -f $_.Name, $kb, $est_gz) }"
+    cd e2e\leptos-harness && trunk build --release
+    powershell -NoProfile -Command "Get-ChildItem e2e\leptos-harness\dist\*.wasm | ForEach-Object { $kb = [math]::Round($_.Length/1KB,1); $est_gz = [math]::Round($_.Length*0.35/1KB,1); Write-Host ('{0,-50} {1,8} KB  (~{2} KB gzip)' -f $_.Name, $kb, $est_gz) }"
 
 # ── Scene inspection ─────────────────────────────────────
 

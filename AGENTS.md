@@ -20,7 +20,7 @@ GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRend
 | `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                    |
 | `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                      |
 | `rs-grid-yew`           | Yew CSR component wrapper (`GridCanvas`)                                         |
-| `e2e/fixture-leptos`    | Minimal Leptos app — the e2e / CI / Pages target                                 |
+| `e2e/leptos-harness`    | Minimal Leptos app — the e2e / CI / Pages target                                 |
 
 Dependencies flow in one direction only — never introduce a reverse dependency:
 
@@ -42,7 +42,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude fixture-leptos --exclude example-common
+  --exclude leptos-harness --exclude example-common
 
 # Unit tests — core only
 cargo nextest run -p rs-grid-core
@@ -79,13 +79,13 @@ just wasm-size    # bundle WASM + estimation gzip
 cargo run -p rs-grid-scene --features serde --bin scene-dump -- selection
 
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
-cd e2e/fixture-leptos
+cd e2e/leptos-harness
 trunk build
 
 # Dev server (hot-reload)
 just dev
-# equivalent to: cd e2e/fixture-leptos && trunk serve
-# → http://localhost:9079  (config dans e2e/fixture-leptos/Trunk.toml)
+# equivalent to: cd e2e/leptos-harness && trunk serve
+# → http://localhost:9079  (config dans e2e/leptos-harness/Trunk.toml)
 #
 # The framework demos moved to standalone repos:
 #   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
@@ -313,7 +313,7 @@ Visual and functional tests are in `e2e/`.
 cd e2e && npm install && npx playwright install chromium
 
 # 2. Build the fixture app (required before each run)
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 
 # 3. Run the tests
 cd e2e && npm test
@@ -370,11 +370,11 @@ Pour vérifier visuellement un changement avec les outils Playwright MCP
 
 ```sh
 # 1. Démarrer le dev server (une seule fois par session)
-cd e2e/fixture-leptos && trunk serve
+cd e2e/leptos-harness && trunk serve
 # Écoute sur localhost:9079 — hot-reload automatique à chaque cargo build
 
 # 2. Après chaque modification, recompiler
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 ```
 
 Puis dans les outils MCP :

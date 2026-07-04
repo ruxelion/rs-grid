@@ -179,7 +179,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude fixture-leptos --exclude example-common
+  --exclude leptos-harness --exclude example-common
 
 # Formatting (rustfmt.toml uses nightly-only options)
 cargo +nightly fmt --all
@@ -188,14 +188,14 @@ cargo +nightly fmt --all
 cargo clippy --workspace -- -D warnings
 
 # Build the e2e fixture app (WASM)
-cd e2e/fixture-leptos && trunk build --release
+cd e2e/leptos-harness && trunk build --release
 ```
 
 ### End-to-end tests (Playwright)
 
 ```sh
 cd e2e && npm install && npx playwright install chromium
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 cd e2e && npm test
 ```
 
@@ -213,7 +213,7 @@ rs-grid/
 ├── examples/
 │   └── example-common/         # Shared demo data + theme CSS (used by demo repos)
 ├── e2e/
-│   ├── fixture-leptos/         # Minimal Leptos app — the e2e/CI/Pages target
+│   ├── leptos-harness/         # Minimal Leptos app — the e2e/CI/Pages target
 │   └── tests/                  # Playwright end-to-end tests
 ├── tools/class-map/            # DaisyUI → class_map_data.rs codegen
 └── docs/                       # Internal refs only — full docs at rs-grid.com

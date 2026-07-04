@@ -523,7 +523,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude fixture-leptos --exclude example-common
+  --exclude leptos-harness --exclude example-common
 
 cargo clippy --workspace -- -D warnings
 ```
@@ -531,7 +531,7 @@ cargo clippy --workspace -- -D warnings
 ### Run the e2e fixture locally
 
 ```sh
-cd e2e/fixture-leptos && trunk serve
+cd e2e/leptos-harness && trunk serve
 # → http://localhost:9079
 ```
 

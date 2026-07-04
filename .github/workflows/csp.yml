@@ -45,9 +45,9 @@ jobs:
         run: cargo install trunk --locked
 
       # CSP runs against the minimal e2e fixture (no Tailwind) — csp-server.js
-      # serves e2e/fixture-leptos/dist.
+      # serves e2e/leptos-harness/dist.
       - name: Build WASM app
-        working-directory: e2e/fixture-leptos
+        working-directory: e2e/leptos-harness
         run: trunk build --release
 
       - name: Install E2E dependencies

@@ -43,8 +43,8 @@ jobs:
       # Pages serves the minimal e2e fixture (no Tailwind) — proves the engine
       # renders on every push. The styled demo lives in rs-grid-example-leptos
       # and is surfaced via rs-grid.com.
-      - name: trunk build (fixture-leptos)
-        working-directory: e2e/fixture-leptos
+      - name: trunk build (leptos-harness)
+        working-directory: e2e/leptos-harness
         run: trunk build --release --public-url /wasm/fixture/
 
       - name: Push fixture to rs-grid-site
@@ -54,7 +54,7 @@ jobs:
           git clone "https://x-access-token:${SITE_TOKEN}@github.com/ruxelion/rs-grid-site.git" _site
           rm -rf _site/docs/public/wasm/fixture
           mkdir -p _site/docs/public/wasm/fixture
-          cp -r e2e/fixture-leptos/dist/. _site/docs/public/wasm/fixture/
+          cp -r e2e/leptos-harness/dist/. _site/docs/public/wasm/fixture/
           cd _site
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

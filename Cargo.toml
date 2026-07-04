@@ -9,7 +9,7 @@ members = [
   "crates/rs-grid-yew",
   "crates/rs-grid-icons",
   "examples/example-common",
-  "e2e/fixture-leptos",
+  "e2e/leptos-harness",
 ]
 resolver = "2"
 

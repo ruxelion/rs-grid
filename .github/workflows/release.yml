@@ -51,8 +51,8 @@ jobs:
 
       # Prove the engine still compiles to WASM at this tag before telling the
       # site to rebuild its demos against it.
-      - name: trunk build (fixture-leptos)
-        working-directory: e2e/fixture-leptos
+      - name: trunk build (leptos-harness)
+        working-directory: e2e/leptos-harness
         run: trunk build --release
 
   notify-site:

@@ -85,7 +85,7 @@ jobs:
             --exclude rs-grid-dioxus \
             --exclude rs-grid-yew \
             --exclude rs-grid-render-canvas \
-            --exclude fixture-leptos \
+            --exclude leptos-harness \
             --exclude example-common
 
   wasm-build:
@@ -104,15 +104,15 @@ jobs:
         run: cargo install trunk --locked
 
       # The e2e fixture is a plain Leptos app (no Tailwind) — no Node step needed.
-      - name: trunk build (fixture-leptos)
-        working-directory: e2e/fixture-leptos
+      - name: trunk build (leptos-harness)
+        working-directory: e2e/leptos-harness
         run: trunk build --release
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fixture-leptos-dist
-          path: e2e/fixture-leptos/dist/
+          name: leptos-harness-dist
+          path: e2e/leptos-harness/dist/
           retention-days: 1
 
   e2e:
@@ -139,8 +139,8 @@ jobs:
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: fixture-leptos-dist
-          path: e2e/fixture-leptos/dist/
+          name: leptos-harness-dist
+          path: e2e/leptos-harness/dist/
 
       - name: Run E2E tests (smoke + functional)
         working-directory: e2e

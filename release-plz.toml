@@ -18,5 +18,5 @@ name = "example-common"
 release = false
 
 [[package]]
-name = "fixture-leptos"
+name = "leptos-harness"
 release = false

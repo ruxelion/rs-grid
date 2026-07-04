@@ -32,5 +32,5 @@ Do not modify `rs-grid-scene` from this crate.
 cargo clippy -p rs-grid-render-canvas --target wasm32-unknown-unknown -- -D warnings
 
 # Exercise via the e2e fixture (builds the full WASM bundle)
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 ```
