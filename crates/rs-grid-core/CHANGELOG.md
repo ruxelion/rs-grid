@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.4...rs-grid-core-v0.2.5) - 2026-07-04
+
+### Added
+
+- add row-number gutter width adjustment and related tests
+
 ## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.3...rs-grid-core-v0.2.4) - 2026-07-03
 
 ### Added

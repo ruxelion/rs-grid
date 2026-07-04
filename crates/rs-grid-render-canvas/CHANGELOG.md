@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11](https://github.com/ruxelion/rs-grid/compare/rs-grid-render-canvas-v0.1.10...rs-grid-render-canvas-v0.1.11) - 2026-07-04
+
+### Other
+
+- Refactor e2e fixture from `fixture-leptos` to `leptos-harness`
+
 ## [0.1.10](https://github.com/ruxelion/rs-grid/compare/rs-grid-render-canvas-v0.1.9...rs-grid-render-canvas-v0.1.10) - 2026-07-03
 
 ### Other
