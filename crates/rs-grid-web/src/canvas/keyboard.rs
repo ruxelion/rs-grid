@@ -131,6 +131,9 @@ impl GridCanvas {
     pub(super) fn attach_paste(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: ClipboardEvent| {
+            if gc.0.edit_input.borrow().is_some() {
+                return;
+            }
             if !gc.has_focus() {
                 return;
             }
