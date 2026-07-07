@@ -8,6 +8,44 @@ use wasm_bindgen::{JsCast, JsValue};
 
 use super::{FlashState, GridCanvas, dom_helpers::document};
 
+/// Commands that may expose new rows — trigger a page fetch in
+/// server-side pagination mode (`PageCacheDataSource`).
+///
+/// Every sort/filter variant must be listed here: skipping one leaves
+/// that command's in-memory state updated (and, for sort, silently
+/// reflected in `GridState`) without ever re-fetching the server-backed
+/// page, which is indistinguishable from the command doing nothing.
+fn triggers_fetch(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ScrollTo { .. }
+            | GridCommand::ScrollBy { .. }
+            | GridCommand::Resize { .. }
+            | GridCommand::NotifyPageLoaded
+            | GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+            | GridCommand::SetColumnFilter { .. }
+            | GridCommand::ClearAllFilters
+    )
+}
+
+/// In server-side mode, sort/filter changes invalidate the entire page
+/// cache. Must stay in sync with [`triggers_fetch`] for every sort/filter
+/// variant — a command that invalidates the cache but doesn't also
+/// trigger a fetch would leave the cache empty until the next unrelated
+/// fetch.
+fn invalidates_cache(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+            | GridCommand::SetColumnFilter { .. }
+            | GridCommand::ClearAllFilters
+    )
+}
+
 impl GridCanvas {
     /// Trigger a brief golden-yellow flash on exactly `cells`.
     ///
@@ -82,16 +120,7 @@ impl GridCanvas {
         );
         // Commands that may expose new rows — trigger a page fetch in
         // server-side pagination mode (PageCacheDataSource).
-        let triggers_fetch = matches!(
-            cmd,
-            GridCommand::ScrollTo { .. }
-                | GridCommand::ScrollBy { .. }
-                | GridCommand::Resize { .. }
-                | GridCommand::NotifyPageLoaded
-                | GridCommand::ToggleSort { .. }
-                | GridCommand::SetColumnFilter { .. }
-                | GridCommand::ClearAllFilters
-        );
+        let triggers_fetch = triggers_fetch(&cmd);
         // Commands that change the active edit session's validation
         // state — fire on_validation_state_changed with the fresh
         // value so a consumer can drive a live, custom validation UI.
@@ -104,12 +133,7 @@ impl GridCanvas {
         );
         // In server-side mode, sort/filter changes
         // invalidate the entire page cache.
-        let invalidates_cache = matches!(
-            cmd,
-            GridCommand::ToggleSort { .. }
-                | GridCommand::SetColumnFilter { .. }
-                | GridCommand::ClearAllFilters
-        );
+        let invalidates_cache = invalidates_cache(&cmd);
         if invalidates_cache
             && let Some(cache) = self.0.page_cache.borrow().as_ref()
         {
@@ -418,5 +442,36 @@ impl GridCanvas {
         }
         drop(state);
         self.render();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rs_grid_core::{commands::GridCommand, sort::SortDir};
+
+    use super::{invalidates_cache, triggers_fetch};
+
+    /// Regression test for the bug where `SetSort` (menu ⋮ → "Sort
+    /// Ascending"/"Descending") and `ClearSort` updated `GridState`
+    /// in-memory but never re-fetched the server-backed page, unlike
+    /// `ToggleSort` (direct header click) which did both.
+    #[test]
+    fn set_sort_and_clear_sort_trigger_fetch_and_invalidate_cache() {
+        let set_sort = GridCommand::SetSort {
+            col_key: "name".into(),
+            dir: SortDir::Asc,
+        };
+        let clear_sort = GridCommand::ClearSort;
+        let toggle_sort = GridCommand::ToggleSort {
+            col_key: "name".into(),
+        };
+
+        for cmd in [&set_sort, &clear_sort, &toggle_sort] {
+            assert!(triggers_fetch(cmd), "{cmd:?} should trigger a fetch");
+            assert!(
+                invalidates_cache(cmd),
+                "{cmd:?} should invalidate the page cache"
+            );
+        }
     }
 }
