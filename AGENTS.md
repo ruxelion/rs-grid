@@ -334,6 +334,10 @@ cd e2e && npm run update-snapshots
 - `dblclick on Name cell (CellEditor::Text) opens text input`
 - `dblclick on Role cell (editor=None) does not open any input` — regression guard for the None-editor fix
 - `Escape closes the text editor`
+- `multiline (Alt+Enter)`:
+  - `Alt+Enter switches the single-line <input> to a <textarea> with a newline`
+  - `a second Alt+Enter adds exactly one more line, and the box grows`
+  - `Shift+Enter is not a newline shortcut — it commits like plain Enter`
 
 `e2e/tests/validation.spec.ts`:
 - `typing an empty value into a required cell shows the invalid style` /

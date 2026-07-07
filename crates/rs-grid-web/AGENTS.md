@@ -40,7 +40,7 @@ The DOM overlay opened depends on `ColumnDef.editor`:
 
 | `column.editor` value | Result |
 |---|---|
-| `Some(CellEditor::Text)` | `<input type="text">` positioned over the cell |
+| `Some(CellEditor::Text)` | `<input>` or `<textarea>` positioned over the cell (see *Single-line vs. multiline* below) |
 | `Some(CellEditor::Select { .. })` | Custom `<select>` dropdown with optional icons |
 | `None` | `CancelEdit` is dispatched, no DOM overlay is created |
 
@@ -48,20 +48,134 @@ The DOM overlay opened depends on `ColumnDef.editor`:
 want plain-text editing must set `column.editor = Some(CellEditor::Text)`
 explicitly — the grid does not fall back to a text input automatically.
 
+### Single-line `<input>` vs. multiline `<textarea>`
+
+`show_text_editor` (`canvas/edit.rs`) is a dispatcher, not an editor itself.
+It decides once, from the value the cell already holds when the edit
+opens, which of two sibling functions to call:
+
+- **`show_single_line_editor`** — a classic `<input type="text">`, used
+  when the value has no `\n`/`\r` and its measured width (see below) fits
+  within `MAX_EDITOR_WIDTH` (520px) without wrapping. Behaves exactly like
+  the editor did before multiline support existed: `Enter` (no modifier)
+  always commits, height stays the cell's own height, vertical centering
+  is the input's native rendering.
+- **`show_multiline_editor`** — a `<textarea>`, used when the value
+  already contains a line break or is too long to fit on one line. Supports
+  wrapping, `Alt+Enter` for manual line breaks, and dynamic height (see
+  *sizing* below). `Shift+Enter` is **not** a newline shortcut — it commits
+  like plain `Enter`.
+
+The initial choice is made once, from the value the cell already holds
+when the edit opens — a value that grows past the single-line cap mid-edit
+(by typing) keeps scrolling horizontally in its `<input>` rather than
+morphing into a `<textarea>` under the user's cursor. The one exception is
+an explicit `Alt+Enter` keypress: `show_single_line_editor`'s keydown
+handler special-cases this (before its plain-`Enter`-commits arm) to splice
+exactly one `\n` into the current value at the cursor (`selectionStart`,
+clamped to the nearest UTF-8 char boundary — `selectionStart` is a UTF-16
+code-unit offset, so this guards non-ASCII text against a slice panic),
+then calls `remove_edit_input()` + `show_multiline_editor()` with that
+spliced value and the same `EditorGeom`, and finally restores the cursor
+right after the inserted `\n` on the new `<textarea>` (`select()` inside
+`show_multiline_editor` would otherwise leave the whole value selected).
+No new `StartEdit` is dispatched — it's the same edit session, only the
+DOM overlay changes. `TEXT_PADDING` (24px) and `MAX_EDITOR_WIDTH` (520px)
+are module-level consts in `canvas/edit.rs`, shared by both paths.
+
+### Content-based sizing of the text editor
+
+Neither editor opens smaller than the cell's own size, and both grow to
+fit the actual value:
+
+- **Width** (both editors) — `measure_text_width` (`canvas/edit.rs`)
+  renders the initial text on an offscreen `<canvas>` 2D context with the
+  same font string as `rs-grid-render-canvas`'s `draw_text` (`400 {size}px
+  system-ui, sans-serif`, `theme.font_size`). The box width becomes
+  `cell_width.max(measured_width + TEXT_PADDING)`, capped at
+  `MAX_EDITOR_WIDTH` for the `<textarea>` path (the `<input>` path never
+  needs the cap — that's precisely the condition that keeps it on the
+  `<input>` path in the first place).
+- **Height** (`<textarea>` only) — `resize_multiline_editor` re-measures
+  the *current* value (not just the initial one) and re-applies the box
+  height on every `input` event — typing, pasting, or an `Alt+Enter`
+  newline insertion (which re-dispatches a synthetic `input` event
+  precisely so this runs) — so the box grows as lines are added and
+  shrinks back down as they're removed, live, not just once at open time.
+  It calls `measure_wrapped_height`, which lays the text out in a
+  throwaway offscreen `<textarea>` at the chosen width (`white-space:
+  pre-wrap`, `word-break: break-word` — matching the real editor's CSS)
+  and reads its `scrollHeight`, since the browser's own line-wrapping is
+  the only reliable way to get this without reimplementing text shaping.
+  The offscreen element sets `rows="1"` — a bare `<textarea>` defaults to
+  `rows="2"`, which would floor `scrollHeight` at two lines even for
+  single-line text — and its horizontal padding matches `EDITOR_H_PADDING`
+  so wrap points line up with what's actually rendered. The overlay
+  height becomes `cell_height.max(wrapped_height + 2.0 *
+  EDITOR_V_PADDING)` — never below the cell's own height, even after
+  deleting back down to one line — capped at 60% of the window's inner
+  height (past which it scrolls internally, `overflow-y: auto`, rather
+  than growing further). `show_multiline_editor`'s own setup calls the
+  same method once, so there's a single code path for both the initial
+  size and every live resize after.
+
+Both editors override `apply_edit_style`'s shorthand `padding` with the
+same explicit `padding-top`/`padding-bottom`/`padding-left`/`padding-right`
+longhands, deliberately wider than the themed `--rs-grid-editor-padding`
+default (4px) — so a value that flips between `<input>` and `<textarea>`
+across edits (see *dispatcher* above) doesn't visibly shift position
+within the box:
+
+- **`show_single_line_editor`** — fixed at `EDITOR_V_PADDING`/
+  `EDITOR_H_PADDING` (8px each). The `<input>`'s native rendering
+  centers its one line regardless of the exact top/bottom value.
+- **`show_multiline_editor`** — horizontal is the same fixed
+  `EDITOR_H_PADDING`; vertical is `(box_height - wrapped_height) / 2`
+  (real centering, since a `<textarea>` always top-aligns otherwise),
+  floored at `EDITOR_V_PADDING` so it never collapses to ~0 when the box
+  height already matches the content almost exactly (which reads as
+  text jammed against the border).
+
+`apply_edit_style` then clamps the `left` position so the box never runs
+past the window's right edge (shifts left, does not shrink), for either
+editor. This sizing does not touch the select dropdown, which has its own
+independent `--rs-grid-dropdown-min-width` sizing in `show_select_editor`.
+
+### Multiline editing
+
+`show_multiline_editor`'s `<textarea>` accepts newlines: `Alt+Enter`
+(Excel's convention) inserts exactly one, done by explicitly splicing
+`\n` into the value at the cursor and manually re-dispatching an `input`
+event (`set_value()` doesn't fire one on its own, and the existing
+`input` listener needs to run to keep live validation current) — not by
+relying on the browser's own default Enter-in-a-textarea behavior, so the
+count is deterministic regardless of what a given browser does with the
+Alt modifier held. Plain `Enter` (with or without Shift) commits;
+`Shift+Enter` is deliberately **not** treated as a newline shortcut.
+`white-space: pre-wrap` + `word-break: break-word` preserve manually-typed
+line breaks and wrap long words; `resize: none` and `overflow-y: auto`
+keep the box a fixed-then-clamped size (see *sizing* above) with a
+scrollbar for content past the 60%-viewport-height cap.
+
+`show_single_line_editor`'s `<input>` can never itself hold a newline —
+but `Alt+Enter` there doesn't just do nothing: see *Single-line vs.
+multiline* above for how it switches to `show_multiline_editor` mid-edit
+instead, inserting the same single `\n`.
+
 ### Validation feedback on the text editor
 
-The `<input>` created by `show_text_editor` (`canvas/edit.rs`) wires three
-listeners:
+Both `show_single_line_editor`'s `<input>` and `show_multiline_editor`'s
+`<textarea>` (`canvas/edit.rs`) wire the same three listeners:
 
 | Event | Behaviour |
 |---|---|
 | `input` | Dispatches `GridCommand::ValidateEdit` on every keystroke (no commit), then restyles the input via `apply_edit_validity_style` |
-| `keydown` (`Enter`) / `blur` | Dispatches `GridCommand::CommitEdit`, then calls `keep_or_close`: if `GridState.edit` is still `Some` (`InvalidEditMode::Block` kept it open), restyle as invalid and refocus; otherwise tear the overlay down as before |
+| `keydown` (`Enter` with no Alt/Shift) / `blur` | Dispatches `GridCommand::CommitEdit`, then calls `keep_or_close`: if `GridState.edit` is still `Some` (`InvalidEditMode::Block` kept it open), restyle as invalid and refocus; otherwise tear the overlay down as before |
 | `keydown` (`Escape`) | Dispatches `GridCommand::CancelEdit` unconditionally, always tears the overlay down |
 
-While a cell is being edited, its DOM `<input>` fully occludes the canvas
-underneath (opaque `--rs-grid-editor-bg`), so the invalid-value indicator for
-the *in-progress edit* is applied directly to that `<input>`'s own
+While a cell is being edited, its DOM overlay fully occludes the canvas
+underneath (opaque `--rs-grid-editor-bg`), so the invalid-value indicator
+for the *in-progress edit* is applied directly to that element's own
 border/background instead of a `ScenePrimitive` — see *CSS theme* below. This
 is separate from the canvas-rendered `invalid_cell_border` overlay
 (`rs-grid-scene`'s `emit_cell`), which flags any cell whose *current* value
@@ -252,9 +366,10 @@ variables style a DOM overlay element, not a canvas primitive:
 | `--rs-grid-editor-border-radius` | `0` | Border radius |
 | `--rs-grid-editor-bg` | `#ffffff` | Background, normal state |
 | `--rs-grid-editor-color` | `#000000` | Text colour |
-| `--rs-grid-editor-padding` | `0 4px` | Padding |
-| `--rs-grid-editor-font-size` | `inherit` | Font size |
+| `--rs-grid-editor-padding` | `0 4px` | Padding shorthand — immediately overridden by both `show_single_line_editor` and `show_multiline_editor`'s explicit `padding-*` longhands (see *Single-line vs. multiline* below), so this var has no visible effect on the text editors today; it still applies as-is to the select dropdown. |
+| `--rs-grid-editor-font-size` | `theme.font_size` (not `inherit`) | Font size. Must stay in sync with `theme.font_size` — `measure_text_width`/`measure_wrapped_height` always measure at that value, so overriding this var to something else desyncs the multiline `<textarea>`'s computed width/height from what's actually rendered (manifests as unwanted scrolling or excess whitespace). |
 | `--rs-grid-editor-shadow` | `none` | Box shadow |
+| *(none — fixed)* | `system-ui, sans-serif` | Font family. Not configurable via CSS var (unlike the rest of this table) — hard-coded in `apply_edit_style` to match `measure_text_width`/`measure_wrapped_height` and the canvas renderer's own `draw_text`. Was `inherit` before multiline support; changing it back would desync the same way an overridden font-size does. |
 | `--rs-grid-editor-border-invalid` | `#dc2626` | Border colour while `EditCell.validation_error` is `Some` |
 | `--rs-grid-editor-bg-invalid` | `#fef2f2` | Background while `EditCell.validation_error` is `Some` |
 

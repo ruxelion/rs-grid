@@ -44,14 +44,14 @@ test.describe('editable predicate (per-cell locking)', () => {
     const canvas = await scrollToNotes(page);
     await canvas.dblclick({ position: { x: NOTES_X, y: UNLOCKED_ROW_Y } });
     await waitForPaint(page, 400);
-    await expect(page.locator('input[type="text"]')).toHaveCount(1);
+    await expect(page.locator('input, textarea')).toHaveCount(1);
   });
 
   test('dblclick on a locked (even row) Notes cell does not open the text input', async ({ page }) => {
     const canvas = await scrollToNotes(page);
     await canvas.dblclick({ position: { x: NOTES_X, y: LOCKED_ROW_Y } });
     await waitForPaint(page, 400);
-    await expect(page.locator('input[type="text"]')).toHaveCount(0);
+    await expect(page.locator('input, textarea')).toHaveCount(0);
     await expect(canvas).toBeVisible();
   });
 

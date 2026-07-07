@@ -26,7 +26,7 @@ test.describe('validation', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await expect(input).toBeVisible();
 
     // Clear the field — "required" rule fails on every keystroke.
@@ -45,7 +45,7 @@ test.describe('validation', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await input.fill('');
     await waitForPaint(page, 200);
     await input.fill('Someone');
@@ -63,13 +63,13 @@ test.describe('validation', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await input.fill('');
     await page.keyboard.press('Enter');
     await waitForPaint(page, 300);
 
     // The editor closed even though the value was invalid.
-    await expect(page.locator('input[type="text"]')).toHaveCount(0);
+    await expect(page.locator('input, textarea')).toHaveCount(0);
     await expect(canvas).toBeVisible();
   });
 
@@ -79,7 +79,7 @@ test.describe('validation', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await input.fill('');
     await waitForPaint(page, 200);
     await expect(input).toHaveAttribute('title', 'This field is required.');
@@ -100,7 +100,7 @@ test.describe('validation', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await input.fill('');
     await waitForPaint(page, 200);
     // Fired on the keystroke itself, well before any commit attempt.
