@@ -2,7 +2,7 @@
 name = "rs-grid-yew"
 # Explicit (not workspace-inherited): per-crate independent versioning, bumped by
 # release-plz. See release-plz.toml.
-version = "0.2.6"
+version = "0.2.7"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -16,9 +16,9 @@ keywords = ["grid", "yew", "component", "wasm", "data-grid"]
 categories = ["gui", "web-programming", "wasm"]
 
 [dependencies]
-rs-grid-core  = { path = "../rs-grid-core", version = "0.2.5" }
-rs-grid-scene = { path = "../rs-grid-scene", version = "0.2.4" }
-rs-grid-web   = { path = "../rs-grid-web", version = "0.1.12" }
+rs-grid-core  = { path = "../rs-grid-core", version = "0.3.0" }
+rs-grid-scene = { path = "../rs-grid-scene", version = "0.2.5" }
+rs-grid-web   = { path = "../rs-grid-web", version = "0.1.13" }
 yew           = { version = "0.23", features = ["csr"] }
 wasm-bindgen  = { workspace = true }
 web-sys       = { workspace = true }

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.12...rs-grid-web-v0.1.13) - 2026-07-07
+
+### Added
+
+- add row-selection checkbox column with tri-state functionality
+
+### Fixed
+
+- *(rs-grid-web)* SetSort and ClearSort never refetch server-side pages
+
 ## [0.1.12](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.11...rs-grid-web-v0.1.12) - 2026-07-04
 
 ### Added
