@@ -114,6 +114,7 @@ impl GridCanvas {
         Some(FlashHint {
             alpha_factor,
             cells: f.cells.clone(),
+            is_error: f.is_error,
         })
     }
 }

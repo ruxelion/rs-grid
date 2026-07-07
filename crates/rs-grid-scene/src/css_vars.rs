@@ -119,6 +119,7 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         // flash
         ("--rs-grid-flash-fill", fmt_color(t.flash_fill)),
         ("--rs-grid-flash-border", fmt_color(t.flash_border)),
+        ("--rs-grid-flash-error-fill", fmt_color(t.flash_error_fill)),
         // search
         ("--rs-grid-search-highlight", fmt_color(t.search_highlight)),
         ("--rs-grid-search-current", fmt_color(t.search_current)),
@@ -328,6 +329,8 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         boolean("--rs-grid-header-font-italic", t.header_font_italic);
     t.flash_fill = color("--rs-grid-flash-fill", t.flash_fill);
     t.flash_border = color("--rs-grid-flash-border", t.flash_border);
+    t.flash_error_fill =
+        color("--rs-grid-flash-error-fill", t.flash_error_fill);
     t.search_highlight =
         color("--rs-grid-search-highlight", t.search_highlight);
     t.search_current = color("--rs-grid-search-current", t.search_current);
@@ -568,6 +571,7 @@ mod tests {
             header_font_italic: false,
             flash_fill: c(23),
             flash_border: c(24),
+            flash_error_fill: c(201),
             search_highlight: c(25),
             search_current: c(26),
             skeleton_fg: c(27),

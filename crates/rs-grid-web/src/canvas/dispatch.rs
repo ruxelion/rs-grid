@@ -56,6 +56,18 @@ impl GridCanvas {
     /// `cells`), not a selection rectangle, which may extend past cells
     /// that were skipped.
     pub fn flash_cells(&self, cells: &[CellCoord]) {
+        self.flash_cells_kind(cells, false);
+    }
+
+    /// Trigger a brief red error-flash on exactly `cells` — cells a
+    /// `CutSelection` copied but could not clear (locked or failing
+    /// validation), so the user sees why the cut didn't remove data
+    /// instead of it silently behaving like a copy.
+    pub fn flash_cells_error(&self, cells: &[CellCoord]) {
+        self.flash_cells_kind(cells, true);
+    }
+
+    fn flash_cells_kind(&self, cells: &[CellCoord], is_error: bool) {
         if cells.is_empty() {
             return;
         }
@@ -68,6 +80,7 @@ impl GridCanvas {
             start_ms: now,
             duration_ms: 400.0,
             cells: cells.iter().map(|c| (c.row, c.col)).collect(),
+            is_error,
         });
         self.render();
     }

@@ -55,7 +55,7 @@ test.describe('editing', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    const input = page.locator('input[type="text"]');
+    const input = page.locator('input, textarea');
     await expect(input).toBeVisible();
   });
 
@@ -69,8 +69,8 @@ test.describe('editing', () => {
     await canvas.dblclick({ position: { x: ROLE_X, y: ROLE_Y } });
     await waitForPaint(page, 400);
 
-    // No <input> of any type should exist in the DOM.
-    await expect(page.locator('input')).toHaveCount(0);
+    // No editor overlay of any kind should exist in the DOM.
+    await expect(page.locator('input, textarea')).toHaveCount(0);
     // Canvas must still be visible — no crash.
     await expect(canvas).toBeVisible();
   });
@@ -81,13 +81,81 @@ test.describe('editing', () => {
     await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
     await waitForPaint(page, 400);
 
-    await expect(page.locator('input[type="text"]')).toBeVisible();
+    await expect(page.locator('input, textarea')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await waitForPaint(page, 200);
 
-    await expect(page.locator('input[type="text"]')).toHaveCount(0);
+    await expect(page.locator('input, textarea')).toHaveCount(0);
     await expect(canvas).toBeVisible();
+  });
+
+  // ── Alt+Enter multiline (Excel's convention) ──────────────────────────────
+  test.describe('multiline (Alt+Enter)', () => {
+    test('Alt+Enter switches the single-line <input> to a <textarea> with a newline', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
+      await waitForPaint(page, 400);
+
+      const editor = page.locator('input, textarea');
+      await expect(editor).toHaveCount(1);
+      expect(await editor.evaluate((el) => el.tagName)).toBe('INPUT');
+
+      await page.keyboard.press('Home');
+      await page.keyboard.press('Alt+Enter');
+      await waitForPaint(page, 200);
+
+      const textarea = page.locator('textarea');
+      await expect(textarea).toHaveCount(1);
+      const value = await textarea.inputValue();
+      expect(value.split('\n')).toHaveLength(2);
+    });
+
+    test('a second Alt+Enter adds exactly one more line, and the box grows', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
+      await waitForPaint(page, 400);
+
+      await page.keyboard.press('Home');
+      await page.keyboard.press('Alt+Enter');
+      await waitForPaint(page, 200);
+
+      const textarea = page.locator('textarea');
+      const heightAfterOne = await textarea.evaluate(
+        (el) => getComputedStyle(el).height,
+      );
+
+      // Cursor sits right after the just-inserted newline, so a second
+      // Alt+Enter with no navigation in between adds exactly one more
+      // line at that same spot — deterministic, no typing needed.
+      await page.keyboard.press('Alt+Enter');
+      await waitForPaint(page, 200);
+
+      const value = await textarea.inputValue();
+      expect(value.split('\n')).toHaveLength(3);
+
+      const heightAfterTwo = await textarea.evaluate(
+        (el) => getComputedStyle(el).height,
+      );
+      expect(parseFloat(heightAfterTwo)).toBeGreaterThan(
+        parseFloat(heightAfterOne),
+      );
+    });
+
+    test('Shift+Enter is not a newline shortcut — it commits like plain Enter', async ({ page }) => {
+      const canvas = page.locator('canvas');
+      await canvas.dblclick({ position: { x: NAME_X, y: NAME_Y } });
+      await waitForPaint(page, 400);
+
+      await expect(page.locator('input, textarea')).toHaveCount(1);
+
+      await page.keyboard.press('Shift+Enter');
+      await waitForPaint(page, 200);
+
+      // Committed and closed — no textarea, no newline inserted.
+      await expect(page.locator('input, textarea')).toHaveCount(0);
+      await expect(canvas).toBeVisible();
+    });
   });
 
   // ── Delete/Backspace clear the selected cell(s) ──────────────────────────
@@ -96,7 +164,7 @@ test.describe('editing', () => {
       const canvas = page.locator('canvas');
       await canvas.dblclick({ position: { x, y } });
       await waitForPaint(page, 400);
-      const value = await page.locator('input[type="text"]').inputValue();
+      const value = await page.locator('input, textarea').inputValue();
       await page.keyboard.press('Escape');
       await waitForPaint(page, 200);
       return value;

@@ -44,25 +44,29 @@ impl GridState {
         &mut self,
         tl: &CellCoord,
         br: &CellCoord,
-    ) -> (UndoCells, Vec<CellCoord>) {
+    ) -> (UndoCells, Vec<CellCoord>, Vec<CellCoord>) {
         let mut old_cells = Vec::new();
         let mut cleared = Vec::new();
+        let mut skipped = Vec::new();
         for r in tl.row..=br.row {
             for ci in tl.col..=br.col {
+                let coord = CellCoord { row: r, col: ci };
                 if !self.model.columns[ci].is_cell_editable(r, &self.model) {
+                    skipped.push(coord);
                     continue;
                 }
                 if self.model.columns[ci].validate_value("").is_err() {
+                    skipped.push(coord);
                     continue;
                 }
                 let key = self.model.columns[ci].key.clone();
                 let old = self.model.get_cell(r, &key);
                 old_cells.push((r, key.clone(), old));
                 self.model.set_cell(r, key, String::new());
-                cleared.push(CellCoord { row: r, col: ci });
+                cleared.push(coord);
             }
         }
-        (old_cells, cleared)
+        (old_cells, cleared, skipped)
     }
 
     pub(super) fn cmd_clipboard(&mut self, cmd: GridCommand) -> CommandOutput {
@@ -103,17 +107,20 @@ impl GridState {
                     }
                 }
                 // Normal cut: copy data then clear cells.
-                let result = match self.selection.to_tsv(&self.model) {
-                    Ok(text) => CommandOutput::CopyText(text),
+                let text = match self.selection.to_tsv(&self.model) {
+                    Ok(text) => text,
                     Err(e) => return CommandOutput::CopyError(e),
                 };
+                let mut skipped = Vec::new();
                 if let Some((tl, br)) = self.selection.range() {
-                    let (old_cells, _cleared) = self.clear_cell_range(&tl, &br);
+                    let (old_cells, _cleared, cell_skipped) =
+                        self.clear_cell_range(&tl, &br);
                     if !old_cells.is_empty() {
                         self.history.push(UndoEntry::SetCells(old_cells));
                     }
+                    skipped = cell_skipped;
                 }
-                result
+                CommandOutput::CutApplied { text, skipped }
             }
 
             // ── Clear (Delete/Backspace) ────────────────────────────────────
@@ -129,7 +136,8 @@ impl GridState {
                     // billions of rows".
                     return CommandOutput::None;
                 }
-                let (old_cells, cleared) = self.clear_cell_range(&tl, &br);
+                let (old_cells, cleared, _skipped) =
+                    self.clear_cell_range(&tl, &br);
                 if old_cells.is_empty() {
                     return CommandOutput::None;
                 }
@@ -373,7 +381,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let out = s.apply(GridCommand::CutSelection);
-        assert!(matches!(out, CommandOutput::CopyText(_)));
+        assert!(matches!(out, CommandOutput::CutApplied { .. }));
         assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
     }
 
@@ -443,13 +451,18 @@ mod tests {
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
         let out = s.apply(GridCommand::CutSelection);
-        if let CommandOutput::CopyText(t) = out {
+        if let CommandOutput::CutApplied { text, skipped } = out {
             assert_eq!(
-                t, "a0\tb0\n",
+                text, "a0\tb0\n",
                 "the copy side is unaffected by editability"
             );
+            assert_eq!(
+                skipped,
+                vec![CellCoord { row: 0, col: 1 }],
+                "the locked cell is reported as skipped"
+            );
         } else {
-            panic!("expected CopyText");
+            panic!("expected CutApplied");
         }
         assert_eq!(
             s.model.get_cell(0, "a").as_deref(),
@@ -653,10 +666,15 @@ mod tests {
         let out = s.apply(GridCommand::CutSelection);
         // The copy side is unaffected — the full original values are
         // still placed on the clipboard.
-        if let CommandOutput::CopyText(t) = out {
-            assert_eq!(t, "a0\tb0\n");
+        if let CommandOutput::CutApplied { text, skipped } = out {
+            assert_eq!(text, "a0\tb0\n");
+            assert_eq!(
+                skipped,
+                vec![CellCoord { row: 0, col: 0 }],
+                "the required cell is reported as skipped"
+            );
         } else {
-            panic!("expected CopyText");
+            panic!("expected CutApplied");
         }
         assert_eq!(
             s.model.get_cell(0, "a").as_deref(),
