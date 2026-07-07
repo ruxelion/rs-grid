@@ -118,6 +118,9 @@ pub struct Theme {
     pub flash_fill: Color,
     /// Border colour for the paste-flash animation.
     pub flash_border: Color,
+    /// Fill colour for the error-flash animation — cells a `CutSelection`
+    /// copied but could not clear (locked or failing validation).
+    pub flash_error_fill: Color,
 
     // ── search ──────────────────────────────────────────────────────────────
     /// Background highlight for cells matching the active search query.
@@ -331,6 +334,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
@@ -452,6 +456,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
@@ -573,6 +578,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),

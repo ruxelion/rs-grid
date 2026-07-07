@@ -920,7 +920,7 @@ mod tests {
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
         let out = s.apply(GridCommand::CutSelection);
-        assert!(matches!(out, CommandOutput::CopyText(_)));
+        assert!(matches!(out, CommandOutput::CutApplied { .. }));
         // Cells should be cleared.
         assert_eq!(s.model.get_cell(0, "a"), Some(String::new()),);
         assert_eq!(s.model.get_cell(0, "b"), Some(String::new()),);

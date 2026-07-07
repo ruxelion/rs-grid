@@ -231,6 +231,9 @@ struct FlashState {
     /// by the paste, not the full selection rectangle (which may
     /// extend past cells skipped for being locked or invalid).
     cells: std::collections::HashSet<(u64, usize)>,
+    /// When `true`, renders as an error flash (`Theme::flash_error_fill`)
+    /// instead of the success flash (`Theme::flash_fill`).
+    is_error: bool,
 }
 
 // ── impl ──────────────────────────────────────────────────────────────────────

@@ -65,18 +65,18 @@ pub(super) fn emit_cell(
     if let Some(f) = flash
         && f.cells.contains(&(ri, ci))
     {
-        let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
+        let base = if f.is_error {
+            t.flash_error_fill
+        } else {
+            t.flash_fill
+        };
+        let a = (base.a as f64 * f.alpha_factor).round() as u8;
         frame.push(ScenePrimitive::Rect(RectPrimitive {
             x: cx,
             y: ry,
             width: col.width,
             height: row_height,
-            fill: Color::rgba(
-                t.flash_fill.r,
-                t.flash_fill.g,
-                t.flash_fill.b,
-                a,
-            ),
+            fill: Color::rgba(base.r, base.g, base.b, a),
             stroke: None,
             stroke_width: 0.0,
             corner_radius: 0.0,
@@ -852,6 +852,7 @@ mod tests {
         let flash = FlashHint {
             alpha_factor: 0.5,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         emit_cell(
             &mut frame,
@@ -895,6 +896,7 @@ mod tests {
         let flash = FlashHint {
             alpha_factor: 1.0,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         emit_cell(
             &mut frame,

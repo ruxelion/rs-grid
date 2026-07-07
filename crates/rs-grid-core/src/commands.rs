@@ -327,4 +327,20 @@ pub enum CommandOutput {
         /// Coordinates of cells that were actually cleared.
         cells: Vec<CellCoord>,
     },
+    /// A per-cell `CutSelection` completed (not the full-column-header
+    /// variant, which still returns plain `CopyText` — see the
+    /// `CutSelection` doc comment). `text` is the TSV to place on the
+    /// clipboard, always covering the full original selection
+    /// regardless of what the clear side skipped. `skipped` holds the
+    /// coordinates that were **not** cleared because the cell is locked
+    /// or its empty value fails validation (e.g. `.required()`) — a
+    /// subset of the selection. Consumers use `skipped` to give
+    /// feedback (e.g. an error flash) distinguishing "cut succeeded" from
+    /// "copied but couldn't clear", which otherwise look identical.
+    CutApplied {
+        /// TSV text to place on the clipboard.
+        text: String,
+        /// Coordinates that were copied but not cleared.
+        skipped: Vec<CellCoord>,
+    },
 }

@@ -61,6 +61,11 @@ pub struct FlashHint {
     pub alpha_factor: f64,
     /// Coordinates of the cells to flash.
     pub cells: HashSet<(u64, usize)>,
+    /// When `true`, renders with `Theme::flash_error_fill` instead of
+    /// `Theme::flash_fill` — used for cells a `CutSelection` copied but
+    /// could not clear (locked or failing validation), to distinguish
+    /// that outcome from a successful paste/clear flash.
+    pub is_error: bool,
 }
 
 // ── builder
@@ -1609,6 +1614,7 @@ mod tests {
         let flash = FlashHint {
             alpha_factor: 0.5,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         let frame = b.build(&state, None, Some(&flash), None);
 
@@ -1659,6 +1665,7 @@ mod tests {
         let flash_end = FlashHint {
             alpha_factor: 0.0,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         let frame_end = b.build(&state, None, Some(&flash_end), None);
         assert_eq!(
@@ -1679,6 +1686,7 @@ mod tests {
         let flash_start = FlashHint {
             alpha_factor: 1.0,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         let frame_start = b.build(&state, None, Some(&flash_start), None);
         assert_eq!(
@@ -1697,6 +1705,7 @@ mod tests {
         let flash = FlashHint {
             alpha_factor: 1.0,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         let frame = b.build(&state, None, Some(&flash), None);
 
@@ -2425,6 +2434,7 @@ mod tests {
         let f = FlashHint {
             alpha_factor: 0.75,
             cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
         };
         let f2 = f.clone();
         assert_eq!(f.alpha_factor, f2.alpha_factor);
