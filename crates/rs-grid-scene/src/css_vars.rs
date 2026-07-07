@@ -87,6 +87,7 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-scrollbar-thumb", fmt_color(t.scrollbar_thumb)),
         ("--rs-grid-row-alt-bg", fmt_color(t.row_alt_bg)),
         ("--rs-grid-row-hover-bg", fmt_color(t.row_hover_bg)),
+        ("--rs-grid-checked-row-bg", fmt_color(t.checked_row_bg)),
         ("--rs-grid-locked-cell-bg", fmt_color(t.locked_cell_bg)),
         ("--rs-grid-locked-cell-text", fmt_color(t.locked_cell_text)),
         (
@@ -128,6 +129,22 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-progress-fill", fmt_color(t.progress_fill)),
         ("--rs-grid-progress-height", fmt_px(t.progress_height)),
         ("--rs-grid-progress-radius", fmt_px(t.progress_radius)),
+        // checkbox
+        ("--rs-grid-checkbox-size", fmt_px(t.checkbox_size)),
+        ("--rs-grid-checkbox-radius", fmt_px(t.checkbox_radius)),
+        ("--rs-grid-checkbox-border", fmt_color(t.checkbox_border)),
+        (
+            "--rs-grid-checkbox-border-width",
+            fmt_px(t.checkbox_border_width),
+        ),
+        (
+            "--rs-grid-checkbox-checked-bg",
+            fmt_color(t.checkbox_checked_bg),
+        ),
+        (
+            "--rs-grid-checkbox-mark-color",
+            fmt_color(t.checkbox_mark_color),
+        ),
         // spacing
         ("--rs-grid-cell-padding", fmt_px(t.cell_padding)),
         // scrollbar
@@ -287,6 +304,7 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.scrollbar_thumb = color("--rs-grid-scrollbar-thumb", t.scrollbar_thumb);
     t.row_alt_bg = color("--rs-grid-row-alt-bg", t.row_alt_bg);
     t.row_hover_bg = color("--rs-grid-row-hover-bg", t.row_hover_bg);
+    t.checked_row_bg = color("--rs-grid-checked-row-bg", t.checked_row_bg);
     t.locked_cell_bg = color("--rs-grid-locked-cell-bg", t.locked_cell_bg);
     t.locked_cell_text =
         color("--rs-grid-locked-cell-text", t.locked_cell_text);
@@ -318,6 +336,15 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.progress_fill = color("--rs-grid-progress-fill", t.progress_fill);
     t.progress_height = px("--rs-grid-progress-height", t.progress_height);
     t.progress_radius = px("--rs-grid-progress-radius", t.progress_radius);
+    t.checkbox_size = px("--rs-grid-checkbox-size", t.checkbox_size);
+    t.checkbox_radius = px("--rs-grid-checkbox-radius", t.checkbox_radius);
+    t.checkbox_border = color("--rs-grid-checkbox-border", t.checkbox_border);
+    t.checkbox_border_width =
+        px("--rs-grid-checkbox-border-width", t.checkbox_border_width);
+    t.checkbox_checked_bg =
+        color("--rs-grid-checkbox-checked-bg", t.checkbox_checked_bg);
+    t.checkbox_mark_color =
+        color("--rs-grid-checkbox-mark-color", t.checkbox_mark_color);
     t.cell_padding = px("--rs-grid-cell-padding", t.cell_padding);
     t.scrollbar_width = px("--rs-grid-scrollbar-width", t.scrollbar_width);
     t.scrollbar_radius = px("--rs-grid-scrollbar-radius", t.scrollbar_radius);
@@ -532,6 +559,7 @@ mod tests {
             scrollbar_thumb: c(14),
             row_alt_bg: c(15),
             row_hover_bg: c(16),
+            checked_row_bg: c(200),
             header_height: 17.0,
             row_height: 18.0,
             font_size: 19.0,
@@ -547,6 +575,12 @@ mod tests {
             progress_fill: c(29),
             progress_height: 30.0,
             progress_radius: 31.0,
+            checkbox_size: 82.0,
+            checkbox_radius: 83.0,
+            checkbox_border: c(84),
+            checkbox_border_width: 85.0,
+            checkbox_checked_bg: c(86),
+            checkbox_mark_color: c(87),
             cell_padding: 32.0,
             scrollbar_width: 33.0,
             scrollbar_radius: 34.0,

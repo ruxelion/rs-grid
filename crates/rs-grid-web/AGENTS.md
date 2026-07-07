@@ -147,6 +147,36 @@ shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
 overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
 `Theme` fields (see *CSS theme* below) for the themed visual.
 
+## Row-selection checkbox column
+
+`GridModel.show_checkbox_column` (opt-in, default `false`) inserts a
+column at `GridModel.checkbox_column_width` (default
+`GridModel::CHECKBOX_COLUMN_WIDTH`, runtime-configurable via
+`GridCommand::SetCheckboxColumnWidth`/`GridCanvas::set_checkbox_column_width`),
+as the first slot of the scrollable (unpinned) region — unlike the
+row-number gutter, it is
+**not** fixed on screen: it scrolls away with `scroll_x` like a real
+column, and sits after any pinned real columns. Still outside
+`ColumnOffsets`/`hit_column` (rs-grid-core's `hit_test`/
+`hit_test_col_header` reserve its width as a scroll-shift term instead).
+`attach_mousedown` (`canvas/events.rs`) hit-tests it in a dedicated
+cascade block, right before the row-number gutter check:
+`hit_test_checkbox_header` (→ `GridCommand::ToggleAllFilteredChecked`)
+and `hit_test_checkbox_row` (→ `GridCommand::ToggleRowChecked`) — both
+`pub(super)` wrappers in `canvas/hittest.rs` delegating to the
+`GridState` methods of the same name (rs-grid-core), which now factor in
+`scroll_x` since the checkbox's on-screen position is scroll-dependent.
+A row-checkbox click is a discrete toggle, not a drag gesture — unlike
+the row-number gutter's `ActiveDrag::Row`.
+
+`GridCanvas::checked_row_indices()` returns **physical** row ids (not
+logical/display order, unlike `selected_row_indices()`) — checkbox state
+is tracked by row identity so it survives sort/filter. Pair with
+`set_on_checked_rows_changed` (see *Public callbacks* below) and
+`checkbox_header_state()` (tri-state: `Checked`/`Unchecked`/
+`Indeterminate`) to drive a bulk-action toolbar. Toggle the column itself
+at runtime with `set_show_checkbox_column(bool)`.
+
 ## Success-flash feedback (paste, clear)
 
 `GridCanvas::flash_cells(&[CellCoord])` (`canvas/dispatch.rs`) arms a
@@ -180,6 +210,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_validation_error` | A `CommitEdit` was rejected by `ColumnDef.rules`/`validator` (`CommandOutput::ValidationError`) — fires for both `InvalidEditMode::Revert` and `::Block` |
 | `set_on_validation_state_changed` | `StartEdit`, `ValidateEdit`, `CommitEdit`, `CancelEdit` — fires with the fresh `validation_error()` value on *every keystroke*, not just rejected commits |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
+| `set_on_checked_rows_changed` | `ToggleRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
 borrow on `state` — `apply()` returns its output by value, and each callback

@@ -18,12 +18,15 @@
   --rs-grid-scrollbar-thumb: rgba(176, 188, 200, 0.30);
   --rs-grid-row-alt-bg: #22272e;
   --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.04);
+  --rs-grid-checked-row-bg: rgba(99, 80, 240, 0.10);
   --rs-grid-locked-cell-bg: rgba(255, 255, 255, 0.04);
   --rs-grid-locked-cell-text: rgba(173, 186, 199, 0.55);
   --rs-grid-invalid-cell-border: #da3633;
   --rs-grid-skeleton-fg: rgba(99, 110, 123, 0.78);
   --rs-grid-progress-track: #373e47;
   --rs-grid-progress-fill: #6350f0;
+  --rs-grid-checkbox-border: #5a626e;
+  --rs-grid-checkbox-checked-bg: #6350f0;
   --rs-grid-drag-ghost-bg: #2d333b;
   --rs-grid-drag-ghost-text: #adbac7;
   --rs-grid-header-menu-icon: rgba(173, 186, 199, 0.70);

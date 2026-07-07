@@ -59,6 +59,9 @@ pub struct Theme {
     /// Background overlay for the row under the cursor (transparent =
     /// disabled).
     pub row_hover_bg: Color,
+    /// Background overlay for a row checked via the row-selection checkbox
+    /// column (transparent = disabled). Drawn above `row_hover_bg`.
+    pub checked_row_bg: Color,
 
     // ── locked cell (non-editable)
     // ────────────────────────────────────────────────────
@@ -137,6 +140,22 @@ pub struct Theme {
     pub progress_height: f64,
     /// Corner radius of the track and fill in logical pixels.
     pub progress_radius: f64,
+
+    // ── checkbox column (row-selection checkbox + header tri-state)
+    // ──────
+    /// Side length of the checkbox box in logical pixels.
+    pub checkbox_size: f64,
+    /// Corner radius of the checkbox box in logical pixels.
+    pub checkbox_radius: f64,
+    /// Border color of the checkbox box (unchecked state).
+    pub checkbox_border: Color,
+    /// Border width of the checkbox box in logical pixels.
+    pub checkbox_border_width: f64,
+    /// Fill color when checked or indeterminate. Default = DaisyUI
+    /// primary.
+    pub checkbox_checked_bg: Color,
+    /// Color of the check mark (checked) or dash (indeterminate).
+    pub checkbox_mark_color: Color,
 
     // ── spacing
     // ──────────────────────────────────────────────────────────────
@@ -291,6 +310,8 @@ impl Theme {
             row_alt_bg: Color::rgb(255, 255, 255),
             // rgba(33, 150, 243, 0.07) → a = round(0.07 × 255) = 18
             row_hover_bg: Color::rgba(33, 150, 243, 18),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(66, 42, 213, 22),
             // locked cell — subtle gray wash, dimmed text
             // rgba(0, 0, 0, 0.035) → a = round(0.035 × 255) = 9
             locked_cell_bg: Color::rgba(0, 0, 0, 9),
@@ -320,6 +341,13 @@ impl Theme {
             progress_fill: Color::rgb(66, 42, 213),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = mid gray, checked fill = DaisyUI primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(148, 163, 184),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(66, 42, 213),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -404,6 +432,8 @@ impl Theme {
             row_alt_bg: Color::rgb(33, 33, 35),
             // rgba(255, 255, 255, 0.05) → a = round(0.05 × 255) = 13
             row_hover_bg: Color::rgba(255, 255, 255, 13),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(99, 80, 240, 30),
             // locked cell — rgba(255, 255, 255, 0.04) → a = 10
             locked_cell_bg: Color::rgba(255, 255, 255, 10),
             locked_cell_text: Color::rgba(208, 208, 208, 140),
@@ -432,6 +462,13 @@ impl Theme {
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = muted gray, checked fill = brighter primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(100, 106, 115),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(99, 80, 240),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -516,6 +553,8 @@ impl Theme {
             row_alt_bg: Color::rgb(34, 39, 46),
             // rgba(255, 255, 255, 0.04) → a = round(0.04 × 255) = 10
             row_hover_bg: Color::rgba(255, 255, 255, 10),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(99, 80, 240, 26),
             // locked cell — rgba(255, 255, 255, 0.035) → a = 9
             locked_cell_bg: Color::rgba(255, 255, 255, 9),
             locked_cell_text: Color::rgba(173, 186, 199, 140),
@@ -544,6 +583,13 @@ impl Theme {
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = muted slate, checked fill = brighter primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(90, 98, 110),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(99, 80, 240),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar

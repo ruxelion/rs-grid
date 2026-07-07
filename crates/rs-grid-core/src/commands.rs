@@ -26,6 +26,7 @@ use crate::{
 /// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
+/// | **Row checkboxes** | `ToggleRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
 /// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -91,6 +92,10 @@ pub enum GridCommand {
     /// Set the row-number gutter width in logical pixels (0 hides it,
     /// same meaning as `SetShowRowNumbers(false)`).
     SetRowNumberWidth(f64),
+    /// Set the row-selection checkbox column's width in logical pixels
+    /// (negative values are ignored). The checkbox itself stays centered,
+    /// so this also controls the visual margin around it.
+    SetCheckboxColumnWidth(f64),
     /// Show or hide the column header row.
     SetShowHeader(bool),
     /// Show or hide the row-number gutter.
@@ -255,6 +260,17 @@ pub enum GridCommand {
         /// menu icon button, sort arrow, and their margins.
         header_right_reserve: f64,
     },
+    /// Toggle whether a single row (logical index) is checked in the
+    /// row-selection checkbox column. Checked state is tracked by
+    /// physical row id, so it survives sort/filter changes.
+    ToggleRowChecked(u64),
+    /// Toggle the checkbox-column header: if every row currently
+    /// passing the active filter (or every row, if unfiltered) is
+    /// checked, uncheck them all; otherwise check them all. Never
+    /// touches rows filtered out of view.
+    ToggleAllFilteredChecked,
+    /// Show or hide the row-selection checkbox column.
+    SetShowCheckboxColumn(bool),
 }
 
 /// Value returned by [`crate::state::GridState::apply`]

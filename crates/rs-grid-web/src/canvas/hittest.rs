@@ -67,18 +67,19 @@ impl GridCanvas {
         if vy >= model.header_height {
             return None;
         }
-        if vx < model.row_number_width {
+        let rnw = model.effective_row_number_width();
+        if vx < rnw {
             return None;
         }
+        let ccw = model.effective_checkbox_column_width();
         let scroll_x = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
         let pinned = model.pinned_count;
         for (i, col) in model.columns.iter().enumerate() {
             let off = model.column_offsets.offsets[i] + col.width;
             let sep_vx = if i < pinned {
                 off + rnw
             } else {
-                off - scroll_x + rnw
+                off - scroll_x + rnw + ccw
             };
             if (vx - sep_vx).abs() <= HIT_ZONE {
                 return Some(i);
@@ -154,7 +155,8 @@ impl GridCanvas {
         let state = self.0.state.borrow();
         let model = &state.model;
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let pinned = model.pinned_count;
         let len = model.columns.len();
 
@@ -164,7 +166,7 @@ impl GridCanvas {
                 if i < pinned {
                     off + rnw
                 } else {
-                    off - sx + rnw
+                    off - sx + rnw + ccw
                 }
             } else {
                 let last = len - 1;
@@ -173,7 +175,7 @@ impl GridCanvas {
                 if last < pinned {
                     off + rnw
                 } else {
-                    off - sx + rnw
+                    off - sx + rnw + ccw
                 }
             }
         };
@@ -256,11 +258,12 @@ impl GridCanvas {
         }
         let off = model.column_offsets.offsets[col_idx];
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let col_left_vx = if col_idx < model.pinned_count {
             off + rnw
         } else {
-            off - sx + rnw
+            off - sx + rnw + ccw
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         if vx >= col_right_vx - mr - bw && vx < col_right_vx - mr {
@@ -289,11 +292,12 @@ impl GridCanvas {
         let btn_ty = (model.header_height - btn_h) / 2.0;
         let off = model.column_offsets.offsets[col_idx];
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let col_left_vx = if col_idx < model.pinned_count {
             off + rnw
         } else {
-            off - sx + rnw
+            off - sx + rnw + ccw
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         let btn_left_vx = col_right_vx - mr - bw;

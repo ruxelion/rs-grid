@@ -72,6 +72,14 @@ impl GridCanvas {
                 | GridCommand::SelectCol(_)
                 | GridCommand::ExtendColSelection(_)
         );
+        // Commands that mutate `checked_rows` — fire the
+        // on_checked_rows_changed callback so JS callers can react to row
+        // checkbox toggles (e.g. show a bulk-action toolbar).
+        let is_checked_rows_change = matches!(
+            cmd,
+            GridCommand::ToggleRowChecked(_)
+                | GridCommand::ToggleAllFilteredChecked
+        );
         // Commands that may expose new rows — trigger a page fetch in
         // server-side pagination mode (PageCacheDataSource).
         let triggers_fetch = matches!(
@@ -161,6 +169,12 @@ impl GridCanvas {
                 cb();
             }
         }
+        if is_checked_rows_change {
+            let cb = self.0.on_checked_rows_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb();
+            }
+        }
         if triggers_fetch {
             self.maybe_fetch_pages();
         }
@@ -217,6 +231,19 @@ impl GridCanvas {
     /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_selection_changed(&self, cb: impl Fn() + 'static) {
         *self.0.on_selection_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired after every command that mutates
+    /// `checked_rows`: `ToggleRowChecked`, `ToggleAllFilteredChecked`. Use
+    /// it together with [`GridCanvas::checked_row_indices`] to drive
+    /// row-level bulk-action toolbars.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    pub fn set_on_checked_rows_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_checked_rows_changed.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an

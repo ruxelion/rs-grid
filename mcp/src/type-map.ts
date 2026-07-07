@@ -51,6 +51,7 @@ export const TYPE_TO_DOC_PATH: Record<string, string> = {
   // Concepts
   selectionstate: "concepts/selection",
   cellcoord: "concepts/selection",
+  checkboxtristate: "concepts/selection",
   viewportstate: "concepts/viewport",
 
   // Features

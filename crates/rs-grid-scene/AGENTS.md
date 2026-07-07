@@ -154,6 +154,47 @@ target/cleared rectangle even when some cells were skipped (locked or
 failing validation). Flashing by selection would give a skipped cell the
 same "success" overlay as a cell that was actually written.
 
+### Row-selection checkbox column (`builder/checkbox.rs`)
+
+Gated by `GridModel.show_checkbox_column`, width
+`GridModel.checkbox_column_width` (default `GridModel::CHECKBOX_COLUMN_WIDTH`,
+runtime-configurable — `emit_checkbox` always centers the box within it,
+so widening it grows the margin symmetrically). Unlike the row-number
+gutter, this
+column is **not** a fixed/pinned band — it's the first slot of the
+scrollable (unpinned) region, so it scrolls away with `scroll_x` exactly
+like a real column, and pinned real columns (if any) render immediately
+after the gutter, unaffected by it, with the checkbox appearing after
+them. It's still never part of `columns: Vec<ColumnDef>` or
+`ColumnOffsets` — `rs-grid-core`'s `hit_test`/`hit_test_col_header`
+reserve its width (`effective_checkbox_column_width()`) as a scroll-shift
+term instead, so `ColumnOffsets::hit_column`'s O(log n) search never
+needs to know about it. Drawn in its own pass in `builder.rs` (row
+checkboxes right before the pinned-column overlay section; the header
+checkbox right before the pinned-header block) so the pinned band's
+overlay — rendered after, on top — correctly masks the checkbox once it
+scrolls underneath, the same z-order relationship real unpinned columns
+already have with the pinned band.
+
+- `emit_checkbox` (`builder/checkbox.rs`) draws a themed box (`Rect` with
+  `Theme::checkbox_border`/`checkbox_radius`/`checkbox_border_width`) plus,
+  for `Checked`/`Indeterminate`, a mark built from plain `Line` segments
+  (a two-segment check mark, or a single dash) — no new primitive type,
+  same "reuse an existing primitive" precedent as the sort-arrow's
+  `Polygon`.
+- Per-row state (`Checked`/`Unchecked`) comes from `GridState.checked_rows:
+  HashSet<u64>`, keyed by **physical** row id (survives sort/filter,
+  mirroring `set_cell`'s logical→physical translation via
+  `model.logical_to_physical`) — never `Indeterminate` for a single row.
+- The header cell's tri-state comes from `GridState::checkbox_header_state()`
+  (rs-grid-core), scoped to `model.filtered_indices` when a filter is
+  active, otherwise all rows.
+- A checked row also gets a full-width background overlay
+  (`Theme::checked_row_bg`, transparent = disabled), drawn in the main
+  row loop right after the hover overlay — same "layer above alt-bg,
+  below selection" ordering as `row_hover_bg`, keyed by the same
+  physical-id lookup as the checkbox itself.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

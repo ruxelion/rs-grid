@@ -145,6 +145,16 @@ pub struct GridModel {
     /// Width of the sticky row-number gutter on the left in logical pixels (0
     /// = hidden).
     pub row_number_width: f64,
+    /// Whether the row-selection checkbox column is rendered. Unlike the
+    /// row-number gutter, it is **not** a fixed/pinned band — it is the
+    /// first unpinned (scrollable) column, so it scrolls away with the
+    /// data.
+    pub show_checkbox_column: bool,
+    /// Width of the row-selection checkbox column in logical pixels.
+    /// Defaults to [`GridModel::CHECKBOX_COLUMN_WIDTH`]. The checkbox
+    /// itself is always centered within this width, so widening it grows
+    /// the visual margin around the box symmetrically.
+    pub checkbox_column_width: f64,
     /// Logical→physical row index mapping built by `apply_sort`.
     /// Empty = natural (unsorted) order.
     pub sort_order: Vec<u64>,
@@ -198,6 +208,11 @@ impl GridModel {
     /// `apply_sort` is a no-op above this threshold and returns `false`.
     pub const MAX_CLIENT_SORT_ROWS: u64 = 1_000_000;
 
+    /// Default width of the row-selection checkbox column in logical
+    /// pixels. Override via `checkbox_column_width` /
+    /// `GridCommand::SetCheckboxColumnWidth`.
+    pub const CHECKBOX_COLUMN_WIDTH: f64 = 42.0;
+
     /// Create a model backed by an in-memory Vec (backwards-compatible API).
     pub fn new(
         columns: Vec<ColumnDef>,
@@ -230,6 +245,8 @@ impl GridModel {
             column_offsets,
             patches: HashMap::new(),
             row_number_width,
+            show_checkbox_column: false,
+            checkbox_column_width: Self::CHECKBOX_COLUMN_WIDTH,
             sort_order: Vec::new(),
             sort_key_cache: SortKeyCache::None,
             pinned_count: 0,
@@ -266,6 +283,22 @@ impl GridModel {
     pub fn effective_row_number_width(&self) -> f64 {
         if self.show_row_numbers {
             self.row_number_width
+        } else {
+            0.0
+        }
+    }
+
+    /// Effective checkbox-column width for layout and rendering.
+    ///
+    /// Returns `checkbox_column_width` when `show_checkbox_column` is
+    /// `true`, `0.0` otherwise. Unlike the row-number gutter, the
+    /// checkbox column is **not** a fixed/pinned band — it is the first
+    /// unpinned (scrollable) column, so this width is added to
+    /// [`Self::total_width`] and to unpinned columns' screen position,
+    /// never to a fixed gutter offset. See [`Self::total_width`].
+    pub fn effective_checkbox_column_width(&self) -> f64 {
+        if self.show_checkbox_column {
+            self.checkbox_column_width
         } else {
             0.0
         }
@@ -578,9 +611,11 @@ impl GridModel {
         self.header_height + self.display_row_count() as f64 * self.row_height
     }
 
-    /// Total scrollable width.
+    /// Total scrollable width — real columns plus the checkbox column
+    /// (when shown), which occupies the first slot of the scrollable
+    /// (unpinned) region and scrolls away like any other column.
     pub fn total_width(&self) -> f64 {
-        self.column_offsets.total_width
+        self.column_offsets.total_width + self.effective_checkbox_column_width()
     }
 
     /// Y position of the top edge of a data row (in content space, before
@@ -628,6 +663,7 @@ impl GridModel {
 
         let available = viewport_width
             - self.row_number_width
+            - self.effective_checkbox_column_width()
             - self.scrollbar_size
             - fixed_sum;
 
@@ -701,6 +737,7 @@ pub struct GridModelBuilder {
     scrollbar_size: f64,
     show_header: bool,
     show_row_numbers: bool,
+    show_checkbox_column: bool,
     editable: bool,
     selectable: bool,
     column_reorderable: bool,
@@ -724,6 +761,7 @@ impl GridModelBuilder {
             scrollbar_size: 14.0,
             show_header: true,
             show_row_numbers: true,
+            show_checkbox_column: false,
             editable: true,
             selectable: true,
             column_reorderable: true,
@@ -774,6 +812,12 @@ impl GridModelBuilder {
         self
     }
 
+    /// Show or hide the row-selection checkbox column.
+    pub fn row_selection_checkboxes(mut self, v: bool) -> Self {
+        self.show_checkbox_column = v;
+        self
+    }
+
     /// Allow or disallow inline cell editing grid-wide.
     ///
     /// When `false`, `StartEdit` commands are no-ops regardless of
@@ -815,6 +859,7 @@ impl GridModelBuilder {
         model.scrollbar_size = self.scrollbar_size;
         model.show_header = self.show_header;
         model.show_row_numbers = self.show_row_numbers;
+        model.show_checkbox_column = self.show_checkbox_column;
         model.editable = self.editable;
         model.selectable = self.selectable;
         model.column_reorderable = self.column_reorderable;
@@ -1243,6 +1288,34 @@ mod tests {
                 .show_row_numbers(false)
                 .build();
         assert!(!m.show_row_numbers);
+    }
+
+    #[test]
+    fn builder_row_selection_checkboxes() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .row_selection_checkboxes(true)
+                .build();
+        assert!(m.show_checkbox_column);
+        assert_eq!(
+            m.effective_checkbox_column_width(),
+            GridModel::CHECKBOX_COLUMN_WIDTH
+        );
+        // Not a fixed gutter — it's folded into total_width() as the
+        // first slot of the scrollable region.
+        assert_eq!(m.total_width(), 100.0 + GridModel::CHECKBOX_COLUMN_WIDTH);
+    }
+
+    #[test]
+    fn checkbox_column_width_zero_when_disabled() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .build();
+        assert!(!m.show_checkbox_column);
+        assert_eq!(m.effective_checkbox_column_width(), 0.0);
+        assert_eq!(m.total_width(), 100.0);
     }
 
     #[test]

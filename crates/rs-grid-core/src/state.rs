@@ -2,17 +2,21 @@ mod cmd_clipboard;
 mod cmd_column;
 mod cmd_edit;
 mod cmd_meta;
+mod cmd_row_check;
 mod cmd_scroll;
 mod cmd_search;
 mod cmd_selection;
 mod cmd_sort_filter;
 mod cmd_undo;
 
+use std::collections::HashSet;
+
 use crate::{
     commands::{CommandOutput, GridCommand},
     edit::EditCell,
     hit_test,
     model::GridModel,
+    row_check::CheckboxTriState,
     search::SearchState,
     selection::{CellCoord, SelectionState},
     sort::SortState,
@@ -57,6 +61,11 @@ pub struct GridState {
     pub edit: Option<EditCell>,
     /// Active search (empty query = inactive).
     pub search: SearchState,
+    /// Physical (datasource) row ids checked via the row-selection
+    /// checkbox column. Not affected by sort/filter (unlike display-order
+    /// selection), and not part of the undo history — same non-undoable
+    /// precedent as `SelectRow`/`SelectCol`/`ClearSelection`.
+    pub checked_rows: HashSet<u64>,
     /// Undo/redo history.
     history: UndoHistory,
 }
@@ -82,6 +91,9 @@ fn clamp_scroll(
 ) -> (f64, f64) {
     let rnw = model.row_number_width;
     let sb = model.scrollbar_size;
+    // `total_width()` already includes the checkbox column's width (it
+    // scrolls with the data, unlike the row-number gutter) — see
+    // `GridModel::total_width`.
     let max_x = (model.total_width() - (vp.width - rnw - sb)).max(0.0);
     let max_y = (model.total_height() - vp.height + sb).max(0.0);
     (x.clamp(0.0, max_x), y.clamp(0.0, max_y))
@@ -105,6 +117,7 @@ impl GridState {
             sort: None,
             edit: None,
             search: SearchState::default(),
+            checked_rows: HashSet::new(),
             history: UndoHistory::default(),
         }
     }
@@ -152,6 +165,9 @@ impl GridState {
 
             GridCommand::Undo | GridCommand::Redo => self.cmd_undo(cmd),
 
+            GridCommand::ToggleRowChecked(_)
+            | GridCommand::ToggleAllFilteredChecked => self.cmd_row_check(cmd),
+
             GridCommand::Search { .. }
             | GridCommand::SearchNext
             | GridCommand::SearchPrev
@@ -163,6 +179,8 @@ impl GridState {
             | GridCommand::SetRowNumberWidth(_)
             | GridCommand::SetShowHeader(_)
             | GridCommand::SetShowRowNumbers(_)
+            | GridCommand::SetShowCheckboxColumn(_)
+            | GridCommand::SetCheckboxColumnWidth(_)
             | GridCommand::SetEditable(_)
             | GridCommand::SetSelectable(_)
             | GridCommand::SetColumnReorderable(_)
@@ -201,6 +219,61 @@ impl GridState {
             &self.model,
             self.viewport.scroll_x,
         )
+    }
+
+    /// Hit-test the checkbox column (scrolls with the data). Returns the
+    /// row index or `None`.
+    pub fn hit_test_checkbox_row(&self, vx: f64, vy: f64) -> Option<u64> {
+        hit_test::hit_test_checkbox_row(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+        )
+    }
+
+    /// Hit-test the header's checkbox (select-all) cell.
+    pub fn hit_test_checkbox_header(&self, vx: f64, vy: f64) -> bool {
+        hit_test::hit_test_checkbox_header(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+        )
+    }
+
+    /// Tri-state of the header checkbox: `Checked` when every row
+    /// currently passing the active filter (or every row, if
+    /// unfiltered) is checked, `Unchecked` when none are, otherwise
+    /// `Indeterminate`.
+    pub fn checkbox_header_state(&self) -> CheckboxTriState {
+        let total = if !self.model.filtered_indices.is_empty() {
+            self.model.filtered_indices.len() as u64
+        } else {
+            self.model.data.row_count()
+        };
+        if total == 0 {
+            return CheckboxTriState::Unchecked;
+        }
+        let checked_count = if !self.model.filtered_indices.is_empty() {
+            self.model
+                .filtered_indices
+                .iter()
+                .filter(|id| self.checked_rows.contains(id))
+                .count() as u64
+        } else {
+            // Guard against stale physical ids left over from a shrunk
+            // dataset — only count ones still in range.
+            self.checked_rows.iter().filter(|&&id| id < total).count() as u64
+        };
+        if checked_count == 0 {
+            CheckboxTriState::Unchecked
+        } else if checked_count == total {
+            CheckboxTriState::Checked
+        } else {
+            CheckboxTriState::Indeterminate
+        }
     }
 }
 

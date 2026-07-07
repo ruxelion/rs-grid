@@ -382,6 +382,17 @@ impl GridCanvas {
                 }
             }
 
+            // ── checkbox column ────────────────────────────
+            if gc.0.state.borrow().hit_test_checkbox_header(x, y) {
+                gc.dispatch(GridCommand::ToggleAllFilteredChecked);
+                return;
+            }
+            let checkbox_row = gc.0.state.borrow().hit_test_checkbox_row(x, y);
+            if let Some(row) = checkbox_row {
+                gc.dispatch(GridCommand::ToggleRowChecked(row));
+                return; // discrete click, no drag gesture
+            }
+
             // ── row header selection ──────────────────────
             let row = gc.0.state.borrow().hit_test_row_header(x, y);
             if let Some(row) = row {

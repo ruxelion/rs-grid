@@ -30,6 +30,9 @@ pub mod model;
 pub mod page_cache;
 /// Row record storage and metadata.
 pub mod row;
+/// Tri-state (checked/unchecked/indeterminate) for the row-selection
+/// checkbox column.
+pub mod row_check;
 /// Scrollbar geometry and drag state.
 pub mod scrollbar;
 /// Active search state and local text search logic.

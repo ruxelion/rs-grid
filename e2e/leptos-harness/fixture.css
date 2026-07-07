@@ -26,6 +26,10 @@ body {
 
 .fixture-header {
   padding: 12px 16px;
+  /* Positioning context for the e2e-only checkbox-column toggle, which is
+   * taken out of flow (position: absolute) so it can't grow this row's
+   * height and shift every pixel-coordinate-based test/snapshot below it. */
+  position: relative;
 }
 
 .fixture-subtitle {

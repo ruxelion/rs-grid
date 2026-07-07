@@ -24,6 +24,10 @@ use wasm_bindgen::prelude::*;
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
+    // e2e-only: whether the row-selection checkbox column is shown. A plain
+    // `<button>` (not an `<input>`) so it doesn't trip editing.spec.ts's
+    // "no <input> exists in the DOM" assertion for the editor=None case.
+    let show_checkboxes = RwSignal::new(false);
 
     // No theme selector: read whatever CSS vars are present (defaults to
     // Theme::light() when none are defined).
@@ -138,6 +142,34 @@ fn App() -> impl IntoView {
                         <option value="150">"Gutter: 150px"</option>
                     </select>
                 </div>
+                // e2e-only: toggles the row-selection checkbox column live.
+                // `position: absolute` (see fixture.css) takes it out of
+                // flow so it can't grow `.fixture-header`'s height and shift
+                // every pixel-coordinate-based test/snapshot below it. Off
+                // by default, so other specs are unaffected unless a test
+                // explicitly clicks this button.
+                <button
+                    data-testid="show-checkbox-column-toggle"
+                    style="position:absolute; top:12px; right:16px;"
+                    on:click={
+                        let gc_holder = gc_holder.clone();
+                        move |_| {
+                            let next = !show_checkboxes.get_untracked();
+                            show_checkboxes.set(next);
+                            if let Some(gc) = gc_holder.borrow().as_ref() {
+                                gc.set_show_checkbox_column(next);
+                            }
+                        }
+                    }
+                >
+                    {move || {
+                        if show_checkboxes.get() {
+                            "Row checkboxes: on"
+                        } else {
+                            "Row checkboxes: off"
+                        }
+                    }}
+                </button>
             </div>
             <div class="fixture-grid">
                 {move || {

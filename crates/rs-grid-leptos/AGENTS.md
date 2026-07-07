@@ -9,6 +9,7 @@ for use in Leptos applications.
 pub type ValidationErrorCb = Box<dyn Fn(u64, String, String)>;
 pub type ValidationStateChangedCb = Box<dyn Fn(Option<(u64, String, String)>)>;
 pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
+pub type CheckedRowsChangedCb = Box<dyn Fn()>;
 
 #[component]
 pub fn GridCanvas(
@@ -21,6 +22,7 @@ pub fn GridCanvas(
     #[prop(optional)] on_validation_error: Option<ValidationErrorCb>,
     #[prop(optional)] on_validation_state_changed: Option<ValidationStateChangedCb>,
     #[prop(optional)] on_cell_button_click: Option<CellButtonClickCb>,
+    #[prop(optional)] on_checked_rows_changed: Option<CheckedRowsChangedCb>,
 ) -> impl IntoView
 ```
 
@@ -37,6 +39,10 @@ Callback arguments:
   handle from `on_mount` to disable it).
 - `on_cell_button_click(row, col_key, button_id)` — fires when a cell
   button (declared via `ColumnDef::with_cell_buttons`) is clicked.
+- `on_checked_rows_changed()` — fires after a row-checkbox toggle or
+  header select-all/deselect-all (`GridModel.show_checkbox_column`). No
+  arguments; read `checked_row_indices()`/`checkbox_header_state()` on the
+  `on_mount` handle for the current state.
 
 ## Behaviour
 

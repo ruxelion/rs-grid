@@ -21,6 +21,7 @@
   --rs-grid-scrollbar-thumb: rgba(0, 0, 0, 0.28);
   --rs-grid-row-alt-bg: #ffffff;
   --rs-grid-row-hover-bg: rgba(33, 150, 243, 0.07);
+  --rs-grid-checked-row-bg: rgba(66, 42, 213, 0.09);
   --rs-grid-locked-cell-bg: rgba(0, 0, 0, 0.04);
   --rs-grid-locked-cell-text: rgba(24, 29, 31, 0.55);
   --rs-grid-invalid-cell-border: #ef4444;
@@ -41,6 +42,12 @@
   --rs-grid-progress-fill: #422ad5;
   --rs-grid-progress-height: 8px;
   --rs-grid-progress-radius: 8px;
+  --rs-grid-checkbox-size: 18px;
+  --rs-grid-checkbox-radius: 4px;
+  --rs-grid-checkbox-border: #94a3b8;
+  --rs-grid-checkbox-border-width: 1.5px;
+  --rs-grid-checkbox-checked-bg: #422ad5;
+  --rs-grid-checkbox-mark-color: #ffffff;
   --rs-grid-cell-padding: 12px;
   --rs-grid-scrollbar-width: 14px;
   --rs-grid-scrollbar-radius: 6px;

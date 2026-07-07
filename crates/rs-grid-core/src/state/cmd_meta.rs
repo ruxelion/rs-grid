@@ -26,6 +26,12 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SetCheckboxColumnWidth(w) => {
+                if w >= 0.0 {
+                    self.model.checkbox_column_width = w;
+                }
+                CommandOutput::None
+            }
             GridCommand::NotifyPageLoaded => {
                 // No-op — triggers a re-render via dispatch.
                 CommandOutput::None
@@ -43,6 +49,10 @@ impl GridState {
             }
             GridCommand::SetShowRowNumbers(v) => {
                 self.model.show_row_numbers = v;
+                CommandOutput::None
+            }
+            GridCommand::SetShowCheckboxColumn(v) => {
+                self.model.show_checkbox_column = v;
                 CommandOutput::None
             }
             GridCommand::SetEditable(v) => {
@@ -155,6 +165,28 @@ mod tests {
     }
 
     #[test]
+    fn set_checkbox_column_width_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetCheckboxColumnWidth(60.0));
+        assert_eq!(s.model.checkbox_column_width, 60.0);
+    }
+
+    #[test]
+    fn set_checkbox_column_width_zero_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetCheckboxColumnWidth(0.0));
+        assert_eq!(s.model.checkbox_column_width, 0.0);
+    }
+
+    #[test]
+    fn set_checkbox_column_width_negative_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.checkbox_column_width;
+        s.apply(GridCommand::SetCheckboxColumnWidth(-10.0));
+        assert_eq!(s.model.checkbox_column_width, before);
+    }
+
+    #[test]
     fn notify_page_loaded_is_noop() {
         let mut s = make_state();
         s.apply(GridCommand::NotifyPageLoaded);
@@ -178,6 +210,14 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetShowRowNumbers(false));
         assert!(!s.model.show_row_numbers);
+    }
+
+    #[test]
+    fn set_show_checkbox_column_true() {
+        let mut s = make_state();
+        assert!(!s.model.show_checkbox_column);
+        s.apply(GridCommand::SetShowCheckboxColumn(true));
+        assert!(s.model.show_checkbox_column);
     }
 
     #[test]

@@ -35,6 +35,11 @@ pub type ValidationStateChangedCb = Box<dyn Fn(Option<(u64, String, String)>)>;
 /// `(row, col_key, button_id)`.
 pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
 
+/// Callback type for row-checkbox change events — no arguments; read
+/// `GridCanvas::checked_row_indices()`/`checkbox_header_state()` on the
+/// handle from `on_mount` to get the current state.
+pub type CheckedRowsChangedCb = Box<dyn Fn()>;
+
 /// A Leptos component that renders an rs-grid onto a `<canvas>` element.
 ///
 /// # Props
@@ -74,6 +79,11 @@ pub fn GridCanvas(
     /// Arguments: `(row, col_key, button_id)`.
     #[prop(optional)]
     on_cell_button_click: Option<CellButtonClickCb>,
+    /// Called after every row-checkbox toggle or header select-all/
+    /// deselect-all. Read `checked_row_indices()`/`checkbox_header_state()`
+    /// on the `on_mount` handle to get the current state.
+    #[prop(optional)]
+    on_checked_rows_changed: Option<CheckedRowsChangedCb>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -86,6 +96,7 @@ pub fn GridCanvas(
     let on_validation_state_changed_slot =
         RefCell::new(on_validation_state_changed);
     let on_cell_button_click_slot = RefCell::new(on_cell_button_click);
+    let on_checked_rows_changed_slot = RefCell::new(on_checked_rows_changed);
 
     // Holder for the mounted GridCanvas handle, shared across effects and
     // cleanup. SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for
@@ -167,6 +178,11 @@ pub fn GridCanvas(
         if let Some(cb) = on_cell_button_click_slot.borrow_mut().take() {
             gc.set_on_cell_button_click(move |row, col, btn| {
                 cb(row, col.to_string(), btn.to_string());
+            });
+        }
+        if let Some(cb) = on_checked_rows_changed_slot.borrow_mut().take() {
+            gc.set_on_checked_rows_changed(move || {
+                cb();
             });
         }
         let on_mount_cb = on_mount_slot.borrow_mut().take();

@@ -119,6 +119,9 @@ struct Inner {
     /// selection rectangle (single click, shift-extend, row/col select,
     /// clear, arrow-key move).
     on_selection_changed: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Optional callback fired after every command that mutates
+    /// `checked_rows` (row checkbox toggle, header select-all/deselect-all).
+    on_checked_rows_changed: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
@@ -363,6 +366,7 @@ impl GridCanvas {
             on_change: RefCell::new(None),
             on_columns_changed: RefCell::new(None),
             on_selection_changed: RefCell::new(None),
+            on_checked_rows_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             on_validation_state_changed: RefCell::new(None),
             native_validation_tooltip: Cell::new(true),
@@ -637,6 +641,42 @@ impl GridCanvas {
             Some((tl, br)) => (tl.row..=br.row).collect(),
             None => Vec::new(),
         }
+    }
+
+    /// Physical (datasource) row ids currently checked via the
+    /// row-selection checkbox column.
+    ///
+    /// Unlike [`GridCanvas::selected_row_indices`] (logical/display
+    /// order), these are **physical** ids — checkbox state is tracked
+    /// by row identity so it survives sort/filter changes, not by
+    /// display position.
+    ///
+    /// Use together with [`GridCanvas::set_on_checked_rows_changed`] to
+    /// drive bulk-action toolbars.
+    pub fn checked_row_indices(&self) -> Vec<u64> {
+        self.0.state.borrow().checked_rows.iter().copied().collect()
+    }
+
+    /// Tri-state of the checkbox column's header cell: `Checked` when
+    /// every row passing the active filter (or every row, if
+    /// unfiltered) is checked, `Unchecked` when none are, otherwise
+    /// `Indeterminate`.
+    pub fn checkbox_header_state(
+        &self,
+    ) -> rs_grid_core::row_check::CheckboxTriState {
+        self.0.state.borrow().checkbox_header_state()
+    }
+
+    /// Show or hide the row-selection checkbox column.
+    pub fn set_show_checkbox_column(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowCheckboxColumn(show));
+    }
+
+    /// Set the row-selection checkbox column's width in logical pixels.
+    /// The checkbox itself stays centered, so this also controls the
+    /// visual margin around it. Ignored if negative.
+    pub fn set_checkbox_column_width(&self, width: f64) {
+        self.dispatch(GridCommand::SetCheckboxColumnWidth(width));
     }
 
     /// Read a cell value for a *logical* (display) row. In client-side mode

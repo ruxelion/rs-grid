@@ -1,9 +1,12 @@
 mod cells;
+mod checkbox;
 mod scrollbars;
 
 use std::{collections::HashSet, rc::Rc};
 
-use rs_grid_core::{sort::SortDir, state::GridState};
+use rs_grid_core::{
+    row_check::CheckboxTriState, sort::SortDir, state::GridState,
+};
 
 use crate::{
     class_map::ClassResolver,
@@ -146,6 +149,7 @@ impl SceneBuilder {
             model.columns.iter().map(|c| c.width).collect();
         let pinned_count = model.pinned_count;
         let pinned_width = model.pinned_width();
+        let ccw = model.effective_checkbox_column_width();
 
         // Scrollable columns — exclude pinned ones and account for
         // the narrower scrollable viewport band.
@@ -158,6 +162,7 @@ impl SceneBuilder {
                 pinned_count,
                 pinned_width,
                 model.effective_row_number_width(),
+                ccw,
             )
         };
         let (row_start, row_end) = vp.visible_rows(
@@ -169,6 +174,13 @@ impl SceneBuilder {
         let sx = vp.scroll_x;
         let sy = vp.scroll_y;
         let rnw = model.effective_row_number_width();
+        // Offset added to *unpinned* columns' screen position to make
+        // room for the checkbox column, which occupies the first slot
+        // of the scrollable region and scrolls away with scroll_x
+        // exactly like a real column. Pinned columns are unaffected —
+        // the checkbox sits strictly after the pinned band, never
+        // before it — so pinned rendering below uses `rnw` alone.
+        let lgw = rnw + ccw;
 
         // Compute viewport-y for a row without large absolute
         // values.  row_top(ri) − sy  =  header + ri*rh − sy.
@@ -248,9 +260,10 @@ impl SceneBuilder {
                 None => model.column_offsets.offsets[ci],
             };
             if ci < pinned_count {
+                // Checkbox sits after the pinned band — unaffected by ccw.
                 off + rnw
             } else {
-                off - sx + rnw
+                off - sx + lgw
             }
         };
 
@@ -309,6 +322,22 @@ impl SceneBuilder {
                 }));
             }
 
+            // Checked-row highlight (above hover, below selection) — keyed
+            // by physical row id, same as the checkbox's own checked state.
+            if state.checked_rows.contains(&model.logical_to_physical(ri)) {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: 0.0,
+                    y: ry,
+                    width: vp.width,
+                    height: model.row_height,
+                    fill: t.checked_row_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                    clip: None,
+                }));
+            }
+
             // During a drag, columns may have animated into or out
             // of the viewport. Start from the first non-pinned column
             // (not just col_start) to catch those that animated
@@ -324,7 +353,7 @@ impl SceneBuilder {
                 let cx = col_vx(ci);
                 // Skip columns that are fully outside the viewport.
                 if preview_offsets.is_some()
-                    && (cx + col.width <= rnw || cx >= vp.width)
+                    && (cx + col.width <= lgw || cx >= vp.width)
                 {
                     continue;
                 }
@@ -373,7 +402,7 @@ impl SceneBuilder {
                 let col = &model.columns[ci];
                 let cx = col_vx(ci);
                 if preview_offsets.is_some()
-                    && (cx + col.width <= rnw || cx >= vp.width)
+                    && (cx + col.width <= lgw || cx >= vp.width)
                 {
                     continue;
                 }
@@ -386,6 +415,34 @@ impl SceneBuilder {
                     color: t.column_separator_color,
                     width: t.column_separator_width,
                 }));
+            }
+        }
+
+        // ── checkbox column (scrolls with the data — it's the first slot
+        // of the scrollable/unpinned region, not a fixed gutter) ─────────
+        if ccw > 0.0 {
+            let ccx = rnw + pinned_width - sx;
+            if ccx + ccw > rnw && ccx < vp.width {
+                for ri in row_start..row_end {
+                    let ry = row_vy(ri);
+                    if ry + model.row_height < hh || ry > vp.height {
+                        continue;
+                    }
+                    let clip_y = ry.max(hh);
+                    let clip_h = (ry + model.row_height - clip_y).max(0.0);
+                    if clip_h == 0.0 {
+                        continue;
+                    }
+                    let physical = model.logical_to_physical(ri);
+                    let tri = if state.checked_rows.contains(&physical) {
+                        CheckboxTriState::Checked
+                    } else {
+                        CheckboxTriState::Unchecked
+                    };
+                    checkbox::emit_checkbox(
+                        &mut frame, ccx, clip_y, ccw, clip_h, t, tri,
+                    );
+                }
             }
         }
 
@@ -586,7 +643,7 @@ impl SceneBuilder {
                         let col = &model.columns[ci];
                         let cx = col_vx(ci);
                         if preview_offsets.is_some()
-                            && (cx + col.width <= rnw || cx >= vp.width)
+                            && (cx + col.width <= lgw || cx >= vp.width)
                         {
                             continue;
                         }
@@ -741,6 +798,23 @@ impl SceneBuilder {
                 col_start..col_end
             };
             render_col_headers(&mut frame, header_range);
+            // Header checkbox (tri-state select-all) — scrolls with the
+            // data like the row checkboxes below; drawn before the pinned
+            // header band so it gets masked once scrolled underneath.
+            if ccw > 0.0 {
+                let ccx = rnw + pinned_width - sx;
+                if ccx + ccw > rnw && ccx < vp.width {
+                    checkbox::emit_checkbox(
+                        &mut frame,
+                        ccx,
+                        0.0,
+                        ccw,
+                        hh,
+                        t,
+                        state.checkbox_header_state(),
+                    );
+                }
+            }
             // Pinned column headers (on top)
             if pinned_count > 0 {
                 // Solid background masking scrollable headers underneath.
@@ -865,6 +939,9 @@ impl SceneBuilder {
         }
 
         // ── scrollbars ───────────────────────────────────────────────────────
+        // `rnw` alone — the checkbox column's width is already folded into
+        // `model.total_width()` (it scrolls with the data), not into this
+        // fixed reserve.
         scrollbars::emit_scrollbars(&mut frame, vp, model, rnw, t);
 
         // ── column drag preview ────────────────────────────────
@@ -1434,6 +1511,41 @@ mod tests {
         assert!(hover_rects.is_empty(), "no hover → no hover overlay");
     }
 
+    // ── checked row ──────────────────────────────────────────
+
+    #[test]
+    fn build_checked_row_overlay() {
+        let mut state = make_state();
+        state.checked_rows.insert(2);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let checked_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.checked_row_bg)
+            .collect();
+        assert!(
+            !checked_rects.is_empty(),
+            "checked row should produce checked-row overlay"
+        );
+    }
+
+    #[test]
+    fn build_no_checked_rows_no_overlay() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        let checked_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.checked_row_bg)
+            .collect();
+        assert!(
+            checked_rects.is_empty(),
+            "no checked rows → no checked-row overlay"
+        );
+    }
+
     // ── sort indicator ───────────────────────────────────────
 
     #[test]
@@ -1896,6 +2008,150 @@ mod tests {
                 && l.y1 == 0.0
         });
         assert!(!gutter_border, "no row numbers → no gutter border");
+    }
+
+    // ── checkbox column ──────────────────────────────────────
+
+    #[test]
+    fn checkbox_column_hidden_by_default() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+        // No rect uses the checked-fill color when the column is off.
+        let rects = rect_primitives(&frame);
+        assert!(
+            !rects.iter().any(|r| r.fill == t.checkbox_checked_bg),
+            "checkbox column disabled by default → no checkbox rects"
+        );
+    }
+
+    #[test]
+    fn checkbox_column_enabled_renders_boxes() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        let rects = rect_primitives(&frame);
+        // One box per visible row + one header box, all sized
+        // checkbox_size with the themed border.
+        let boxes: Vec<_> = rects
+            .iter()
+            .filter(|r| {
+                r.width == t.checkbox_size
+                    && r.height == t.checkbox_size
+                    && r.stroke == Some(t.checkbox_border)
+            })
+            .collect();
+        assert!(
+            boxes.len() >= 11,
+            "expected 10 row boxes + 1 header box, got {}",
+            boxes.len()
+        );
+    }
+
+    #[test]
+    fn checkbox_row_checked_fills_box() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        state.apply(GridCommand::ToggleRowChecked(0));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None);
+
+        let rects = rect_primitives(&frame);
+        let checked_boxes = rects
+            .iter()
+            .filter(|r| {
+                r.width == t.checkbox_size && r.fill == t.checkbox_checked_bg
+            })
+            .count();
+        // Row 0's box is filled; the header (indeterminate — 1 of 10
+        // checked) is also drawn with the checked-bg fill.
+        assert_eq!(checked_boxes, 2);
+    }
+
+    #[test]
+    fn checkbox_column_adds_left_gutter_offset() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let before = b.build(&state, None, None, None);
+
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let after = b.build(&state, None, None, None);
+
+        // The vertical column-separator right after the gutter must
+        // shift right by exactly CHECKBOX_COLUMN_WIDTH. Filter to
+        // vertical lines (x1 == x2) so this doesn't accidentally match
+        // horizontal grid lines that share the same themed color.
+        let first_col_sep = |frame: &crate::frame::SceneFrame| -> f64 {
+            line_primitives(frame)
+                .iter()
+                .filter(|l| l.color == t.column_separator_color && l.x1 == l.x2)
+                .map(|l| l.x1)
+                .fold(f64::MAX, f64::min)
+        };
+        assert_eq!(
+            first_col_sep(&after) - first_col_sep(&before),
+            rs_grid_core::model::GridModel::CHECKBOX_COLUMN_WIDTH,
+        );
+    }
+
+    #[test]
+    fn checkbox_column_scrolls_away_with_data() {
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+
+        let has_checkbox_box = |frame: &crate::frame::SceneFrame| {
+            rect_primitives(frame).iter().any(|r| {
+                r.width == t.checkbox_size && r.height == t.checkbox_size
+            })
+        };
+
+        // At rest, checkbox boxes are drawn (row 0 + header).
+        assert!(has_checkbox_box(&b.build(&state, None, None, None)));
+
+        // Scrolled past its own width, the checkbox column (the first slot
+        // of the scrollable region) is fully off-screen to the left —
+        // unlike the row-number gutter, it does not stay fixed.
+        state.viewport.scroll_x = GridModel::CHECKBOX_COLUMN_WIDTH + 50.0;
+        assert!(!has_checkbox_box(&b.build(&state, None, None, None)));
+    }
+
+    #[test]
+    fn checkbox_column_does_not_shift_pinned_columns() {
+        let mut state = make_state();
+        state.model.pinned_count = 1;
+        state.model.rebuild_offsets();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let before = b.build(&state, None, None, None);
+
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let after = b.build(&state, None, None, None);
+
+        // The pinned band's right-edge separator must NOT move — the
+        // checkbox column sits after the pinned band (in the scrollable
+        // region), never between the gutter and the pinned columns.
+        let pinned_sep_x = |frame: &crate::frame::SceneFrame| -> f64 {
+            line_primitives(frame)
+                .iter()
+                .find(|l| l.color == t.pinned_separator_color)
+                .map(|l| l.x1)
+                .expect("pinned separator line present")
+        };
+        assert_eq!(pinned_sep_x(&before), pinned_sep_x(&after));
     }
 
     // ── pinned columns ───────────────────────────────────────

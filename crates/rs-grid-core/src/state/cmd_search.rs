@@ -61,15 +61,16 @@ impl GridState {
         if coord.col < self.model.columns.len() {
             let off = self.model.column_offsets.offsets[coord.col];
             let w = self.model.columns[coord.col].width;
-            let rnw = self.model.row_number_width;
+            let lgw = self.model.row_number_width
+                + self.model.effective_checkbox_column_width();
             // Don't scroll for pinned columns.
             if coord.col >= self.model.pinned_count {
-                let cx = off - self.viewport.scroll_x + rnw;
-                if cx < rnw + self.model.pinned_width() {
+                let cx = off - self.viewport.scroll_x + lgw;
+                if cx < lgw + self.model.pinned_width() {
                     self.viewport.scroll_x = off - self.model.pinned_width();
                 } else if cx + w > self.viewport.width {
                     self.viewport.scroll_x =
-                        off + w - self.viewport.width + rnw;
+                        off + w - self.viewport.width + lgw;
                 }
             }
         }
