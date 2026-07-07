@@ -12,10 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - add row-selection checkbox column with tri-state functionality
+- text cell editor switches between a single-line `<input>` and a wrapping/multiline `<textarea>` based on content, with `Alt+Enter` for manual line breaks and live-resizing height as lines are added or removed
+- `flash_cells_error` renders a distinct error flash (`Theme::flash_error_fill`) on cells a `CutSelection`/Ctrl+X copied but couldn't clear (locked or failing validation), instead of looking identical to a fully-successful cut
 
 ### Fixed
 
 - *(rs-grid-web)* SetSort and ClearSort never refetch server-side pages
+- prevent paste event when an edit input is active
 
 ## [0.1.12](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.11...rs-grid-web-v0.1.12) - 2026-07-04
 

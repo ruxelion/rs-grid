@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - add row-selection checkbox column with tri-state functionality
+- `Theme::flash_error_fill` — fill colour for the error-flash animation on cells a `CutSelection` copied but could not clear
 
 ## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.2.3...rs-grid-scene-v0.2.4) - 2026-07-04
 
