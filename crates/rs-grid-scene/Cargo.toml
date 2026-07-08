@@ -2,7 +2,7 @@
 name = "rs-grid-scene"
 # Explicit (not workspace-inherited): per-crate independent versioning, bumped by
 # release-plz. See release-plz.toml.
-version = "0.2.6"
+version = "0.2.7"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -41,7 +41,7 @@ harness = false
 serde = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
-rs-grid-core = { path = "../rs-grid-core", version = "0.3.0" }
+rs-grid-core = { path = "../rs-grid-core", version = "0.3.1" }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
 
