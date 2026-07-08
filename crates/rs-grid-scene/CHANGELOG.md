@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.2.5...rs-grid-scene-v0.2.6) - 2026-07-08
+
+### Added
+
+- add support for invalid cell background and border theming
+
+### Fixed
+
+- adjust clipping boundaries for column headers to prevent text bleed
+
 ## [0.2.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.2.4...rs-grid-scene-v0.2.5) - 2026-07-07
 
 ### Added
