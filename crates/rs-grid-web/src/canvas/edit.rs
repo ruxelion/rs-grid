@@ -52,10 +52,11 @@ impl GridCanvas {
         let model = &state.model;
         let off = model.column_offsets.offsets[col_idx];
         let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let cx = if col_idx < model.pinned_count {
             off + rnw
         } else {
-            off - state.viewport.scroll_x + rnw
+            off - state.viewport.scroll_x + rnw + ccw
         };
         let cy = model.row_top(row) - state.viewport.scroll_y;
         let w = model.columns[col_idx].width;
