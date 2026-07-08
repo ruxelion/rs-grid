@@ -276,12 +276,23 @@ column, and sits after any pinned real columns. Still outside
 `attach_mousedown` (`canvas/events.rs`) hit-tests it in a dedicated
 cascade block, right before the row-number gutter check:
 `hit_test_checkbox_header` (→ `GridCommand::ToggleAllFilteredChecked`)
-and `hit_test_checkbox_row` (→ `GridCommand::ToggleRowChecked`) — both
-`pub(super)` wrappers in `canvas/hittest.rs` delegating to the
-`GridState` methods of the same name (rs-grid-core), which now factor in
-`scroll_x` since the checkbox's on-screen position is scroll-dependent.
-A row-checkbox click is a discrete toggle, not a drag gesture — unlike
-the row-number gutter's `ActiveDrag::Row`.
+and `hit_test_checkbox_row` (→ `GridCommand::ToggleRowChecked`, or
+`ExtendRowChecked` when `evt.shift_key()` is set — sets every row in
+`[anchor, this row]` to the direction fixed by the last
+`ToggleRowChecked` (the anchor click's own resulting state),
+mirroring `ExtendRowSelection`'s anchor/focus range. A further
+shift+click within the same gesture also reconciles against the
+*previous* `ExtendRowChecked` call: rows it touched but the new range
+no longer covers revert to the opposite state — checking rows 1-10,
+then, still holding shift, clicking row 9 gives row 10 back its
+earlier state, matching drag-selection behaviour instead of only ever
+growing the checked set) — both `pub(super)` wrappers in
+`canvas/hittest.rs` delegating to the
+`GridState` methods of the same name (rs-grid-core), which now factor
+in `scroll_x` since the
+checkbox's on-screen position is scroll-dependent. A row-checkbox
+click is a discrete toggle, not a drag gesture — unlike the
+row-number gutter's `ActiveDrag::Row`.
 
 `GridCanvas::checked_row_indices()` returns **physical** row ids (not
 logical/display order, unlike `selected_row_indices()`) — checkbox state
@@ -324,7 +335,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_validation_error` | A `CommitEdit` was rejected by `ColumnDef.rules`/`validator` (`CommandOutput::ValidationError`) — fires for both `InvalidEditMode::Revert` and `::Block` |
 | `set_on_validation_state_changed` | `StartEdit`, `ValidateEdit`, `CommitEdit`, `CancelEdit` — fires with the fresh `validation_error()` value on *every keystroke*, not just rejected commits |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
-| `set_on_checked_rows_changed` | `ToggleRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
+| `set_on_checked_rows_changed` | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
 borrow on `state` — `apply()` returns its output by value, and each callback

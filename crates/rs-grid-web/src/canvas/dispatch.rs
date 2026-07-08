@@ -129,6 +129,7 @@ impl GridCanvas {
         let is_checked_rows_change = matches!(
             cmd,
             GridCommand::ToggleRowChecked(_)
+                | GridCommand::ExtendRowChecked(_)
                 | GridCommand::ToggleAllFilteredChecked
         );
         // Commands that may expose new rows — trigger a page fetch in
@@ -271,9 +272,10 @@ impl GridCanvas {
     }
 
     /// Register a callback fired after every command that mutates
-    /// `checked_rows`: `ToggleRowChecked`, `ToggleAllFilteredChecked`. Use
-    /// it together with [`GridCanvas::checked_row_indices`] to drive
-    /// row-level bulk-action toolbars.
+    /// `checked_rows`: `ToggleRowChecked`, `ExtendRowChecked`,
+    /// `ToggleAllFilteredChecked`. Use it together with
+    /// [`GridCanvas::checked_row_indices`] to drive row-level
+    /// bulk-action toolbars.
     ///
     /// # Re-entrancy
     ///

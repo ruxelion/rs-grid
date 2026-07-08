@@ -66,6 +66,21 @@ pub struct GridState {
     /// selection), and not part of the undo history — same non-undoable
     /// precedent as `SelectRow`/`SelectCol`/`ClearSelection`.
     pub checked_rows: HashSet<u64>,
+    /// Anchor row and direction for an in-progress `ExtendRowChecked`
+    /// (shift+click) gesture: `(anchor_row, checking)`, set by the last
+    /// `ToggleRowChecked` from the row it toggled and the state it
+    /// toggled *to*. Mirrors `SelectionState.anchor` but kept separate
+    /// since checking and cell-selection are independent gestures.
+    checked_row_anchor: Option<(u64, bool)>,
+    /// Logical row of the previous `ExtendRowChecked` call in the
+    /// current shift+click gesture (or the anchor row itself, before
+    /// the first extend). Lets a further shift+click reconcile the
+    /// range against what the *previous* extend touched — rows that
+    /// fall out of the new [anchor, row] span are reverted to
+    /// `!checking`, so moving the shift+click focus inward "gives back"
+    /// rows the same way dragging a text/file selection does, instead
+    /// of only ever growing the checked set.
+    checked_row_last_extend: Option<u64>,
     /// Undo/redo history.
     history: UndoHistory,
 }
@@ -118,6 +133,8 @@ impl GridState {
             edit: None,
             search: SearchState::default(),
             checked_rows: HashSet::new(),
+            checked_row_anchor: None,
+            checked_row_last_extend: None,
             history: UndoHistory::default(),
         }
     }
@@ -166,6 +183,7 @@ impl GridState {
             GridCommand::Undo | GridCommand::Redo => self.cmd_undo(cmd),
 
             GridCommand::ToggleRowChecked(_)
+            | GridCommand::ExtendRowChecked(_)
             | GridCommand::ToggleAllFilteredChecked => self.cmd_row_check(cmd),
 
             GridCommand::Search { .. }

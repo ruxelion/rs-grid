@@ -90,6 +90,13 @@ impl GridState {
                 }
                 self.model.apply_filter();
                 self.selection.clear();
+                // Filtering reshuffles which physical row a logical index
+                // maps to — a checkbox shift+click gesture anchored to a
+                // pre-filter logical row would otherwise resume against
+                // rows it never visually spanned. Same precedent as
+                // `selection.clear()` above.
+                self.checked_row_anchor = None;
+                self.checked_row_last_extend = None;
                 self.viewport.scroll_y = 0.0;
                 CommandOutput::None
             }
@@ -97,6 +104,8 @@ impl GridState {
                 self.model.filters.clear();
                 self.model.filtered_indices.clear();
                 self.selection.clear();
+                self.checked_row_anchor = None;
+                self.checked_row_last_extend = None;
                 self.viewport.scroll_y = 0.0;
                 CommandOutput::None
             }

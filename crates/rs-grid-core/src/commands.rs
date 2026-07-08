@@ -26,7 +26,7 @@ use crate::{
 /// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
-/// | **Row checkboxes** | `ToggleRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
+/// | **Row checkboxes** | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
 /// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
@@ -262,8 +262,23 @@ pub enum GridCommand {
     },
     /// Toggle whether a single row (logical index) is checked in the
     /// row-selection checkbox column. Checked state is tracked by
-    /// physical row id, so it survives sort/filter changes.
+    /// physical row id, so it survives sort/filter changes. Starts a
+    /// fresh shift+click gesture: records `logical_row` as the range
+    /// anchor and the state it toggled *to* as the gesture's fixed
+    /// direction, for any following `ExtendRowChecked` calls.
     ToggleRowChecked(u64),
+    /// Shift+click on the checkbox column: set every row (logical
+    /// index) in `[anchor, logical_row]` to the direction fixed by the
+    /// last `ToggleRowChecked` — mirrors `ExtendRowSelection`'s
+    /// anchor/focus range. Unlike a plain range-set, this also
+    /// reconciles against the *previous* `ExtendRowChecked` call in the
+    /// same gesture: rows the previous call touched but the new range
+    /// no longer covers are reverted to the opposite state — so
+    /// checking 1‑10 then, while still holding shift, clicking row 9
+    /// gives row 10 back its earlier (unchecked) state instead of
+    /// leaving it checked. With no prior anchor, behaves like a single
+    /// `ToggleRowChecked` (range of one, checked).
+    ExtendRowChecked(u64),
     /// Toggle the checkbox-column header: if every row currently
     /// passing the active filter (or every row, if unfiltered) is
     /// checked, uncheck them all; otherwise check them all. Never

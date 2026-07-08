@@ -389,7 +389,11 @@ impl GridCanvas {
             }
             let checkbox_row = gc.0.state.borrow().hit_test_checkbox_row(x, y);
             if let Some(row) = checkbox_row {
-                gc.dispatch(GridCommand::ToggleRowChecked(row));
+                if evt.shift_key() {
+                    gc.dispatch(GridCommand::ExtendRowChecked(row));
+                } else {
+                    gc.dispatch(GridCommand::ToggleRowChecked(row));
+                }
                 return; // discrete click, no drag gesture
             }
 
