@@ -21,6 +21,7 @@
   --rs-grid-checked-row-bg: rgba(99, 80, 240, 0.12);
   --rs-grid-locked-cell-bg: rgba(255, 255, 255, 0.04);
   --rs-grid-locked-cell-text: rgba(208, 208, 208, 0.55);
+  --rs-grid-invalid-cell-bg: rgba(220, 38, 38, 0.08);
   --rs-grid-invalid-cell-border: #dc2626;
   --rs-grid-skeleton-fg: rgba(80, 80, 82, 0.78);
   --rs-grid-progress-track: #3c3f44;

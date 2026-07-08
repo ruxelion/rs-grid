@@ -64,7 +64,7 @@ static `editable` flag, and the dynamic `editable_predicate`
   needed; the background wash already gives every locked cell a visible
   affordance regardless of format.
 
-### At-rest invalid-value border
+### At-rest invalid-value background/border
 
 `emit_cell` also calls `ColumnDef::validate_value` against the cell's
 current `CellStatus::Ready` value (peeked by reference before the
@@ -72,21 +72,25 @@ format-dispatch `match` consumes it) — a cell with no `rules`/`validator`
 always resolves `Ok`, so this is a no-op for unvalidated columns. When it
 resolves `Err`:
 
+- A fill-only `Rect` (`fill: Theme::invalid_cell_bg`, no stroke) is
+  pushed right after the locked-cell overlay, before the format
+  dispatch — same format-agnostic placement as the locked overlay, so
+  it applies to composite `CellFormat`s too.
 - A border-only `Rect` (`fill` fully transparent, `stroke:
   Some(Theme::invalid_cell_border)`, `stroke_width:
-  Theme::invalid_cell_border_width`) is pushed right after the
-  locked-cell overlay, before the format dispatch — same
-  format-agnostic placement as the locked overlay, so it applies to
-  composite `CellFormat`s too.
-- Skipped entirely when `Theme::invalid_cell_border.a == 0` (same
-  "transparent = disabled" convention).
+  Theme::invalid_cell_border_width`) is pushed right after the bg
+  overlay — same placement precedent.
+- The bg and border overlays are independent primitives, each skipped
+  entirely when its own color has `.a == 0` (same "transparent =
+  disabled" convention as `locked_cell_bg`) — a consumer can theme
+  either, both, or neither.
 - This fires independently of an active edit session — a cell that's
   invalid because the *data source* loaded it that way is flagged
   immediately, unlike the DOM editor's invalid style
   (`rs-grid-web`'s `apply_edit_validity_style`), which only exists while
   `GridState.edit` is `Some`. A locked cell and an invalid cell aren't
   mutually exclusive (e.g. read-only column seeded with bad data) — the
-  fill and the border layer without conflict.
+  overlays layer without conflict.
 
 ### At-rest cell decoration
 

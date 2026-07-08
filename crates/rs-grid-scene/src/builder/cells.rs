@@ -123,15 +123,30 @@ pub(super) fn emit_cell(
         }));
     }
 
-    // At-rest invalid-value border — a cell can fail `ColumnDef.rules`/
-    // `validator` without ever being edited (e.g. loaded that way from
-    // the data source), so this doesn't wait for an active edit session
-    // the way the DOM editor's invalid style does. Skipped when fully
+    // At-rest invalid-value background/border — a cell can fail
+    // `ColumnDef.rules`/`validator` without ever being edited (e.g.
+    // loaded that way from the data source), so this doesn't wait for
+    // an active edit session the way the DOM editor's invalid style
+    // does. Background and border are independent primitives (either,
+    // both, or neither can be themed on), each skipped when fully
     // transparent (same convention as `locked_cell_bg` above).
     let invalid = matches!(
         &cell_status,
         CellStatus::Ready(raw) if col.validate_value(raw).is_err()
     );
+    if invalid && t.invalid_cell_bg.a > 0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: t.invalid_cell_bg,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
+    }
     if invalid && t.invalid_cell_border.a > 0 {
         frame.push(ScenePrimitive::Rect(RectPrimitive {
             x: cx,
@@ -1931,7 +1946,7 @@ mod tests {
         assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
     }
 
-    // ── at-rest invalid-value border ─────────────────────────
+    // ── at-rest invalid-value background/border ──────────────
 
     #[test]
     fn emit_cell_invalid_value_emits_border_overlay() {
@@ -1939,7 +1954,9 @@ mod tests {
         let col = make_col().required();
         let model = make_model(&col);
         let sel = SelectionState::default();
-        let t = Theme::light();
+        let mut t = Theme::light();
+        // Isolate the border: bg overlay covered separately below.
+        t.invalid_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
         emit_cell(
             &mut frame,
             &col,
@@ -1968,6 +1985,43 @@ mod tests {
                 assert_eq!(r.fill.a, 0);
             }
             _ => panic!("expected the invalid-cell border Rect"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_invalid_value_emits_bg_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        // Isolate the bg: border overlay covered separately above.
+        t.invalid_cell_border = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+        );
+        assert_eq!(frame.primitive_count(), 1);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.fill, t.invalid_cell_bg);
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the invalid-cell bg Rect"),
         }
     }
 
@@ -2009,6 +2063,7 @@ mod tests {
         let sel = SelectionState::default();
         let mut t = Theme::light();
         t.invalid_cell_border = crate::primitives::Color::rgba(0, 0, 0, 0);
+        t.invalid_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
         emit_cell(
             &mut frame,
             &col,
@@ -2027,7 +2082,7 @@ mod tests {
             None,
             None,
         );
-        // No border rect — empty text yields no primitives at all.
+        // No bg/border rect — empty text yields no primitives at all.
         assert_eq!(frame.primitive_count(), 0);
     }
 
@@ -2058,18 +2113,23 @@ mod tests {
             None,
             None,
         );
-        // Locked overlay (fill) + invalid overlay (stroke) — both
-        // conditions can hold at once and don't suppress each other.
-        assert_eq!(frame.primitive_count(), 2);
+        // Locked overlay (fill) + invalid bg + invalid border — all
+        // three conditions can hold at once and don't suppress each
+        // other.
+        assert_eq!(frame.primitive_count(), 3);
         match &frame.primitives[0] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
             _ => panic!("expected the locked-cell overlay Rect first"),
         }
         match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.invalid_cell_bg),
+            _ => panic!("expected the invalid-cell bg Rect second"),
+        }
+        match &frame.primitives[2] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(r.stroke, Some(t.invalid_cell_border))
             }
-            _ => panic!("expected the invalid-cell border Rect second"),
+            _ => panic!("expected the invalid-cell border Rect third"),
         }
     }
 
@@ -2229,20 +2289,24 @@ mod tests {
             None,
             None,
         );
-        // locked fill + invalid border + decoration tint + decoration
-        // border — 4 overlay Rects, none suppressing the others.
-        assert_eq!(frame.primitive_count(), 4);
+        // locked fill + invalid bg + invalid border + decoration tint +
+        // decoration border — 5 overlay Rects, none suppressing others.
+        assert_eq!(frame.primitive_count(), 5);
         match &frame.primitives[0] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
             _ => panic!("expected the locked-cell overlay Rect first"),
         }
         match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.invalid_cell_bg),
+            _ => panic!("expected the invalid-cell bg Rect second"),
+        }
+        match &frame.primitives[2] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(r.stroke, Some(t.invalid_cell_border))
             }
-            _ => panic!("expected the invalid-cell border Rect second"),
+            _ => panic!("expected the invalid-cell border Rect third"),
         }
-        match &frame.primitives[2] {
+        match &frame.primitives[3] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(
                     r.fill,
@@ -2250,16 +2314,16 @@ mod tests {
                 );
                 assert!(r.stroke.is_none());
             }
-            _ => panic!("expected the decoration tint Rect third"),
+            _ => panic!("expected the decoration tint Rect fourth"),
         }
-        match &frame.primitives[3] {
+        match &frame.primitives[4] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(
                     r.stroke,
                     Some(crate::primitives::Color::rgba(0, 0, 255, 255))
                 );
             }
-            _ => panic!("expected the decoration border Rect fourth"),
+            _ => panic!("expected the decoration border Rect fifth"),
         }
     }
 }

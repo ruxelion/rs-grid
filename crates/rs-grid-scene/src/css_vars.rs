@@ -90,6 +90,7 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-checked-row-bg", fmt_color(t.checked_row_bg)),
         ("--rs-grid-locked-cell-bg", fmt_color(t.locked_cell_bg)),
         ("--rs-grid-locked-cell-text", fmt_color(t.locked_cell_text)),
+        ("--rs-grid-invalid-cell-bg", fmt_color(t.invalid_cell_bg)),
         (
             "--rs-grid-invalid-cell-border",
             fmt_color(t.invalid_cell_border),
@@ -309,6 +310,7 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.locked_cell_bg = color("--rs-grid-locked-cell-bg", t.locked_cell_bg);
     t.locked_cell_text =
         color("--rs-grid-locked-cell-text", t.locked_cell_text);
+    t.invalid_cell_bg = color("--rs-grid-invalid-cell-bg", t.invalid_cell_bg);
     t.invalid_cell_border =
         color("--rs-grid-invalid-cell-border", t.invalid_cell_border);
     t.invalid_cell_border_width = px(
@@ -629,6 +631,7 @@ mod tests {
             cell_btn_margin_r: 73.0,
             locked_cell_bg: c(74),
             locked_cell_text: c(75),
+            invalid_cell_bg: c(88),
             invalid_cell_border: c(76),
             invalid_cell_border_width: 77.0,
             decoration_border_width: 78.0,

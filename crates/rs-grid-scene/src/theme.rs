@@ -76,6 +76,12 @@ pub struct Theme {
 
     // ── invalid cell (at-rest validation)
     // ─────────────────────────────────
+    /// Background overlay drawn over a cell whose current value fails
+    /// `ColumnDef::validate_value`, independent of `invalid_cell_border`
+    /// (either, both, or neither can be themed on). Transparent = no
+    /// visual change (same "opt out via alpha 0" convention as
+    /// `locked_cell_bg`).
+    pub invalid_cell_bg: Color,
     /// Border drawn around a cell whose current value fails
     /// `ColumnDef::validate_value` — shown even when the cell isn't
     /// being edited, unlike the DOM editor's invalid style. Transparent
@@ -320,6 +326,8 @@ impl Theme {
             locked_cell_bg: Color::rgba(0, 0, 0, 9),
             locked_cell_text: Color::rgba(24, 29, 31, 140),
             // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(239, 68, 68, 0.06) → a = round(0.06 × 255) = 15
+            invalid_cell_bg: Color::rgba(239, 68, 68, 15),
             invalid_cell_border: Color::rgb(239, 68, 68),
             invalid_cell_border_width: 1.5,
             decoration_border_width: 1.5,
@@ -442,6 +450,8 @@ impl Theme {
             locked_cell_bg: Color::rgba(255, 255, 255, 10),
             locked_cell_text: Color::rgba(208, 208, 208, 140),
             // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(220, 38, 38, 0.08) → a = round(0.08 × 255) = 20
+            invalid_cell_bg: Color::rgba(220, 38, 38, 20),
             invalid_cell_border: Color::rgb(220, 38, 38),
             invalid_cell_border_width: 1.5,
             decoration_border_width: 1.5,
@@ -564,6 +574,8 @@ impl Theme {
             locked_cell_bg: Color::rgba(255, 255, 255, 9),
             locked_cell_text: Color::rgba(173, 186, 199, 140),
             // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(218, 54, 51, 0.08) → a = round(0.08 × 255) = 20
+            invalid_cell_bg: Color::rgba(218, 54, 51, 20),
             invalid_cell_border: Color::rgb(218, 54, 51),
             invalid_cell_border_width: 1.5,
             decoration_border_width: 1.5,
@@ -759,6 +771,24 @@ mod tests {
         let t = Theme::dimmed();
         assert_eq!(t.invalid_cell_border.a, 255);
         assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn light_invalid_cell_bg_is_subtle() {
+        let t = Theme::light();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dark_invalid_cell_bg_is_subtle() {
+        let t = Theme::dark();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dimmed_invalid_cell_bg_is_subtle() {
+        let t = Theme::dimmed();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
     }
 
     #[test]

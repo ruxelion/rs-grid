@@ -347,9 +347,10 @@ progress-bar cell renderer adds `--rs-grid-progress-track`,
 `--rs-grid-progress-fill`, `--rs-grid-progress-height`, and
 `--rs-grid-progress-radius`. The locked-cell overlay (see *Locked-cell
 cursor feedback* above) adds `--rs-grid-locked-cell-bg` and
-`--rs-grid-locked-cell-text`. The at-rest invalid-cell border (see
-*Validation feedback on the text editor* above) adds
-`--rs-grid-invalid-cell-border` and `--rs-grid-invalid-cell-border-width`.
+`--rs-grid-locked-cell-text`. The at-rest invalid-cell background/border
+(see *Validation feedback on the text editor* above) adds
+`--rs-grid-invalid-cell-bg`, `--rs-grid-invalid-cell-border`, and
+`--rs-grid-invalid-cell-border-width`.
 
 ### Inline editor overlay variables
 
