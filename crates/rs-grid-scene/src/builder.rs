@@ -670,6 +670,14 @@ impl SceneBuilder {
                             }));
                         }
 
+                        // Clamp to the gutter boundary, mirroring
+                        // cells.rs's clip_x/clip_w clamp — otherwise a
+                        // column scrolled partway under the row-number
+                        // gutter bleeds its header text into the gutter
+                        // whenever gutter_bg has any transparency.
+                        let clip_x = cx.max(rnw);
+                        let clip_w = (cx + col.width - clip_x).max(0.0);
+
                         // Text must end before the left edge of the
                         // menu icon button to prevent the ellipsis
                         // from overlapping the button.
@@ -686,7 +694,7 @@ impl SceneBuilder {
                             font_size: t.header_font_size,
                             bold: t.header_font_bold,
                             italic: t.header_font_italic,
-                            clip: Some([cx, 0.0, col.width, hh]),
+                            clip: Some([clip_x, 0.0, clip_w, hh]),
                             align: TextAlign::Left,
                             max_width: Some(label_max_w),
                         }));

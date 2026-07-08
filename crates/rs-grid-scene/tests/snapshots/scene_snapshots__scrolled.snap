@@ -3648,9 +3648,9 @@ SceneFrame {
                 italic: false,
                 clip: Some(
                     [
-                        -9.0,
+                        51.0,
                         0.0,
-                        120.0,
+                        60.0,
                         40.0,
                     ],
                 ),
