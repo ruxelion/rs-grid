@@ -2,7 +2,7 @@
 name = "rs-grid-scene"
 # Explicit (not workspace-inherited): per-crate independent versioning, bumped by
 # release-plz. See release-plz.toml.
-version = "0.2.5"
+version = "0.2.6"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
