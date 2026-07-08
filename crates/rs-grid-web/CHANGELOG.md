@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.14...rs-grid-web-v0.1.15) - 2026-07-08
+
+### Added
+
+- implement ExtendRowChecked command for shift+click row selection
+
+### Fixed
+
+- adjust cell position calculation to include checkbox column width
+
 ## [0.1.14](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.13...rs-grid-web-v0.1.14) - 2026-07-08
 
 ### Added
