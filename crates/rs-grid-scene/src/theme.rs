@@ -329,7 +329,7 @@ impl Theme {
             // rgba(239, 68, 68, 0.06) → a = round(0.06 × 255) = 15
             invalid_cell_bg: Color::rgba(239, 68, 68, 15),
             invalid_cell_border: Color::rgb(239, 68, 68),
-            invalid_cell_border_width: 1.5,
+            invalid_cell_border_width: 1.0,
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
@@ -453,7 +453,7 @@ impl Theme {
             // rgba(220, 38, 38, 0.08) → a = round(0.08 × 255) = 20
             invalid_cell_bg: Color::rgba(220, 38, 38, 20),
             invalid_cell_border: Color::rgb(220, 38, 38),
-            invalid_cell_border_width: 1.5,
+            invalid_cell_border_width: 1.0,
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
@@ -577,7 +577,7 @@ impl Theme {
             // rgba(218, 54, 51, 0.08) → a = round(0.08 × 255) = 20
             invalid_cell_bg: Color::rgba(218, 54, 51, 20),
             invalid_cell_border: Color::rgb(218, 54, 51),
-            invalid_cell_border_width: 1.5,
+            invalid_cell_border_width: 1.0,
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,

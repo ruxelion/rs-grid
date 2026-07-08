@@ -42,6 +42,7 @@ pub(super) fn emit_cell(
     t: &Theme,
     flash: Option<&FlashHint>,
     class_resolver: Option<&ClassResolver>,
+    invalid_borders: &mut Vec<(f64, f64, f64, f64)>,
 ) {
     // Selection fill (no border — outer border drawn separately)
     if sel.is_selected(ri, ci) {
@@ -148,17 +149,15 @@ pub(super) fn emit_cell(
         }));
     }
     if invalid && t.invalid_cell_border.a > 0 {
-        frame.push(ScenePrimitive::Rect(RectPrimitive {
-            x: cx,
-            y: ry,
-            width: col.width,
-            height: row_height,
-            fill: Color::rgba(0, 0, 0, 0),
-            stroke: Some(t.invalid_cell_border),
-            stroke_width: t.invalid_cell_border_width,
-            corner_radius: 0.0,
-            clip: None,
-        }));
+        // Deferred rather than drawn here as a stroked `Rect`: a
+        // stroke sharing this cell's exact bounds lands on the
+        // same pixel as this row's grid line / this column's
+        // separator, both drawn later in the frame — which then
+        // paint over the bottom/right edges. Collecting the
+        // bounds and emitting them as boundary lines at the end
+        // (same technique as the selection outer border) keeps
+        // them on top, so all four edges stay visible.
+        invalid_borders.push((cx, ry, col.width, row_height));
     }
 
     // At-rest cell decoration — consumer-supplied border/tint driven by
@@ -789,6 +788,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -824,6 +824,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -851,6 +852,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -886,6 +888,7 @@ mod tests {
             &t,
             Some(&flash),
             None,
+            &mut Vec::new(),
         );
         // selection fill + flash overlay = 2 Rect primitives
         assert_eq!(frame.primitive_count(), 2);
@@ -930,6 +933,7 @@ mod tests {
             &t,
             Some(&flash),
             None,
+            &mut Vec::new(),
         );
         // Only the selection fill — no flash overlay for (0, 1).
         assert_eq!(frame.primitive_count(), 1);
@@ -966,6 +970,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1001,6 +1006,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1042,6 +1048,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1081,6 +1088,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1125,6 +1133,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         let has_image = frame
             .primitives
@@ -1169,6 +1178,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1208,6 +1218,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1256,6 +1267,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // No background → only a Text primitive.
         assert_eq!(frame.primitive_count(), 1);
@@ -1307,6 +1319,7 @@ mod tests {
             &t,
             None,
             Some(resolver),
+            &mut Vec::new(),
         );
         // background rect + text
         assert_eq!(frame.primitive_count(), 2);
@@ -1356,6 +1369,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // 2 elements → 2 Text primitives (no bg).
         assert_eq!(frame.primitive_count(), 2);
@@ -1395,6 +1409,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // track + fill = 2 rects (no label).
         assert_eq!(frame.primitive_count(), 2);
@@ -1441,6 +1456,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // track + fill + label text.
         assert_eq!(frame.primitive_count(), 3);
@@ -1474,6 +1490,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Only the track rect (zero fill is skipped).
         assert_eq!(frame.primitive_count(), 1);
@@ -1518,6 +1535,7 @@ mod tests {
             &t,
             None,
             Some(resolver),
+            &mut Vec::new(),
         );
         // Fill rect (second) uses the resolved background.
         match &frame.primitives[1] {
@@ -1551,6 +1569,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         match &frame.primitives[1] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.progress_fill),
@@ -1587,6 +1606,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Rect + Text for the button.
         assert_eq!(frame.primitive_count(), 2);
@@ -1624,6 +1644,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         let has_stroke = frame.primitives.iter().any(
             |p| matches!(p, ScenePrimitive::Rect(r) if r.stroke.is_some()),
@@ -1659,6 +1680,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.button_zones.len(), 2);
     }
@@ -1695,6 +1717,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         assert!(
@@ -1730,6 +1753,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         match &frame.primitives[0] {
             ScenePrimitive::Text(txt) => {
@@ -1773,6 +1797,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         match &frame.primitives[0] {
             ScenePrimitive::Text(txt) => {
@@ -1812,6 +1837,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 2);
         match &frame.primitives[0] {
@@ -1844,6 +1870,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 2);
         match &frame.primitives[0] {
@@ -1876,6 +1903,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Only the text primitive — no locked-cell overlay.
         assert_eq!(frame.primitive_count(), 1);
@@ -1906,6 +1934,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         match &frame.primitives[1] {
             ScenePrimitive::Text(txt) => {
@@ -1940,6 +1969,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // No overlay rect — only the text primitive.
         assert_eq!(frame.primitive_count(), 1);
@@ -1957,6 +1987,7 @@ mod tests {
         let mut t = Theme::light();
         // Isolate the border: bg overlay covered separately below.
         t.invalid_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
+        let mut invalid_borders = Vec::new();
         emit_cell(
             &mut frame,
             &col,
@@ -1976,16 +2007,14 @@ mod tests {
             &t,
             None,
             None,
+            &mut invalid_borders,
         );
-        assert_eq!(frame.primitive_count(), 1);
-        match &frame.primitives[0] {
-            ScenePrimitive::Rect(r) => {
-                assert_eq!(r.stroke, Some(t.invalid_cell_border));
-                assert_eq!(r.stroke_width, t.invalid_cell_border_width);
-                assert_eq!(r.fill.a, 0);
-            }
-            _ => panic!("expected the invalid-cell border Rect"),
-        }
+        // The border itself isn't drawn here — it's collected so the
+        // caller (SceneBuilder::build) can emit it once every grid
+        // line / separator is already in the frame. See the push
+        // site's comment for why.
+        assert_eq!(frame.primitive_count(), 0);
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
     }
 
     #[test]
@@ -2014,6 +2043,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -2049,6 +2079,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Only the text primitive — no invalid-cell border.
         assert_eq!(frame.primitive_count(), 1);
@@ -2081,6 +2112,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // No bg/border rect — empty text yields no primitives at all.
         assert_eq!(frame.primitive_count(), 0);
@@ -2095,6 +2127,7 @@ mod tests {
         let model = make_model(&col);
         let sel = SelectionState::default();
         let t = Theme::light();
+        let mut invalid_borders = Vec::new();
         emit_cell(
             &mut frame,
             &col,
@@ -2112,11 +2145,13 @@ mod tests {
             &t,
             None,
             None,
+            &mut invalid_borders,
         );
-        // Locked overlay (fill) + invalid bg + invalid border — all
-        // three conditions can hold at once and don't suppress each
-        // other.
-        assert_eq!(frame.primitive_count(), 3);
+        // Locked overlay (fill) + invalid bg — both conditions can hold
+        // at once and don't suppress each other. The invalid border is
+        // collected separately (see the border-overlay test above) so
+        // it isn't a frame primitive here.
+        assert_eq!(frame.primitive_count(), 2);
         match &frame.primitives[0] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
             _ => panic!("expected the locked-cell overlay Rect first"),
@@ -2125,12 +2160,7 @@ mod tests {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.invalid_cell_bg),
             _ => panic!("expected the invalid-cell bg Rect second"),
         }
-        match &frame.primitives[2] {
-            ScenePrimitive::Rect(r) => {
-                assert_eq!(r.stroke, Some(t.invalid_cell_border))
-            }
-            _ => panic!("expected the invalid-cell border Rect third"),
-        }
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
     }
 
     // ── at-rest cell decoration ───────────────────────────────
@@ -2165,6 +2195,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // tint Rect + border Rect + text primitive.
         assert_eq!(frame.primitive_count(), 3);
@@ -2215,6 +2246,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
@@ -2248,6 +2280,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // border Rect + text — no tint Rect since it wasn't set.
         assert_eq!(frame.primitive_count(), 2);
@@ -2271,6 +2304,7 @@ mod tests {
         let model = make_model(&col);
         let sel = SelectionState::default();
         let t = Theme::light();
+        let mut invalid_borders = Vec::new();
         emit_cell(
             &mut frame,
             &col,
@@ -2288,10 +2322,13 @@ mod tests {
             &t,
             None,
             None,
+            &mut invalid_borders,
         );
-        // locked fill + invalid bg + invalid border + decoration tint +
-        // decoration border — 5 overlay Rects, none suppressing others.
-        assert_eq!(frame.primitive_count(), 5);
+        // locked fill + invalid bg + decoration tint + decoration
+        // border — 4 overlay Rects, none suppressing others. The
+        // invalid border is collected separately (not a frame
+        // primitive here — see the border-overlay test above).
+        assert_eq!(frame.primitive_count(), 4);
         match &frame.primitives[0] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
             _ => panic!("expected the locked-cell overlay Rect first"),
@@ -2302,28 +2339,23 @@ mod tests {
         }
         match &frame.primitives[2] {
             ScenePrimitive::Rect(r) => {
-                assert_eq!(r.stroke, Some(t.invalid_cell_border))
-            }
-            _ => panic!("expected the invalid-cell border Rect third"),
-        }
-        match &frame.primitives[3] {
-            ScenePrimitive::Rect(r) => {
                 assert_eq!(
                     r.fill,
                     crate::primitives::Color::rgba(0, 0, 255, 30)
                 );
                 assert!(r.stroke.is_none());
             }
-            _ => panic!("expected the decoration tint Rect fourth"),
+            _ => panic!("expected the decoration tint Rect third"),
         }
-        match &frame.primitives[4] {
+        match &frame.primitives[3] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(
                     r.stroke,
                     Some(crate::primitives::Color::rgba(0, 0, 255, 255))
                 );
             }
-            _ => panic!("expected the decoration border Rect fifth"),
+            _ => panic!("expected the decoration border Rect fourth"),
         }
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
     }
 }

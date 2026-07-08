@@ -212,7 +212,20 @@ impl CanvasRenderer {
             if r.corner_radius > 0.0 {
                 ctx.stroke();
             } else {
-                ctx.stroke_rect(r.x, r.y, r.width, r.height);
+                // Canvas centers a stroke on the path, so a
+                // naive stroke_rect(x, y, w, h) bleeds half the
+                // stroke width outside the rect — visible as a
+                // cell-bounds border (e.g. a `CellDecoration`
+                // border) spilling into the adjacent cell. Inset
+                // by exactly half the stroke width so the whole
+                // stroke stays inside the rect, flush with its
+                // edges, instead of straddling them.
+                let inset = r.stroke_width / 2.0;
+                let x = r.x + inset;
+                let y = r.y + inset;
+                let w = (r.width - 2.0 * inset).max(0.0);
+                let h = (r.height - 2.0 * inset).max(0.0);
+                ctx.stroke_rect(x, y, w, h);
             }
             ctx.restore();
         }
@@ -318,8 +331,25 @@ impl CanvasRenderer {
         ctx.set_stroke_style_str(&l.color.to_css());
         ctx.set_line_width(l.width);
         ctx.begin_path();
-        ctx.move_to(l.x1, l.y1);
-        ctx.line_to(l.x2, l.y2);
+        // Axis-aligned 1px lines are built in rs-grid-scene as
+        // `boundary - 0.5` so a crisp stroke lands exactly on
+        // the pixel grid — but `boundary` tracks continuous
+        // scroll offsets, so it's rarely an exact integer. Snap
+        // back to the nearest `n - 0.5` here so the line stays
+        // crisp regardless of scroll fraction, instead of
+        // straddling two device pixels and rendering blurry/2px.
+        if l.x1 == l.x2 {
+            let x = (l.x1 + 0.5).round() - 0.5;
+            ctx.move_to(x, l.y1);
+            ctx.line_to(x, l.y2);
+        } else if l.y1 == l.y2 {
+            let y = (l.y1 + 0.5).round() - 0.5;
+            ctx.move_to(l.x1, y);
+            ctx.line_to(l.x2, y);
+        } else {
+            ctx.move_to(l.x1, l.y1);
+            ctx.line_to(l.x2, l.y2);
+        }
         ctx.stroke();
         ctx.restore();
     }

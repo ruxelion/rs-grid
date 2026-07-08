@@ -76,10 +76,20 @@ resolves `Err`:
   pushed right after the locked-cell overlay, before the format
   dispatch — same format-agnostic placement as the locked overlay, so
   it applies to composite `CellFormat`s too.
-- A border-only `Rect` (`fill` fully transparent, `stroke:
-  Some(Theme::invalid_cell_border)`, `stroke_width:
-  Theme::invalid_cell_border_width`) is pushed right after the bg
-  overlay — same placement precedent.
+- The border is **not** pushed here as a `Rect` — `emit_cell` only
+  collects its bounds into the `invalid_borders: &mut Vec<(f64, f64,
+  f64, f64)>` accumulator threaded through its signature (right after
+  the bg overlay, same placement precedent as before). `SceneBuilder::
+  build` draws it later as four boundary `Line`s via the shared
+  `push_boundary_lines` helper (`builder.rs`, also used for the
+  selection outer border) — placed right after the grid lines / column
+  separators / pinned-column overlay but *before* the header/gutter, so
+  it wins the draw-order race against this row's own trailing grid
+  line (the reason it isn't a `Rect` pushed inline: a stroked `Rect`
+  at the cell's exact bounds would otherwise have its bottom/right
+  edge painted over by that line) while still being masked by the
+  header/gutter for a row/column that's only partially scrolled into
+  view, the same way ordinary cell content is.
 - The bg and border overlays are independent primitives, each skipped
   entirely when its own color has `.a == 0` (same "transparent =
   disabled" convention as `locked_cell_bg`) — a consumer can theme

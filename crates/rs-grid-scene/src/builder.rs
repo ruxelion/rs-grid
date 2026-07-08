@@ -12,11 +12,75 @@ use crate::{
     class_map::ClassResolver,
     frame::SceneFrame,
     primitives::{
-        LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
+        Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
         TextAlign, TextPrimitive,
     },
     theme::Theme,
 };
+
+// ── boundary-line rectangle border ───────────────────────────────────────────
+
+/// Push a crisp 1px-per-edge rectangle border — used by both the
+/// selection outer border and the invalid-cell border — as four
+/// independent `Line` primitives rather than a stroked `Rect`, so it
+/// draws with flush corners regardless of when/where each edge lands
+/// relative to other primitives already in the frame.
+///
+/// Every edge sits at `boundary - 0.5` (the crisp-line convention
+/// shared with grid lines/separators elsewhere in this file), which
+/// consistently biases the top/left edges *outward* and the
+/// bottom/right edges *inward* — so only the top and left edges'
+/// leading (x1/y1) end fails to reach the other edge's stroke at a
+/// corner; the trailing (x2/y2) end already overlaps it naturally.
+/// Extending only that leading end by `width` closes the gap without
+/// the trailing end overshooting past the perpendicular edge (which
+/// would produce a small protruding nub at the other three corners).
+fn push_boundary_lines(
+    frame: &mut SceneFrame,
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    color: Color,
+    width: f64,
+) {
+    // top
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - width,
+        y1: y1 - 0.5,
+        x2,
+        y2: y1 - 0.5,
+        color,
+        width,
+    }));
+    // bottom
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - width,
+        y1: y2 - 0.5,
+        x2,
+        y2: y2 - 0.5,
+        color,
+        width,
+    }));
+    // left
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - 0.5,
+        y1: y1 - width,
+        x2: x1 - 0.5,
+        y2,
+        color,
+        width,
+    }));
+    // right
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x2 - 0.5,
+        y1: y1 - width,
+        x2: x2 - 0.5,
+        y2,
+        color,
+        width,
+    }));
+}
 
 // ── column drag hint ─────────────────────────────────────────────────────────
 
@@ -285,6 +349,12 @@ impl SceneBuilder {
             .get(state.search.current)
             .map(|c| (c.row, c.col));
 
+        // Invalid-cell border bounds (cx, ry, width, height), collected
+        // across both the scrollable and pinned cell loops below and
+        // drawn as boundary lines once every grid line / separator has
+        // already been emitted — see the push site in `cells.rs` for why.
+        let mut invalid_borders: Vec<(f64, f64, f64, f64)> = Vec::new();
+
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
             let ry = row_vy(ri);
@@ -380,6 +450,7 @@ impl SceneBuilder {
                     t,
                     flash,
                     self.class_resolver.as_deref(),
+                    &mut invalid_borders,
                 );
             }
 
@@ -529,6 +600,7 @@ impl SceneBuilder {
                         t,
                         flash,
                         self.class_resolver.as_deref(),
+                        &mut invalid_borders,
                     );
                 }
             }
@@ -563,7 +635,29 @@ impl SceneBuilder {
             }));
         }
 
+        // ── invalid-cell borders ─────────────────────────────────────────────
+        // Pushed here — after grid lines, column separators, and the
+        // pinned-column overlay, but *before* the header/gutter — so
+        // it wins the collision against this row's own trailing grid
+        // line (the original bug: the border used to be pushed inline
+        // during cell emission, ahead of that line) while still being
+        // masked by the header/gutter for a row/column that's only
+        // partially scrolled into view (the sticky overlays are relied
+        // on elsewhere to clip that overscanned content the same way).
+        for &(bx, by, bw, bh) in &invalid_borders {
+            push_boundary_lines(
+                &mut frame,
+                bx,
+                by,
+                bx + bw,
+                by + bh,
+                t.invalid_cell_border,
+                t.invalid_cell_border_width,
+            );
+        }
+
         // ── selection outer border ───────────────────────────────────────────
+        // Same placement rationale as the invalid-cell borders above.
         if let Some((tl, br)) = sel.range() {
             let x1 = col_vx(tl.col);
             let y1 = row_vy(tl.row);
@@ -586,42 +680,7 @@ impl SceneBuilder {
                 t.selection_border
             };
 
-            // top
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1,
-                y1: y1 - 0.5,
-                x2,
-                y2: y1 - 0.5,
-                color: border_color,
-                width: 1.0,
-            }));
-            // bottom
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1,
-                y1: y2 - 0.5,
-                x2,
-                y2: y2 - 0.5,
-                color: border_color,
-                width: 1.0,
-            }));
-            // left
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x1 + 0.5,
-                y1,
-                x2: x1 + 0.5,
-                y2,
-                color: border_color,
-                width: 1.0,
-            }));
-            // right
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x2 - 0.5,
-                y1,
-                x2: x2 - 0.5,
-                y2,
-                color: border_color,
-                width: 1.0,
-            }));
+            push_boundary_lines(&mut frame, x1, y1, x2, y2, border_color, 1.0);
         }
 
         // ── header (sticky, drawn on top of scrolled data) ───────────────────

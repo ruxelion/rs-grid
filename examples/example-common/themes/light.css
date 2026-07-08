@@ -26,7 +26,7 @@
   --rs-grid-locked-cell-text: rgba(24, 29, 31, 0.55);
   --rs-grid-invalid-cell-bg: rgba(239, 68, 68, 0.06);
   --rs-grid-invalid-cell-border: #ef4444;
-  --rs-grid-invalid-cell-border-width: 1.5px;
+  --rs-grid-invalid-cell-border-width: 1px;
   --rs-grid-decoration-border-width: 1.5px;
   --rs-grid-header-height: 48px;
   --rs-grid-row-height: 42px;
