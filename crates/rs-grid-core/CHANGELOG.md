@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.3.1...rs-grid-core-v0.4.0) - 2026-07-09
+
+### Added
+
+- per-row visibility predicate for cell buttons ([#64](https://github.com/ruxelion/rs-grid/pull/64))
+- implement row-number gutter width management and server-side page fetching
+
 ## [0.3.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.3.0...rs-grid-core-v0.3.1) - 2026-07-08
 
 ### Added
