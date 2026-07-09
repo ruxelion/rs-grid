@@ -5,11 +5,14 @@
 //! emit styled cell elements.
 //!
 //! Plug this into your grid instance via
-//! `GridCanvas::set_class_resolver`:
+//! `GridCanvas::set_class_resolver`, re-registering whenever the
+//! active theme changes so colours stay in sync:
 //!
 //! ```ignore
-//! on_mount: Box::new(|gc| {
-//!     gc.set_class_resolver(Rc::new(resolve_classes));
+//! on_mount: Box::new(move |gc| {
+//!     gc.set_class_resolver(Rc::new(move |raw| {
+//!         resolve_classes(raw, &theme)
+//!     }));
 //! })
 //! ```
 //!
@@ -66,13 +69,9 @@
 //! from DaisyUI's installed `node_modules`.
 //! Regenerate with `just gen-class-map`.
 
-use rs_grid_scene::{class_map::CellElementStyle, primitives::Color};
+use rs_grid_scene::{class_map::CellElementStyle, primitives::Color, Theme};
 
-use crate::class_map_data::{
-    badge, btn, progress, ACCENT_BG, ACCENT_FG, BASE_200, ERROR_BG, ERROR_FG,
-    INFO_BG, INFO_FG, NEUTRAL_BG, NEUTRAL_FG, PRIMARY_BG, PRIMARY_FG,
-    SECONDARY_BG, SECONDARY_FG, SUCCESS_BG, SUCCESS_FG, WARNING_BG, WARNING_FG,
-};
+use crate::class_map_data::{badge, btn, progress, BASE_200};
 
 /// Resolve space-separated DaisyUI / Tailwind class names
 /// into a [`CellElementStyle`].
@@ -81,12 +80,21 @@ use crate::class_map_data::{
 /// modifiers (`badge-soft`, `badge-dash`) are resolved
 /// after the full pass so they always see the final colour.
 ///
-/// Register this as the class resolver on `GridCanvas`:
+/// Colour variants (`badge-primary`, `btn-success`, …) are read from
+/// `theme.cell_btn_*` rather than the light-only `class_map_data`
+/// constants, so badges/buttons repaint correctly when the demo
+/// switches to the dark or dimmed theme — the same colours the
+/// `ButtonStyle` cell buttons already use. Geometry (radius, padding,
+/// sizes) is theme-invariant in DaisyUI, so it still comes from
+/// `class_map_data`.
+///
+/// Register this as the class resolver on `GridCanvas`, re-registering
+/// whenever the active theme changes:
 ///
 /// ```ignore
-/// gc.set_class_resolver(Rc::new(resolve_classes));
+/// gc.set_class_resolver(Rc::new(move |raw| resolve_classes(raw, &theme)));
 /// ```
-pub fn resolve_classes(classes: &str) -> CellElementStyle {
+pub fn resolve_classes(classes: &str, theme: &Theme) -> CellElementStyle {
     let mut s = CellElementStyle::default();
     let mut soft = false;
     let mut dash = false;
@@ -102,43 +110,43 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 
             // ── badge colour variants ─────────────────────
             "badge-primary" => {
-                s.background = Some(PRIMARY_BG);
-                s.color = Some(PRIMARY_FG);
+                s.background = Some(theme.cell_btn_primary_bg);
+                s.color = Some(theme.cell_btn_primary_text);
             }
             "badge-secondary" => {
-                s.background = Some(SECONDARY_BG);
-                s.color = Some(SECONDARY_FG);
+                s.background = Some(theme.cell_btn_secondary_bg);
+                s.color = Some(theme.cell_btn_secondary_text);
             }
             "badge-accent" => {
-                s.background = Some(ACCENT_BG);
-                s.color = Some(ACCENT_FG);
+                s.background = Some(theme.cell_btn_accent_bg);
+                s.color = Some(theme.cell_btn_accent_text);
             }
             "badge-success" => {
-                s.background = Some(SUCCESS_BG);
-                s.color = Some(SUCCESS_FG);
+                s.background = Some(theme.cell_btn_success_bg);
+                s.color = Some(theme.cell_btn_success_text);
             }
             "badge-error" => {
-                s.background = Some(ERROR_BG);
-                s.color = Some(ERROR_FG);
+                s.background = Some(theme.cell_btn_danger_bg);
+                s.color = Some(theme.cell_btn_danger_text);
             }
             "badge-warning" => {
-                s.background = Some(WARNING_BG);
-                s.color = Some(WARNING_FG);
+                s.background = Some(theme.cell_btn_warning_bg);
+                s.color = Some(theme.cell_btn_warning_text);
             }
             "badge-info" => {
-                s.background = Some(INFO_BG);
-                s.color = Some(INFO_FG);
+                s.background = Some(theme.cell_btn_info_bg);
+                s.color = Some(theme.cell_btn_info_text);
             }
             "badge-neutral" => {
-                s.background = Some(NEUTRAL_BG);
-                s.color = Some(NEUTRAL_FG);
+                s.background = Some(theme.cell_btn_neutral_bg);
+                s.color = Some(theme.cell_btn_neutral_text);
             }
 
             // ── badge style modifiers ─────────────────────
 
             // Outline: stroke only, no fill.
             "badge-outline" => {
-                let accent = s.background.unwrap_or(NEUTRAL_BG);
+                let accent = s.background.unwrap_or(theme.cell_btn_neutral_bg);
                 s.border_color = Some(accent);
                 s.color = Some(accent);
                 s.background = None;
@@ -199,43 +207,43 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 
             // ── btn colour variants ───────────────────────
             "btn-primary" => {
-                s.background = Some(PRIMARY_BG);
-                s.color = Some(PRIMARY_FG);
+                s.background = Some(theme.cell_btn_primary_bg);
+                s.color = Some(theme.cell_btn_primary_text);
             }
             "btn-secondary" => {
-                s.background = Some(SECONDARY_BG);
-                s.color = Some(SECONDARY_FG);
+                s.background = Some(theme.cell_btn_secondary_bg);
+                s.color = Some(theme.cell_btn_secondary_text);
             }
             "btn-accent" => {
-                s.background = Some(ACCENT_BG);
-                s.color = Some(ACCENT_FG);
+                s.background = Some(theme.cell_btn_accent_bg);
+                s.color = Some(theme.cell_btn_accent_text);
             }
             "btn-success" => {
-                s.background = Some(SUCCESS_BG);
-                s.color = Some(SUCCESS_FG);
+                s.background = Some(theme.cell_btn_success_bg);
+                s.color = Some(theme.cell_btn_success_text);
             }
             "btn-error" => {
-                s.background = Some(ERROR_BG);
-                s.color = Some(ERROR_FG);
+                s.background = Some(theme.cell_btn_danger_bg);
+                s.color = Some(theme.cell_btn_danger_text);
             }
             "btn-warning" => {
-                s.background = Some(WARNING_BG);
-                s.color = Some(WARNING_FG);
+                s.background = Some(theme.cell_btn_warning_bg);
+                s.color = Some(theme.cell_btn_warning_text);
             }
             "btn-info" => {
-                s.background = Some(INFO_BG);
-                s.color = Some(INFO_FG);
+                s.background = Some(theme.cell_btn_info_bg);
+                s.color = Some(theme.cell_btn_info_text);
             }
             "btn-neutral" => {
-                s.background = Some(NEUTRAL_BG);
-                s.color = Some(NEUTRAL_FG);
+                s.background = Some(theme.cell_btn_neutral_bg);
+                s.color = Some(theme.cell_btn_neutral_text);
             }
 
             // ── btn style modifiers ───────────────────────
 
             // Outline: stroke only, no fill.
             "btn-outline" => {
-                let accent = s.background.unwrap_or(NEUTRAL_BG);
+                let accent = s.background.unwrap_or(theme.cell_btn_neutral_bg);
                 s.border_color = Some(accent);
                 s.color = Some(accent);
                 s.background = None;
@@ -369,7 +377,10 @@ pub fn resolve_classes(classes: &str) -> CellElementStyle {
 
     // dash: outline with no fill.
     if dash {
-        let stroke = s.background.or(s.color).unwrap_or(NEUTRAL_BG);
+        let stroke = s
+            .background
+            .or(s.color)
+            .unwrap_or(theme.cell_btn_neutral_bg);
         s.border_color = Some(stroke);
         s.background = None;
         s.border_width = badge::BORDER;
@@ -392,7 +403,7 @@ mod tests {
 
     #[test]
     fn badge_base_sets_padding_and_radius() {
-        let s = resolve_classes("badge");
+        let s = resolve_classes("badge", &Theme::light());
         assert_eq!(s.border_radius, badge::RADIUS);
         assert_eq!(s.padding_x, badge::MD.px);
         assert_eq!(s.padding_y, badge::MD.py);
@@ -401,7 +412,7 @@ mod tests {
 
     #[test]
     fn badge_success_sets_bg_and_fg() {
-        let s = resolve_classes("badge badge-success");
+        let s = resolve_classes("badge badge-success", &Theme::light());
         let bg = s.background.expect("background");
         assert_eq!(
             (bg.r, bg.g, bg.b),
@@ -416,7 +427,8 @@ mod tests {
 
     #[test]
     fn badge_outline_clears_background() {
-        let s = resolve_classes("badge badge-error badge-outline");
+        let s =
+            resolve_classes("badge badge-error badge-outline", &Theme::light());
         assert!(s.background.is_none());
         let bc = s.border_color.unwrap();
         assert_eq!((bc.r, bc.g, bc.b), (ERROR_BG.r, ERROR_BG.g, ERROR_BG.b));
@@ -426,7 +438,8 @@ mod tests {
 
     #[test]
     fn badge_soft_translucent_bg_and_colored_text() {
-        let s = resolve_classes("badge badge-success badge-soft");
+        let s =
+            resolve_classes("badge badge-success badge-soft", &Theme::light());
         let bg = s.background.expect("soft background");
         assert_eq!(
             (bg.r, bg.g, bg.b),
@@ -443,7 +456,7 @@ mod tests {
 
     #[test]
     fn badge_dash_clears_background_keeps_border() {
-        let s = resolve_classes("badge badge-info badge-dash");
+        let s = resolve_classes("badge badge-info badge-dash", &Theme::light());
         assert!(s.background.is_none());
         let bc = s.border_color.expect("border");
         assert_eq!((bc.r, bc.g, bc.b), (INFO_BG.r, INFO_BG.g, INFO_BG.b));
@@ -451,7 +464,7 @@ mod tests {
 
     #[test]
     fn badge_ghost_uses_base_200() {
-        let s = resolve_classes("badge badge-ghost");
+        let s = resolve_classes("badge badge-ghost", &Theme::light());
         let bg = s.background.expect("ghost should have bg-base-200");
         assert_eq!((bg.r, bg.g, bg.b), (BASE_200.r, BASE_200.g, BASE_200.b));
         assert!(s.border_color.is_some());
@@ -459,7 +472,8 @@ mod tests {
 
     #[test]
     fn badge_xl_larger_padding() {
-        let s = resolve_classes("badge badge-success badge-xl");
+        let s =
+            resolve_classes("badge badge-success badge-xl", &Theme::light());
         assert_eq!(s.padding_x, badge::XL.px);
         assert_eq!(s.padding_y, badge::XL.py);
         assert_eq!(s.font_size_delta, badge::XL.fd);
@@ -467,7 +481,8 @@ mod tests {
 
     #[test]
     fn badge_sm_reduces_padding_and_font() {
-        let s = resolve_classes("badge badge-success badge-sm");
+        let s =
+            resolve_classes("badge badge-success badge-sm", &Theme::light());
         assert_eq!(s.padding_x, badge::SM.px);
         assert_eq!(s.padding_y, badge::SM.py);
         assert!(s.font_size_delta < 0.0);
@@ -486,7 +501,7 @@ mod tests {
             "badge-neutral",
         ];
         for v in variants {
-            let s = resolve_classes(&format!("badge {v}"));
+            let s = resolve_classes(&format!("badge {v}"), &Theme::light());
             assert!(s.background.is_some(), "{v} should have a background");
             assert!(s.color.is_some(), "{v} should have a text colour");
         }
@@ -505,7 +520,10 @@ mod tests {
             "badge-neutral",
         ];
         for v in variants {
-            let s = resolve_classes(&format!("badge {v} badge-soft"));
+            let s = resolve_classes(
+                &format!("badge {v} badge-soft"),
+                &Theme::light(),
+            );
             let bg =
                 s.background.unwrap_or_else(|| panic!("{v} soft has no bg"));
             assert!(
@@ -519,7 +537,10 @@ mod tests {
     #[test]
     fn badge_dash_modifier_on_variants() {
         for v in ["badge-primary", "badge-success", "badge-error"] {
-            let s = resolve_classes(&format!("badge {v} badge-dash"));
+            let s = resolve_classes(
+                &format!("badge {v} badge-dash"),
+                &Theme::light(),
+            );
             assert!(s.background.is_none(), "{v} badge-dash should have no bg");
             assert!(
                 s.border_color.is_some(),
@@ -530,26 +551,31 @@ mod tests {
 
     #[test]
     fn font_bold_sets_bold() {
-        let s = resolve_classes("badge badge-primary font-bold");
+        let s =
+            resolve_classes("badge badge-primary font-bold", &Theme::light());
         assert!(s.bold);
     }
 
     #[test]
     fn rounded_full_overrides_radius() {
-        let s = resolve_classes("badge badge-info rounded-full");
+        let s =
+            resolve_classes("badge badge-info rounded-full", &Theme::light());
         assert_eq!(s.border_radius, 9999.0);
     }
 
     #[test]
     fn empty_class_returns_default() {
-        let s = resolve_classes("");
+        let s = resolve_classes("", &Theme::light());
         assert!(s.background.is_none());
         assert_eq!(s.border_radius, 0.0);
     }
 
     #[test]
     fn unknown_classes_are_ignored() {
-        let s = resolve_classes("flex h-full w-full badge badge-info");
+        let s = resolve_classes(
+            "flex h-full w-full badge badge-info",
+            &Theme::light(),
+        );
         assert!(s.background.is_some());
         assert_eq!(s.border_radius, badge::RADIUS);
     }
@@ -558,7 +584,7 @@ mod tests {
 
     #[test]
     fn btn_base_sets_padding_and_radius() {
-        let s = resolve_classes("btn");
+        let s = resolve_classes("btn", &Theme::light());
         assert_eq!(s.border_radius, btn::RADIUS);
         assert_eq!(s.padding_x, btn::MD.px);
         assert_eq!(s.padding_y, btn::MD.py);
@@ -567,7 +593,7 @@ mod tests {
 
     #[test]
     fn btn_primary_sets_bg_and_fg() {
-        let s = resolve_classes("btn btn-primary");
+        let s = resolve_classes("btn btn-primary", &Theme::light());
         let bg = s.background.expect("background");
         assert_eq!(
             (bg.r, bg.g, bg.b),
@@ -578,7 +604,7 @@ mod tests {
 
     #[test]
     fn btn_outline_clears_background() {
-        let s = resolve_classes("btn btn-success btn-outline");
+        let s = resolve_classes("btn btn-success btn-outline", &Theme::light());
         assert!(s.background.is_none());
         let bc = s.border_color.expect("border");
         assert_eq!(
@@ -589,7 +615,7 @@ mod tests {
 
     #[test]
     fn btn_soft_translucent_bg() {
-        let s = resolve_classes("btn btn-primary btn-soft");
+        let s = resolve_classes("btn btn-primary btn-soft", &Theme::light());
         let bg = s.background.expect("soft bg");
         assert!(
             bg.a <= 25,
@@ -601,14 +627,14 @@ mod tests {
 
     #[test]
     fn btn_ghost_clears_bg_and_border() {
-        let s = resolve_classes("btn btn-primary btn-ghost");
+        let s = resolve_classes("btn btn-primary btn-ghost", &Theme::light());
         assert!(s.background.is_none());
         assert!(s.border_color.is_none());
     }
 
     #[test]
     fn btn_xs_smaller_padding() {
-        let s = resolve_classes("btn btn-primary btn-xs");
+        let s = resolve_classes("btn btn-primary btn-xs", &Theme::light());
         assert_eq!(s.padding_x, btn::XS.px);
         assert_eq!(s.padding_y, btn::XS.py);
         assert!(s.font_size_delta < 0.0);
@@ -616,8 +642,8 @@ mod tests {
 
     #[test]
     fn btn_xl_larger_padding_than_md() {
-        let md = resolve_classes("btn btn-primary");
-        let xl = resolve_classes("btn btn-primary btn-xl");
+        let md = resolve_classes("btn btn-primary", &Theme::light());
+        let xl = resolve_classes("btn btn-primary btn-xl", &Theme::light());
         assert!(xl.padding_x > md.padding_x);
         assert!(xl.padding_y > md.padding_y);
     }
@@ -635,7 +661,7 @@ mod tests {
             "btn-neutral",
         ];
         for v in variants {
-            let s = resolve_classes(&format!("btn {v}"));
+            let s = resolve_classes(&format!("btn {v}"), &Theme::light());
             assert!(s.background.is_some(), "{v} should have a background");
             assert!(s.color.is_some(), "{v} should have a text colour");
         }
@@ -645,14 +671,14 @@ mod tests {
 
     #[test]
     fn progress_base_sets_radius() {
-        let s = resolve_classes("progress");
+        let s = resolve_classes("progress", &Theme::light());
         assert_eq!(s.border_radius, progress::RADIUS);
         assert!(s.background.is_none());
     }
 
     #[test]
     fn progress_success_sets_fill() {
-        let s = resolve_classes("progress progress-success");
+        let s = resolve_classes("progress progress-success", &Theme::light());
         let bg = s.background.expect("fill colour");
         assert_eq!(
             (bg.r, bg.g, bg.b),
@@ -677,7 +703,7 @@ mod tests {
             "progress-neutral",
         ];
         for v in variants {
-            let s = resolve_classes(&format!("progress {v}"));
+            let s = resolve_classes(&format!("progress {v}"), &Theme::light());
             assert!(s.background.is_some(), "{v} should have a fill colour");
         }
     }
