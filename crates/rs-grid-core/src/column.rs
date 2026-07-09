@@ -221,6 +221,16 @@ pub enum ButtonStyle {
     Danger,
     /// Transparent background, border only.
     Ghost,
+    /// Solid neutral (near-black) fill.
+    Neutral,
+    /// Solid accent-colour fill.
+    Accent,
+    /// Solid informational fill.
+    Info,
+    /// Solid success fill.
+    Success,
+    /// Solid warning fill.
+    Warning,
 }
 
 /// Definition of a single button rendered inside a cell.

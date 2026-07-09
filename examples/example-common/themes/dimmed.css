@@ -39,11 +39,23 @@
   --rs-grid-gutter-bg: #2d333b;
   --rs-grid-gutter-text: rgba(173, 186, 199, 0.70);
   --rs-grid-gutter-border: #444c56;
-  --rs-grid-cell-btn-primary-bg: #388bfd;
-  --rs-grid-cell-btn-secondary-bg: #373e47;
-  --rs-grid-cell-btn-secondary-text: #adbac7;
-  --rs-grid-cell-btn-danger-bg: #da3633;
-  --rs-grid-cell-btn-ghost-color: rgba(56, 139, 253, 0.78);
+  --rs-grid-cell-btn-primary-bg: #9fe88d;
+  --rs-grid-cell-btn-primary-text: #091307;
+  --rs-grid-cell-btn-secondary-bg: #ff7d5d;
+  --rs-grid-cell-btn-secondary-text: #160503;
+  --rs-grid-cell-btn-danger-bg: #ffae9b;
+  --rs-grid-cell-btn-danger-text: #160b09;
+  --rs-grid-cell-btn-ghost-color: rgba(159, 232, 141, 0.78);
+  --rs-grid-cell-btn-neutral-bg: #1c212b;
+  --rs-grid-cell-btn-neutral-text: #b2ccd6;
+  --rs-grid-cell-btn-accent-bg: #c792e9;
+  --rs-grid-cell-btn-accent-text: #0e0813;
+  --rs-grid-cell-btn-info-bg: #28ebff;
+  --rs-grid-cell-btn-info-text: #011316;
+  --rs-grid-cell-btn-success-bg: #62efbd;
+  --rs-grid-cell-btn-success-text: #03140d;
+  --rs-grid-cell-btn-warning-bg: #efd057;
+  --rs-grid-cell-btn-warning-text: #141003;
 
   /* context menu */
   --rs-grid-ctx-bg: #2d333b;

@@ -721,22 +721,30 @@ impl GridCanvas {
                     gc.dispatch(GridCommand::ClearSort);
                 }
                 BuiltinAction::AutoSizeColumn => {
-                    let (cw, hcw, cp, hrr) = gc.autofit_params();
+                    let (cw, hcw, cp, hrr, bcw, bpx, bgap) =
+                        gc.autofit_params();
                     gc.dispatch(GridCommand::AutoFitColumn {
                         col_idx,
                         char_width: cw,
                         header_char_width: hcw,
                         cell_padding: cp,
                         header_right_reserve: hrr,
+                        btn_char_width: bcw,
+                        btn_padding_x: bpx,
+                        btn_gap: bgap,
                     });
                 }
                 BuiltinAction::AutoSizeAllColumns => {
-                    let (cw, hcw, cp, hrr) = gc.autofit_params();
+                    let (cw, hcw, cp, hrr, bcw, bpx, bgap) =
+                        gc.autofit_params();
                     gc.dispatch(GridCommand::AutoFitAllColumns {
                         char_width: cw,
                         header_char_width: hcw,
                         cell_padding: cp,
                         header_right_reserve: hrr,
+                        btn_char_width: bcw,
+                        btn_padding_x: bpx,
+                        btn_gap: bgap,
                     });
                 }
             }
