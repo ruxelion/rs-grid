@@ -59,15 +59,69 @@ impl fmt::Debug for CellValidator {
     }
 }
 
-// ── cell editability predicate ──────────────────────────
+// ── generic row callback ────────────────────────────────
 
-/// Per-cell editability predicate signature.
+/// Signature shared by every [`RowPredicate<T>`] instantiation. Factored
+/// out (rather than inlined in the struct field) purely to keep
+/// `RowPredicate`'s own definition under clippy's `type_complexity`
+/// threshold — it carries no independent meaning beyond that.
+type RowPredicateFn<T> = dyn Fn(u64, &GridModel) -> T;
+
+/// Generic per-row callback wrapper: an [`Rc`]-shared closure taking
+/// the row index and full [`GridModel`] access, returning `T`. Backs
+/// [`EditablePredicate`], [`CellDecorator`], and [`CellButtonsVisible`]
+/// (see each alias for its specific semantics/gating rules — this type
+/// only supplies the shared `Rc<dyn Fn>` mechanics: construction,
+/// evaluation, cheap `Rc::clone`, and an opaque `Debug` placeholder).
 ///
-/// Receives the row index and full read access to the [`GridModel`]
-/// so the closure can implement cross-column logic (e.g. lock a cell
-/// when another column's value is `"locked"`), not just this
-/// column's own value.
-pub type EditablePredicateFn = dyn Fn(u64, &GridModel) -> bool;
+/// `T: 'static` is required on the struct (and repeated on every impl
+/// below, since a struct's bounds aren't inherited by its impls):
+/// `Rc<dyn Fn(..) -> T>` binds `T` as the trait object's `Output`
+/// associated type, and Rust requires everything bound into an
+/// implicit `+ 'static` trait object to itself be `'static` (the
+/// classic `Box<dyn Fn() -> T>` footgun, rustc E0310) — unlike the
+/// `&GridModel` *argument*, which is consumed per-call and needs no
+/// such bound.
+///
+/// # Thread safety
+///
+/// `RowPredicate` is `!Send + !Sync` (it wraps an `Rc`) — the grid
+/// targets single-threaded WASM / browser environments.
+pub struct RowPredicate<T: 'static>(pub Rc<RowPredicateFn<T>>);
+
+impl<T: 'static> RowPredicate<T> {
+    /// Create a new callback from a closure.
+    pub fn new(f: impl Fn(u64, &GridModel) -> T + 'static) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Evaluate the callback for `row` against `model`.
+    pub fn evaluate(&self, row: u64, model: &GridModel) -> T {
+        (self.0)(row, model)
+    }
+}
+
+// Manual, not `#[derive(Clone)]`: derive would add an `T: Clone`
+// bound (it inspects only the generic parameter list, not what the
+// fields actually need) — `Rc::clone` never touches `T`, so this impl
+// is strictly more permissive than derive would produce.
+impl<T: 'static> Clone for RowPredicate<T> {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+// Manual, not `#[derive(Debug)]`: derive is not just unnecessarily
+// bounded here, it's outright impossible — `dyn Fn(..) -> T` has no
+// `Debug` impl in `std` for any `T`. The placeholder text is
+// intentionally generic (not per-alias) since it's never parsed.
+impl<T: 'static> fmt::Debug for RowPredicate<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RowPredicate(..)")
+    }
+}
+
+// ── cell editability predicate ──────────────────────────
 
 /// Dynamic per-cell editability override.
 ///
@@ -82,44 +136,9 @@ pub type EditablePredicateFn = dyn Fn(u64, &GridModel) -> bool;
 ///     model.get_cell(row, "status").as_deref() != Some("locked")
 /// })
 /// ```
-///
-/// # Thread safety
-///
-/// `EditablePredicate` is `!Send + !Sync` (it wraps an `Rc`), matching
-/// [`CellValidator`] — the grid targets single-threaded WASM / browser
-/// environments.
-pub struct EditablePredicate(pub Rc<EditablePredicateFn>);
-
-impl EditablePredicate {
-    /// Create a new predicate from a closure.
-    pub fn new(f: impl Fn(u64, &GridModel) -> bool + 'static) -> Self {
-        Self(Rc::new(f))
-    }
-
-    /// Evaluate the predicate for `row` against `model`.
-    pub fn is_editable(&self, row: u64, model: &GridModel) -> bool {
-        (self.0)(row, model)
-    }
-}
-
-impl Clone for EditablePredicate {
-    fn clone(&self) -> Self {
-        Self(Rc::clone(&self.0))
-    }
-}
-
-impl fmt::Debug for EditablePredicate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("EditablePredicate(..)")
-    }
-}
+pub type EditablePredicate = RowPredicate<bool>;
 
 // ── cell decoration ─────────────────────────────────────
-
-/// Per-cell decoration callback signature. Mirrors
-/// [`EditablePredicateFn`] exactly — row index + full `GridModel` access
-/// for cross-column logic.
-pub type CellDecoratorFn = dyn Fn(u64, &GridModel) -> Option<CellDecoration>;
 
 /// Persistent, at-rest visual annotation for a single cell. Purely
 /// cosmetic — never affects whether a value can be written (contrast
@@ -185,42 +204,7 @@ impl CellDecoration {
 ///     })
 /// })
 /// ```
-///
-/// # Thread safety
-///
-/// `CellDecorator` is `!Send + !Sync` (it wraps an `Rc`), matching
-/// [`EditablePredicate`] and [`CellValidator`].
-pub struct CellDecorator(pub Rc<CellDecoratorFn>);
-
-impl CellDecorator {
-    /// Create a new decorator from a closure.
-    pub fn new(
-        f: impl Fn(u64, &GridModel) -> Option<CellDecoration> + 'static,
-    ) -> Self {
-        Self(Rc::new(f))
-    }
-
-    /// Evaluate the decorator for `row` against `model`.
-    pub fn decorate(
-        &self,
-        row: u64,
-        model: &GridModel,
-    ) -> Option<CellDecoration> {
-        (self.0)(row, model)
-    }
-}
-
-impl Clone for CellDecorator {
-    fn clone(&self) -> Self {
-        Self(Rc::clone(&self.0))
-    }
-}
-
-impl fmt::Debug for CellDecorator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("CellDecorator(..)")
-    }
-}
+pub type CellDecorator = RowPredicate<Option<CellDecoration>>;
 
 // ── cell button ────────────────────────────────────────────
 
@@ -272,11 +256,6 @@ impl ButtonDef {
 
 // ── cell button visibility ──────────────────────────────────
 
-/// Per-row cell-button visibility predicate signature. Mirrors
-/// [`EditablePredicateFn`] exactly — row index + full `GridModel`
-/// access for cross-column logic.
-pub type CellButtonsVisibleFn = dyn Fn(u64, &GridModel) -> bool;
-
 /// Dynamic per-row visibility override for [`ColumnDef::cell_buttons`].
 ///
 /// Not gated by any static flag: a column either has `cell_buttons`
@@ -290,36 +269,7 @@ pub type CellButtonsVisibleFn = dyn Fn(u64, &GridModel) -> bool;
 ///     model.get_cell(row, "url").as_deref().is_some_and(|u| !u.is_empty())
 /// })
 /// ```
-///
-/// # Thread safety
-///
-/// `CellButtonsVisible` is `!Send + !Sync` (it wraps an `Rc`), matching
-/// [`EditablePredicate`] and [`CellDecorator`].
-pub struct CellButtonsVisible(pub Rc<CellButtonsVisibleFn>);
-
-impl CellButtonsVisible {
-    /// Create a new predicate from a closure.
-    pub fn new(f: impl Fn(u64, &GridModel) -> bool + 'static) -> Self {
-        Self(Rc::new(f))
-    }
-
-    /// Evaluate the predicate for `row` against `model`.
-    pub fn is_visible(&self, row: u64, model: &GridModel) -> bool {
-        (self.0)(row, model)
-    }
-}
-
-impl Clone for CellButtonsVisible {
-    fn clone(&self) -> Self {
-        Self(Rc::clone(&self.0))
-    }
-}
-
-impl fmt::Debug for CellButtonsVisible {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("CellButtonsVisible(..)")
-    }
-}
+pub type CellButtonsVisible = RowPredicate<bool>;
 
 // ── cell editor ────────────────────────────────────────────
 
@@ -600,7 +550,7 @@ impl ColumnDef {
             && self
                 .editable_predicate
                 .as_ref()
-                .is_none_or(|p| p.is_editable(row, model))
+                .is_none_or(|p| p.evaluate(row, model))
     }
 
     /// Resolve this cell's decoration, if any. No static gate (unlike
@@ -610,7 +560,7 @@ impl ColumnDef {
         row: u64,
         model: &GridModel,
     ) -> Option<CellDecoration> {
-        self.decorator.as_ref().and_then(|d| d.decorate(row, model))
+        self.decorator.as_ref().and_then(|d| d.evaluate(row, model))
     }
 
     /// Set the cell buttons. Returns `self` for chaining.
@@ -641,7 +591,7 @@ impl ColumnDef {
     ) -> bool {
         self.cell_buttons_visible
             .as_ref()
-            .is_none_or(|p| p.is_visible(row, model))
+            .is_none_or(|p| p.evaluate(row, model))
     }
 
     /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
@@ -894,6 +844,38 @@ mod tests {
         assert!(s.contains("CellValidator"));
     }
 
+    // ── RowPredicate<T> ─────────────────────────────────────
+    // Generic wrapper mechanics, tested once here — each alias
+    // (EditablePredicate, CellDecorator, CellButtonsVisible) below
+    // reuses the exact same new/evaluate/Clone/Debug code, so testing
+    // Clone-sharing/Debug-format per alias would just re-run the same
+    // source three times over. The `_delegates_to_*`/
+    // `_reads_other_column` tests below stay per-alias since those
+    // exercise each resolver's own (non-generic) business logic.
+
+    #[test]
+    fn row_predicate_new_and_evaluate() {
+        let p = RowPredicate::<bool>::new(|row, _| row == 0);
+        let model = model_with_status("open");
+        assert!(p.evaluate(0, &model));
+        assert!(!p.evaluate(1, &model));
+    }
+
+    #[test]
+    fn row_predicate_clone_shares_closure() {
+        let p = RowPredicate::<bool>::new(|row, _| row == 0);
+        let p2 = p.clone();
+        let model = model_with_status("open");
+        assert!(p2.evaluate(0, &model));
+        assert!(!p2.evaluate(1, &model));
+    }
+
+    #[test]
+    fn row_predicate_debug_format() {
+        let p = RowPredicate::<bool>::new(|_, _| true);
+        assert_eq!(format!("{p:?}"), "RowPredicate(..)");
+    }
+
     // ── EditablePredicate / editable_when ──────────────────
 
     fn model_with_status(row0_status: &str) -> GridModel {
@@ -980,17 +962,7 @@ mod tests {
     #[test]
     fn editable_predicate_debug_format() {
         let p = EditablePredicate::new(|_, _| true);
-        let s = format!("{p:?}");
-        assert!(s.contains("EditablePredicate"));
-    }
-
-    #[test]
-    fn editable_predicate_clone_shares_closure() {
-        let p = EditablePredicate::new(|row, _| row == 0);
-        let p2 = p.clone();
-        let model = model_with_status("open");
-        assert!(p2.is_editable(0, &model));
-        assert!(!p2.is_editable(1, &model));
+        assert_eq!(format!("{p:?}"), "RowPredicate(..)");
     }
 
     // ── decorator ────────────────────────────────────────
@@ -1044,19 +1016,7 @@ mod tests {
     #[test]
     fn decorator_debug_format() {
         let d = CellDecorator::new(|_, _| None);
-        let s = format!("{d:?}");
-        assert!(s.contains("CellDecorator"));
-    }
-
-    #[test]
-    fn decorator_clone_shares_closure() {
-        let d = CellDecorator::new(|row, _| {
-            (row == 0).then(CellDecoration::default)
-        });
-        let d2 = d.clone();
-        let model = model_with_status("open");
-        assert!(d2.decorate(0, &model).is_some());
-        assert!(d2.decorate(1, &model).is_none());
+        assert_eq!(format!("{d:?}"), "RowPredicate(..)");
     }
 
     #[test]
@@ -1227,6 +1187,6 @@ mod tests {
     #[test]
     fn cell_buttons_visible_debug_format() {
         let visible = CellButtonsVisible::new(|_, _| true);
-        assert_eq!(format!("{visible:?}"), "CellButtonsVisible(..)");
+        assert_eq!(format!("{visible:?}"), "RowPredicate(..)");
     }
 }
