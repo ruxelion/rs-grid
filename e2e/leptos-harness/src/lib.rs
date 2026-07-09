@@ -402,7 +402,10 @@ fn App() -> impl IntoView {
                         let real_total = row_count.get();
                         let stream_generation = stream_generation.clone();
                         Box::new(move |gc: WebGridCanvas| {
-                            gc.set_class_resolver(Rc::new(resolve_classes));
+                            let theme = theme_memo.get_untracked();
+                            gc.set_class_resolver(Rc::new(move |raw| {
+                                resolve_classes(raw, &theme)
+                            }));
                             gc.set_editable(true);
                             gc.set_selectable(true);
                             gc.set_column_reorderable(true);

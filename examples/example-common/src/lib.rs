@@ -113,6 +113,32 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
             c
         },
         {
+            // Solid DaisyUI badge showcase — mirrors the `actions`
+            // button showcase below, using the same class-map colours
+            // (no `badge-soft`/`badge-outline` modifier = solid fill).
+            let mut c = ColumnDef::new("badges", "Badges", 700.0);
+            c.format = Some(CellFormat::Styled(Rc::new(|_raw| {
+                [
+                    ("Primary", "badge-primary"),
+                    ("Secondary", "badge-secondary"),
+                    ("Accent", "badge-accent"),
+                    ("Neutral", "badge-neutral"),
+                    ("Info", "badge-info"),
+                    ("Success", "badge-success"),
+                    ("Warning", "badge-warning"),
+                    ("Error", "badge-error"),
+                ]
+                .into_iter()
+                .map(|(text, variant)| CellElement {
+                    text: text.to_string(),
+                    class: format!("badge {variant}"),
+                    align: CellAlign::Left,
+                })
+                .collect()
+            })));
+            c
+        },
+        {
             let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
             c.format = Some(CellFormat::Image {
                 // Self-contained SVG data URI generated per row — no

@@ -1007,6 +1007,10 @@ pub fn fake_cell(row: u64, col_key: &str) -> Option<String> {
             let active = (h % 100) >= 15;
             Some(active.to_string())
         }
+        // The formatter ignores the raw value entirely (it always
+        // renders the same 8-badge showcase) — any non-empty
+        // placeholder satisfies `emit_cell`'s `!raw.is_empty()` gate.
+        "badges" => Some("badges".to_owned()),
         "completion" => {
             // Integer percentage in [0, 100] for the progress bar.
             let pct = hash_field(row, 7) % 101;
