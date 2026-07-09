@@ -445,6 +445,32 @@ Rendered after the built-in locked/invalid overlays, so a decoration layers
 on top of them rather than being suppressed. `CellDecoration::message` is
 reserved for a future native hover tooltip — it's not rendered anywhere yet.
 
+### Per-row cell-button visibility (`CellButtonsVisible`)
+
+`ColumnDef::cell_buttons` is column-level by default — the same buttons are
+drawn on every row. To hide buttons on rows with no meaningful action (e.g.
+a product with no known URL), attach a dynamic predicate with
+`.cell_buttons_visible_when(...)`, mirroring `.editable_when`'s
+`Fn(row, &GridModel) -> bool` shape:
+
+```rust
+use rs_grid_core::column::{ButtonDef, ButtonStyle, ColumnDef};
+
+let actions = ColumnDef::new("url", "Actions", 160.0)
+    .with_cell_buttons(vec![ButtonDef::new("open", "Open", ButtonStyle::Primary)])
+    .cell_buttons_visible_when(|row, model| {
+        model.get_cell(row, "url").as_deref().is_some_and(|u| !u.is_empty())
+    });
+```
+
+No static gate (unlike `is_cell_editable`'s 3-layer stack) — same shape as
+`CellDecorator`, since an empty `cell_buttons` vec already serves as the
+static "no buttons" case. `ColumnDef::are_cell_buttons_visible(row, model)`
+resolves the predicate (`true` when none is set, matching prior behaviour)
+and is checked by `rs-grid-scene`'s `emit_cell_buttons` before drawing
+anything or registering a click hit-zone — a hidden row emits no primitives
+at all for that cell's buttons.
+
 ### Enable server-side pagination
 
 ```rust

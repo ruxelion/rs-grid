@@ -160,6 +160,26 @@ It must remain testable with standard native `cargo test`.
   crate needs to call it — there is no hit-test/cursor semantics for
   decoration, unlike `editable_predicate`'s `hit_locked_cell`.
 
+## Cell button visibility (`CellButtonsVisible`)
+
+- `ColumnDef.cell_buttons` is column-level by default — the same buttons
+  draw on every row (an empty `Vec` already means "no buttons"). For
+  per-row visibility (e.g. hide an "Open" button on rows with no known
+  URL), attach a dynamic predicate via
+  `ColumnDef::cell_buttons_visible_when(f: impl Fn(u64, &GridModel) -> bool)`,
+  stored as `ColumnDef.cell_buttons_visible: Option<CellButtonsVisible>`.
+  Mirrors `EditablePredicate`/`CellDecorator` exactly in shape — the
+  closure receives the row index and the full `GridModel`, so it can
+  implement cross-column logic.
+- `ColumnDef::are_cell_buttons_visible(row, model) -> bool` is the
+  resolver. Like `cell_decoration`, there is no static gate layer — an
+  empty `cell_buttons` vec already serves that role, so this is `true`
+  whenever no predicate is set (today's behaviour unchanged).
+- Consumed only by `rs-grid-scene`'s `emit_cell_buttons`, which now takes
+  `model: &GridModel` — when the resolver is `false`, nothing is drawn
+  and no `ButtonZone` hit-test entry is registered for that row (see
+  `rs-grid-scene/AGENTS.md`).
+
 ## Cell formats (`CellFormat`)
 
 `ColumnDef.format` selects how a cell is drawn. The enum is

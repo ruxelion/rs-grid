@@ -270,6 +270,57 @@ impl ButtonDef {
     }
 }
 
+// ── cell button visibility ──────────────────────────────────
+
+/// Per-row cell-button visibility predicate signature. Mirrors
+/// [`EditablePredicateFn`] exactly — row index + full `GridModel`
+/// access for cross-column logic.
+pub type CellButtonsVisibleFn = dyn Fn(u64, &GridModel) -> bool;
+
+/// Dynamic per-row visibility override for [`ColumnDef::cell_buttons`].
+///
+/// Not gated by any static flag: a column either has `cell_buttons`
+/// or it doesn't (an empty `Vec` already means "no buttons"), so this
+/// predicate is a single layer, matching [`CellDecorator`] rather than
+/// [`EditablePredicate`]'s two-layer stack.
+///
+/// Wrap your closure with [`CellButtonsVisible::new`]:
+/// ```ignore
+/// CellButtonsVisible::new(|row, model| {
+///     model.get_cell(row, "url").as_deref().is_some_and(|u| !u.is_empty())
+/// })
+/// ```
+///
+/// # Thread safety
+///
+/// `CellButtonsVisible` is `!Send + !Sync` (it wraps an `Rc`), matching
+/// [`EditablePredicate`] and [`CellDecorator`].
+pub struct CellButtonsVisible(pub Rc<CellButtonsVisibleFn>);
+
+impl CellButtonsVisible {
+    /// Create a new predicate from a closure.
+    pub fn new(f: impl Fn(u64, &GridModel) -> bool + 'static) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Evaluate the predicate for `row` against `model`.
+    pub fn is_visible(&self, row: u64, model: &GridModel) -> bool {
+        (self.0)(row, model)
+    }
+}
+
+impl Clone for CellButtonsVisible {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+impl fmt::Debug for CellButtonsVisible {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CellButtonsVisible(..)")
+    }
+}
+
 // ── cell editor ────────────────────────────────────────────
 
 /// A single option for the [`CellEditor::Select`] dropdown.
@@ -372,6 +423,11 @@ pub struct ColumnDef {
     /// rightmost).  The click callback receives the row
     /// index, column key, and the button's `id`.
     pub cell_buttons: Vec<ButtonDef>,
+    /// Optional dynamic per-row visibility override for `cell_buttons`.
+    /// `None` = buttons always shown (today's behavior, subject to
+    /// `cell_buttons` being non-empty). See
+    /// [`ColumnDef::are_cell_buttons_visible`].
+    pub cell_buttons_visible: Option<CellButtonsVisible>,
 }
 
 impl ColumnDef {
@@ -398,6 +454,7 @@ impl ColumnDef {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }
     }
 
@@ -560,6 +617,31 @@ impl ColumnDef {
     pub fn with_cell_buttons(mut self, buttons: Vec<ButtonDef>) -> Self {
         self.cell_buttons = buttons;
         self
+    }
+
+    /// Set a dynamic per-row visibility predicate for `cell_buttons`.
+    /// Returns `self` for chaining. See
+    /// [`ColumnDef::cell_buttons_visible`].
+    pub fn cell_buttons_visible_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> bool + 'static,
+    ) -> Self {
+        self.cell_buttons_visible = Some(CellButtonsVisible::new(f));
+        self
+    }
+
+    /// Resolve whether `cell_buttons` should be drawn for `row`. No
+    /// static gate (unlike `is_cell_editable`'s 3-layer stack) —
+    /// purely a per-row on/off switch. `true` when no predicate is
+    /// set (today's behavior).
+    pub fn are_cell_buttons_visible(
+        &self,
+        row: u64,
+        model: &GridModel,
+    ) -> bool {
+        self.cell_buttons_visible
+            .as_ref()
+            .is_none_or(|p| p.is_visible(row, model))
     }
 
     /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
@@ -1103,5 +1185,48 @@ mod tests {
         ]);
         assert_eq!(col.cell_buttons.len(), 1);
         assert_eq!(col.cell_buttons[0].id, "del");
+    }
+
+    // ── CellButtonsVisible / cell_buttons_visible_when ──────
+
+    #[test]
+    fn cell_buttons_visible_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .cell_buttons_visible_when(|_, _| false);
+        assert!(col.cell_buttons_visible.is_some());
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_true_when_no_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert!(col.are_cell_buttons_visible(0, &model));
+        assert!(col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_delegates_to_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .cell_buttons_visible_when(|row, _| row % 2 == 0);
+        let model = model_with_status("open");
+        assert!(col.are_cell_buttons_visible(0, &model));
+        assert!(!col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_predicate_reads_other_column() {
+        let col = ColumnDef::new("eshop_url", "eshop", 100.0)
+            .cell_buttons_visible_when(|row, model| {
+                model.get_cell(row, "status").as_deref() != Some("locked")
+            });
+        let model = model_with_status("locked");
+        assert!(!col.are_cell_buttons_visible(0, &model));
+        assert!(col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn cell_buttons_visible_debug_format() {
+        let visible = CellButtonsVisible::new(|_, _| true);
+        assert_eq!(format!("{visible:?}"), "CellButtonsVisible(..)");
     }
 }

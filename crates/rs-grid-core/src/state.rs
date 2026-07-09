@@ -719,6 +719,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -2159,6 +2160,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -2206,6 +2208,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");

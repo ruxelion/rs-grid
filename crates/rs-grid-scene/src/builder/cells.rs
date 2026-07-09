@@ -362,8 +362,9 @@ pub(super) fn emit_cell(
         _ => {}
     }
 
-    // Cell buttons — always rendered, on top of cell content.
-    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, clip, t);
+    // Cell buttons — rendered on top of cell content, subject to
+    // `ColumnDef::are_cell_buttons_visible` (see `emit_cell_buttons`).
+    emit_cell_buttons(frame, col, model, ri, ci, cx, ry, row_height, clip, t);
 }
 
 /// Emit an image + text pair for `CellFormat::ImageText`.
@@ -616,11 +617,14 @@ fn emit_styled(
 /// `cell_buttons` is the rightmost button.  This makes
 /// positions stable when more buttons are added.
 ///
-/// Skips any button that would overflow the left cell edge.
+/// Skips any button that would overflow the left cell edge, and
+/// emits nothing at all for `ri` when
+/// `col.are_cell_buttons_visible(ri, model)` is `false`.
 #[allow(clippy::too_many_arguments)]
 fn emit_cell_buttons(
     frame: &mut SceneFrame,
     col: &ColumnDef,
+    model: &GridModel,
     ri: u64,
     ci: usize,
     cx: f64,
@@ -631,7 +635,7 @@ fn emit_cell_buttons(
 ) {
     use crate::frame::ButtonZone;
 
-    if col.cell_buttons.is_empty() {
+    if col.cell_buttons.is_empty() || !col.are_cell_buttons_visible(ri, model) {
         return;
     }
 
@@ -1683,6 +1687,81 @@ mod tests {
             &mut Vec::new(),
         );
         assert_eq!(frame.button_zones.len(), 2);
+    }
+
+    #[test]
+    fn emit_cell_button_hidden_when_predicate_false_emits_nothing() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 0);
+        assert_eq!(frame.button_zones.len(), 0);
+    }
+
+    #[test]
+    fn emit_cell_button_visible_when_predicate_true_emits_rect_text_and_zone() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            1,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        assert_eq!(frame.button_zones.len(), 1);
+        assert_eq!(frame.button_zones[0].button_id, "open");
     }
 
     #[test]

@@ -129,6 +129,18 @@ composite `CellFormat`s too. When it resolves `Some(CellDecoration)`:
   above. `CellDecoration::message` is not consumed here — no tooltip
   rendering exists yet.
 
+### Cell button visibility
+
+`emit_cell_buttons` (called from `emit_cell`, right after the format
+dispatch) now takes `model: &GridModel` and early-returns — pushing no
+`Rect`/`Text` primitives and registering no `ButtonZone` hit-test entry —
+when `col.cell_buttons.is_empty()` **or**
+`!col.are_cell_buttons_visible(ri, model)` (rs-grid-core). A hidden row's
+buttons don't just render invisibly: they don't exist in the frame at
+all, so `SceneFrame::hit_button` (used by `rs-grid-web`'s click dispatch)
+correctly finds nothing there — no separate "disabled" click state to
+maintain.
+
 ### Column separators (data rows)
 
 A themed vertical line at each column boundary in the data-row area

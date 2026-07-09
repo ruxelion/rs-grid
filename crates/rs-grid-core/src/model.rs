@@ -1665,6 +1665,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let values = ["us 3", "fr 1", "de 2"];
         let rows: Vec<RowRecord> = values
@@ -1711,6 +1712,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         // Mix of numeric and string labels → mixed sort path
         let values = ["us France", "fr 1", "de Allemagne"];
