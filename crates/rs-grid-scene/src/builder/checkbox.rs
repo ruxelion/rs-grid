@@ -12,15 +12,36 @@ use crate::{
 /// `Checked` draws a check mark, `Indeterminate` a dash, both as simple
 /// `Line` segments — no new primitive type needed, mirroring how the
 /// sort-arrow reuses `Polygon` rather than adding a dedicated shape.
+///
+/// `clip_left` is the leftmost visible x (the row-number gutter's right
+/// edge, `rnw`) — the checkbox column scrolls away like a real column
+/// (unlike the gutter, which is sticky), so partway through that scroll
+/// its band dips under the gutter. Without clamping the box's own `Rect`
+/// to `clip_left`, it bleeds into the gutter/corner whenever
+/// `Theme::gutter_bg` has any transparency, mirroring the same risk
+/// documented for cell content and header text in `builder.rs`
+/// (`clip_x = cx.max(rnw)`). The check-mark `Line` segments have no clip
+/// support at all (`LinePrimitive` carries no `clip` field), so they're
+/// simply skipped whenever the box itself is left-clipped, rather than
+/// letting them bleed past the box's own clipped edge.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_checkbox(
     frame: &mut SceneFrame,
     band_x: f64,
     band_y: f64,
     band_width: f64,
     band_height: f64,
+    clip_left: f64,
     t: &Theme,
     tri: CheckboxTriState,
 ) {
+    let clip_x = band_x.max(clip_left);
+    let clip_w = (band_x + band_width - clip_x).max(0.0);
+    if clip_w <= 0.0 {
+        return;
+    }
+    let fully_visible = clip_x <= band_x;
+
     let s = t.checkbox_size;
     let bx = band_x + (band_width - s) / 2.0;
     let by = band_y + (band_height - s) / 2.0;
@@ -38,8 +59,12 @@ pub(super) fn emit_checkbox(
         stroke: Some(t.checkbox_border),
         stroke_width: t.checkbox_border_width,
         corner_radius: t.checkbox_radius,
-        clip: None,
+        clip: Some([clip_x, band_y, clip_w, band_height]),
     }));
+
+    if !fully_visible {
+        return;
+    }
 
     let mark_width = (t.checkbox_border_width + 0.5).max(2.0);
     match tri {
@@ -102,6 +127,7 @@ mod tests {
             0.0,
             42.0,
             42.0,
+            f64::MIN,
             &t,
             CheckboxTriState::Unchecked,
         );
@@ -125,6 +151,7 @@ mod tests {
             0.0,
             42.0,
             42.0,
+            f64::MIN,
             &t,
             CheckboxTriState::Checked,
         );
@@ -153,6 +180,7 @@ mod tests {
             0.0,
             42.0,
             42.0,
+            f64::MIN,
             &t,
             CheckboxTriState::Indeterminate,
         );
@@ -183,6 +211,7 @@ mod tests {
             20.0,
             60.0,
             60.0,
+            f64::MIN,
             &t,
             CheckboxTriState::Unchecked,
         );
@@ -193,5 +222,75 @@ mod tests {
             }
             _ => panic!("expected Rect"),
         }
+    }
+
+    #[test]
+    fn fully_hidden_behind_clip_left_draws_nothing() {
+        let mut frame = make_frame();
+        let t = Theme::light();
+        // Band entirely to the left of clip_left (the gutter's right
+        // edge) — e.g. the checkbox column scrolled fully under the
+        // sticky row-number gutter.
+        emit_checkbox(
+            &mut frame,
+            0.0,
+            0.0,
+            42.0,
+            42.0,
+            50.0,
+            &t,
+            CheckboxTriState::Checked,
+        );
+        assert_eq!(frame.primitive_count(), 0);
+    }
+
+    #[test]
+    fn partially_hidden_behind_clip_left_clips_box_and_skips_marks() {
+        let mut frame = make_frame();
+        let t = Theme::light();
+        // Band straddles clip_left — half under the gutter, half past
+        // it. The box must still render (clipped), but the check-mark
+        // Lines (no clip support) must be skipped rather than bleed
+        // past the box's own clipped edge.
+        emit_checkbox(
+            &mut frame,
+            0.0,
+            0.0,
+            42.0,
+            42.0,
+            21.0,
+            &t,
+            CheckboxTriState::Checked,
+        );
+        assert_eq!(
+            frame.primitive_count(),
+            1,
+            "clipped box only — no mark segments"
+        );
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.clip, Some([21.0, 0.0, 21.0, 42.0]));
+            }
+            _ => panic!("expected Rect"),
+        }
+    }
+
+    #[test]
+    fn clip_left_at_or_before_band_x_draws_marks_normally() {
+        let mut frame = make_frame();
+        let t = Theme::light();
+        // clip_left sits exactly at (or before) the band's left edge —
+        // fully visible, so marks still draw.
+        emit_checkbox(
+            &mut frame,
+            10.0,
+            0.0,
+            42.0,
+            42.0,
+            10.0,
+            &t,
+            CheckboxTriState::Checked,
+        );
+        assert_eq!(frame.primitive_count(), 3, "1 box + 2 mark segments");
     }
 }

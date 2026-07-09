@@ -196,6 +196,18 @@ already have with the pinned band.
   (a two-segment check mark, or a single dash) — no new primitive type,
   same "reuse an existing primitive" precedent as the sort-arrow's
   `Polygon`.
+- The pinned band's z-order masking above only covers the pinned-width
+  region. As the checkbox column scrolls left it also dips under the
+  **row-number gutter** (`rnw`) itself, so `emit_checkbox` additionally
+  takes a `clip_left` parameter (both call sites pass `rnw`) and clamps
+  the box's own `Rect.clip` to `[band_x.max(clip_left), ...]` — mirroring
+  `cells.rs`/header-text's own `clip_x = cx.max(rnw)` clamp. Without it,
+  the box bleeds into the gutter/corner whenever `Theme::gutter_bg` has
+  any transparency, the same risk already called out for cell content and
+  header text. The check-mark `Line` segments have no `clip` field at all
+  (`LinePrimitive` doesn't support one), so they're skipped outright
+  whenever the box is left-clipped, rather than left to bleed past the
+  box's own clipped edge.
 - Per-row state (`Checked`/`Unchecked`) comes from `GridState.checked_rows:
   HashSet<u64>`, keyed by **physical** row id (survives sort/filter,
   mirroring `set_cell`'s logical→physical translation via

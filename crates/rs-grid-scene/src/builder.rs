@@ -516,7 +516,7 @@ impl SceneBuilder {
                         CheckboxTriState::Unchecked
                     };
                     checkbox::emit_checkbox(
-                        &mut frame, ccx, clip_y, ccw, clip_h, t, tri,
+                        &mut frame, ccx, clip_y, ccw, clip_h, rnw, t, tri,
                     );
                 }
             }
@@ -882,6 +882,7 @@ impl SceneBuilder {
                         0.0,
                         ccw,
                         hh,
+                        rnw,
                         t,
                         state.checkbox_header_state(),
                     );
