@@ -2316,10 +2316,12 @@ dependencies = [
  "console_error_panic_hook",
  "example-common",
  "leptos",
+ "rs-grid-core",
  "rs-grid-leptos",
  "rs-grid-scene",
  "send_wrapper",
  "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

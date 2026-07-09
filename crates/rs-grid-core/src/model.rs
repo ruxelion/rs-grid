@@ -145,6 +145,17 @@ pub struct GridModel {
     /// Width of the sticky row-number gutter on the left in logical pixels (0
     /// = hidden).
     pub row_number_width: f64,
+    /// Whether `row_number_width` auto-follows the data source's row
+    /// count. Starts `true` (set from `data.row_count()` at construction
+    /// and recomputed on every `GridCommand::SetTotalRowCount`, e.g. once
+    /// a `PageCacheDataSource` learns its real total from the server —
+    /// see `docs/row-count-limits.md` for why a fixed width doesn't scale
+    /// here the way it does for AG Grid's row-number column: rs-grid's
+    /// supported range spans ~1 to ~15 digits, not a handful). Set to
+    /// `false` by `GridCommand::SetRowNumberWidth` — an explicit manual
+    /// width is a deliberate override that a later total-count update
+    /// must not clobber.
+    pub row_number_width_auto: bool,
     /// Whether the row-selection checkbox column is rendered. Unlike the
     /// row-number gutter, it is **not** a fixed/pinned band — it is the
     /// first unpinned (scrollable) column, so it scrolls away with the
@@ -245,6 +256,7 @@ impl GridModel {
             column_offsets,
             patches: HashMap::new(),
             row_number_width,
+            row_number_width_auto: true,
             show_checkbox_column: false,
             checkbox_column_width: Self::CHECKBOX_COLUMN_WIDTH,
             sort_order: Vec::new(),

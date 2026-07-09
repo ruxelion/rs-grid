@@ -14,10 +14,12 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+rs-grid-core   = { path = "../../crates/rs-grid-core" }
 rs-grid-scene  = { path = "../../crates/rs-grid-scene" }
 rs-grid-leptos = { path = "../../crates/rs-grid-leptos" }
 example-common = { path = "../../examples/example-common" }
 leptos = { version = "0.8", features = ["csr"] }
 send_wrapper = "0.6"
 wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }
 console_error_panic_hook = { workspace = true }

@@ -175,6 +175,31 @@ there is:
   `None` uses `Theme::progress_fill`. Stays daisyUI-agnostic — class strings are
   opaque here.
 
+## Row-number gutter width (`row_number_width` / `row_number_width_auto`)
+
+`GridModel::compute_row_number_width(row_count)` sizes the gutter from the
+digit count of `row_count` (~9px/digit + 24px padding, 40px floor) — unlike
+AG Grid's row-number column, which is a fixed 60px regardless of scale (see
+`docs/row-count-limits.md`: rs-grid's supported range spans ~1 to ~15
+digits, not a handful, so a fixed width doesn't translate here).
+
+- `GridModel.row_number_width_auto: bool` (default `true`) tracks whether
+  `row_number_width` should keep following the data source's row count.
+  Set from `data.row_count()` at construction (`with_data_source`).
+- `GridCommand::SetTotalRowCount(n)` recomputes `row_number_width` from
+  `n` when `row_number_width_auto` is `true` — its intended use is
+  `PageCacheDataSource` learning its real total from the first server
+  response, when the model was built from a placeholder count (`0` per
+  the server-pagination how-to). It cannot update the data source's own
+  count generically (`GridState` only holds a `Box<dyn DataSource>`) —
+  that's still `PageCacheDataSource::set_total_rows`, dispatched
+  alongside this command, not instead of it (`rs-grid-web`'s
+  `FetchConfig` fetcher does both, see `rs-grid-web/AGENTS.md`).
+- `GridCommand::SetRowNumberWidth(w)` sets `row_number_width_auto =
+  false` — an explicit manual width is a deliberate override that a
+  later `SetTotalRowCount` must not clobber. There is no command to
+  re-enable auto mode once disabled (not needed yet — YAGNI).
+
 ## Useful commands
 
 ```sh

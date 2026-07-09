@@ -1582,11 +1582,48 @@ mod tests {
     }
 
     #[test]
-    fn set_total_row_count_is_noop_for_vec() {
+    fn set_total_row_count_does_not_touch_the_data_source_row_count() {
+        // Renamed from `..._is_noop_for_vec`: the command stopped being
+        // a true no-op once it started recomputing row_number_width
+        // (see `set_total_row_count_recomputes_gutter_width_by_default`
+        // below) — this test's scope is narrower than its old name
+        // implied. It only asserts the one thing that IS still true for
+        // every `DataSource`: the command cannot reach into the boxed
+        // `dyn DataSource` to change its actual row count generically
+        // (only `PageCacheDataSource::set_total_rows` does that).
         let mut s = make_state();
         let count_before = s.model.data.row_count();
         s.apply(GridCommand::SetTotalRowCount(9999));
         assert_eq!(s.model.data.row_count(), count_before);
+    }
+
+    #[test]
+    fn set_total_row_count_recomputes_gutter_width_by_default() {
+        use crate::model::GridModel;
+
+        let mut s = make_state();
+        assert!(s.model.row_number_width_auto);
+        s.apply(GridCommand::SetTotalRowCount(1_000_000_000_000));
+        assert_eq!(
+            s.model.row_number_width,
+            GridModel::compute_row_number_width(1_000_000_000_000),
+        );
+    }
+
+    #[test]
+    fn set_row_number_width_disables_auto_and_locks_it_in() {
+        use crate::model::GridModel;
+
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(123.0));
+        assert!(!s.model.row_number_width_auto);
+        // A later total-count update must not override the manual width.
+        s.apply(GridCommand::SetTotalRowCount(1_000_000_000_000));
+        assert_eq!(s.model.row_number_width, 123.0);
+        assert_ne!(
+            s.model.row_number_width,
+            GridModel::compute_row_number_width(1_000_000_000_000),
+        );
     }
 
     // ── AutoFitAllColumns ────────────────────────────

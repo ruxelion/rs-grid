@@ -22,15 +22,18 @@ use rs_grid_core::{
         ButtonDef, ButtonStyle, CellEditor, CellValidator, ColumnDef,
         EditablePredicate, SelectOption,
     },
-    datasource::FnDataSource,
+    datasource::{FnDataSource, VecDataSource},
     format::{CellAlign, CellElement, CellFormat},
     model::GridModel,
+    row::RowRecord,
     validation::ValidationRule,
 };
 
-/// Build a [`GridModel`] backed by deterministic fake
-/// data with the given number of rows and columns.
-pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
+/// Build the deterministic fake-data column set shared by every
+/// `build_*_model` variant below — the only difference between them is
+/// which [`rs_grid_core::datasource::DataSource`] backs the resulting
+/// [`GridModel`].
+pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
     let base: Vec<ColumnDef> = vec![
         {
             let mut c = ColumnDef::new("name", "Name", 200.0);
@@ -306,13 +309,62 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         col.editor = Some(CellEditor::Select { options });
     }
 
+    columns
+}
+
+/// Build one [`RowRecord`] of deterministic fake data for `row`, with a
+/// cell for every column in `columns` that [`fake_data::fake_cell`]
+/// produces a value for (columns it returns `None` for — none today, but
+/// the check mirrors `FnDataSource`'s own optionality — are simply
+/// omitted, same as a real backend that doesn't always populate every
+/// field).
+pub fn build_row(row: u64, columns: &[ColumnDef]) -> RowRecord {
+    let mut record = RowRecord::new(row);
+    for col in columns {
+        if let Some(value) = fake_data::fake_cell(row, &col.key) {
+            record.set(col.key.clone(), value);
+        }
+    }
+    record
+}
+
+/// Build a [`GridModel`] backed by deterministic fake
+/// data with the given number of rows and columns.
+///
+/// Virtual/computed source (`FnDataSource`) — cells are generated on
+/// demand, no upper bound on `row_count` (up to the `u64` row-count
+/// limits documented in `docs/row-count-limits.md`).
+pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
+    let columns = build_columns(col_count);
     let source =
         FnDataSource::new(row_count, move |row: u64, col_key: &str| {
             fake_data::fake_cell(row, col_key)
         });
-
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
 }
+
+/// Build a [`GridModel`] backed by an in-memory [`VecDataSource`] — every
+/// row materialized eagerly into a `Vec<RowRecord>` up front, unlike
+/// `build_model`'s on-demand `FnDataSource`. `row_count` is clamped to
+/// [`VEC_DEMO_MAX_ROWS`]: eagerly allocating a `RowRecord` (a `HashMap`
+/// per row) for the multi-billion-row counts the other two data sources
+/// handle fine would exhaust the browser tab's memory — that ceiling is
+/// exactly the tradeoff this data source exists to demonstrate.
+pub fn build_vec_model(row_count: u64, col_count: usize) -> GridModel {
+    let columns = build_columns(col_count);
+    let capped = row_count.min(VEC_DEMO_MAX_ROWS);
+    let rows: Vec<RowRecord> =
+        (0..capped).map(|row| build_row(row, &columns)).collect();
+    GridModel::with_data_source(
+        columns,
+        Box::new(VecDataSource::new(rows)),
+        40.0,
+        60.0,
+    )
+}
+
+/// Row cap for [`build_vec_model`] — see its doc comment.
+pub const VEC_DEMO_MAX_ROWS: u64 = 200_000;
 
 /// Format a row count for display in the UI.
 pub fn fmt_rows(n: u64) -> &'static str {

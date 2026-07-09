@@ -23,6 +23,9 @@ impl GridState {
             GridCommand::SetRowNumberWidth(w) => {
                 if w >= 0.0 {
                     self.model.row_number_width = w;
+                    // A manual width is a deliberate override — stop
+                    // auto-recomputing it on the next total-count update.
+                    self.model.row_number_width_auto = false;
                 }
                 CommandOutput::None
             }
@@ -37,10 +40,16 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::SetTotalRowCount(n) => {
-                // Update the underlying data source row count.
-                // For PageCacheDataSource this is done
-                // externally; here we just trigger re-render.
-                let _ = n;
+                // The data source's own row count is updated
+                // externally (e.g. `PageCacheDataSource::set_total_rows`)
+                // — `GridState` has no generic way to mutate the boxed
+                // `dyn DataSource`. What this command *can* and does own:
+                // keeping the gutter width in sync, unless the caller
+                // fixed it manually via `SetRowNumberWidth`.
+                if self.model.row_number_width_auto {
+                    self.model.row_number_width =
+                        crate::model::GridModel::compute_row_number_width(n);
+                }
                 CommandOutput::None
             }
             GridCommand::SetShowHeader(v) => {

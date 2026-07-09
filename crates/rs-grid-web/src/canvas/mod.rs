@@ -754,6 +754,26 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetRowNumberWidth(width));
     }
 
+    /// Update the total row count for an async data source (e.g. a
+    /// `PageCacheDataSource` after its first server response). Recomputes
+    /// the row-number gutter width from the new total unless it was
+    /// manually overridden via `set_row_number_width` — see
+    /// `GridCommand::SetTotalRowCount`. `canvas/fetcher.rs`'s `FetchConfig`
+    /// coordinator already calls this internally; use it directly only
+    /// when driving a `PageCacheDataSource` by hand.
+    pub fn set_total_row_count(&self, n: u64) {
+        self.dispatch(GridCommand::SetTotalRowCount(n));
+    }
+
+    /// Trigger a re-render after mutating a `PageCacheDataSource`
+    /// externally (`insert_page`, `set_total_rows`) — see
+    /// `GridCommand::NotifyPageLoaded`. Only needed when driving the page
+    /// cache by hand; `canvas/fetcher.rs`'s `FetchConfig` coordinator
+    /// already calls this internally.
+    pub fn notify_page_loaded(&self) {
+        self.dispatch(GridCommand::NotifyPageLoaded);
+    }
+
     /// Set a text filter on a column (case-insensitive contains).
     /// Pass an empty string to clear the filter for that column.
     pub fn set_filter(&self, col_key: &str, text: &str) {

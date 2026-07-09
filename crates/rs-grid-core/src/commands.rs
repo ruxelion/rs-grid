@@ -90,7 +90,9 @@ pub enum GridCommand {
     /// Set the data row height in logical pixels.
     SetRowHeight(f64),
     /// Set the row-number gutter width in logical pixels (0 hides it,
-    /// same meaning as `SetShowRowNumbers(false)`).
+    /// same meaning as `SetShowRowNumbers(false)`). Also marks the width
+    /// as manually overridden (`GridModel.row_number_width_auto =
+    /// false`), so a later `SetTotalRowCount` no longer auto-resizes it.
     SetRowNumberWidth(f64),
     /// Set the row-selection checkbox column's width in logical pixels
     /// (negative values are ignored). The checkbox itself stays centered,
@@ -215,8 +217,20 @@ pub enum GridCommand {
     /// Update the total row count for an async data source.
     ///
     /// Intended for use with `PageCacheDataSource` after the first
-    /// server response returns the real row count. Has no effect on
-    /// `VecDataSource` or `FnDataSource`.
+    /// server response returns the real row count — dispatch this
+    /// alongside (not instead of) `PageCacheDataSource::set_total_rows`,
+    /// which owns the data source's own count; this command cannot touch
+    /// the boxed `dyn DataSource` generically, so it only updates
+    /// `GridState`-derived UI state instead. Today that means
+    /// recomputing `GridModel.row_number_width` from `n`, unless it was
+    /// manually overridden via `SetRowNumberWidth` — this applies
+    /// regardless of which `DataSource` backs the model. It does
+    /// **not** touch `VecDataSource`/`FnDataSource`'s own row count
+    /// (only `PageCacheDataSource::set_total_rows` does that, and only
+    /// that data source exposes such a method) — dispatching this
+    /// against a `Vec`/`Fn`-backed model still resizes the gutter to
+    /// fit `n`'s digit count, even though the grid's actual row count
+    /// is unaffected.
     SetTotalRowCount(u64),
     /// Record an undo entry after a column-resize drag ends.
     ///

@@ -9,16 +9,150 @@
 //! suite. Being a path-dep workspace member, it tracks `main` and catches
 //! engine regressions on every push.
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use example_common::{
-    build_model, class_map::resolve_classes, fmt_cols, fmt_rows,
+    build_columns, build_model, build_row, build_vec_model,
+    class_map::resolve_classes, fmt_cols, fmt_rows,
 };
 use leptos::prelude::*;
+use rs_grid_core::{
+    column::ColumnDef,
+    model::{DataSourceMode, GridModel},
+    page_cache::PageCacheDataSource,
+    row::RowRecord,
+};
 use rs_grid_leptos::{theme_from_css_vars, GridCanvas, Locale, WebGridCanvas};
 use rs_grid_scene::Theme;
 use send_wrapper::SendWrapper;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, JsCast};
+
+/// e2e-only, manual QA: which `DataSource` backs the grid. Selected via
+/// the "data-source-select" control.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DataSourceKind {
+    /// `FnDataSource` — cells generated on demand, no eager allocation.
+    /// Default, and what `build_model` (used by every other e2e spec in
+    /// this fixture) already returns.
+    Fn,
+    /// `VecDataSource` — every row materialized eagerly up front, capped
+    /// at `example_common::VEC_DEMO_MAX_ROWS`. See `build_vec_model`'s
+    /// doc comment for why the cap exists.
+    Vec,
+    /// `PageCacheDataSource` — no real backend in this fixture, so
+    /// `simulate_page_cache_stream` below hand-drives it instead of
+    /// `FetchConfig`'s real `window.fetch()` path.
+    PageCache,
+}
+
+/// Page size used by the `DataSourceKind::PageCache` demo.
+const PAGE_SIZE: u64 = 100;
+
+/// Schedule `f` to run once, after `delay_ms`, via `window.setTimeout`.
+fn set_timeout_once(delay_ms: i32, f: impl FnOnce() + 'static) {
+    let closure = Closure::once_into_js(f);
+    let window = web_sys::window().expect("no window");
+    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        closure.unchecked_ref(),
+        delay_ms,
+    );
+}
+
+/// e2e-only, manual QA: simulates a server streaming pages in over time
+/// for a `PageCacheDataSource` — this fixture has no real backend, so it
+/// hand-drives `insert_page`/`GridCanvas::set_total_row_count`/
+/// `notify_page_loaded` on a timer instead of going through
+/// `FetchConfig`'s real `window.fetch()` coordinator (see
+/// `rs-grid-web/AGENTS.md`'s "Server-side page fetcher" section for the
+/// production equivalent, and `rs-grid-core/AGENTS.md`'s "Row-number
+/// gutter width" section for what `set_total_row_count` actually does).
+///
+/// Only streams in `PAGES_TO_STREAM` pages regardless of `real_total` —
+/// scrolling past that stays in the `CellStatus::Loading` skeleton state
+/// forever, since there's no viewport-aware fetch trigger wired up here
+/// (that's `FetchConfig`'s job in a real app, driven by the actual
+/// visible row range). Good enough to see pages stream in and the gutter
+/// grow once the first "response" reveals `real_total`, without building
+/// out scroll-driven fetching for a fixture that has nothing to fetch
+/// from.
+///
+/// `generation`/`my_gen`: the reactive view block that calls this rebuilds
+/// the whole model (a fresh `GridCanvas`/`PageCacheDataSource`) on every
+/// row/column/data-source change, but does nothing to cancel timers
+/// already scheduled by a previous call — `window.setTimeout` has no
+/// owning Rust value to `Drop`. Without this guard, switching away from
+/// PageCache mode (or just bumping row/col count) mid-stream leaves the
+/// old timer chain running for up to `PAGES_TO_STREAM * DELAY_MS` more
+/// milliseconds, still calling `insert_page`/`set_total_row_count` on the
+/// now-orphaned `cache`/`gc` — harmless (nothing else holds a reference to
+/// either), but wasted work and confusing if you're watching the gutter
+/// resize live. `App`'s `stream_generation: Rc<Cell<u32>>` is bumped once
+/// per rebuild; each tick checks it's still current before doing anything.
+fn simulate_page_cache_stream(
+    gc: WebGridCanvas,
+    cache: PageCacheDataSource,
+    columns: Vec<ColumnDef>,
+    real_total: u64,
+    generation: Rc<Cell<u32>>,
+    my_gen: u32,
+) {
+    const PAGES_TO_STREAM: u64 = 5;
+    const DELAY_MS: i32 = 400;
+
+    fn stream_page(
+        page_num: u64,
+        gc: WebGridCanvas,
+        cache: PageCacheDataSource,
+        columns: Vec<ColumnDef>,
+        real_total: u64,
+        generation: Rc<Cell<u32>>,
+        my_gen: u32,
+    ) {
+        set_timeout_once(DELAY_MS, move || {
+            if generation.get() != my_gen {
+                return; // Superseded by a later rebuild — stop here.
+            }
+            let rows: Vec<RowRecord> = (page_num * PAGE_SIZE
+                ..(page_num + 1) * PAGE_SIZE)
+                .map(|row| build_row(row, &columns))
+                .collect();
+            cache.insert_page(page_num, rows);
+            if page_num == 0 {
+                // The first "server response" is what reveals the real
+                // total in a real app — both calls are required, not
+                // just one: `cache.set_total_rows` is what the grid
+                // actually scrolls against (PageCacheDataSource::
+                // row_count, the DataSource's own count — without this
+                // the grid stays bounded by the placeholder total passed
+                // to `PageCacheDataSource::new`, however many pages get
+                // streamed in afterward); `gc.set_total_row_count` only
+                // updates the derived UI state (the gutter width) and
+                // cannot touch the DataSource generically — see its doc
+                // comment in rs-grid-web and canvas/fetcher.rs's real
+                // FetchConfig coordinator, which also calls both.
+                cache.set_total_rows(real_total);
+                gc.set_total_row_count(real_total);
+            }
+            gc.notify_page_loaded();
+            if page_num + 1 < PAGES_TO_STREAM {
+                stream_page(
+                    page_num + 1,
+                    gc,
+                    cache,
+                    columns,
+                    real_total,
+                    generation,
+                    my_gen,
+                );
+            }
+        });
+    }
+
+    stream_page(0, gc, cache, columns, real_total, generation, my_gen);
+}
 
 #[component]
 fn App() -> impl IntoView {
@@ -28,6 +162,15 @@ fn App() -> impl IntoView {
     // `<button>` (not an `<input>`) so it doesn't trip editing.spec.ts's
     // "no <input> exists in the DOM" assertion for the editor=None case.
     let show_checkboxes = RwSignal::new(false);
+    // e2e-only, manual QA: which DataSource backs the grid — see the
+    // "data-source-select" control and DataSourceKind below.
+    let data_source = RwSignal::new(DataSourceKind::Fn);
+    // e2e-only: bumped once per model rebuild so a stale
+    // simulate_page_cache_stream timer chain from a previous rebuild can
+    // tell it's been superseded and stop — see that function's doc
+    // comment. SendWrapper for the same reason as gc_holder below.
+    let stream_generation: SendWrapper<Rc<Cell<u32>>> =
+        SendWrapper::new(Rc::new(Cell::new(0)));
 
     // No theme selector: read whatever CSS vars are present (defaults to
     // Theme::light() when none are defined).
@@ -141,6 +284,35 @@ fn App() -> impl IntoView {
                         <option value="60" selected=true>"Gutter: 60px"</option>
                         <option value="150">"Gutter: 150px"</option>
                     </select>
+                    // e2e-only, manual QA: switches which DataSource
+                    // backs the grid — Fn (on-demand, the default),
+                    // Vec (eager, row-count capped), or PageCache
+                    // (simulated server streaming, see
+                    // simulate_page_cache_stream below). Changing this
+                    // rebuilds the model from scratch (read inside the
+                    // `<div class="fixture-grid">` closure below), same
+                    // as changing the row/column count selects above.
+                    <select
+                        data-testid="data-source-select"
+                        on:change=move |e| {
+                            let v = event_target_value(&e);
+                            data_source.set(match v.as_str() {
+                                "vec" => DataSourceKind::Vec,
+                                "pagecache" => DataSourceKind::PageCache,
+                                _ => DataSourceKind::Fn,
+                            });
+                        }
+                    >
+                        <option value="fn" selected=true>
+                            "Data source: Fn (virtual, on-demand)"
+                        </option>
+                        <option value="vec">
+                            "Data source: Vec (in-memory, capped)"
+                        </option>
+                        <option value="pagecache">
+                            "Data source: PageCache (simulated streaming)"
+                        </option>
+                    </select>
                 </div>
                 // e2e-only: toggles the row-selection checkbox column live.
                 // `position: absolute` (see fixture.css) takes it out of
@@ -173,7 +345,47 @@ fn App() -> impl IntoView {
             </div>
             <div class="fixture-grid">
                 {move || {
-                    let mut model = build_model(row_count.get(), col_count.get());
+                    // Invalidates any simulate_page_cache_stream timer
+                    // chain scheduled by a previous rebuild — see that
+                    // function's doc comment.
+                    let my_gen = stream_generation.get().wrapping_add(1);
+                    stream_generation.set(my_gen);
+
+                    let kind = data_source.get();
+                    // Only Fn/Vec build the demo columns internally
+                    // (build_model/build_vec_model each call
+                    // build_columns themselves); PageCache needs its own
+                    // handle to the column set to synthesize streamed
+                    // rows later, so it's built once here and reused.
+                    let page_cache_setup = match kind {
+                        DataSourceKind::PageCache => {
+                            let columns = build_columns(col_count.get());
+                            let cache =
+                                PageCacheDataSource::new(PAGE_SIZE, PAGE_SIZE);
+                            Some((columns, cache))
+                        }
+                        DataSourceKind::Vec | DataSourceKind::Fn => None,
+                    };
+                    let mut model = match kind {
+                        DataSourceKind::Vec => {
+                            build_vec_model(row_count.get(), col_count.get())
+                        }
+                        DataSourceKind::Fn => {
+                            build_model(row_count.get(), col_count.get())
+                        }
+                        DataSourceKind::PageCache => {
+                            let (columns, cache) =
+                                page_cache_setup.clone().expect("set above");
+                            let mut m = GridModel::with_data_source(
+                                columns,
+                                Box::new(cache),
+                                40.0,
+                                60.0,
+                            );
+                            m.mode = DataSourceMode::ServerSide;
+                            m
+                        }
+                    };
                     // e2e-only: row 10's "name" is required() but seeded
                     // empty, simulating data loaded already-invalid from
                     // an external source — exercises the at-rest
@@ -186,6 +398,9 @@ fn App() -> impl IntoView {
 
                     let on_mount = {
                         let gc_holder = gc_holder.clone();
+                        let page_cache_setup = page_cache_setup.clone();
+                        let real_total = row_count.get();
+                        let stream_generation = stream_generation.clone();
                         Box::new(move |gc: WebGridCanvas| {
                             gc.set_class_resolver(Rc::new(resolve_classes));
                             gc.set_editable(true);
@@ -198,6 +413,16 @@ fn App() -> impl IntoView {
                             gc.set_validation_tooltip_class(Some(
                                 "tooltip tooltip-open tooltip-error".to_string(),
                             ));
+                            if let Some((columns, cache)) = page_cache_setup {
+                                simulate_page_cache_stream(
+                                    gc.clone(),
+                                    cache,
+                                    columns,
+                                    real_total,
+                                    (*stream_generation).clone(),
+                                    my_gen,
+                                );
+                            }
                             *gc_holder.borrow_mut() = Some(gc);
                         })
                     };

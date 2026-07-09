@@ -302,6 +302,28 @@ is tracked by row identity so it survives sort/filter. Pair with
 `Indeterminate`) to drive a bulk-action toolbar. Toggle the column itself
 at runtime with `set_show_checkbox_column(bool)`.
 
+## Server-side page fetcher (`FetchConfig`)
+
+`canvas/fetcher.rs` implements the automatic fetch coordinator behind
+`GridCanvas::enable_async_fetch(page_cache, FetchConfig { .. })` — detects
+needed pages for the current viewport (`PageCacheDataSource::needed_pages`),
+fetches them via `build_url`/`parse_response`, and inserts the response.
+Full usage guide: `rs-grid-site`'s `data/page-cache.mdx` and
+`howto/server-pagination.mdx` (see root `AGENTS.md`'s doc-sync rule — this
+crate's own doc here only covers what a *contributor to this crate* needs,
+not the end-user how-to).
+
+On a successful response it dispatches **two** commands, not one:
+`GridCommand::SetTotalRowCount(resp.total_rows)` then
+`GridCommand::NotifyPageLoaded` — both after `cache_clone.set_total_rows(..)`
+already updated the `PageCacheDataSource`'s own count. `SetTotalRowCount`
+is what keeps `GridModel.row_number_width` in sync with the server-reported
+total when the model was built from a placeholder count (see
+`rs-grid-core/AGENTS.md`'s "Row-number gutter width" section) — dropping it
+would silently regress the gutter back to whatever digit-count the
+placeholder implied, even though `PageCacheDataSource::set_total_rows` on
+its own already gives the *data* the right count.
+
 ## Success-flash feedback (paste, clear)
 
 `GridCanvas::flash_cells(&[CellCoord])` (`canvas/dispatch.rs`) arms a

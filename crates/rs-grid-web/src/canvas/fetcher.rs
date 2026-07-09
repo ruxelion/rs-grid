@@ -122,7 +122,13 @@ impl GridCanvas {
                             Ok(resp) => {
                                 cache_clone.set_total_rows(resp.total_rows);
                                 cache_clone.insert_page(page_num, resp.rows);
+                                let total_rows = resp.total_rows;
                                 drop(cfg);
+                                // Keeps GridModel.row_number_width in
+                                // sync with the server-reported total
+                                // (unless manually overridden) — see
+                                // GridCanvas::set_total_row_count.
+                                gc.set_total_row_count(total_rows);
                                 gc.dispatch(GridCommand::NotifyPageLoaded);
                             }
                             Err(e) => {
