@@ -19,6 +19,7 @@ export const TYPE_TO_DOC_PATH: Record<string, string> = {
   celldecoration: "api/column-def",
   buttondef: "api/column-def",
   buttonstyle: "api/column-def",
+  cellbuttonsvisible: "api/column-def",
   selectoption: "api/column-def",
   columnoffsets: "api/column-def",
   formattedcell: "api/column-def",

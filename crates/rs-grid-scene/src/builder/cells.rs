@@ -362,8 +362,9 @@ pub(super) fn emit_cell(
         _ => {}
     }
 
-    // Cell buttons — always rendered, on top of cell content.
-    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, clip, t);
+    // Cell buttons — rendered on top of cell content, subject to
+    // `ColumnDef::are_cell_buttons_visible` (see `emit_cell_buttons`).
+    emit_cell_buttons(frame, col, model, ri, ci, cx, ry, row_height, clip, t);
 }
 
 /// Emit an image + text pair for `CellFormat::ImageText`.
@@ -612,15 +613,19 @@ fn emit_styled(
 /// Emit Rect + Text primitives for each [`ButtonDef`] in
 /// `col.cell_buttons` and record their hit zones.
 ///
-/// Buttons are laid out right-to-left: the first entry in
-/// `cell_buttons` is the rightmost button.  This makes
-/// positions stable when more buttons are added.
+/// The button group is horizontally centred within the column (inset
+/// by `cell_padding` on both sides — the same padding every other cell
+/// format uses, see `emit_cell`'s `TextAlign::Left` branch) — and lays
+/// out left-to-right in `cell_buttons` declaration order.
 ///
-/// Skips any button that would overflow the left cell edge.
+/// Skips any button that would overflow the cell's right edge, and
+/// emits nothing at all for `ri` when
+/// `col.are_cell_buttons_visible(ri, model)` is `false`.
 #[allow(clippy::too_many_arguments)]
 fn emit_cell_buttons(
     frame: &mut SceneFrame,
     col: &ColumnDef,
+    model: &GridModel,
     ri: u64,
     ci: usize,
     cx: f64,
@@ -631,7 +636,7 @@ fn emit_cell_buttons(
 ) {
     use crate::frame::ButtonZone;
 
-    if col.cell_buttons.is_empty() {
+    if col.cell_buttons.is_empty() || !col.are_cell_buttons_visible(ri, model) {
         return;
     }
 
@@ -643,19 +648,32 @@ fn emit_cell_buttons(
     // 0.35 ≈ half cap-height for system-ui.
     let mid_y = btn_y + btn_h * 0.5 + t.font_size * 0.35;
 
-    // Accumulate right edge inward from the cell's right border.
-    let mut right_x = cx + col.width - t.cell_btn_margin_r;
+    // Width from character count (same heuristic as emit_styled:
+    // 0.65 × font_size per char), computed up front so the whole
+    // group can be centred as a block.
+    let widths: Vec<f64> = col
+        .cell_buttons
+        .iter()
+        .map(|btn| {
+            let text_w = btn.label.len() as f64 * t.font_size * 0.65;
+            (text_w + t.cell_btn_padding_x * 2.0).max(0.0)
+        })
+        .collect();
+    let total_w = widths.iter().sum::<f64>()
+        + t.cell_btn_gap * (widths.len().saturating_sub(1)) as f64;
 
-    for btn in col.cell_buttons.iter().rev() {
-        // Width from character count (same heuristic as
-        // emit_styled: 0.65 × font_size per char).
-        let text_w = btn.label.len() as f64 * t.font_size * 0.65;
-        let btn_w = (text_w + t.cell_btn_padding_x * 2.0).max(0.0);
-        let btn_x = right_x - btn_w;
+    // Centre the block within the column, inset by `cell_padding` on
+    // both sides. Clamp to the left inset if the group is too wide to
+    // fit (more buttons than the column can show).
+    let mut btn_x = (cx
+        + t.cell_padding
+        + (col.width - 2.0 * t.cell_padding - total_w) / 2.0)
+        .max(cx + t.cell_padding);
 
-        // Skip if the button would bleed past the left edge.
-        if btn_x < cx {
-            right_x = btn_x - t.cell_btn_gap;
+    for (btn, &btn_w) in col.cell_buttons.iter().zip(widths.iter()) {
+        // Skip if the button would bleed past the right cell edge.
+        if btn_x + btn_w > cx + col.width - t.cell_padding {
+            btn_x += btn_w + t.cell_btn_gap;
             continue;
         }
 
@@ -674,9 +692,24 @@ fn emit_cell_buttons(
             ButtonStyle::Ghost => {
                 (None, t.cell_btn_ghost_color, Some(t.cell_btn_ghost_color))
             }
+            ButtonStyle::Neutral => {
+                (Some(t.cell_btn_neutral_bg), t.cell_btn_neutral_text, None)
+            }
+            ButtonStyle::Accent => {
+                (Some(t.cell_btn_accent_bg), t.cell_btn_accent_text, None)
+            }
+            ButtonStyle::Info => {
+                (Some(t.cell_btn_info_bg), t.cell_btn_info_text, None)
+            }
+            ButtonStyle::Success => {
+                (Some(t.cell_btn_success_bg), t.cell_btn_success_text, None)
+            }
+            ButtonStyle::Warning => {
+                (Some(t.cell_btn_warning_bg), t.cell_btn_warning_text, None)
+            }
             // Future variants via #[non_exhaustive].
             _ => {
-                right_x = btn_x - t.cell_btn_gap;
+                btn_x += btn_w + t.cell_btn_gap;
                 continue;
             }
         };
@@ -719,7 +752,7 @@ fn emit_cell_buttons(
             height: btn_h,
         });
 
-        right_x = btn_x - t.cell_btn_gap;
+        btn_x += btn_w + t.cell_btn_gap;
     }
 }
 
@@ -1683,6 +1716,117 @@ mod tests {
             &mut Vec::new(),
         );
         assert_eq!(frame.button_zones.len(), 2);
+    }
+
+    #[test]
+    fn emit_cell_button_semantic_variants_emit_zones() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 600.0).with_cell_buttons(vec![
+            ButtonDef::new("n", "Neutral", ButtonStyle::Neutral),
+            ButtonDef::new("a", "Accent", ButtonStyle::Accent),
+            ButtonDef::new("i", "Info", ButtonStyle::Info),
+            ButtonDef::new("s", "Success", ButtonStyle::Success),
+            ButtonDef::new("w", "Warning", ButtonStyle::Warning),
+        ]);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.button_zones.len(), 5);
+    }
+
+    #[test]
+    fn emit_cell_button_hidden_when_predicate_false_emits_nothing() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 0);
+        assert_eq!(frame.button_zones.len(), 0);
+    }
+
+    #[test]
+    fn emit_cell_button_visible_when_predicate_true_emits_rect_text_and_zone() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            1,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        assert_eq!(frame.button_zones.len(), 1);
+        assert_eq!(frame.button_zones[0].button_id, "open");
     }
 
     #[test]

@@ -383,7 +383,15 @@ cursor feedback* above) adds `--rs-grid-locked-cell-bg` and
 `--rs-grid-locked-cell-text`. The at-rest invalid-cell background/border
 (see *Validation feedback on the text editor* above) adds
 `--rs-grid-invalid-cell-bg`, `--rs-grid-invalid-cell-border`, and
-`--rs-grid-invalid-cell-border-width`.
+`--rs-grid-invalid-cell-border-width`. Cell buttons (`ColumnDef.
+cell_buttons`, rendered by `emit_cell_buttons` in `rs-grid-scene`) add
+`--rs-grid-cell-btn-{primary,secondary,danger,neutral,accent,info,
+success,warning}-{bg,text}` plus `--rs-grid-cell-btn-ghost-color` (Ghost
+has no fill, only a border/text color) and the shared geometry vars
+`--rs-grid-cell-btn-{radius,padding-y,padding-x,gap,margin-r}`. In the
+`light` theme these match DaisyUI's own semantic colors 1:1 (see
+`examples/example-common/src/class_map_data.rs`); `dark`/`dimmed` match
+DaisyUI's built-in `dark`/`dim` themes the same way.
 
 ### Inline editor overlay variables
 

@@ -1,4 +1,7 @@
-use rs_grid_core::scrollbar::{HScrollbarGeom, ScrollbarGeom};
+use rs_grid_core::{
+    commands::GridCommand,
+    scrollbar::{HScrollbarGeom, ScrollbarGeom},
+};
 use rs_grid_scene::builder::ColumnDragHint;
 use web_sys::MouseEvent;
 
@@ -206,9 +209,10 @@ impl GridCanvas {
     }
 
     /// Returns `(char_width, header_char_width, cell_padding,
-    /// header_right_reserve)` derived from the current theme —
-    /// same values used by double-click auto-fit.
-    pub(super) fn autofit_params(&self) -> (f64, f64, f64, f64) {
+    /// header_right_reserve, btn_char_width, btn_padding_x, btn_gap)`
+    /// derived from the current theme — same values used by
+    /// double-click auto-fit and the context-menu auto-size actions.
+    pub(super) fn autofit_params(&self) -> (f64, f64, f64, f64, f64, f64, f64) {
         let b = self.0.builder.borrow();
         let t = &b.theme;
         let char_width = t.font_size * 0.6;
@@ -222,12 +226,67 @@ impl GridCanvas {
         let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
         let icon_zone = t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
         let header_right_reserve = sort_zone + icon_zone;
+        // Same per-character ratio `emit_cell_buttons`
+        // (rs-grid-scene/builder/cells.rs) uses for button labels.
+        let btn_char_width = t.font_size * 0.65;
         (
             char_width,
             header_char_width,
             t.cell_padding,
             header_right_reserve,
+            btn_char_width,
+            t.cell_btn_padding_x,
+            t.cell_btn_gap,
         )
+    }
+
+    /// Auto-fit a single column's width to its content — the same
+    /// computation double-clicking its header separator or the
+    /// context-menu "auto-size column" action triggers, callable
+    /// directly. Useful to size a column (e.g. one with `cell_buttons`)
+    /// once at mount, without requiring the user to interact first.
+    pub fn auto_fit_column(&self, col_idx: usize) {
+        let (
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        ) = self.autofit_params();
+        self.dispatch(GridCommand::AutoFitColumn {
+            col_idx,
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        });
+    }
+
+    /// Auto-fit every column's width to its content.
+    pub fn auto_fit_all_columns(&self) {
+        let (
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        ) = self.autofit_params();
+        self.dispatch(GridCommand::AutoFitAllColumns {
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        });
     }
 
     /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the

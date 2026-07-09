@@ -109,6 +109,26 @@ It must remain testable with standard native `cargo test`.
   requiring the user to click into it first. See
   `rs-grid-scene/AGENTS.md`.
 
+## Row predicates (`RowPredicate<T>`)
+
+`EditablePredicate`, `CellDecorator`, and `CellButtonsVisible` (below) are
+type aliases over one generic `RowPredicate<T>` (`column.rs`) — an
+`Rc<dyn Fn(u64, &GridModel) -> T>` wrapper with `new`/`evaluate`, a manual
+`Clone` (no `T: Clone` bound — `Rc::clone` never touches `T`) and a manual
+`Debug` (`dyn Fn` has no `Debug` impl for any `T`, so `#[derive(Debug)]`
+isn't just unnecessarily bounded here, it's impossible). `EditablePredicate =
+RowPredicate<bool>`, `CellDecorator = RowPredicate<Option<CellDecoration>>`,
+`CellButtonsVisible = RowPredicate<bool>` — **this is why
+`EditablePredicate` and `CellButtonsVisible` are the literal same
+monomorphized type** and print identical `Debug` output
+(`"RowPredicate(..)"`). **Do not add a 4th hand-rolled copy of this
+`Rc<dyn Fn(u64, &GridModel) -> T>` wrapper for a future per-row callback** —
+alias it onto `RowPredicate<T>` instead, the way the three below do. Each
+alias below still owns its own resolver method on `ColumnDef`
+(`is_cell_editable`/`cell_decoration`/`are_cell_buttons_visible`) — those stay
+bespoke, since their gating logic differs (`is_cell_editable` alone has a
+2-layer static gate before the predicate is even consulted).
+
 ## Per-cell editability (`EditablePredicate`)
 
 - `ColumnDef.editable: bool` locks an entire column statically. For
@@ -139,7 +159,8 @@ It must remain testable with standard native `cargo test`.
 - Persistent, at-rest visual annotation (border color / background tint
   / reserved message) for a single cell — purely cosmetic, never affects
   whether a value can be written (contrast with `rules`/`validator`).
-  Mirrors `EditablePredicate` exactly in shape: attach via
+  Same `RowPredicate<T>` alias family as `EditablePredicate` (see above,
+  different `T`): attach via
   `ColumnDef::decorated_when(f: impl Fn(u64, &GridModel) -> Option<CellDecoration>)`,
   stored as `ColumnDef.decorator: Option<CellDecorator>`. The closure
   receives the row index and the full `GridModel`, so it can implement
@@ -159,6 +180,28 @@ It must remain testable with standard native `cargo test`.
   consumer-supplied colors — see `rs-grid-scene/AGENTS.md`). No other
   crate needs to call it — there is no hit-test/cursor semantics for
   decoration, unlike `editable_predicate`'s `hit_locked_cell`.
+
+## Cell button visibility (`CellButtonsVisible`)
+
+- `ColumnDef.cell_buttons` is column-level by default — the same buttons
+  draw on every row (an empty `Vec` already means "no buttons"). For
+  per-row visibility (e.g. hide an "Open" button on rows with no known
+  URL), attach a dynamic predicate via
+  `ColumnDef::cell_buttons_visible_when(f: impl Fn(u64, &GridModel) -> bool)`,
+  stored as `ColumnDef.cell_buttons_visible: Option<CellButtonsVisible>`.
+  Same `RowPredicate<T>` alias family as `EditablePredicate`/`CellDecorator`
+  (see above) — in fact the exact same concrete type as `EditablePredicate`
+  (`RowPredicate<bool>`, `CellDecorator` differs only by its `T`) — the
+  closure receives the row index and the full `GridModel`, so it can
+  implement cross-column logic.
+- `ColumnDef::are_cell_buttons_visible(row, model) -> bool` is the
+  resolver. Like `cell_decoration`, there is no static gate layer — an
+  empty `cell_buttons` vec already serves that role, so this is `true`
+  whenever no predicate is set (today's behaviour unchanged).
+- Consumed only by `rs-grid-scene`'s `emit_cell_buttons`, which now takes
+  `model: &GridModel` — when the resolver is `false`, nothing is drawn
+  and no `ButtonZone` hit-test entry is registered for that row (see
+  `rs-grid-scene/AGENTS.md`).
 
 ## Cell formats (`CellFormat`)
 

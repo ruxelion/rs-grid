@@ -124,14 +124,24 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
             c
         },
         {
-            let mut c = ColumnDef::new("actions", "Actions", 160.0);
+            let mut c = ColumnDef::new("actions", "Actions", 700.0);
             c.format = Some(CellFormat::Boolean {
                 true_label: String::new(),
                 false_label: String::new(),
             });
             c.cell_buttons = vec![
-                ButtonDef::new("edit", "Edit", ButtonStyle::Primary),
-                ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+                ButtonDef::new("neutral", "Neutral", ButtonStyle::Neutral),
+                ButtonDef::new("primary", "Primary", ButtonStyle::Primary),
+                ButtonDef::new(
+                    "secondary",
+                    "Secondary",
+                    ButtonStyle::Secondary,
+                ),
+                ButtonDef::new("accent", "Accent", ButtonStyle::Accent),
+                ButtonDef::new("info", "Info", ButtonStyle::Info),
+                ButtonDef::new("success", "Success", ButtonStyle::Success),
+                ButtonDef::new("warning", "Warning", ButtonStyle::Warning),
+                ButtonDef::new("error", "Error", ButtonStyle::Danger),
             ];
             c
         },

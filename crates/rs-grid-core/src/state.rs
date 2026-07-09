@@ -655,6 +655,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         let new_width = s.model.columns[0].width;
         assert!(
@@ -673,6 +676,9 @@ mod tests {
             header_char_width: 0.1,
             cell_padding: 0.1,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert!(
             s.model.columns[0].width >= 20.0,
@@ -691,6 +697,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert_eq!(s.model.columns[0].width, old_width);
     }
@@ -719,6 +728,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -731,6 +741,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         let w = s.model.columns[0].width;
         // image_size(20) + gap(6) + "France".len(6)*8 + pad*2(20) = 94
@@ -816,6 +829,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert_ne!(s.model.columns[0].width, 100.0);
         s.apply(GridCommand::Undo);
@@ -1638,6 +1654,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         for (i, old_w) in widths_before.iter().enumerate() {
             assert_ne!(
@@ -1832,6 +1851,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert!(s.model.columns[1].flex.is_none());
     }
@@ -2159,6 +2181,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -2170,6 +2193,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         // Image: row_height(30) + padding*2(20) = 50
         // Header: "Img".len(3)*8 + 10*2 = 44
@@ -2206,6 +2232,7 @@ mod tests {
             editable_predicate: None,
             decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");
@@ -2217,6 +2244,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         // "$1,234.50" = 9 chars → 9*8+10*2 = 92
         // Header: "V" = 1 char → 1*8+10*2 = 28
@@ -2224,6 +2254,56 @@ mod tests {
         assert!(
             (s.model.columns[0].width - 92.0).abs() < 0.01,
             "expected 92, got {}",
+            s.model.columns[0].width
+        );
+    }
+
+    // ── AutoFit with cell_buttons ─────────────────────────
+
+    #[test]
+    fn auto_fit_column_accounts_for_cell_buttons() {
+        use crate::column::{ButtonDef, ButtonStyle};
+
+        let cols = vec![ColumnDef {
+            key: "actions".into(),
+            label: "Actions".into(),
+            width: 50.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: None,
+            editor: None,
+            validator: None,
+            rules: Vec::new(),
+            bold: false,
+            editable: true,
+            editable_predicate: None,
+            decorator: None,
+            cell_buttons: vec![
+                ButtonDef::new("edit", "Edit", ButtonStyle::Primary),
+                ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+            ],
+            cell_buttons_visible: None,
+        }];
+        let row = RowRecord::new(0);
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+            header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
+        });
+        // "Edit"(4)*8+8*2=48, "Delete"(6)*8+8*2=64 → labels_w=112
+        // + gap(4)*1 + cell_padding(10)*2 = 136
+        // Header: "Actions"(7)*8+10*2=76 → max(136, 76) = 136
+        assert!(
+            (s.model.columns[0].width - 136.0).abs() < 0.01,
+            "expected 136, got {}",
             s.model.columns[0].width
         );
     }

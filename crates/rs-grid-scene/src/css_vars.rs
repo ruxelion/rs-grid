@@ -257,6 +257,43 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-cell-btn-ghost-color",
             fmt_color(t.cell_btn_ghost_color),
         ),
+        (
+            "--rs-grid-cell-btn-neutral-bg",
+            fmt_color(t.cell_btn_neutral_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-neutral-text",
+            fmt_color(t.cell_btn_neutral_text),
+        ),
+        (
+            "--rs-grid-cell-btn-accent-bg",
+            fmt_color(t.cell_btn_accent_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-accent-text",
+            fmt_color(t.cell_btn_accent_text),
+        ),
+        ("--rs-grid-cell-btn-info-bg", fmt_color(t.cell_btn_info_bg)),
+        (
+            "--rs-grid-cell-btn-info-text",
+            fmt_color(t.cell_btn_info_text),
+        ),
+        (
+            "--rs-grid-cell-btn-success-bg",
+            fmt_color(t.cell_btn_success_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-success-text",
+            fmt_color(t.cell_btn_success_text),
+        ),
+        (
+            "--rs-grid-cell-btn-warning-bg",
+            fmt_color(t.cell_btn_warning_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-warning-text",
+            fmt_color(t.cell_btn_warning_text),
+        ),
         ("--rs-grid-cell-btn-radius", fmt_px(t.cell_btn_radius)),
         ("--rs-grid-cell-btn-padding-y", fmt_px(t.cell_btn_padding_y)),
         ("--rs-grid-cell-btn-padding-x", fmt_px(t.cell_btn_padding_x)),
@@ -424,6 +461,26 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         color("--rs-grid-cell-btn-danger-text", t.cell_btn_danger_text);
     t.cell_btn_ghost_color =
         color("--rs-grid-cell-btn-ghost-color", t.cell_btn_ghost_color);
+    t.cell_btn_neutral_bg =
+        color("--rs-grid-cell-btn-neutral-bg", t.cell_btn_neutral_bg);
+    t.cell_btn_neutral_text =
+        color("--rs-grid-cell-btn-neutral-text", t.cell_btn_neutral_text);
+    t.cell_btn_accent_bg =
+        color("--rs-grid-cell-btn-accent-bg", t.cell_btn_accent_bg);
+    t.cell_btn_accent_text =
+        color("--rs-grid-cell-btn-accent-text", t.cell_btn_accent_text);
+    t.cell_btn_info_bg =
+        color("--rs-grid-cell-btn-info-bg", t.cell_btn_info_bg);
+    t.cell_btn_info_text =
+        color("--rs-grid-cell-btn-info-text", t.cell_btn_info_text);
+    t.cell_btn_success_bg =
+        color("--rs-grid-cell-btn-success-bg", t.cell_btn_success_bg);
+    t.cell_btn_success_text =
+        color("--rs-grid-cell-btn-success-text", t.cell_btn_success_text);
+    t.cell_btn_warning_bg =
+        color("--rs-grid-cell-btn-warning-bg", t.cell_btn_warning_bg);
+    t.cell_btn_warning_text =
+        color("--rs-grid-cell-btn-warning-text", t.cell_btn_warning_text);
     t.cell_btn_radius = px("--rs-grid-cell-btn-radius", t.cell_btn_radius);
     t.cell_btn_padding_y =
         px("--rs-grid-cell-btn-padding-y", t.cell_btn_padding_y);
@@ -624,6 +681,16 @@ mod tests {
             cell_btn_danger_bg: c(66),
             cell_btn_danger_text: c(67),
             cell_btn_ghost_color: c(68),
+            cell_btn_neutral_bg: c(202),
+            cell_btn_neutral_text: c(203),
+            cell_btn_accent_bg: c(204),
+            cell_btn_accent_text: c(205),
+            cell_btn_info_bg: c(206),
+            cell_btn_info_text: c(207),
+            cell_btn_success_bg: c(208),
+            cell_btn_success_text: c(209),
+            cell_btn_warning_bg: c(210),
+            cell_btn_warning_text: c(211),
             cell_btn_radius: 69.0,
             cell_btn_padding_y: 70.0,
             cell_btn_padding_x: 71.0,

@@ -261,6 +261,14 @@ pub enum GridCommand {
         /// Extra space reserved at the right of the header for the
         /// menu icon button, sort arrow, and their margins.
         header_right_reserve: f64,
+        /// Average character width for `cell_buttons` labels (a
+        /// different constant than `char_width` — buttons render at a
+        /// different per-character ratio).
+        btn_char_width: f64,
+        /// Horizontal padding inside a single cell button (both sides).
+        btn_padding_x: f64,
+        /// Gap between consecutive cell buttons.
+        btn_gap: f64,
     },
     /// Auto-fit all column widths to their content.
     AutoFitAllColumns {
@@ -273,6 +281,12 @@ pub enum GridCommand {
         /// Extra space reserved at the right of the header for the
         /// menu icon button, sort arrow, and their margins.
         header_right_reserve: f64,
+        /// Average character width for `cell_buttons` labels.
+        btn_char_width: f64,
+        /// Horizontal padding inside a single cell button (both sides).
+        btn_padding_x: f64,
+        /// Gap between consecutive cell buttons.
+        btn_gap: f64,
     },
     /// Toggle whether a single row (logical index) is checked in the
     /// row-selection checkbox column. Checked state is tracked by

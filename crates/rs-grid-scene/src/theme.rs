@@ -275,6 +275,26 @@ pub struct Theme {
     /// Border and text color for Ghost-style buttons
     /// (transparent fill).
     pub cell_btn_ghost_color: Color,
+    /// Background of a Neutral-style cell button.
+    pub cell_btn_neutral_bg: Color,
+    /// Text color of a Neutral-style cell button.
+    pub cell_btn_neutral_text: Color,
+    /// Background of an Accent-style cell button.
+    pub cell_btn_accent_bg: Color,
+    /// Text color of an Accent-style cell button.
+    pub cell_btn_accent_text: Color,
+    /// Background of an Info-style cell button.
+    pub cell_btn_info_bg: Color,
+    /// Text color of an Info-style cell button.
+    pub cell_btn_info_text: Color,
+    /// Background of a Success-style cell button.
+    pub cell_btn_success_bg: Color,
+    /// Text color of a Success-style cell button.
+    pub cell_btn_success_text: Color,
+    /// Background of a Warning-style cell button.
+    pub cell_btn_warning_bg: Color,
+    /// Text color of a Warning-style cell button.
+    pub cell_btn_warning_text: Color,
     /// Corner radius of cell buttons in logical pixels.
     pub cell_btn_radius: f64,
     /// Vertical padding inside a cell button (top and
@@ -397,15 +417,29 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(186, 191, 199),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(33, 150, 243),
+            // cell buttons — match DaisyUI light theme's semantic colors
+            // 1:1 (see `examples/example-common/src/class_map_data.rs`,
+            // generated from the installed `daisyui` package): primary
+            // #422ad5 (same source as `progress_fill`/`checkbox_checked_bg`
+            // above), secondary #f43098, error #ff627d.
+            cell_btn_primary_bg: Color::rgb(66, 42, 213),
             cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(226, 232, 240),
-            cell_btn_secondary_text: Color::rgb(24, 29, 31),
-            cell_btn_danger_bg: Color::rgb(239, 68, 68),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(33, 150, 243, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(33, 150, 243, 200),
+            cell_btn_secondary_bg: Color::rgb(244, 48, 152),
+            cell_btn_secondary_text: Color::rgb(249, 228, 240),
+            cell_btn_danger_bg: Color::rgb(255, 98, 125),
+            cell_btn_danger_text: Color::rgb(77, 2, 24),
+            // rgba(66, 42, 213, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(66, 42, 213, 200),
+            cell_btn_neutral_bg: Color::rgb(9, 9, 11),
+            cell_btn_neutral_text: Color::rgb(228, 228, 231),
+            cell_btn_accent_bg: Color::rgb(0, 211, 187),
+            cell_btn_accent_text: Color::rgb(8, 77, 73),
+            cell_btn_info_bg: Color::rgb(0, 186, 254),
+            cell_btn_info_text: Color::rgb(4, 46, 73),
+            cell_btn_success_bg: Color::rgb(0, 211, 144),
+            cell_btn_success_text: Color::rgb(0, 76, 57),
+            cell_btn_warning_bg: Color::rgb(252, 183, 0),
+            cell_btn_warning_text: Color::rgb(121, 50, 5),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
@@ -522,15 +556,29 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(51, 51, 53),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(60, 130, 245),
-            cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(60, 63, 68),
-            cell_btn_secondary_text: Color::rgb(208, 208, 208),
-            cell_btn_danger_bg: Color::rgb(220, 38, 38),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(60, 130, 245, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(60, 130, 245, 200),
+            // cell buttons — DaisyUI's built-in `dark` theme, same
+            // source as the 5 semantic colors below.
+            cell_btn_primary_bg: Color::rgb(96, 93, 255),
+            cell_btn_primary_text: Color::rgb(237, 241, 254),
+            cell_btn_secondary_bg: Color::rgb(244, 48, 152),
+            cell_btn_secondary_text: Color::rgb(249, 228, 240),
+            cell_btn_danger_bg: Color::rgb(255, 98, 125),
+            cell_btn_danger_text: Color::rgb(77, 2, 24),
+            // rgba(96, 93, 255, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(96, 93, 255, 200),
+            // DaisyUI's built-in `dark` theme reuses the same
+            // neutral/accent/info/success/warning oklch values as
+            // `light` — so these 5 are numerically identical to light().
+            cell_btn_neutral_bg: Color::rgb(9, 9, 11),
+            cell_btn_neutral_text: Color::rgb(228, 228, 231),
+            cell_btn_accent_bg: Color::rgb(0, 211, 187),
+            cell_btn_accent_text: Color::rgb(8, 77, 73),
+            cell_btn_info_bg: Color::rgb(0, 186, 254),
+            cell_btn_info_text: Color::rgb(4, 46, 73),
+            cell_btn_success_bg: Color::rgb(0, 211, 144),
+            cell_btn_success_text: Color::rgb(0, 76, 57),
+            cell_btn_warning_bg: Color::rgb(252, 183, 0),
+            cell_btn_warning_text: Color::rgb(121, 50, 5),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
@@ -648,15 +696,28 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(68, 76, 86),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(56, 139, 253),
-            cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(55, 62, 71),
-            cell_btn_secondary_text: Color::rgb(173, 186, 199),
-            cell_btn_danger_bg: Color::rgb(218, 54, 51),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(56, 139, 253, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(56, 139, 253, 200),
+            // cell buttons — DaisyUI's built-in `dim` theme, same source
+            // as the 5 semantic colors below (see class_map_data.rs-style
+            // oklch → sRGB conversion of daisyui's theme/dim/object.js).
+            cell_btn_primary_bg: Color::rgb(159, 232, 141),
+            cell_btn_primary_text: Color::rgb(9, 19, 7),
+            cell_btn_secondary_bg: Color::rgb(255, 125, 93),
+            cell_btn_secondary_text: Color::rgb(22, 5, 3),
+            cell_btn_danger_bg: Color::rgb(255, 174, 155),
+            cell_btn_danger_text: Color::rgb(22, 11, 9),
+            // rgba(159, 232, 141, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(159, 232, 141, 200),
+            // DaisyUI's built-in `dim` theme.
+            cell_btn_neutral_bg: Color::rgb(28, 33, 43),
+            cell_btn_neutral_text: Color::rgb(178, 204, 214),
+            cell_btn_accent_bg: Color::rgb(199, 146, 233),
+            cell_btn_accent_text: Color::rgb(14, 8, 19),
+            cell_btn_info_bg: Color::rgb(40, 235, 255),
+            cell_btn_info_text: Color::rgb(1, 19, 22),
+            cell_btn_success_bg: Color::rgb(98, 239, 189),
+            cell_btn_success_text: Color::rgb(3, 20, 13),
+            cell_btn_warning_bg: Color::rgb(239, 208, 87),
+            cell_btn_warning_text: Color::rgb(20, 16, 3),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
