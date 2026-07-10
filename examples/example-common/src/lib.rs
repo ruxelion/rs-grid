@@ -312,8 +312,7 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
 
     // Wire up a Select editor for the country column.
     if let Some(col) = columns.iter_mut().find(|c| c.key == "country") {
-        let options: Vec<SelectOption> = fake_data::COUNTRIES
-            .iter()
+        let options: Vec<SelectOption> = rs_grid_icons::all_countries()
             .map(|(code, name)| {
                 let uri = rs_grid_icons::flag_data_uri(code).unwrap_or("");
                 SelectOption {

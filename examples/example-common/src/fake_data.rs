@@ -378,61 +378,6 @@ const CITIES: &[&str] = &[
     "Portland",
 ];
 
-/// (code, display_name) — codes are ISO 3166-1 alpha-2.
-/// Flag images come from `rs_grid_flags`.
-pub const COUNTRIES: &[(&str, &str)] = &[
-    ("US", "United States"),
-    ("GB", "United Kingdom"),
-    ("FR", "France"),
-    ("DE", "Germany"),
-    ("JP", "Japan"),
-    ("AU", "Australia"),
-    ("CA", "Canada"),
-    ("IN", "India"),
-    ("BR", "Brazil"),
-    ("SG", "Singapore"),
-    ("KR", "South Korea"),
-    ("NL", "Netherlands"),
-    ("AE", "UAE"),
-    ("SE", "Sweden"),
-    ("ES", "Spain"),
-    ("IT", "Italy"),
-    ("MX", "Mexico"),
-    ("CN", "China"),
-    ("RU", "Russia"),
-    ("ZA", "South Africa"),
-    ("NO", "Norway"),
-    ("DK", "Denmark"),
-    ("FI", "Finland"),
-    ("PL", "Poland"),
-    ("PT", "Portugal"),
-    ("CH", "Switzerland"),
-    ("AT", "Austria"),
-    ("BE", "Belgium"),
-    ("IE", "Ireland"),
-    ("NZ", "New Zealand"),
-    ("AR", "Argentina"),
-    ("CL", "Chile"),
-    ("CO", "Colombia"),
-    ("IL", "Israel"),
-    ("TH", "Thailand"),
-    ("MY", "Malaysia"),
-    ("PH", "Philippines"),
-    ("ID", "Indonesia"),
-    ("VN", "Vietnam"),
-    ("EG", "Egypt"),
-    ("NG", "Nigeria"),
-    ("KE", "Kenya"),
-    ("GH", "Ghana"),
-    ("SA", "Saudi Arabia"),
-    ("TR", "Turkey"),
-    ("GR", "Greece"),
-    ("CZ", "Czech Republic"),
-    ("RO", "Romania"),
-    ("HU", "Hungary"),
-    ("UA", "Ukraine"),
-];
-
 const STATES_US: &[&str] = &[
     "CA", "NY", "TX", "WA", "IL", "FL", "MA", "CO", "OR", "GA", "NC", "PA",
     "OH", "AZ", "VA",
@@ -902,8 +847,15 @@ fn generate_extra(row: u64, col_key: &str) -> Option<String> {
             format!("{num} {street}")
         }
         Gen::Country => {
-            let idx = hash_field(row, salt) as usize % COUNTRIES.len();
-            let (code, name) = COUNTRIES[idx];
+            let idx =
+                hash_field(row, salt) as usize % rs_grid_icons::country_count();
+            let (code, _) = rs_grid_icons::all_countries()
+                .nth(idx)
+                .expect("idx is in range");
+            // TEMP for manual QA of country_name_in — revert to English
+            // (`name` from all_countries()) once verified.
+            let name = rs_grid_icons::country_name_in(code, "fr")
+                .unwrap_or(code);
             let uri = rs_grid_icons::flag_data_uri(code).unwrap_or("");
             format!("{uri} {name}")
         }
