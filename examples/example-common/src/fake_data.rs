@@ -854,8 +854,8 @@ fn generate_extra(row: u64, col_key: &str) -> Option<String> {
                 .expect("idx is in range");
             // TEMP for manual QA of country_name_in — revert to English
             // (`name` from all_countries()) once verified.
-            let name = rs_grid_icons::country_name_in(code, "fr")
-                .unwrap_or(code);
+            let name =
+                rs_grid_icons::country_name_in(code, "fr").unwrap_or(code);
             let uri = rs_grid_icons::flag_data_uri(code).unwrap_or("");
             format!("{uri} {name}")
         }
