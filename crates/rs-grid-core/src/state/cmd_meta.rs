@@ -14,6 +14,12 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SetFilterRowHeight(h) => {
+                if h > 0.0 {
+                    self.model.filter_row_height = h;
+                }
+                CommandOutput::None
+            }
             GridCommand::SetRowHeight(h) => {
                 if h > 0.0 {
                     self.model.row_height = h;
@@ -62,6 +68,10 @@ impl GridState {
             }
             GridCommand::SetShowCheckboxColumn(v) => {
                 self.model.show_checkbox_column = v;
+                CommandOutput::None
+            }
+            GridCommand::SetShowFilterRow(v) => {
+                self.model.show_filter_row = v;
                 CommandOutput::None
             }
             GridCommand::SetEditable(v) => {
@@ -133,6 +143,21 @@ mod tests {
         let before = s.model.header_height;
         s.apply(GridCommand::SetHeaderHeight(0.0));
         assert_eq!(s.model.header_height, before);
+    }
+
+    #[test]
+    fn set_filter_row_height_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetFilterRowHeight(30.0));
+        assert_eq!(s.model.filter_row_height, 30.0);
+    }
+
+    #[test]
+    fn set_filter_row_height_zero_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.filter_row_height;
+        s.apply(GridCommand::SetFilterRowHeight(0.0));
+        assert_eq!(s.model.filter_row_height, before);
     }
 
     #[test]
@@ -227,6 +252,14 @@ mod tests {
         assert!(!s.model.show_checkbox_column);
         s.apply(GridCommand::SetShowCheckboxColumn(true));
         assert!(s.model.show_checkbox_column);
+    }
+
+    #[test]
+    fn set_show_filter_row_true() {
+        let mut s = make_state();
+        assert!(!s.model.show_filter_row);
+        s.apply(GridCommand::SetShowFilterRow(true));
+        assert!(s.model.show_filter_row);
     }
 
     #[test]

@@ -79,7 +79,7 @@ impl GridCanvas {
             (
                 s.model.total_height(),
                 s.viewport.height,
-                s.model.header_height,
+                s.model.effective_header_height(),
             )
         };
         let target =
@@ -132,7 +132,7 @@ impl GridCanvas {
                 s.viewport.scroll_y,
                 s.viewport.width,
                 s.viewport.height,
-                s.model.header_height,
+                s.model.effective_header_height(),
                 s.model.total_height(),
                 sb_w,
             )
@@ -339,7 +339,11 @@ impl GridCanvas {
     pub(super) fn update_cell_drag_scroll(&self, vx: f64, vy: f64) {
         let (vp_w, vp_h, header_h) = {
             let s = self.0.state.borrow();
-            (s.viewport.width, s.viewport.height, s.model.header_height)
+            (
+                s.viewport.width,
+                s.viewport.height,
+                s.model.effective_header_height(),
+            )
         };
         let in_zone = edge_depth(vy, header_h, vp_h).is_some()
             || edge_depth(vx, 0.0, vp_w).is_some();
@@ -395,7 +399,11 @@ impl GridCanvas {
         let (vx, vy) = self.0.drag_last_pos.get();
         let (vp_w, vp_h, header_h) = {
             let s = self.0.state.borrow();
-            (s.viewport.width, s.viewport.height, s.model.header_height)
+            (
+                s.viewport.width,
+                s.viewport.height,
+                s.model.effective_header_height(),
+            )
         };
         // Increment tick counter for time-based acceleration.
         let ticks = self.0.drag_scroll_ticks.get().saturating_add(1);

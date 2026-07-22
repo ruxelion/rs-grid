@@ -1,5 +1,6 @@
 use rs_grid_core::{
     commands::{CommandOutput, GridCommand},
+    filter::FilterCondition,
     sort::SortDir,
 };
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -80,22 +81,22 @@ const ICON_PASTE: &str = concat!(
 
 // ── themed colors ───────────────────────────────────────
 
-struct CtxColors {
-    bg: String,
-    border: String,
-    shadow: String,
-    text: String,
-    text_disabled: String,
-    hover_bg: String,
-    separator: String,
-    radius: String,
-    font_size: String,
-    min_width: String,
-    shortcut_font_size: String,
-    item_gap: String,
+pub(super) struct CtxColors {
+    pub(super) bg: String,
+    pub(super) border: String,
+    pub(super) shadow: String,
+    pub(super) text: String,
+    pub(super) text_disabled: String,
+    pub(super) hover_bg: String,
+    pub(super) separator: String,
+    pub(super) radius: String,
+    pub(super) font_size: String,
+    pub(super) min_width: String,
+    pub(super) shortcut_font_size: String,
+    pub(super) item_gap: String,
 }
 
-fn read_ctx_colors() -> CtxColors {
+pub(super) fn read_ctx_colors() -> CtxColors {
     let style = css_theme::root_computed_style();
     let v = |name: &str, fallback: &str| -> String {
         let val = style
@@ -248,7 +249,11 @@ fn builtin_icon(action: BuiltinAction) -> &'static str {
         BuiltinAction::PinColumn | BuiltinAction::UnpinColumn => ICON_PIN,
         BuiltinAction::SortAsc => ICON_SORT_ASC,
         BuiltinAction::SortDesc => ICON_SORT_DESC,
-        BuiltinAction::ClearSort => ICON_CLEAR_SORT,
+        // Same glyph as ClearSort (a plain X) — both are "clear this
+        // per-column state" actions with no dedicated icon of their own.
+        BuiltinAction::ClearSort | BuiltinAction::ClearColumnFilter => {
+            ICON_CLEAR_SORT
+        }
         BuiltinAction::AutoSizeColumn | BuiltinAction::AutoSizeAllColumns => {
             ICON_AUTOSIZE
         }
@@ -268,6 +273,7 @@ fn builtin_label(action: BuiltinAction, locale: &Locale) -> &str {
         BuiltinAction::ClearSort => &locale.clear_sort,
         BuiltinAction::AutoSizeColumn => &locale.autosize_this_column,
         BuiltinAction::AutoSizeAllColumns => &locale.autosize_all_columns,
+        BuiltinAction::ClearColumnFilter => &locale.clear_filter,
     }
 }
 
@@ -298,10 +304,15 @@ fn builtin_shortcut(action: BuiltinAction, locale: &Locale) -> &str {
 // and the menu lifetime is bounded by the user's single
 // right-click gesture.
 
-fn create_menu_shell(
+pub(super) fn create_menu_shell(
     x: i32,
     y: i32,
     colors: &CtxColors,
+    // Both the right-click context menu and the filter popup use the
+    // header's own background rather than the separate `--rs-grid-ctx-bg`
+    // token, so the popup reads as an extension of the header it's
+    // anchored under. Callers pass `theme.header_bg.to_css()`.
+    bg: &str,
     canvas: &HtmlCanvasElement,
 ) -> (HtmlElement, HtmlElement) {
     let doc = document();
@@ -366,7 +377,7 @@ fn create_menu_shell(
             ("left", &format!("{}px", x)),
             ("top", &format!("{}px", y)),
             ("z-index", "9999"),
-            ("background", &colors.bg),
+            ("background", bg),
             ("border", &border_val),
             ("border-radius", &colors.radius),
             ("box-shadow", &colors.shadow),
@@ -473,11 +484,13 @@ impl GridCanvas {
     pub(super) fn show_col_header_menu(&self, col_idx: usize, x: i32, y: i32) {
         remove_ctx_menu();
         let colors = read_ctx_colors();
+        let header_bg = self.0.builder.borrow().theme.header_bg.to_css();
         let doc = document();
-        let (_, menu) = create_menu_shell(x, y, &colors, &self.0.canvas);
+        let (_, menu) =
+            create_menu_shell(x, y, &colors, &header_bg, &self.0.canvas);
 
         let config = self.0.ctx_menu_config.borrow();
-        let (is_pinned, col_sorted) = {
+        let (is_pinned, col_sorted, col_filtered) = {
             let state = self.0.state.borrow();
             let pinned = col_idx < state.model.pinned_count;
             let col_key = state
@@ -488,7 +501,9 @@ impl GridCanvas {
                 .unwrap_or("");
             let sorted =
                 state.sort.as_ref().is_some_and(|s| s.col_key == col_key);
-            (pinned, sorted)
+            let filtered = state.model.filters.contains_key(col_key)
+                || state.model.value_filters.contains_key(col_key);
+            (pinned, sorted, filtered)
         };
 
         // Build item list.
@@ -503,6 +518,9 @@ impl GridCanvas {
                 ];
                 if col_sorted {
                     v.push(ContextMenuItem::clear_sort());
+                }
+                if col_filtered {
+                    v.push(ContextMenuItem::clear_filter());
                 }
                 v.push(ContextMenuItem::separator());
                 v.push(ContextMenuItem::autosize_column());
@@ -565,8 +583,10 @@ impl GridCanvas {
     fn show_context_menu(&self, x: i32, y: i32) {
         remove_ctx_menu();
         let colors = read_ctx_colors();
+        let header_bg = self.0.builder.borrow().theme.header_bg.to_css();
         let doc = document();
-        let (_, menu) = create_menu_shell(x, y, &colors, &self.0.canvas);
+        let (_, menu) =
+            create_menu_shell(x, y, &colors, &header_bg, &self.0.canvas);
 
         let config = self.0.ctx_menu_config.borrow();
         let has_selection = self.0.state.borrow().selection.has_selection();
@@ -719,6 +739,23 @@ impl GridCanvas {
                 }
                 BuiltinAction::ClearSort => {
                     gc.dispatch(GridCommand::ClearSort);
+                }
+                BuiltinAction::ClearColumnFilter => {
+                    let col_key =
+                        gc.0.state
+                            .borrow()
+                            .model
+                            .columns
+                            .get(col_idx)
+                            .map(|c| c.key.clone())
+                            .unwrap_or_default();
+                    gc.dispatch(GridCommand::SetColumnFilter {
+                        col_key: col_key.clone(),
+                        condition: FilterCondition::default(),
+                    });
+                    gc.dispatch(GridCommand::ClearColumnValueFilter {
+                        col_key,
+                    });
                 }
                 BuiltinAction::AutoSizeColumn => {
                     let (cw, hcw, cp, hrr, bcw, bpx, bgap) =

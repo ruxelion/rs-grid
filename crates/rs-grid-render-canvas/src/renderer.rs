@@ -169,6 +169,33 @@ impl CanvasRenderer {
         ctx.restore();
     }
 
+    /// Traces a rounded-rect outline into the context's current path
+    /// (caller must `begin_path()`/`close_path()`/fill or stroke) —
+    /// factored so [`Self::draw_rect`] can build it twice at different
+    /// bounds: once at the full rect for the fill, once inset by half
+    /// the stroke width for the stroke (see the comment there).
+    fn trace_rounded_rect(
+        ctx: &CanvasRenderingContext2d,
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        rad: f64,
+    ) {
+        let rad = rad.min(w / 2.0).min(h / 2.0).max(0.0);
+        ctx.move_to(x + rad, y);
+        ctx.line_to(x + w - rad, y);
+        ctx.arc_to(x + w, y, x + w, y + rad, rad).expect("arc_to");
+        ctx.line_to(x + w, y + h - rad);
+        ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad)
+            .expect("arc_to");
+        ctx.line_to(x + rad, y + h);
+        ctx.arc_to(x, y + h, x, y + h - rad, rad).expect("arc_to");
+        ctx.line_to(x, y + rad);
+        ctx.arc_to(x, y, x + rad, y, rad).expect("arc_to");
+        ctx.close_path();
+    }
+
     fn draw_rect(&self, r: &RectPrimitive) {
         let ctx = &self.ctx;
         if r.clip.is_some() {
@@ -180,20 +207,15 @@ impl CanvasRenderer {
             ctx.clip();
         }
         if r.corner_radius > 0.0 {
-            let rad = r.corner_radius.min(r.width / 2.0).min(r.height / 2.0);
-            let (x, y, w, h) = (r.x, r.y, r.width, r.height);
             ctx.begin_path();
-            ctx.move_to(x + rad, y);
-            ctx.line_to(x + w - rad, y);
-            ctx.arc_to(x + w, y, x + w, y + rad, rad).expect("arc_to");
-            ctx.line_to(x + w, y + h - rad);
-            ctx.arc_to(x + w, y + h, x + w - rad, y + h, rad)
-                .expect("arc_to");
-            ctx.line_to(x + rad, y + h);
-            ctx.arc_to(x, y + h, x, y + h - rad, rad).expect("arc_to");
-            ctx.line_to(x, y + rad);
-            ctx.arc_to(x, y, x + rad, y, rad).expect("arc_to");
-            ctx.close_path();
+            Self::trace_rounded_rect(
+                ctx,
+                r.x,
+                r.y,
+                r.width,
+                r.height,
+                r.corner_radius,
+            );
             ctx.set_fill_style_str(&r.fill.to_css());
             ctx.fill();
         } else {
@@ -205,26 +227,35 @@ impl CanvasRenderer {
             ctx.save();
             ctx.set_stroke_style_str(&stroke.to_css());
             ctx.set_line_width(r.stroke_width);
-            // For rounded rects the rounded path is still
-            // current after close_path(), so ctx.stroke()
-            // follows the arcs. For sharp rects stroke_rect
-            // is sufficient and avoids re-building the path.
+            // Canvas centers a stroke on the path, so naively
+            // stroking the same path used for the fill bleeds half
+            // the stroke width outside the rect — visible as a
+            // cell-bounds border (e.g. a `CellDecoration` border)
+            // spilling into the adjacent cell, or — for a
+            // translucent stroke — as a soft/blurry edge rather
+            // than a crisp line, since the bleeding half
+            // anti-aliases against whatever is behind the rect.
+            // Inset by exactly half the stroke width, for both the
+            // sharp- and rounded-rect cases, so the whole stroke
+            // stays inside the rect, flush with its edges, instead
+            // of straddling them.
+            let inset = r.stroke_width / 2.0;
+            let x = r.x + inset;
+            let y = r.y + inset;
+            let w = (r.width - 2.0 * inset).max(0.0);
+            let h = (r.height - 2.0 * inset).max(0.0);
             if r.corner_radius > 0.0 {
+                ctx.begin_path();
+                Self::trace_rounded_rect(
+                    ctx,
+                    x,
+                    y,
+                    w,
+                    h,
+                    r.corner_radius - inset,
+                );
                 ctx.stroke();
             } else {
-                // Canvas centers a stroke on the path, so a
-                // naive stroke_rect(x, y, w, h) bleeds half the
-                // stroke width outside the rect — visible as a
-                // cell-bounds border (e.g. a `CellDecoration`
-                // border) spilling into the adjacent cell. Inset
-                // by exactly half the stroke width so the whole
-                // stroke stays inside the rect, flush with its
-                // edges, instead of straddling them.
-                let inset = r.stroke_width / 2.0;
-                let x = r.x + inset;
-                let y = r.y + inset;
-                let w = (r.width - 2.0 * inset).max(0.0);
-                let h = (r.height - 2.0 * inset).max(0.0);
                 ctx.stroke_rect(x, y, w, h);
             }
             ctx.restore();

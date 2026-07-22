@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use rs_grid_core::{commands::GridCommand, row::RowRecord, sort::SortState};
+use rs_grid_core::{
+    commands::GridCommand, filter::FilterCondition, row::RowRecord,
+    sort::SortState,
+};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
@@ -22,8 +25,8 @@ pub struct PageFetchRequest {
     pub page_size: u64,
     /// Active sort state (`None` = natural order).
     pub sort: Option<SortState>,
-    /// Active column filters (col_key to search text).
-    pub filters: HashMap<String, String>,
+    /// Active column filters (col_key to filter condition).
+    pub filters: HashMap<String, FilterCondition>,
 }
 
 /// Configuration for async page-based data fetching.
@@ -82,7 +85,7 @@ impl GridCanvas {
         let (row_start, row_end) = state.viewport.visible_rows(
             state.model.display_row_count(),
             state.model.row_height,
-            state.model.header_height,
+            state.model.effective_header_height(),
         );
         let sort = state.sort.clone();
         let filters = state.model.filters.clone();

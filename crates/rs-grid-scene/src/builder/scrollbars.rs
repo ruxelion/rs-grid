@@ -28,7 +28,7 @@ pub(super) fn emit_scrollbars(
         vp.scroll_y,
         vp.width,
         vp.height,
-        model.header_height,
+        model.data_top(),
         model.total_height(),
         t.scrollbar_width,
     );

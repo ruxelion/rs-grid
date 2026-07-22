@@ -162,6 +162,9 @@ fn App() -> impl IntoView {
     // `<button>` (not an `<input>`) so it doesn't trip editing.spec.ts's
     // "no <input> exists in the DOM" assertion for the editor=None case.
     let show_checkboxes = RwSignal::new(false);
+    // e2e-only: whether the floating filter row is shown — same rationale
+    // as `show_checkboxes` (plain `<button>`, off by default).
+    let show_filter_row = RwSignal::new(false);
     // e2e-only, manual QA: which DataSource backs the grid — see the
     // "data-source-select" control and DataSourceKind below.
     let data_source = RwSignal::new(DataSourceKind::Fn);
@@ -339,6 +342,30 @@ fn App() -> impl IntoView {
                             "Row checkboxes: on"
                         } else {
                             "Row checkboxes: off"
+                        }
+                    }}
+                </button>
+                // e2e-only: toggles the floating filter row live — same
+                // rationale/positioning as the checkbox-column toggle above.
+                <button
+                    data-testid="show-filter-row-toggle"
+                    style="position:absolute; top:44px; right:16px;"
+                    on:click={
+                        let gc_holder = gc_holder.clone();
+                        move |_| {
+                            let next = !show_filter_row.get_untracked();
+                            show_filter_row.set(next);
+                            if let Some(gc) = gc_holder.borrow().as_ref() {
+                                gc.set_show_filter_row(next);
+                            }
+                        }
+                    }
+                >
+                    {move || {
+                        if show_filter_row.get() {
+                            "Filter row: on"
+                        } else {
+                            "Filter row: off"
                         }
                     }}
                 </button>

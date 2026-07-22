@@ -233,6 +233,67 @@ already have with the pinned band.
   below selection" ordering as `row_hover_bg`, keyed by the same
   physical-id lookup as the checkbox itself.
 
+## Floating filter row
+
+`builder.rs` renders the floating filter row (`model.show_filter_row`,
+see `rs-grid-core/AGENTS.md`'s "Floating filter row" section) in a block
+right after the header block closes (`if hh > 0.0 { ... }`), guarded
+`if fh > 0.0` where `fh = model.effective_filter_row_height()`. It
+reuses the header block's own `col_vx` closure for horizontal
+scroll/pin sync — called once for the scrollable range, once more for
+`0..pinned_count` with its own masking background rect, mirroring the
+header's own pinned-band pattern. Per column: a bordered "input-look"
+`RectPrimitive` (`t.bg` fill, `t.filter_row_input_border` border —
+matches the column filter popup's own value `<input>` border look
+rather than a plain grid-line, so the two read as the same design;
+vertical margin is themed (`filter_row_input_margin_v`, top and
+bottom, symmetric) while the horizontal inset reuses `t.cell_padding`
+— the same distance a data cell's own text sits from the column edge
+(`builder/cells.rs`), so the box's left/right edges line up with the
+data cells' content below rather than an unrelated hardcoded gap —
+narrowed on the right to keep the icon's own zone clear of the box
+rather than overlapping it), a hover-background `RectPrimitive` behind
+the icon
+when `hovered_filter_row_icon_col == Some(ci)` (`build`'s 5th
+parameter) — reuses the header menu icon's own
+`header_menu_icon_hover_bg`/`header_menu_icon_radius` tokens rather
+than new filter-icon-specific ones, so it reads as the same kind of
+icon button, not a differently-styled one; sized like the menu icon's
+own button box (`header_menu_icon_btn_h`, or `(fh - 12.0).max(8.0)`
+when that's `0.0`) but against the filter row's own band instead of
+the header's — a mini funnel icon (a single rounded `PolygonPrimitive`
+— wide top, a shoulder bend partway down, tapering to a rounded point,
+modeled after Heroicons' solid "funnel" glyph rather than a flat
+trapezoid + separate spout `Line`, which used to read as a triangle
+with a stick — reusing the `header_filter_icon`/`header_filter_icon_active`
+theme colors; this is the **only** place that draws this icon: the
+column header itself has none, by design — see `rs-grid-web/AGENTS.md`'s
+"Floating filter row" section for why), a small notification-style badge
+`RectPrimitive` (a circle via `corner_radius = header_filter_icon_badge_r`)
+overlapping the glyph's top-right corner when the column has an active
+filter — on top of, not instead of, the glyph's own active-color swap,
+so both cues fire together — and a `TextPrimitive` showing
+`state.model.filters.get(&col.key)`'s raw value **only when
+non-empty** — no placeholder text is drawn for an empty cell; the
+empty box + funnel icon are the affordance, same as
+`show_quick_filter_input`'s own placeholder-less transient overlay in
+`rs-grid-web`. (An earlier version drew a `"Filter..."` hint via a now-
+removed `Theme::filter_row_placeholder_text` field — deleted rather
+than left dead once the hint was dropped, following this crate's
+"delete over leave-dead" convention.) Three `Theme` fields back what's
+left: `filter_row_height: f64` (mirrors `header_height`, pushed into
+the model at mount/`set_theme` the same way), `filter_row_input_border:
+Color`, and `filter_row_input_margin_v: f64` — all three follow the
+standard "Adding a CSS variable" checklist in `rs-grid-web/AGENTS.md`
+(add to `Theme` + all 3 constructors, wire both directions in
+`css_vars.rs`).
+
+Every `hh`-based clip/background/separator site elsewhere in
+`builder.rs` that means "where does the *data* band start" (not the
+header's own band) was extended to `hh + fh` (`data_top` locally) when
+this shipped — see `rs-grid-core/AGENTS.md`'s classification list for
+which `rs-grid-core` hit-test functions extend the same way.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

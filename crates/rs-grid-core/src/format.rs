@@ -381,6 +381,20 @@ impl CellFormat {
     pub fn is_image_text(&self) -> bool {
         matches!(self, CellFormat::ImageText { .. })
     }
+
+    /// Returns `true` if this format's raw cell value is a
+    /// number — used by `FilterCondition::matches` to decide
+    /// whether `FilterOp::Equals`/`NotEquals` compare
+    /// numerically or as case-insensitive strings.
+    pub fn is_numeric_like(&self) -> bool {
+        matches!(
+            self,
+            CellFormat::Number { .. }
+                | CellFormat::Percent { .. }
+                | CellFormat::Currency { .. }
+                | CellFormat::ProgressBar { .. }
+        )
+    }
 }
 
 // ── format_cell ─────────────────────────────────────────

@@ -17,7 +17,8 @@ use rs_grid_scene::{builder::SceneBuilder, sample_scenes::SCENARIOS};
 fn scene_frames_match_snapshots() {
     for (name, build) in SCENARIOS {
         let state = build();
-        let frame = SceneBuilder::new(1.0).build(&state, None, None, None);
+        let frame =
+            SceneBuilder::new(1.0).build(&state, None, None, None, None);
         insta::assert_debug_snapshot!(*name, frame);
     }
 }

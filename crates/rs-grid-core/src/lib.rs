@@ -19,11 +19,16 @@ pub mod commands;
 pub mod datasource;
 /// Inline cell edit state snapshot.
 pub mod edit;
+/// Per-column filter conditions: `FilterOp`, `FilterCondition`.
+pub mod filter;
 /// Cell formatting: `CellFormat`, `CellAlign`, `FormattedCell`,
 /// and `format_cell`.
 pub mod format;
 /// O(log n) hit-testing on cells, headers, and gutters.
 pub mod hit_test;
+/// O(1) least-recently-used order tracking (fixed node pool, free-list
+/// recycled), used by [`page_cache`] for cache eviction.
+pub mod lru_ring;
 /// Grid data model: columns, datasource, and sizing.
 pub mod model;
 /// Page-based cache for lazy/virtual data sources.

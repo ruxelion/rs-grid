@@ -8,6 +8,7 @@
   --rs-grid-header-bg: #f8f9fb;
   --rs-grid-header-text: #181d1f;
   --rs-grid-cell-text: #181d1f;
+  --rs-grid-filter-row-input-border: rgba(24, 29, 31, 0.20);
   --rs-grid-grid-line: #e2e8f0;
   --rs-grid-grid-line-width: 1px;
   --rs-grid-header-border: #babfc7;
@@ -29,6 +30,8 @@
   --rs-grid-invalid-cell-border-width: 1px;
   --rs-grid-decoration-border-width: 1.5px;
   --rs-grid-header-height: 48px;
+  --rs-grid-filter-row-height: 52px;
+  --rs-grid-filter-row-input-margin-v: 10px;
   --rs-grid-row-height: 42px;
   --rs-grid-font-size: 14px;
   --rs-grid-header-font-size: 14px;
@@ -70,6 +73,12 @@
   --rs-grid-header-menu-icon-btn-w: 22px;
   --rs-grid-header-menu-icon-btn-h: 22px;
   --rs-grid-header-menu-icon-dot-r: 1.2px;
+  --rs-grid-header-filter-icon: rgba(24, 29, 31, 0.71);
+  --rs-grid-header-filter-icon-active: rgba(33, 150, 243, 0.85);
+  --rs-grid-header-filter-icon-margin-r: 6px;
+  --rs-grid-header-filter-icon-btn-w: 22px;
+  --rs-grid-header-filter-icon-size: 13px;
+  --rs-grid-header-filter-icon-badge-r: 3px;
   --rs-grid-pinned-bg: #ffffff;
   --rs-grid-pinned-header-bg: #f8f9fb;
   --rs-grid-pinned-separator-color: #babfc7;

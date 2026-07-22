@@ -390,6 +390,14 @@ impl GridCanvas {
         }
 
         // ── theme colours ─────────────────────────────
+        // Pixel-matched to daisyUI's `::picker(select)` + `option` look
+        // (no Tailwind/daisyUI dependency in this crate, so the shape is
+        // replicated rather than assumed available via a `class`) —
+        // border = its `base-200` stand-in (`Theme::grid_line`, the
+        // grid's own subtle divider color), highlight = its
+        // `bg-base-content/10` hover token, derived from the themed
+        // `cell_text` color via `color-mix` rather than a new hardcoded
+        // color so it still tracks a theme swap.
         let (bg, text_c, sel_c, border_c, fsz, shadow, dd_min_w, dd_max_h) = {
             let b = self.0.builder.borrow();
             let t = &b.theme;
@@ -401,18 +409,24 @@ impl GridCanvas {
                     .filter(|v| !v.is_empty())
                     .unwrap_or_else(|| fb.to_string())
             };
-            let shadow =
-                var("--rs-grid-overlay-shadow", "0 4px 12px rgba(0,0,0,.15)");
+            let shadow = var(
+                "--rs-grid-overlay-shadow",
+                "0 20px 25px -5px rgba(0,0,0,.1), \
+                 0 8px 10px -6px rgba(0,0,0,.1)",
+            );
             let dd_min_w: f64 = var("--rs-grid-dropdown-min-width", "220")
                 .trim_end_matches("px")
                 .parse()
                 .unwrap_or(220.0);
             let dd_max_h = var("--rs-grid-dropdown-max-height", "240px");
+            let text_c = t.cell_text.to_css();
+            let sel_c =
+                format!("color-mix(in oklab, {text_c} 10%, transparent)");
             (
                 t.bg.to_css(),
-                t.cell_text.to_css(),
-                t.selection_fill.to_css(),
-                t.selection_border.to_css(),
+                text_c,
+                sel_c,
+                t.grid_line.to_css(),
                 t.font_size,
                 shadow,
                 dd_min_w,
@@ -440,8 +454,9 @@ impl GridCanvas {
         let _ = s.set_property("max-height", &dd_max_h);
         let _ = s.set_property("overflow-y", "auto");
         let _ = s.set_property("z-index", "10000");
-        let _ = s.set_property("border", &format!("2px solid {border_c}"));
-        let _ = s.set_property("border-radius", "4px");
+        let _ = s.set_property("border", &format!("1px solid {border_c}"));
+        // daisyUI `rounded-box` (`--radius-box: 0.5rem`).
+        let _ = s.set_property("border-radius", "8px");
         let _ = s.set_property("background", &bg);
         let _ = s.set_property("color", &text_c);
         let _ = s.set_property("font-size", &format!("{fsz}px"));
@@ -450,7 +465,8 @@ impl GridCanvas {
         let _ = s.set_property("outline", "none");
         let _ = s.set_property("box-sizing", "border-box");
         let _ = s.set_property("margin", "0");
-        let _ = s.set_property("padding", "2px 0");
+        // daisyUI `p-2`.
+        let _ = s.set_property("padding", "8px");
 
         // Below cell, or above if no room.
         let win_h = web_sys::window()
@@ -478,7 +494,12 @@ impl GridCanvas {
             let rs = el.style();
             let _ = rs.set_property("display", "flex");
             let _ = rs.set_property("align-items", "center");
-            let _ = rs.set_property("padding", "4px 8px");
+            // daisyUI `option`: `py-1.5` (6px) + `--option-px: 3` (12px).
+            let _ = rs.set_property("padding", "6px 12px");
+            // daisyUI `rounded-field` (`--radius-field: 0.25rem`).
+            let _ = rs.set_property("border-radius", "4px");
+            let _ = rs
+                .set_property("transition", "color .2s, background-color .2s");
             let _ = rs.set_property("cursor", "pointer");
             let _ = rs.set_property("white-space", "nowrap");
 
@@ -1312,7 +1333,7 @@ impl GridCanvas {
 
 /// Extract the `data-idx` of the closest option row
 /// from a mouse event target.
-fn dd_idx_from_event(evt: &web_sys::MouseEvent) -> Option<usize> {
+pub(super) fn dd_idx_from_event(evt: &web_sys::MouseEvent) -> Option<usize> {
     let target = evt.target()?;
     let el: web_sys::Element = target.dyn_into().ok()?;
     let row = el.closest("[data-idx]").ok()??;
@@ -1320,7 +1341,7 @@ fn dd_idx_from_event(evt: &web_sys::MouseEvent) -> Option<usize> {
 }
 
 /// Update the highlight background on two option rows.
-fn dd_set_highlight(
+pub(super) fn dd_set_highlight(
     opts: &[web_sys::HtmlElement],
     old: usize,
     new: usize,
@@ -1336,7 +1357,7 @@ fn dd_set_highlight(
 
 /// Scroll an option row into the visible area of the
 /// dropdown container.
-fn dd_scroll_into_view(
+pub(super) fn dd_scroll_into_view(
     container: &web_sys::HtmlElement,
     opts: &[web_sys::HtmlElement],
     idx: usize,

@@ -1,4 +1,7 @@
+use std::collections::HashSet;
+
 use crate::{
+    filter::FilterCondition,
     selection::{CellCoord, CopyError},
     sort::SortDir,
     validation::InvalidEditMode,
@@ -21,13 +24,13 @@ use crate::{
 /// | **Selection** | `SelectCell`, `ExtendSelection`, `SelectRow`, `ExtendRowSelection`, `SelectCol`, `ExtendColSelection`, `ClearSelection`, `MoveSelection` |
 /// | **Scroll** | `ScrollTo`, `ScrollBy`, `Resize` |
 /// | **Clipboard** | `CopySelection`, `CutSelection`, `PasteAt` |
-/// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters` |
+/// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters`, `SetColumnValueFilter`, `ClearColumnValueFilter` |
 /// | **Columns** | `ResizeColumn`, `CommitColumnResize`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
 /// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
 /// | **Row checkboxes** | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
-/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
+/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetFilterRowHeight`, `SetShowFilterRow`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum GridCommand {
@@ -87,6 +90,8 @@ pub enum GridCommand {
     ExtendColSelection(usize),
     /// Set the header row height in logical pixels.
     SetHeaderHeight(f64),
+    /// Set the floating filter row height in logical pixels.
+    SetFilterRowHeight(f64),
     /// Set the data row height in logical pixels.
     SetRowHeight(f64),
     /// Set the row-number gutter width in logical pixels (0 hides it,
@@ -141,13 +146,31 @@ pub enum GridCommand {
         /// Number of leading columns to pin.
         count: usize,
     },
-    /// Set a text filter on a column (case-insensitive contains).
-    /// Empty text clears the filter for that column.
+    /// Set a filter condition on a column. A condition whose
+    /// operator needs a value but has none
+    /// (`FilterCondition::is_empty()`) clears the filter for that
+    /// column.
     SetColumnFilter {
         /// Column key to filter.
         col_key: String,
-        /// Filter text (empty = clear filter for this column).
-        text: String,
+        /// Operator + value to apply.
+        condition: FilterCondition,
+    },
+    /// Restrict a column to an explicit set of allowed values
+    /// (AG-Grid-style checklist filter). AND-combined with
+    /// `SetColumnFilter`'s condition (if any) and with other columns'
+    /// filters. An empty set is valid — it matches no rows.
+    SetColumnValueFilter {
+        /// Column key to restrict.
+        col_key: String,
+        /// The only values allowed to pass for this column.
+        values: HashSet<String>,
+    },
+    /// Remove the value-set restriction for a column. The column's
+    /// `SetColumnFilter` condition, if any, is untouched.
+    ClearColumnValueFilter {
+        /// Column key to clear.
+        col_key: String,
     },
     /// Clear all column filters at once.
     ClearAllFilters,
@@ -314,6 +337,12 @@ pub enum GridCommand {
     ToggleAllFilteredChecked,
     /// Show or hide the row-selection checkbox column.
     SetShowCheckboxColumn(bool),
+    /// Show or hide the floating filter row (a quick per-column
+    /// "contains" input directly under the column headers). AND-
+    /// combines with, does not replace, the header funnel icon + popup —
+    /// both write to the same `GridModel::filters` map via
+    /// `SetColumnFilter`.
+    SetShowFilterRow(bool),
 }
 
 /// Value returned by [`crate::state::GridState::apply`]

@@ -82,6 +82,7 @@ fn bench_scene_build(c: &mut Criterion) {
                         None,
                         None,
                         None,
+                        None,
                     ))
                 })
             },
@@ -102,6 +103,7 @@ fn bench_scene_build_dpr2(c: &mut Criterion) {
                 b.iter(|| {
                     black_box(builder.build(
                         black_box(&state),
+                        None,
                         None,
                         None,
                         None,

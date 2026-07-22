@@ -30,7 +30,10 @@ virtualized Canvas2D renderer.
 - Renderer-agnostic scene graph (ScenePrimitive) — Canvas2D backend included
 - Inline cell editing: Text input, Select dropdown with optional icons
 - Per-column validation with real-time error feedback
-- Column sorting (single column, asc/desc, togglable), per-column text filtering
+- Column sorting (single column, asc/desc, togglable), per-column condition
+  filtering (contains, equals, greater than, ...) via a header filter icon
+  + popup, plus an optional AG-Grid-style floating filter row for a quick
+  "contains" filter per column
 - Full-text search with match highlighting (Ctrl+F pattern)
 - Undo/redo history stack (edit operations only)
 - Clipboard support: copy/cut/paste TSV (RFC 4180)
@@ -158,9 +161,28 @@ ClearSort
 #### Filtering
 
 ```rust
-SetColumnFilter { col_key: String, text: String } // substring match
+SetColumnFilter { col_key: String, condition: FilterCondition } // operator + value
+SetColumnValueFilter { col_key: String, values: HashSet<String> } // checklist filter — AND-combined with the condition
+ClearColumnValueFilter { col_key: String }
 ClearAllFilters
+SetShowFilterRow(bool)      // show/hide the floating filter row (AG-Grid-style quick "contains" row)
+SetFilterRowHeight(f64)     // height in logical px, ignored if <= 0.0
 ```
+
+`FilterCondition { op: FilterOp, value: String }`. `FilterOp` variants:
+`Contains`, `NotContains`, `StartsWith`, `EndsWith`, `Equals`, `NotEquals`,
+`Blank`, `NotBlank`, `GreaterThan`, `GreaterThanOrEqual`, `LessThan`,
+`LessThanOrEqual`. `Equals`/`NotEquals` compare numerically when the
+column's `CellFormat::is_numeric_like()`, otherwise case-insensitive
+string equality; the four `*Than*` operators always compare numerically
+(non-numeric cells never match, never panic).
+
+`GridModel::unique_values(col_key, cap) -> UniqueValues` returns
+`Values(Vec<String>)` (sorted distinct values, up to `cap`) or
+`TooMany { cap }` once exceeded — backs the checklist filter's value
+list. `GridModel::is_filter_applied() -> bool` distinguishes "no filter
+active" from "a filter is active and matches zero rows" — both leave
+`filtered_indices` empty otherwise.
 
 #### Editing
 
@@ -586,10 +608,19 @@ state.apply(GridCommand::SetSort {
     dir: SortDir::Desc,
 });
 
-// Filter "country" to "France"
+// Filter "country" to "France" (contains, the common case)
 state.apply(GridCommand::SetColumnFilter {
     col_key: "country".into(),
-    text: "France".into(),
+    condition: FilterCondition::contains("France"),
+});
+
+// Filter "revenue" greater than 100000
+state.apply(GridCommand::SetColumnFilter {
+    col_key: "revenue".into(),
+    condition: FilterCondition {
+        op: FilterOp::GreaterThan,
+        value: "100000".into(),
+    },
 });
 
 // Clear everything

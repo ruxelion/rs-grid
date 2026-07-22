@@ -39,7 +39,7 @@ fn main() {
         std::process::exit(2);
     };
 
-    let frame = SceneBuilder::new(1.0).build(&state, None, None, None);
+    let frame = SceneBuilder::new(1.0).build(&state, None, None, None, None);
     let json =
         serde_json::to_string_pretty(&frame).expect("SceneFrame serializes");
     println!("{json}");

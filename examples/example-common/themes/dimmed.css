@@ -8,6 +8,7 @@
   --rs-grid-header-bg: #2d333b;
   --rs-grid-header-text: #adbac7;
   --rs-grid-cell-text: #adbac7;
+  --rs-grid-filter-row-input-border: rgba(173, 186, 199, 0.20);
   --rs-grid-grid-line: #373e47;
   --rs-grid-header-border: #444c56;
   --rs-grid-selection-fill: rgba(56, 139, 253, 0.20);
@@ -32,6 +33,8 @@
   --rs-grid-drag-ghost-text: #adbac7;
   --rs-grid-header-menu-icon: rgba(173, 186, 199, 0.70);
   --rs-grid-header-menu-icon-hover-bg: rgba(255, 255, 255, 0.06);
+  --rs-grid-header-filter-icon: rgba(173, 186, 199, 0.70);
+  --rs-grid-header-filter-icon-active: rgba(56, 139, 253, 0.85);
   --rs-grid-pinned-bg: #22272e;
   --rs-grid-pinned-header-bg: #2d333b;
   --rs-grid-pinned-separator-color: #444c56;

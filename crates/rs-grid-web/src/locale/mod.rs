@@ -37,6 +37,7 @@ pub struct Locale {
     pub clear_sort: String,
     pub autosize_this_column: String,
     pub autosize_all_columns: String,
+    pub clear_filter: String,
 
     // ── Keyboard shortcut hints ─────────────────────────
     pub shortcut_cut: String,
@@ -45,6 +46,9 @@ pub struct Locale {
 
     // ── Search ──────────────────────────────────────────
     pub search_placeholder: String,
+
+    // ── Column filter popup ─────────────────────────────
+    pub filter_apply: String,
 }
 
 impl Default for Locale {
@@ -188,10 +192,12 @@ fn parse_toml(src: &str) -> Locale {
         clear_sort: String::new(),
         autosize_this_column: String::new(),
         autosize_all_columns: String::new(),
+        clear_filter: String::new(),
         shortcut_cut: String::new(),
         shortcut_copy: String::new(),
         shortcut_paste: String::new(),
         search_placeholder: String::new(),
+        filter_apply: String::new(),
     };
     let mut loc = en;
 
@@ -226,12 +232,14 @@ fn parse_toml(src: &str) -> Locale {
             "autosize_all_columns" => {
                 loc.autosize_all_columns = val;
             }
+            "clear_filter" => loc.clear_filter = val,
             "shortcut_cut" => loc.shortcut_cut = val,
             "shortcut_copy" => loc.shortcut_copy = val,
             "shortcut_paste" => loc.shortcut_paste = val,
             "search_placeholder" => {
                 loc.search_placeholder = val;
             }
+            "filter_apply" => loc.filter_apply = val,
             _ => {} // unknown keys silently ignored
         }
     }
@@ -294,6 +302,10 @@ mod tests {
             assert!(
                 !loc.search_placeholder.is_empty(),
                 "{name}: search_placeholder is empty"
+            );
+            assert!(
+                !loc.filter_apply.is_empty(),
+                "{name}: filter_apply is empty"
             );
         }
     }

@@ -40,9 +40,8 @@ pub fn hit_test(
         }
         raw - ccw
     };
-    // Header is sticky — always at vy 0..hh.
-    let hh = model.effective_header_height();
-    if vy < hh {
+    // Header (+ filter row, when shown) is sticky — data starts below it.
+    if vy < model.data_top() {
         return None;
     }
 
@@ -84,6 +83,47 @@ pub fn hit_test_col_header(
     model.column_offsets.hit_column(abs_x, &model.columns)
 }
 
+/// Returns the column index when the pointer is over the floating
+/// filter row — same column resolution as `hit_test_col_header`, but
+/// checked against the filter row's own vertical band (directly below
+/// the header) instead of the header's.
+///
+/// Returns `None` when the filter row is hidden, the pointer is outside
+/// its band, in the row-number gutter, or over the (scrolling) checkbox
+/// column.
+pub fn hit_test_filter_row_cell(
+    vx: f64,
+    vy: f64,
+    model: &GridModel,
+    scroll_x: f64,
+) -> Option<usize> {
+    let fh = model.effective_filter_row_height();
+    if fh <= 0.0 {
+        return None;
+    }
+    let hh = model.effective_header_height();
+    if vy < hh || vy >= hh + fh {
+        return None;
+    }
+    let rnw = model.effective_row_number_width();
+    if vx < rnw {
+        return None;
+    }
+    let vx_data = vx - rnw;
+    let pinned_width = model.pinned_width();
+    let abs_x = if vx_data < pinned_width {
+        vx_data
+    } else {
+        let raw = vx_data + scroll_x;
+        let ccw = model.effective_checkbox_column_width();
+        if ccw > 0.0 && raw < pinned_width + ccw {
+            return None;
+        }
+        raw - ccw
+    };
+    model.column_offsets.hit_column(abs_x, &model.columns)
+}
+
 /// Returns the row index when the pointer is over the sticky row-number gutter.
 ///
 /// Returns `None` when the pointer is outside the gutter, in the header area,
@@ -98,7 +138,7 @@ pub fn hit_test_row_header(
     if rnw <= 0.0 || vx >= rnw {
         return None;
     }
-    if vy < model.effective_header_height() {
+    if vy < model.data_top() {
         return None;
     }
     logical_row_at_vy(vy, model, scroll_y)
@@ -145,7 +185,7 @@ pub fn hit_test_checkbox_row(
     if !checkbox_band_hit(vx, model, scroll_x) {
         return None;
     }
-    if vy < model.effective_header_height() {
+    if vy < model.data_top() {
         return None;
     }
     logical_row_at_vy(vy, model, scroll_y)
@@ -174,7 +214,7 @@ pub fn hit_test_checkbox_header(
 /// Returns `None` when the resulting row is at or past
 /// `model.display_row_count()`.
 fn logical_row_at_vy(vy: f64, model: &GridModel, scroll_y: f64) -> Option<u64> {
-    let hh = model.effective_header_height();
+    let hh = model.data_top();
     let rh = model.row_height;
     // row = floor((vy - hh + scroll_y) / rh)
     // When scroll_y >= hh, decompose to keep numbers small (avoid
@@ -276,6 +316,32 @@ mod tests {
         assert_eq!(c.row, 1);
     }
 
+    #[test]
+    fn hit_test_data_top_shifts_by_filter_row_when_shown() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // Data now starts at 40 (header) + 36 (filter row) = 76 —
+        // a point that used to hit row 0 (vy=50) now falls inside the
+        // filter row band and hits nothing.
+        assert!(hit_test(60.0, 50.0, &m, 0.0, 0.0).is_none());
+        // Just past the new boundary hits row 0.
+        let c = hit_test(60.0, 80.0, &m, 0.0, 0.0).unwrap();
+        assert_eq!(c.row, 0);
+    }
+
+    #[test]
+    fn hit_test_col_header_band_unaffected_by_filter_row() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // The header row's own band is still exactly [0, 40) —
+        // hit_test_col_header must not grow just because a filter row
+        // was added below it.
+        assert_eq!(hit_test_col_header(60.0, 20.0, &m, 0.0), Some(0));
+        assert_eq!(hit_test_col_header(60.0, 50.0, &m, 0.0), None);
+    }
+
     // ── hit_test_col_header
     // ───────────────────────────────────────────────────
 
@@ -296,6 +362,52 @@ mod tests {
     fn col_header_in_gutter_returns_none() {
         let m = make_model();
         assert_eq!(hit_test_col_header(30.0, 20.0, &m, 0.0), None);
+    }
+
+    // ── hit_test_filter_row_cell
+    // ─────────────────────────────────────────
+
+    #[test]
+    fn filter_row_cell_hidden_by_default_returns_none() {
+        let m = make_model();
+        assert!(!m.show_filter_row);
+        // Even at a plausible vy, the row doesn't exist yet.
+        assert_eq!(hit_test_filter_row_cell(60.0, 50.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn filter_row_cell_hit() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // Band is [40, 76) — vy=50, vx=60 → col 0.
+        assert_eq!(hit_test_filter_row_cell(60.0, 50.0, &m, 0.0), Some(0));
+    }
+
+    #[test]
+    fn filter_row_cell_below_band_returns_none() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // vy=80 is past the band (data starts at 76).
+        assert_eq!(hit_test_filter_row_cell(60.0, 80.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn filter_row_cell_above_band_returns_none() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // vy=20 is still inside the header, above the filter row.
+        assert_eq!(hit_test_filter_row_cell(60.0, 20.0, &m, 0.0), None);
+    }
+
+    #[test]
+    fn filter_row_cell_in_gutter_returns_none() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        assert_eq!(hit_test_filter_row_cell(30.0, 50.0, &m, 0.0), None);
     }
 
     // ── hit_test_row_header

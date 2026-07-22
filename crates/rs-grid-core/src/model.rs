@@ -1,8 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::{
     column::{ColumnDef, ColumnOffsets},
     datasource::{CellStatus, DataSource, VecDataSource},
+    filter::{FilterCondition, UniqueValues},
+    format::CellFormat,
     row::RowRecord,
     sort::SortDir,
     validation::InvalidEditMode,
@@ -137,6 +139,18 @@ pub struct GridModel {
     pub row_height: f64,
     /// Height of the sticky header row in logical pixels.
     pub header_height: f64,
+    /// Height of the floating filter row in logical pixels, when shown
+    /// (see `show_filter_row`). The stored value is preserved when the
+    /// row is hidden, so it can be restored — same pattern as
+    /// `header_height`/`show_header`.
+    pub filter_row_height: f64,
+    /// Whether the floating filter row (a quick per-column "contains"
+    /// input, one row directly under the column headers) is rendered.
+    /// Opt-in, like `show_checkbox_column` — `false` by default. AND-
+    /// combines with (does not replace) the header funnel icon + popup:
+    /// both write to the same `filters` map via
+    /// `GridCommand::SetColumnFilter`.
+    pub show_filter_row: bool,
     /// Precomputed column offsets (recomputed when columns change).
     pub column_offsets: ColumnOffsets,
     /// Edited cell values that override the underlying datasource (works for
@@ -176,12 +190,33 @@ pub struct GridModel {
     /// Number of leading columns that remain fixed during horizontal scroll.
     /// 0 = no pinned columns (default).
     pub pinned_count: usize,
-    /// Per-column text filters (col_key → search text, case-insensitive
-    /// contains match). Empty map = no filter active.
-    pub filters: HashMap<String, String>,
+    /// Per-column filter conditions (col_key → operator + value).
+    /// Empty map = no filter active.
+    pub filters: HashMap<String, FilterCondition>,
+    /// Per-column value-set restrictions (col_key → allowed values),
+    /// the AG-Grid-style checklist filter. AND-combined with `filters`
+    /// and with other columns' entries — see
+    /// [`Self::apply_filter`]. A present entry restricts that column to
+    /// exactly those values; an absent entry means no restriction. An
+    /// empty set is a valid, deliberately restrictive state ("matches no
+    /// rows"), distinct from an absent entry.
+    pub value_filters: HashMap<String, HashSet<String>>,
     /// Physical row indices that pass all active filters, stored in
-    /// sort order.  Empty = no filter active (all rows visible).
+    /// sort order. Only meaningful when [`Self::is_filter_applied`] is
+    /// `true` — an empty `Vec` is ambiguous on its own between "no
+    /// filter active" and "a filter is active and genuinely matches zero
+    /// rows," which is why every reader goes through that accessor
+    /// rather than checking `filtered_indices.is_empty()` directly.
     pub filtered_indices: Vec<u64>,
+    /// Backs [`Self::is_filter_applied`] — set by [`Self::apply_filter`]
+    /// only on the branch that actually performs a full row scan and
+    /// assigns a definitive (possibly empty) `filtered_indices`. `false`
+    /// when no filter is active, filtering is delegated to the server,
+    /// or the row count exceeds the client-side cap and filtering was
+    /// skipped as a safety measure — in all three cases
+    /// `filtered_indices` must not be trusted even though it's also
+    /// empty in those cases.
+    filter_computed: bool,
     /// Whether data operations run client-side or are delegated
     /// to a server.
     pub mode: DataSourceMode,
@@ -253,6 +288,8 @@ impl GridModel {
             data,
             row_height,
             header_height,
+            filter_row_height: 36.0,
+            show_filter_row: false,
             column_offsets,
             patches: HashMap::new(),
             row_number_width,
@@ -263,7 +300,9 @@ impl GridModel {
             sort_key_cache: SortKeyCache::None,
             pinned_count: 0,
             filters: HashMap::new(),
+            value_filters: HashMap::new(),
             filtered_indices: Vec::new(),
+            filter_computed: false,
             mode: DataSourceMode::ClientSide,
             scrollbar_size: 14.0,
             show_header: true,
@@ -277,15 +316,36 @@ impl GridModel {
 
     /// Effective header height for layout and rendering.
     ///
-    /// Returns `header_height` when `show_header` is `true`,
-    /// `0.0` otherwise. The stored value is preserved so it
-    /// can be restored when the header is shown again.
+    /// Returns `header_height` when `show_header` is `true`, `0.0`
+    /// otherwise. The stored value is preserved so it can be
+    /// restored when the header is shown again.
     pub fn effective_header_height(&self) -> f64 {
         if self.show_header {
             self.header_height
         } else {
             0.0
         }
+    }
+
+    /// Effective filter-row height for layout and rendering.
+    ///
+    /// Returns `filter_row_height` when `show_filter_row` is `true`,
+    /// `0.0` otherwise — same pattern as `effective_header_height()`.
+    pub fn effective_filter_row_height(&self) -> f64 {
+        if self.show_filter_row {
+            self.filter_row_height
+        } else {
+            0.0
+        }
+    }
+
+    /// Viewport-y where the *data* band starts — below both the header
+    /// and, when shown, the floating filter row. Distinct from
+    /// `effective_header_height()` alone, which measures only the
+    /// header's own band (still the right boundary for header-specific
+    /// hit-tests that don't grow when the filter row is added).
+    pub fn data_top(&self) -> f64 {
+        self.effective_header_height() + self.effective_filter_row_height()
     }
 
     /// Effective row-number gutter width for layout and rendering.
@@ -341,7 +401,7 @@ impl GridModel {
     /// (e.g. the dataset was shrunk while a command was in flight), the
     /// index is returned unchanged rather than panicking.
     pub fn logical_to_physical(&self, logical: u64) -> u64 {
-        if !self.filtered_indices.is_empty() {
+        if self.is_filter_applied() {
             return self
                 .filtered_indices
                 .get(logical as usize)
@@ -360,24 +420,40 @@ impl GridModel {
 
     /// Number of rows currently visible (respects active filters).
     pub fn display_row_count(&self) -> u64 {
-        if self.filtered_indices.is_empty() {
-            self.data.row_count()
-        } else {
+        if self.is_filter_applied() {
             self.filtered_indices.len() as u64
+        } else {
+            self.data.row_count()
         }
     }
 
-    /// Rebuild `filtered_indices` from active `filters`.
+    /// Whether `filtered_indices` should be trusted as-is, including
+    /// when empty (meaning literally zero rows match every active
+    /// filter) — as opposed to `filtered_indices` being empty because no
+    /// filter is active, filtering is delegated to the server, or the
+    /// row count exceeds the client-side cap and filtering was skipped
+    /// as a safety measure. The two situations produce the same empty
+    /// `Vec`; this accessor is the only way to tell them apart. See
+    /// [`Self::apply_filter`].
+    pub fn is_filter_applied(&self) -> bool {
+        self.filter_computed
+    }
+
+    /// Rebuild `filtered_indices` from active `filters` and
+    /// `value_filters`.
     ///
-    /// Iterates rows in sort order and keeps those that match
-    /// every filter (case-insensitive contains).  No-op for
-    /// datasets larger than 1 000 000 rows.
+    /// Iterates rows in sort order and keeps those that match every
+    /// active condition and fall within every active value-set
+    /// restriction (the two AND-combine).  No-op for datasets larger
+    /// than 1 000 000 rows.
     pub fn apply_filter(&mut self) {
         if self.mode == DataSourceMode::ServerSide {
+            self.filter_computed = false;
             return;
         }
-        if self.filters.is_empty() {
+        if self.filters.is_empty() && self.value_filters.is_empty() {
             self.filtered_indices.clear();
+            self.filter_computed = false;
             return;
         }
         // Same threshold as MAX_CLIENT_SORT_ROWS.
@@ -385,8 +461,30 @@ impl GridModel {
         let n = self.data.row_count();
         if n > MAX {
             self.filtered_indices.clear();
+            self.filter_computed = false;
             return;
         }
+        // Resolve each active filter's column numeric-ness once,
+        // not once per row — otherwise this degrades from
+        // O(n_rows * n_filters) to O(n_rows * n_filters * n_columns).
+        let active: Vec<(&str, &FilterCondition, bool)> = self
+            .filters
+            .iter()
+            .map(|(col_key, condition)| {
+                let numeric = self
+                    .columns
+                    .iter()
+                    .find(|c| &c.key == col_key)
+                    .and_then(|c| c.format.as_ref())
+                    .is_some_and(CellFormat::is_numeric_like);
+                (col_key.as_str(), condition, numeric)
+            })
+            .collect();
+        let value_active: Vec<(&str, &HashSet<String>)> = self
+            .value_filters
+            .iter()
+            .map(|(col_key, allowed)| (col_key.as_str(), allowed))
+            .collect();
         let count = n as usize;
         let mut result = Vec::with_capacity(count);
         for i in 0..count {
@@ -395,19 +493,46 @@ impl GridModel {
             } else {
                 self.sort_order[i]
             };
-            let passes = self.filters.iter().all(|(col_key, text)| {
+            let passes = active.iter().all(|(col_key, condition, numeric)| {
                 let cell = self
                     .data
                     .get_cell_ref(physical, col_key)
                     .unwrap_or_default();
-                cell.to_ascii_lowercase()
-                    .contains(&text.to_ascii_lowercase())
+                condition.matches(&cell, *numeric)
+            }) && value_active.iter().all(|(col_key, allowed)| {
+                let cell = self
+                    .data
+                    .get_cell_ref(physical, col_key)
+                    .unwrap_or_default();
+                allowed.contains(cell.as_ref())
             });
             if passes {
                 result.push(physical);
             }
         }
         self.filtered_indices = result;
+        self.filter_computed = true;
+    }
+
+    /// Distinct values for `col_key` across up to
+    /// [`Self::MAX_CLIENT_SORT_ROWS`] rows, sorted — backs the
+    /// AG-Grid-style checklist filter popup.
+    ///
+    /// Bails out to [`UniqueValues::TooMany`] as soon as the running
+    /// distinct count exceeds `cap`, bounding memory to `cap + 1`
+    /// entries regardless of row count — a fully-unique column (e.g. an
+    /// email column) returns fast instead of scanning to completion.
+    pub fn unique_values(&self, col_key: &str, cap: usize) -> UniqueValues {
+        let mut set = BTreeSet::new();
+        let n = self.data.row_count().min(Self::MAX_CLIENT_SORT_ROWS);
+        for i in 0..n {
+            let cell = self.data.get_cell_ref(i, col_key).unwrap_or_default();
+            set.insert(cell.into_owned());
+            if set.len() > cap {
+                return UniqueValues::TooMany { cap };
+            }
+        }
+        UniqueValues::Values(set.into_iter().collect())
     }
 
     /// Read a cell value, checking local patches before the datasource.
@@ -618,9 +743,11 @@ impl GridModel {
         }
     }
 
-    /// Total scrollable height (header + visible rows).
+    /// Total scrollable height (header + filter row + visible rows).
     pub fn total_height(&self) -> f64 {
-        self.header_height + self.display_row_count() as f64 * self.row_height
+        self.effective_header_height()
+            + self.effective_filter_row_height()
+            + self.display_row_count() as f64 * self.row_height
     }
 
     /// Total scrollable width — real columns plus the checkbox column
@@ -633,7 +760,31 @@ impl GridModel {
     /// Y position of the top edge of a data row (in content space, before
     /// scroll offset).
     pub fn row_top(&self, row_index: u64) -> f64 {
-        self.header_height + row_index as f64 * self.row_height
+        self.effective_header_height()
+            + self.effective_filter_row_height()
+            + row_index as f64 * self.row_height
+    }
+
+    /// On-screen X position of column `col_idx`'s left edge,
+    /// honoring pinned columns (fixed, no scroll offset) vs.
+    /// scrolling columns (shifted by `scroll_x`). `None` if
+    /// `col_idx` is out of range.
+    ///
+    /// Does not include the row-number gutter or checkbox-column
+    /// width — callers that need viewport-absolute coordinates add
+    /// `effective_row_number_width() + effective_checkbox_column_width()`
+    /// themselves, mirroring every existing hit-test call site.
+    pub fn column_screen_x(
+        &self,
+        col_idx: usize,
+        scroll_x: f64,
+    ) -> Option<f64> {
+        let off = *self.column_offsets.offsets.get(col_idx)?;
+        Some(if col_idx < self.pinned_count {
+            off
+        } else {
+            off - scroll_x
+        })
     }
 
     /// Rebuild column offsets after columns are mutated.
@@ -744,12 +895,14 @@ pub struct GridModelBuilder {
     data: Box<dyn DataSource>,
     row_height: f64,
     header_height: f64,
+    filter_row_height: f64,
     pinned_count: usize,
     mode: DataSourceMode,
     scrollbar_size: f64,
     show_header: bool,
     show_row_numbers: bool,
     show_checkbox_column: bool,
+    show_filter_row: bool,
     editable: bool,
     selectable: bool,
     column_reorderable: bool,
@@ -768,12 +921,14 @@ impl GridModelBuilder {
             data,
             row_height: 30.0,
             header_height: 40.0,
+            filter_row_height: 36.0,
             pinned_count: 0,
             mode: DataSourceMode::ClientSide,
             scrollbar_size: 14.0,
             show_header: true,
             show_row_numbers: true,
             show_checkbox_column: false,
+            show_filter_row: false,
             editable: true,
             selectable: true,
             column_reorderable: true,
@@ -790,6 +945,12 @@ impl GridModelBuilder {
     /// Set the header row height in logical pixels.
     pub fn header_height(mut self, h: f64) -> Self {
         self.header_height = h;
+        self
+    }
+
+    /// Set the floating filter row height in logical pixels.
+    pub fn filter_row_height(mut self, h: f64) -> Self {
+        self.filter_row_height = h;
         self
     }
 
@@ -827,6 +988,12 @@ impl GridModelBuilder {
     /// Show or hide the row-selection checkbox column.
     pub fn row_selection_checkboxes(mut self, v: bool) -> Self {
         self.show_checkbox_column = v;
+        self
+    }
+
+    /// Show or hide the floating filter row.
+    pub fn show_filter_row(mut self, v: bool) -> Self {
+        self.show_filter_row = v;
         self
     }
 
@@ -872,6 +1039,8 @@ impl GridModelBuilder {
         model.show_header = self.show_header;
         model.show_row_numbers = self.show_row_numbers;
         model.show_checkbox_column = self.show_checkbox_column;
+        model.filter_row_height = self.filter_row_height;
+        model.show_filter_row = self.show_filter_row;
         model.editable = self.editable;
         model.selectable = self.selectable;
         model.column_reorderable = self.column_reorderable;
@@ -954,7 +1123,7 @@ mod tests {
         // Only the row whose value contains "1" ("1" itself) survives the
         // filter; it becomes logical row 0.
         let mut m = make_numeric_model(5);
-        m.filters.insert("v".into(), "1".into());
+        m.filters.insert("v".into(), FilterCondition::contains("1"));
         m.apply_filter();
         assert_eq!(m.display_row_count(), 1);
         assert_eq!(m.get_cell(0, "v"), Some("1".into()));
@@ -968,7 +1137,7 @@ mod tests {
         // `None`. With one surviving row (logical 0), logical row 1 falls
         // through to physical row 1 ("4") — a filtered-OUT, undisplayed row.
         let mut m = make_numeric_model(5);
-        m.filters.insert("v".into(), "1".into());
+        m.filters.insert("v".into(), FilterCondition::contains("1"));
         m.apply_filter();
         assert_eq!(m.display_row_count(), 1);
         assert_eq!(m.get_cell(1, "v"), Some("4".into()));
@@ -1003,6 +1172,33 @@ mod tests {
         assert_eq!(m.row_top(0), 40.0); // header_height
         assert_eq!(m.row_top(1), 70.0); // 40 + 30
         assert_eq!(m.row_top(3), 130.0); // 40 + 3*30
+    }
+
+    #[test]
+    fn effective_filter_row_height_false_by_default() {
+        let m = make_model();
+        assert!(!m.show_filter_row);
+        assert_eq!(m.effective_filter_row_height(), 0.0);
+    }
+
+    #[test]
+    fn effective_filter_row_height_when_shown() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        assert_eq!(m.effective_filter_row_height(), 36.0);
+    }
+
+    #[test]
+    fn row_top_and_total_height_include_filter_row_when_shown() {
+        let mut m = make_model();
+        m.show_filter_row = true;
+        m.filter_row_height = 36.0;
+        // header=40 + filter_row=36 + 0 rows
+        assert_eq!(m.row_top(0), 76.0);
+        assert_eq!(m.row_top(1), 106.0); // 76 + 30
+        // header=40 + filter_row=36 + 2 rows × 30 = 136
+        assert_eq!(m.total_height(), 136.0);
     }
 
     #[test]
@@ -1271,6 +1467,29 @@ mod tests {
         assert_eq!(m.scrollbar_size, 20.0);
     }
 
+    // ── column_screen_x ──────────────────────────────
+
+    #[test]
+    fn column_screen_x_pinned_ignores_scroll() {
+        let mut m = make_model();
+        m.pinned_count = 1;
+        let off = m.column_offsets.offsets[0];
+        assert_eq!(m.column_screen_x(0, 500.0), Some(off));
+    }
+
+    #[test]
+    fn column_screen_x_unpinned_shifts_by_scroll() {
+        let m = make_model();
+        let off = m.column_offsets.offsets[1];
+        assert_eq!(m.column_screen_x(1, 40.0), Some(off - 40.0));
+    }
+
+    #[test]
+    fn column_screen_x_out_of_range_is_none() {
+        let m = make_model();
+        assert_eq!(m.column_screen_x(999, 0.0), None);
+    }
+
     #[test]
     fn builder_pinned_count_clamped() {
         let cols = vec![ColumnDef::new("a", "A", 100.0)];
@@ -1290,6 +1509,18 @@ mod tests {
                 .show_header(false)
                 .build();
         assert!(!m.show_header);
+    }
+
+    #[test]
+    fn builder_show_filter_row() {
+        let cols = vec![ColumnDef::new("a", "A", 100.0)];
+        let m =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![])))
+                .show_filter_row(true)
+                .filter_row_height(30.0)
+                .build();
+        assert!(m.show_filter_row);
+        assert_eq!(m.effective_filter_row_height(), 30.0);
     }
 
     #[test]
@@ -1608,25 +1839,185 @@ mod tests {
             GridModelBuilder::new(cols, Box::new(VecDataSource::new(vec![r])))
                 .mode(DataSourceMode::ServerSide)
                 .build();
-        m.filters.insert("v".into(), "hello".into());
+        m.filters
+            .insert("v".into(), FilterCondition::contains("hello"));
         m.apply_filter();
         assert!(
             m.filtered_indices.is_empty(),
             "server-side mode skips filter"
         );
+        assert!(!m.is_filter_applied());
+    }
+
+    // ── is_filter_applied: distinguishing "no filter" from
+    // "filter matches zero rows" — both leave filtered_indices empty ──
+
+    #[test]
+    fn is_filter_applied_false_with_no_filters() {
+        let m = make_model();
+        assert!(!m.is_filter_applied());
+        assert_eq!(m.display_row_count(), 2);
+    }
+
+    #[test]
+    fn is_filter_applied_true_when_condition_filter_matches_nothing() {
+        let mut m = make_model();
+        m.filters
+            .insert("a".into(), FilterCondition::contains("zzz-no-match"));
+        m.apply_filter();
+        assert!(m.filtered_indices.is_empty());
+        assert!(m.is_filter_applied());
+        assert_eq!(
+            m.display_row_count(),
+            0,
+            "a filter matching zero rows must report 0 rows, not the \
+             unfiltered total"
+        );
+    }
+
+    #[test]
+    fn is_filter_applied_resets_false_after_clearing_a_zero_match_filter() {
+        // Regression test: a direct `filtered_indices.clear()` (bypassing
+        // apply_filter) would leave `filter_computed` stale `true` from
+        // the zero-match filter below, making display_row_count() keep
+        // reporting 0 instead of springing back to the full count.
+        let mut m = make_model();
+        m.filters
+            .insert("a".into(), FilterCondition::contains("zzz-no-match"));
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 0);
+        m.filters.clear();
+        m.apply_filter();
+        assert!(!m.is_filter_applied());
+        assert_eq!(m.display_row_count(), 2);
     }
 
     #[test]
     fn apply_filter_empty_filters_clears() {
         let mut m = make_model();
         // First add a filter to populate filtered_indices
-        m.filters.insert("a".into(), "hello".into());
+        m.filters
+            .insert("a".into(), FilterCondition::contains("hello"));
         m.apply_filter();
         assert!(!m.filtered_indices.is_empty());
         // Clear the filters map and reapply
         m.filters.clear();
         m.apply_filter();
         assert!(m.filtered_indices.is_empty());
+    }
+
+    // ── apply_filter: value_filters (checklist filter) ───
+
+    #[test]
+    fn apply_filter_value_filter_alone_restricts_rows() {
+        // make_model rows: ("hello","world"), ("foo","bar").
+        let mut m = make_model();
+        m.value_filters
+            .insert("a".into(), HashSet::from(["hello".to_string()]));
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 1);
+        assert_eq!(m.get_cell(0, "a"), Some("hello".into()));
+    }
+
+    #[test]
+    fn apply_filter_value_filter_empty_set_matches_nothing() {
+        let mut m = make_model();
+        m.value_filters.insert("a".into(), HashSet::new());
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 0);
+    }
+
+    #[test]
+    fn apply_filter_condition_and_value_filter_and_combine() {
+        let mut m = make_model();
+        // Condition alone would match both rows ("o" is in both).
+        m.filters.insert("a".into(), FilterCondition::contains("o"));
+        // Value filter alone would match only the "foo" row.
+        m.value_filters
+            .insert("a".into(), HashSet::from(["foo".to_string()]));
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 1);
+        assert_eq!(m.get_cell(0, "a"), Some("foo".into()));
+    }
+
+    #[test]
+    fn apply_filter_value_filters_on_different_columns_and_combine() {
+        let mut m = make_model();
+        m.value_filters
+            .insert("a".into(), HashSet::from(["hello".to_string()]));
+        m.value_filters
+            .insert("b".into(), HashSet::from(["bar".to_string()]));
+        m.apply_filter();
+        // Row 0 has a="hello" (passes column a) but b="world" (fails
+        // column b) — no row satisfies both.
+        assert_eq!(m.display_row_count(), 0);
+    }
+
+    #[test]
+    fn apply_filter_clearing_value_filter_restores_all_rows() {
+        let mut m = make_model();
+        m.value_filters
+            .insert("a".into(), HashSet::from(["hello".to_string()]));
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 1);
+        m.value_filters.remove("a");
+        m.apply_filter();
+        assert_eq!(m.display_row_count(), 2);
+    }
+
+    // ── unique_values ─────────────────────────────────────
+
+    #[test]
+    fn unique_values_returns_sorted_distinct_values() {
+        let m = make_model();
+        assert_eq!(
+            m.unique_values("a", 10),
+            UniqueValues::Values(vec!["foo".to_string(), "hello".to_string()])
+        );
+    }
+
+    #[test]
+    fn unique_values_dedups() {
+        let cols = vec![ColumnDef::new("v", "V", 100.0)];
+        let rows = vec![
+            {
+                let mut r = RowRecord::new(0);
+                r.set("v", "x");
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("v", "x");
+                r
+            },
+            {
+                let mut r = RowRecord::new(2);
+                r.set("v", "y");
+                r
+            },
+        ];
+        let m = GridModel::new(cols, rows, 30.0, 40.0);
+        assert_eq!(
+            m.unique_values("v", 10),
+            UniqueValues::Values(vec!["x".to_string(), "y".to_string()])
+        );
+    }
+
+    #[test]
+    fn unique_values_too_many_when_cap_exceeded() {
+        let m = make_model();
+        assert_eq!(m.unique_values("a", 1), UniqueValues::TooMany { cap: 1 });
+    }
+
+    #[test]
+    fn unique_values_missing_column_yields_empty_string() {
+        // A missing cell resolves to the default (empty string), same as
+        // apply_filter's own `unwrap_or_default()` handling.
+        let m = make_model();
+        assert_eq!(
+            m.unique_values("does-not-exist", 10),
+            UniqueValues::Values(vec!["".to_string()])
+        );
     }
 
     // ── cell_status with patches ─────────────────────────

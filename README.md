@@ -28,7 +28,10 @@ rows up to very large datasets (row indices are `u64`).
 - **Clipboard** — copy, cut and paste (TSV format)
 - **Undo / Redo** — cell edits, paste, column resize, column move
 - **Sorting** — click column header to cycle None → Asc → Desc
-- **Filtering** — per-column text filter (case-insensitive contains)
+- **Filtering** — per-column condition filter (contains, equals, greater
+  than, ...) plus a value checklist, via a header filter icon that opens
+  a popup, AG-Grid style, plus an optional floating filter row under the
+  headers for a quick "contains" filter per column
 - **Search** — Ctrl+F full-grid search with match navigation
 - **Column operations** — resize (drag), auto-fit (double-click separator),
   drag & drop reorder, pinned (frozen) columns
@@ -144,7 +147,8 @@ All mutations go through `GridState::apply(GridCommand)`. The full command list:
 | `ResizeColumn` / `AutoFitColumn`          | Column width              |
 | `MoveColumn`                              | Drag & drop reorder       |
 | `ToggleSort`                              | Cycle sort direction      |
-| `SetColumnFilter` / `ClearAllFilters`     | Text filtering            |
+| `SetColumnFilter` / `SetColumnValueFilter` / `ClearAllFilters` | Condition + checklist filtering |
+| `SetShowFilterRow` / `SetFilterRowHeight`  | Floating filter row       |
 | `StartEdit` / `CommitEdit` / `CancelEdit` | Inline editing            |
 | `Undo` / `Redo`                           | History stack (max 100)   |
 | `Search` / `SearchNext` / `SearchPrev`    | Find in grid              |

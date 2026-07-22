@@ -166,6 +166,8 @@ impl GridState {
             | GridCommand::SetSort { .. }
             | GridCommand::ClearSort
             | GridCommand::SetColumnFilter { .. }
+            | GridCommand::SetColumnValueFilter { .. }
+            | GridCommand::ClearColumnValueFilter { .. }
             | GridCommand::ClearAllFilters => self.cmd_sort_filter(cmd),
 
             GridCommand::ResizeColumn { .. }
@@ -193,11 +195,13 @@ impl GridState {
 
             GridCommand::SetHoveredRow(_)
             | GridCommand::SetHeaderHeight(_)
+            | GridCommand::SetFilterRowHeight(_)
             | GridCommand::SetRowHeight(_)
             | GridCommand::SetRowNumberWidth(_)
             | GridCommand::SetShowHeader(_)
             | GridCommand::SetShowRowNumbers(_)
             | GridCommand::SetShowCheckboxColumn(_)
+            | GridCommand::SetShowFilterRow(_)
             | GridCommand::SetCheckboxColumnWidth(_)
             | GridCommand::SetEditable(_)
             | GridCommand::SetSelectable(_)
@@ -239,6 +243,17 @@ impl GridState {
         )
     }
 
+    /// Returns the column index when the pointer is over the floating
+    /// filter row (see `hit_test::hit_test_filter_row_cell`).
+    pub fn hit_test_filter_row_cell(&self, vx: f64, vy: f64) -> Option<usize> {
+        hit_test::hit_test_filter_row_cell(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+        )
+    }
+
     /// Hit-test the checkbox column (scrolls with the data). Returns the
     /// row index or `None`.
     pub fn hit_test_checkbox_row(&self, vx: f64, vy: f64) -> Option<u64> {
@@ -266,7 +281,7 @@ impl GridState {
     /// unfiltered) is checked, `Unchecked` when none are, otherwise
     /// `Indeterminate`.
     pub fn checkbox_header_state(&self) -> CheckboxTriState {
-        let total = if !self.model.filtered_indices.is_empty() {
+        let total = if self.model.is_filter_applied() {
             self.model.filtered_indices.len() as u64
         } else {
             self.model.data.row_count()
@@ -274,7 +289,7 @@ impl GridState {
         if total == 0 {
             return CheckboxTriState::Unchecked;
         }
-        let checked_count = if !self.model.filtered_indices.is_empty() {
+        let checked_count = if self.model.is_filter_applied() {
             self.model
                 .filtered_indices
                 .iter()
@@ -301,6 +316,7 @@ mod tests {
     use crate::{
         column::ColumnDef,
         commands::{CommandOutput, GridCommand},
+        filter::FilterCondition,
         format::CellFormat,
         model::GridModel,
         row::RowRecord,
@@ -528,7 +544,7 @@ mod tests {
         // Only rows containing "a3" in column "a"
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a3".into(),
+            condition: FilterCondition::contains("a3"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         // Logical row 0 maps to physical row 3
@@ -540,12 +556,12 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "".into(),
+            condition: FilterCondition::contains(""),
         });
         assert_eq!(s.model.display_row_count(), 10);
     }
@@ -555,7 +571,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a5".into(),
+            condition: FilterCondition::contains("a5"),
         });
         s.apply(GridCommand::ClearAllFilters);
         assert_eq!(s.model.display_row_count(), 10);
@@ -1462,7 +1478,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "A3".into(),
+            condition: FilterCondition::contains("A3"),
         });
         // Data has "a3" (lowercase) — should match
         assert_eq!(s.model.display_row_count(), 1);
@@ -1475,7 +1491,7 @@ mod tests {
         assert!(s.selection.has_selection());
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert!(!s.selection.has_selection());
     }
@@ -1495,7 +1511,7 @@ mod tests {
         s.apply(GridCommand::ScrollTo { x: 0.0, y: 500.0 });
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "v1".into(),
+            condition: FilterCondition::contains("v1"),
         });
         assert_eq!(s.viewport.scroll_y, 0.0);
     }
@@ -1506,7 +1522,7 @@ mod tests {
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a5".into(),
+            condition: FilterCondition::contains("a5"),
         });
         s.apply(GridCommand::ClearAllFilters);
         assert!(!s.selection.has_selection());
@@ -1688,7 +1704,7 @@ mod tests {
         });
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         assert_eq!(s.model.get_cell(0, "a"), Some("a1".into()));
@@ -1699,7 +1715,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a".into(),
+            condition: FilterCondition::contains("a"),
         });
         // All rows match "a"
         assert_eq!(s.model.display_row_count(), 10);
@@ -2316,7 +2332,7 @@ mod tests {
         // Apply filter first
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a".into(),
+            condition: FilterCondition::contains("a"),
         });
         assert_eq!(s.model.display_row_count(), 10);
         // Toggle sort → cmd_sort_filter should reapply filter
@@ -2331,7 +2347,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         s.apply(GridCommand::ToggleSort {
             col_key: "a".into(),

@@ -25,6 +25,8 @@ pub enum BuiltinAction {
     AutoSizeColumn,
     /// Auto-size all columns to their content.
     AutoSizeAllColumns,
+    /// Clear the clicked column's filter row condition, if any.
+    ClearColumnFilter,
 }
 
 /// A single item in the context menu.
@@ -154,6 +156,16 @@ impl ContextMenuItem {
     pub fn autosize_all_columns() -> Self {
         Self::Builtin {
             action: BuiltinAction::AutoSizeAllColumns,
+            label: None,
+            icon: None,
+            shortcut: None,
+        }
+    }
+
+    /// Create a Clear Filter item.
+    pub fn clear_filter() -> Self {
+        Self::Builtin {
+            action: BuiltinAction::ClearColumnFilter,
             label: None,
             icon: None,
             shortcut: None,

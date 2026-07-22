@@ -194,14 +194,14 @@ pub(super) fn emit_cell(
         }
     }
 
-    // Clamp cell-content clip rects to the sticky header/gutter
-    // boundary, mirroring the row-number gutter's own clamp in
+    // Clamp cell-content clip rects to the sticky header/filter-row/
+    // gutter boundary, mirroring the row-number gutter's own clamp in
     // builder.rs ("Clamp everything to below the sticky header").
     // Without this, an overscanned row (ry < hh) or column (cx < rnw)
     // paints its text/image past the header/gutter's opaque overlay,
     // which becomes visible whenever that overlay has any
     // transparency or transiently disagrees with these bounds.
-    let hh = model.effective_header_height();
+    let hh = model.data_top();
     let rnw = model.effective_row_number_width();
     let clip_x = cx.max(rnw);
     let clip_w = (cx + col.width - clip_x).max(0.0);

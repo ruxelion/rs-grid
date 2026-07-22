@@ -156,6 +156,10 @@ impl GridCanvas {
                 *gc.0.hovered_menu_col.borrow_mut() = None;
                 gc.render();
             }
+            if gc.0.hovered_filter_row_icon_col.borrow().is_some() {
+                *gc.0.hovered_filter_row_icon_col.borrow_mut() = None;
+                gc.render();
+            }
         });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
@@ -454,6 +458,38 @@ impl GridCanvas {
                 return;
             }
 
+            // ── floating filter row ───────────────────────
+            // Icon-first: the mini funnel icon opens the advanced
+            // condition/checklist popup (the header itself has no
+            // funnel icon of its own — this row is the only click
+            // path to it); clicking anywhere else in the cell opens
+            // a transient quick-filter `<input>` instead.
+            if let Some(col) = gc.hit_filter_row_icon(x, y) {
+                let (ax, ay) = gc.filter_row_icon_anchor(col);
+                let rect = gc.0.canvas.get_bounding_client_rect();
+                gc.show_column_filter_popup(
+                    col,
+                    (rect.left() + ax) as i32,
+                    (rect.top() + ay) as i32,
+                );
+                return;
+            }
+            if let Some(col) =
+                gc.0.state.borrow().hit_test_filter_row_cell(x, y)
+            {
+                // The quick-filter `<input>` is focused synchronously
+                // below, positioned exactly over this click point.
+                // Without this, the browser's native mousedown default
+                // action (focus the mousedown target, i.e. the canvas)
+                // runs right after this listener returns and steals
+                // focus straight back — firing the input's own blur
+                // handler and tearing it down before the user ever
+                // sees it.
+                evt.prevent_default();
+                gc.show_quick_filter_input(col);
+                return;
+            }
+
             // ── cell button hit-test ──────────────────────
             //
             // Check button zones from the last rendered frame
@@ -530,7 +566,7 @@ impl GridCanvas {
                             start_scroll_y,
                             s.viewport.width,
                             s.viewport.height,
-                            s.model.header_height,
+                            s.model.effective_header_height(),
                             s.model.total_height(),
                             track_w,
                         ) {
@@ -539,7 +575,7 @@ impl GridCanvas {
                                 dy,
                                 s.model.total_height(),
                                 s.viewport.height,
-                                s.model.header_height,
+                                s.model.effective_header_height(),
                             )
                         } else {
                             return;
@@ -564,7 +600,7 @@ impl GridCanvas {
                             s.viewport.scroll_y,
                             s.viewport.width,
                             s.viewport.height,
-                            s.model.header_height,
+                            s.model.effective_header_height(),
                             s.model.total_height(),
                             track_h,
                         )
@@ -726,6 +762,17 @@ impl GridCanvas {
                         *gc.0.hovered_menu_col.borrow_mut() = new_menu;
                         gc.render();
                     }
+                    // Track which column's filter row icon is hovered
+                    // — same hover-background treatment as the menu
+                    // icon above.
+                    let new_filter_icon = gc.hit_filter_row_icon(x, y);
+                    if *gc.0.hovered_filter_row_icon_col.borrow()
+                        != new_filter_icon
+                    {
+                        *gc.0.hovered_filter_row_icon_col.borrow_mut() =
+                            new_filter_icon;
+                        gc.render();
+                    }
                 }
             }
         });
@@ -784,8 +831,8 @@ impl GridCanvas {
                             to_idx: to,
                         });
                     } else {
-                        // No move — just redraw to clear
-                        // the drag preview.
+                        // No move — just redraw to clear the drag
+                        // preview.
                         gc.render();
                     }
                 }

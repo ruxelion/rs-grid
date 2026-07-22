@@ -1,11 +1,12 @@
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     rc::Rc,
 };
 
 use crate::{
     datasource::{CellStatus, DataSource},
+    lru_ring::LruRing,
     row::RowRecord,
 };
 
@@ -31,8 +32,8 @@ struct PageCacheInner {
     pending: HashSet<u64>,
     /// Maximum number of pages to keep in cache (LRU eviction).
     max_cached_pages: usize,
-    /// Access order for LRU eviction (front = oldest).
-    access_order: VecDeque<u64>,
+    /// Access order for LRU eviction, O(1) touch/evict.
+    access_order: LruRing<u64>,
 }
 
 impl PageCacheDataSource {
@@ -47,7 +48,7 @@ impl PageCacheDataSource {
                 pages: HashMap::new(),
                 pending: HashSet::new(),
                 max_cached_pages: 50,
-                access_order: VecDeque::new(),
+                access_order: LruRing::new(),
             })),
         }
     }
@@ -76,16 +77,12 @@ impl PageCacheDataSource {
     pub fn insert_page(&self, page_num: u64, rows: Vec<RowRecord>) {
         let mut inner = self.inner.borrow_mut();
         inner.pending.remove(&page_num);
-
-        // LRU: remove old entry from access order if present
-        inner.access_order.retain(|&p| p != page_num);
-        inner.access_order.push_back(page_num);
-
+        inner.access_order.touch(page_num);
         inner.pages.insert(page_num, rows);
 
         // Evict oldest pages if over limit
         while inner.pages.len() > inner.max_cached_pages {
-            if let Some(old) = inner.access_order.pop_front() {
+            if let Some(old) = inner.access_order.pop_lru() {
                 inner.pages.remove(&old);
             } else {
                 break;

@@ -62,6 +62,10 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-header-bg", fmt_color(t.header_bg)),
         ("--rs-grid-header-text", fmt_color(t.header_text)),
         ("--rs-grid-cell-text", fmt_color(t.cell_text)),
+        (
+            "--rs-grid-filter-row-input-border",
+            fmt_color(t.filter_row_input_border),
+        ),
         ("--rs-grid-grid-line", fmt_color(t.grid_line)),
         ("--rs-grid-grid-line-width", fmt_px(t.grid_line_width)),
         ("--rs-grid-header-border", fmt_color(t.header_border)),
@@ -105,6 +109,11 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ),
         // dimensions
         ("--rs-grid-header-height", fmt_px(t.header_height)),
+        ("--rs-grid-filter-row-height", fmt_px(t.filter_row_height)),
+        (
+            "--rs-grid-filter-row-input-margin-v",
+            fmt_px(t.filter_row_input_margin_v),
+        ),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
         // typography
         ("--rs-grid-font-size", fmt_px(t.font_size)),
@@ -195,6 +204,31 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         (
             "--rs-grid-header-menu-icon-dot-r",
             fmt_px(t.header_menu_icon_dot_r),
+        ),
+        // header filter icon
+        (
+            "--rs-grid-header-filter-icon",
+            fmt_color(t.header_filter_icon),
+        ),
+        (
+            "--rs-grid-header-filter-icon-active",
+            fmt_color(t.header_filter_icon_active),
+        ),
+        (
+            "--rs-grid-header-filter-icon-margin-r",
+            fmt_px(t.header_filter_icon_margin_r),
+        ),
+        (
+            "--rs-grid-header-filter-icon-btn-w",
+            fmt_px(t.header_filter_icon_btn_w),
+        ),
+        (
+            "--rs-grid-header-filter-icon-size",
+            fmt_px(t.header_filter_icon_size),
+        ),
+        (
+            "--rs-grid-header-filter-icon-badge-r",
+            fmt_px(t.header_filter_icon_badge_r),
         ),
         // pinned columns
         ("--rs-grid-pinned-bg", fmt_color(t.pinned_bg)),
@@ -325,6 +359,10 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.header_bg = color("--rs-grid-header-bg", t.header_bg);
     t.header_text = color("--rs-grid-header-text", t.header_text);
     t.cell_text = color("--rs-grid-cell-text", t.cell_text);
+    t.filter_row_input_border = color(
+        "--rs-grid-filter-row-input-border",
+        t.filter_row_input_border,
+    );
     t.grid_line = color("--rs-grid-grid-line", t.grid_line);
     t.grid_line_width = px("--rs-grid-grid-line-width", t.grid_line_width);
     t.header_border = color("--rs-grid-header-border", t.header_border);
@@ -359,6 +397,12 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         t.decoration_border_width,
     );
     t.header_height = px("--rs-grid-header-height", t.header_height);
+    t.filter_row_height =
+        px("--rs-grid-filter-row-height", t.filter_row_height);
+    t.filter_row_input_margin_v = px(
+        "--rs-grid-filter-row-input-margin-v",
+        t.filter_row_input_margin_v,
+    );
     t.row_height = px("--rs-grid-row-height", t.row_height);
     t.font_size = px("--rs-grid-font-size", t.font_size);
     t.header_font_size = px("--rs-grid-header-font-size", t.header_font_size);
@@ -426,6 +470,28 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         px("--rs-grid-header-menu-icon-btn-h", t.header_menu_icon_btn_h);
     t.header_menu_icon_dot_r =
         px("--rs-grid-header-menu-icon-dot-r", t.header_menu_icon_dot_r);
+    t.header_filter_icon =
+        color("--rs-grid-header-filter-icon", t.header_filter_icon);
+    t.header_filter_icon_active = color(
+        "--rs-grid-header-filter-icon-active",
+        t.header_filter_icon_active,
+    );
+    t.header_filter_icon_margin_r = px(
+        "--rs-grid-header-filter-icon-margin-r",
+        t.header_filter_icon_margin_r,
+    );
+    t.header_filter_icon_btn_w = px(
+        "--rs-grid-header-filter-icon-btn-w",
+        t.header_filter_icon_btn_w,
+    );
+    t.header_filter_icon_size = px(
+        "--rs-grid-header-filter-icon-size",
+        t.header_filter_icon_size,
+    );
+    t.header_filter_icon_badge_r = px(
+        "--rs-grid-header-filter-icon-badge-r",
+        t.header_filter_icon_badge_r,
+    );
     t.pinned_bg = color("--rs-grid-pinned-bg", t.pinned_bg);
     t.pinned_header_bg =
         color("--rs-grid-pinned-header-bg", t.pinned_header_bg);
@@ -608,6 +674,7 @@ mod tests {
             header_bg: c(2),
             header_text: c(3),
             cell_text: c(4),
+            filter_row_input_border: c(216),
             grid_line: c(5),
             grid_line_width: 79.0,
             header_border: c(6),
@@ -623,6 +690,8 @@ mod tests {
             row_hover_bg: c(16),
             checked_row_bg: c(200),
             header_height: 17.0,
+            filter_row_height: 305.0,
+            filter_row_input_margin_v: 306.0,
             row_height: 18.0,
             font_size: 19.0,
             header_font_size: 20.0,
@@ -664,6 +733,12 @@ mod tests {
             header_menu_icon_btn_w: 49.0,
             header_menu_icon_btn_h: 50.0,
             header_menu_icon_dot_r: 51.0,
+            header_filter_icon: c(212),
+            header_filter_icon_active: c(213),
+            header_filter_icon_margin_r: 301.0,
+            header_filter_icon_btn_w: 302.0,
+            header_filter_icon_size: 304.0,
+            header_filter_icon_badge_r: 305.0,
             pinned_bg: c(52),
             pinned_header_bg: c(53),
             pinned_separator_color: c(54),

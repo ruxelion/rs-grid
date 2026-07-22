@@ -51,8 +51,9 @@ impl GridState {
         // Scroll to make the cell visible vertically.
         let ry = self.model.row_top(coord.row);
         let cy = ry - self.viewport.scroll_y;
-        if cy < self.model.header_height {
-            self.viewport.scroll_y = ry - self.model.header_height;
+        let hh = self.model.data_top();
+        if cy < hh {
+            self.viewport.scroll_y = ry - hh;
         } else if cy + self.model.row_height > self.viewport.height {
             self.viewport.scroll_y =
                 ry + self.model.row_height - self.viewport.height;

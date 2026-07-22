@@ -18,6 +18,13 @@ pub struct Theme {
     pub header_text: Color,
     /// Default cell text color.
     pub cell_text: Color,
+    /// Border color of the filter row's bordered "input look" box —
+    /// matches the column filter popup's own value `<input>` border
+    /// look (`style_daisy_control` in rs-grid-web: the header/cell text
+    /// color at ~20% opacity via `color-mix(..., transparent)`), so the
+    /// canvas-drawn box reads as the same design as the DOM-drawn popup
+    /// input rather than a plain grid-line-bordered box.
+    pub filter_row_input_border: Color,
     /// Grid line (cell border) color.
     pub grid_line: Color,
     /// Width of the horizontal grid line between data rows, and of the
@@ -103,6 +110,15 @@ pub struct Theme {
     // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
     pub header_height: f64,
+    /// Height of the floating filter row in logical pixels, when shown
+    /// (`GridModel::show_filter_row`). Pushed into the model at
+    /// mount/`set_theme` the same way `header_height` is.
+    pub filter_row_height: f64,
+    /// Vertical margin (top and bottom, symmetric) between the filter
+    /// row's own edges and its bordered "input look" box, in logical
+    /// pixels. The horizontal inset is a fixed `4.0` (not themed —
+    /// only the vertical margin was asked to be configurable).
+    pub filter_row_input_margin_v: f64,
     /// Height of each data row in logical pixels.
     pub row_height: f64,
 
@@ -229,6 +245,35 @@ pub struct Theme {
     /// Radius of each dot in the three-dot icon, in logical pixels.
     pub header_menu_icon_dot_r: f64,
 
+    // ── filter row funnel icon
+    // ─────────────────────────────────────
+    // Named `header_*` for historical reasons — this icon used to also
+    // be drawn in the column header itself; it now lives only in the
+    // floating filter row (see `GridModel.show_filter_row`), which
+    // reuses these same tokens. Kept unrenamed since a rename would be
+    // an unrelated, purely-cosmetic breaking change to the CSS
+    // variable surface.
+    /// Color of the funnel filter icon when the column has no
+    /// active filter.
+    pub header_filter_icon: Color,
+    /// Color of the funnel filter icon when the column has an
+    /// active filter — doubles as the "filter active" indicator.
+    pub header_filter_icon_active: Color,
+    /// Gap between the filter icon button and the column's right
+    /// edge, in logical pixels.
+    pub header_filter_icon_margin_r: f64,
+    /// Width of the filter icon button in logical pixels.
+    pub header_filter_icon_btn_w: f64,
+    /// Width of the funnel glyph inside the button, in logical
+    /// pixels.
+    pub header_filter_icon_size: f64,
+    /// Radius of the small notification-style badge dot overlapping
+    /// the funnel glyph's top-right corner when the column has an
+    /// active filter, in logical pixels. Drawn in
+    /// `header_filter_icon_active` — on top of, not instead of, the
+    /// glyph's own active-color swap (both signal "active" at once).
+    pub header_filter_icon_badge_r: f64,
+
     // ── pinned columns
     // ────────────────────────────────────────────────────────
     /// Background of the pinned-column data band.
@@ -320,6 +365,7 @@ impl Theme {
             header_bg: Color::rgb(248, 249, 251),
             header_text: Color::rgb(24, 29, 31),
             cell_text: Color::rgb(24, 29, 31),
+            filter_row_input_border: Color::rgba(24, 29, 31, 51),
             grid_line: Color::rgb(226, 232, 240),
             grid_line_width: 1.0,
             column_separator_color: Color::rgb(226, 232, 240),
@@ -353,6 +399,8 @@ impl Theme {
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -405,6 +453,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(24, 29, 31, 180),
+            header_filter_icon_active: Color::rgba(33, 150, 243, 217),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(255, 255, 255),
             pinned_header_bg: Color::rgb(248, 249, 251),
@@ -458,6 +513,7 @@ impl Theme {
             header_bg: Color::rgb(44, 44, 46),
             header_text: Color::rgb(176, 176, 176),
             cell_text: Color::rgb(208, 208, 208),
+            filter_row_input_border: Color::rgba(208, 208, 208, 51),
             grid_line: Color::rgb(51, 51, 53),
             grid_line_width: 1.0,
             column_separator_color: Color::rgb(51, 51, 53),
@@ -491,6 +547,8 @@ impl Theme {
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -544,6 +602,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(176, 176, 176, 178),
+            header_filter_icon_active: Color::rgba(60, 130, 245, 230),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(28, 28, 30),
             pinned_header_bg: Color::rgb(44, 44, 46),
@@ -596,6 +661,7 @@ impl Theme {
             header_bg: Color::rgb(45, 51, 59),
             header_text: Color::rgb(173, 186, 199),
             cell_text: Color::rgb(173, 186, 199),
+            filter_row_input_border: Color::rgba(173, 186, 199, 51),
             grid_line: Color::rgb(55, 62, 71),
             grid_line_width: 1.0,
             column_separator_color: Color::rgb(55, 62, 71),
@@ -629,6 +695,8 @@ impl Theme {
             decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -683,6 +751,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(173, 186, 199, 178),
+            header_filter_icon_active: Color::rgba(56, 139, 253, 217),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(34, 39, 46),
             pinned_header_bg: Color::rgb(45, 51, 59),
@@ -759,6 +834,12 @@ mod tests {
     fn light_header_height_positive() {
         let t = Theme::light();
         assert!(t.header_height > 0.0);
+    }
+
+    #[test]
+    fn light_filter_row_height_positive() {
+        let t = Theme::light();
+        assert!(t.filter_row_height > 0.0);
     }
 
     #[test]

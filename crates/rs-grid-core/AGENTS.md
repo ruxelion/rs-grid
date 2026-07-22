@@ -18,6 +18,7 @@ It must remain testable with standard native `cargo test`.
 | `row` | Row metadata |
 | `scrollbar` | Scrollbar state (geometry, dragging) |
 | `validation` | `ValidationRule` (declarative per-column rules) and `InvalidEditMode` (revert vs. block policy) |
+| `filter` | `FilterOp`/`FilterCondition` — per-column filter operators and conditions |
 
 ## Critical invariants
 
@@ -242,6 +243,122 @@ digits, not a handful, so a fixed width doesn't translate here).
   false` — an explicit manual width is a deliberate override that a
   later `SetTotalRowCount` must not clobber. There is no command to
   re-enable auto mode once disabled (not needed yet — YAGNI).
+
+## Per-column filtering (`FilterOp`, `FilterCondition`)
+
+`model.filters: HashMap<String, FilterCondition>` maps a column key to an
+active filter condition — an operator (`FilterOp`) plus a comparison
+`value: String`. `FilterOp` covers text operators (`Contains`,
+`NotContains`, `StartsWith`, `EndsWith`, case-insensitive),
+`Blank`/`NotBlank` (ignore `value`, check `cell.trim().is_empty()`), and
+four always-numeric operators (`GreaterThan`, `GreaterThanOrEqual`,
+`LessThan`, `LessThanOrEqual`) that parse both sides as `f64` — a
+non-numeric cell never matches, it never panics (same precedent as
+`CellFormat::ProgressBar`'s value parsing). `Equals`/`NotEquals` branch on
+`CellFormat::is_numeric_like()` (true for `Number`/`Percent`/`Currency`/
+`ProgressBar`): numeric compare for numeric-like columns, case-insensitive
+string equality otherwise.
+
+`GridCommand::SetColumnFilter { col_key, condition }` sets/clears a
+column's filter (`condition.is_empty()` — an operator that needs a value
+with none — clears it); `GridCommand::ClearAllFilters` clears every
+column (both this and `value_filters` below). `GridModel::apply_filter()`
+rebuilds `filtered_indices` by AND-combining every active condition
+across columns — it resolves each filtered column's `is_numeric_like()`
+**once per call, not once per row**, hoisted out of the per-row loop (an
+easy way to accidentally regress from O(n_rows·n_filters) to
+O(n_rows·n_filters·n_columns)).
+
+### Value-set filter (`value_filters`, `unique_values`)
+
+`model.value_filters: HashMap<String, HashSet<String>>` is a second,
+independent filter dimension — AG-Grid's "Set Filter" checklist. A
+present entry restricts that column to exactly those cell values; an
+absent entry means no restriction. An empty set is a valid, deliberately
+restrictive state ("matches no rows"), distinct from an absent entry —
+this is why `apply_filter()` can't use `filtered_indices.is_empty()` as
+a "no filter" sentinel (see `is_filter_applied()` below).
+`GridCommand::SetColumnValueFilter { col_key, values }` /
+`ClearColumnValueFilter { col_key }` set/clear one column's entry;
+`apply_filter()` AND-combines `value_filters` with `filters` and across
+columns, in the same per-row pass (not a second O(n) scan).
+
+`GridModel::unique_values(col_key, cap) -> UniqueValues` (`filter.rs`)
+computes the distinct values for a column, scanning up to
+`MAX_CLIENT_SORT_ROWS` rows — backs the checklist's own value list.
+`UniqueValues::Values(Vec<String>)` (sorted, via `BTreeSet`) or
+`UniqueValues::TooMany { cap }` once the running distinct count exceeds
+`cap`, returned immediately rather than continuing the scan — bounds
+memory to `cap + 1` entries regardless of row count, so a fully-unique
+column (e.g. an email column) returns fast instead of scanning to
+completion.
+
+### Floating filter row (`show_filter_row`, `filter_row_height`)
+
+`GridModel.show_filter_row: bool` (opt-in, default `false`, same
+precedent as `show_checkbox_column`) and `filter_row_height: f64`
+(default `36.0`) add a second sticky row directly under the column
+headers — AG-Grid's floating filter row. `effective_filter_row_height()`
+mirrors `effective_header_height()`: `filter_row_height` when shown, `0.0`
+otherwise. `GridModel::data_top() -> f64` is
+`effective_header_height() + effective_filter_row_height()` — the single
+accessor for "where does the data/gutter/scrollbar band start,"
+factored out because inserting this row means auditing every existing
+`effective_header_height()` call site individually:
+
+- **Extended to `data_top()`** (they measure "where does data start,"
+  which the new row pushes down): `row_top()`, `total_height()`,
+  `hit_test()`, `hit_test_row_header()`, `hit_test_checkbox_row()`,
+  `logical_row_at_vy()` (`hit_test.rs`), and `cmd_search.rs`'s
+  scroll-into-view positioning.
+- **Left unchanged** (they measure the header's own band, which does
+  not grow): `hit_test_col_header()`, `hit_test_checkbox_header()`.
+
+`GridState::hit_test_filter_row_cell(vx, vy) -> Option<usize>`
+(`hit_test.rs`) resolves a column index when the pointer is over the
+filter row's own vertical band `[effective_header_height(),
+effective_header_height() + effective_filter_row_height())` — same
+column resolution (pinned/scroll/checkbox-column math) as
+`hit_test_col_header`, `None` immediately when the row is hidden
+(`effective_filter_row_height() <= 0.0`).
+
+Two `Meta` (non-undoable) commands drive it, mirroring
+`SetHeaderHeight`/`SetShowCheckboxColumn` exactly:
+`GridCommand::SetFilterRowHeight(f64)` (ignored if `<= 0.0`) and
+`GridCommand::SetShowFilterRow(bool)`.
+
+This row is **additive to, not a replacement for**, the header funnel
+icon + popup below — AND-combined, confirmed via `AskUserQuestion` when
+this was designed. The row itself dispatches the same
+`GridCommand::SetColumnFilter` with `FilterOp::Contains` (a fast
+"contains" path); the popup remains for advanced (operator/checklist)
+filtering. `rs-grid-web` renders the row (canvas-drawn when closed) and
+opens a transient DOM `<input>` overlay on click — see
+`rs-grid-web/AGENTS.md`'s "Floating filter row" section.
+
+### `is_filter_applied()` — the empty-`Vec` ambiguity
+
+`filtered_indices` being empty is ambiguous on its own: it means either
+"no filter is active" (show every row) or "a filter is active and
+genuinely matches zero rows" (show none) — both produce the identical
+empty `Vec`. `GridModel::is_filter_applied()` disambiguates: `true` only
+on the `apply_filter()` branch that actually performs a full row scan
+and assigns a definitive (possibly empty) result; `false` when no filter
+is active, filtering is delegated to the server, or the row count
+exceeds the client-side cap and filtering was skipped as a safety
+measure. **Every reader of `filtered_indices` must check this accessor
+first** — `logical_to_physical()`, `display_row_count()`,
+`checkbox_header_state()` (`state.rs`), and `ToggleAllFilteredChecked`'s
+scope computation (`state/cmd_row_check.rs`) all do. A direct
+`filtered_indices.clear()` that bypasses `apply_filter()` (as
+`ClearAllFilters`'s handler used to do) leaves the private
+`filter_computed` flag stale — go through `apply_filter()` instead of
+duplicating its clearing logic.
+
+`rs-grid-web` builds a header filter icon + popup (canvas-drawn icon,
+DOM popup for the operator/value form plus the value checklist) on top
+of this — see `rs-grid-web/AGENTS.md`'s "Header filter icon + popup"
+section.
 
 ## Useful commands
 

@@ -4,7 +4,8 @@ use criterion::{
     BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use rs_grid_core::{
-    column::ColumnDef, model::GridModel, row::RowRecord, sort::SortDir,
+    column::ColumnDef, filter::FilterCondition, model::GridModel,
+    row::RowRecord, sort::SortDir,
 };
 
 fn make_numeric_model(n: usize) -> GridModel {
@@ -160,7 +161,10 @@ fn bench_filter(c: &mut Criterion) {
                     || {
                         let mut m = make_filter_model(n);
                         // "item_5" matches item_5, item_50..59, item_500..599…
-                        m.filters.insert("v".into(), "item_5".into());
+                        m.filters.insert(
+                            "v".into(),
+                            FilterCondition::contains("item_5"),
+                        );
                         m
                     },
                     |mut m| {

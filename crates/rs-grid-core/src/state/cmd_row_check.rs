@@ -58,8 +58,7 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::ToggleAllFilteredChecked => {
-                let scope: Vec<u64> = if !self.model.filtered_indices.is_empty()
-                {
+                let scope: Vec<u64> = if self.model.is_filter_applied() {
                     self.model.filtered_indices.clone()
                 } else {
                     (0..self.model.data.row_count()).collect()
@@ -88,9 +87,9 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef, commands::GridCommand, model::GridModel,
-        row::RowRecord, row_check::CheckboxTriState, sort::SortDir,
-        state::GridState,
+        column::ColumnDef, commands::GridCommand, filter::FilterCondition,
+        model::GridModel, row::RowRecord, row_check::CheckboxTriState,
+        sort::SortDir, state::GridState,
     };
 
     fn make_state() -> GridState {
@@ -215,7 +214,7 @@ mod tests {
         // must not survive to be reinterpreted against it.
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "1".into(),
+            condition: FilterCondition::contains("1"),
         });
         assert_eq!(s.checked_row_anchor, None);
         assert_eq!(s.checked_row_last_extend, None);
@@ -252,7 +251,7 @@ mod tests {
         // physical row 3.
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "1".into(),
+            condition: FilterCondition::contains("1"),
         });
         assert_eq!(s.model.filtered_indices, vec![3]);
 

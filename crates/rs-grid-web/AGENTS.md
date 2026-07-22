@@ -302,6 +302,350 @@ is tracked by row identity so it survives sort/filter. Pair with
 `Indeterminate`) to drive a bulk-action toolbar. Toggle the column itself
 at runtime with `set_show_checkbox_column(bool)`.
 
+## Column filter popup (`filter_popup.rs`)
+
+The column header itself carries no filter-specific chrome — just the
+column name and the "⋮" menu icon. The **only** click path to the
+advanced condition/checklist popup this section documents is the
+floating filter row's own mini funnel icon (opt-in, `GridModel.
+show_filter_row`) — see "Floating filter row" below for its hit-test,
+click wiring, and hover state. This section covers the popup's own
+content and behavior, which the row's icon opens unchanged.
+
+Its trigger's fill color doubles as the active-filter indicator: themed
+`header_filter_icon_active` when `model.filters` **or**
+`model.value_filters` has an entry for that column, `header_filter_icon`
+otherwise (either filter mechanism alone activates it) — the theme
+field names keep their original `header_*` prefix even though the
+header no longer draws this icon itself, since renaming them would be
+an unrelated, purely-cosmetic breaking change to the CSS variable
+surface.
+
+- **Popup reuses the context menu's DOM shell** rather than building a
+  parallel popup system: `filter_popup.rs`'s
+  `show_column_filter_popup(col_idx, x, y)` calls `context_menu.rs`'s
+  `create_menu_shell`/`read_ctx_colors` (bumped to `pub(super)` for
+  this cross-file reuse — the same visibility level `remove_ctx_menu`
+  already uses so `keyboard.rs` can call it) — same backdrop, same
+  position clamping, same fixed `rs-grid-ctx-backdrop`/`rs-grid-ctx-menu`
+  element ids. This means outside-click-to-close works with zero new
+  code, and only one popup (context menu or filter popup) can ever be
+  open at once since they share ids. `create_menu_shell` takes an
+  explicit `bg: &str` for the panel's own background rather than
+  deriving it from `colors.bg` (`--rs-grid-ctx-bg`) — all three callers
+  (this popup, `show_col_header_menu`, `show_context_menu`) pass
+  `theme.header_bg.to_css()`, so every popup reads as an extension of
+  the header it's anchored under instead of a separately-themed surface.
+  The popup's form: a collapsed-by-default "Text Filter" disclosure row
+  as its first element — no column-name heading above it (removed; the
+  column is already identified by whichever filter-row cell/icon was
+  clicked to open the popup); see the next bullet for the flyout it
+  opens (the operator combobox and value `<input>` live there, not
+  inline), the value checklist below (see further down), and
+  Apply/Clear buttons. Apply dispatches `GridCommand::SetColumnFilter`
+  (condition) plus, if the checklist rendered,
+  `SetColumnValueFilter`/`ClearColumnValueFilter` (checklist); Clear
+  always dispatches both a cleared condition and
+  `ClearColumnValueFilter`, regardless of checklist state. Both read
+  current state fresh each time the popup opens, no persistent DOM to
+  keep in sync (unlike the old row, there's nothing to call
+  `sync_filter_row_cell`-equivalent for). Apply/Clear are built by
+  `make_daisy_button` — pixel-accurate daisyUI `.btn` (Apply is
+  `.btn-primary`, filled with `theme.checkbox_checked_bg`; Clear is the
+  neutral default `.btn`, filled with `colors.hover_bg` standing in for
+  daisyUI's `base-200`). `:hover`/`:active` are wired via mouse listeners
+  (`apply_btn_bg`/`btn_shadow`) since a `<div>` has no styling for those
+  pseudo-classes for free — see `style_daisy_control`'s doc comment for
+  why this crate replicates daisyUI's CSS values directly instead of
+  depending on its stylesheet. The focus ring is **not** JS-driven,
+  though: it's a real `:focus-visible` CSS rule
+  (`daisy_btn_focus_visible_style`, one shared `<style>` tag for both
+  buttons, each reading its own color from a `--btn-ring-color` custom
+  property) — daisyUI's `.btn` deliberately scopes its ring to
+  `:focus-visible` (keyboard/programmatic focus only, never a plain
+  mouse click), unlike `.input`/`.select`, which ring on any `:focus`
+  (`wire_daisy_focus_ring`). An earlier version used a `focus`/`blur` JS
+  listener pair here too, which showed the ring on every mouse click —
+  visibly wrong next to a real daisyUI button, and the reason this needs
+  actual CSS instead of the JS-listener idiom used everywhere else in
+  this file.
+- **"Text Filter" row + condition-editor flyout** — AG-Grid-style
+  disclosure: the operator combobox and value `<input>` (see next
+  bullet) are built exactly as before, but appended into `tf_panel`, a
+  `position: fixed` panel that starts `display: none`, instead of
+  directly into the popup. `tf_row` (`role="button"`, a chevron icon
+  via a new `ICON_CHEVRON_RIGHT`) toggles it. State is two independent
+  `Rc<Cell<bool>>`s — never conflate them: `is_open` governs only the
+  operator dropdown nested inside the flyout (unchanged from before
+  this row existed); `submenu_open` governs the flyout itself, one
+  level up. Closing the flyout force-closes the nested dropdown too
+  (so it's never left open on the next reopen); the reverse doesn't
+  happen. Position is computed in `tf_row`'s click handler, not at
+  popup-construction time — `tf_row.get_bounding_client_rect()` needs
+  the row already laid out, which only happens after
+  `create_menu_shell` has placed and clamped the popup itself. Anchors
+  to the row's right edge with a 4px gap, top-aligned; flips to the
+  row's *left* edge instead if that would overflow the viewport's
+  right edge (`window.inner_width()`, the same idiom `edit.rs` uses
+  for its own inline-editor viewport clamp), then clamps both axes into
+  the viewport — a **different** clamp model than `create_menu_shell`'s
+  own (canvas-bounds, for positioning the whole popup at open time):
+  the flyout is a sibling flyout of an already-placed, arbitrarily-
+  positioned popup, so viewport bounds are the right frame of reference
+  here, not the canvas's. An explicit `z-index: 10000` (one above the
+  popup's own `9999`) is required since a `position: fixed` descendant
+  doesn't reliably inherit its parent's stacking context. Outside-click
+  closes the flyout via a `[data-textfilter-wrap]`-scoped `mousedown`
+  listener on the popup, symmetric with (and independent of) the
+  existing `[data-op-wrap]`-scoped one that closes just the nested
+  dropdown — both coexist on the same event without conflict since they
+  inspect disjoint DOM scopes.
+- **Operator combobox is custom-built, not a native `<select>`** — a
+  real `<select>`'s open dropdown list is OS-drawn with no reliable
+  cross-browser CSS hook (Chrome's Customizable Select API,
+  `appearance: base-select` + `::picker(select)`, was tried and
+  discarded: computed styles resolved correctly but the popup didn't
+  consistently paint them). Built instead as a trigger `div`
+  (`role="combobox"`, styled via `style_daisy_select`) plus an
+  absolutely-positioned option list (`role="listbox"`/`role="option"`
+  rows) — mirrors `show_select_editor`'s dropdown in `edit.rs`, reusing
+  its `dd_idx_from_event`/`dd_set_highlight`/`dd_scroll_into_view`
+  helpers (bumped to `pub(super)` for this cross-file reuse) so hover
+  highlight, click-to-select, and keyboard `ArrowUp`/`ArrowDown`
+  navigation all share one implementation with the cell editor's own
+  Select dropdown. Selected `FilterOp` is tracked in an `Rc<Cell<FilterOp>>`
+  rather than read from a `<select>`'s `.value()`. `Enter`/`Space` open
+  the list or commit the highlighted row; `Escape` closes the dropdown
+  if open, otherwise falls through to closing the whole popup (checked
+  first, since a native `<select>`'s own popup would have consumed
+  `Escape` itself). e2e tests target it via `getByRole('combobox')`/
+  `getByRole('option', { name })`, not `.selectOption()`. The trigger
+  also sets its own `display: flex; align-items: center` on top of
+  `style_daisy_select` — a `<div>` doesn't auto-center text vertically
+  in its box the way an `<input>`/`<select>` does, so without this the
+  label sat flush against the top of the 40px box instead of centered
+  like every other control here.
+- **Escape-to-close needs its own listener, not the document-level
+  gate** — a genuine bug caught during manual (not Playwright) testing:
+  something inside the popup always calls `.focus()` on open, which
+  moves DOM focus off the canvas. `attach_keydown`'s document-level
+  Escape handler (`canvas/keyboard.rs`) is gated on `gc.has_focus()`,
+  which checks `document.activeElement === canvas` specifically — so
+  with focus elsewhere, that gate is `false` and Escape silently no-ops
+  through the document-level path, which (when it *does* fire) also
+  dispatches `GridCommand::ClearSelection` — not just closing the popup.
+  Fixed by wiring local `keydown` listeners directly on the value
+  `<input>`, the operator `<select>`, and `tf_row` (covers the case
+  right after switching to `Blank`/`NotBlank`, which hides the input
+  and leaves the select focused, *and* the default collapsed state,
+  where neither exists in the DOM's focus path yet), each calling
+  `remove_ctx_menu()` on `"Escape"` — same pattern the inline edit
+  `<input>` and the search bar already use for the identical reason.
+  `tf_row.focus()` runs unconditionally at the end of
+  `show_column_filter_popup` (so something always holds focus by
+  default, even before the flyout is ever opened); `value_input.focus()`
+  moved from there into the flyout's own open sequence, firing only once
+  it's actually visible — focusing a `display: none` element is a
+  no-op, so leaving the old unconditional call in place after the
+  flyout became collapsed-by-default would have silently left focus on
+  the canvas, reintroducing this exact bug for the "never opened Text
+  Filter" case. Playwright's own `page.keyboard.press('Escape')` did
+  not reproduce the original bug locally (window/CDP focus semantics
+  differ from a real interactive browser session) — this was only
+  caught by testing in an actual Chrome window, not by the automated
+  suite passing.
+- **Value checklist (AG-Grid-style "Set Filter")** — AND-combined with
+  the condition form above, not a replacement for it (confirmed via
+  `AskUserQuestion` when this was added). Built from
+  `GridModel::unique_values(col_key, MAX_VALUE_FILTER_OPTIONS)`
+  (`rs-grid-core`) — `MAX_VALUE_FILTER_OPTIONS` is `usize::MAX` (no
+  practical cap, per explicit request; was `200`), so `UniqueValues::
+  TooMany` is effectively unreachable now — `unique_values` itself is
+  still bounded by `GridModel::MAX_CLIENT_SORT_ROWS` (1,000,000 rows
+  scanned), so distinct-value counts stay finite, but a large,
+  near-unique-per-row column will render one checkbox row per distinct
+  value with no ceiling. Lower `MAX_VALUE_FILTER_OPTIONS` back down if
+  that's a problem for a given dataset — the fallback path below is
+  still fully wired, just dormant:
+  - `UniqueValues::TooMany` → a message instead of a list; Apply leaves
+    that column's `value_filters` entry untouched (the UI can't safely
+    represent editing a restriction it can't display), but Clear still
+    unconditionally clears it — "Clear Filter" must mean no filtering
+    on the column, not "no filtering except what I couldn't show you."
+  - `UniqueValues::Values` → a search `<input>`, a "(Select All)"
+    checkbox, and one checkbox per value in a scrollable `<div>`.
+    Initial checked state: `model.value_filters.get(col_key)` present →
+    only its members checked; absent → every value checked (no
+    restriction yet).
+  - Search hides non-matching rows via `display: none` — it never
+    unchecks a hidden checkbox, so re-clearing the search box restores
+    whatever was checked before. The search `<input>` has a Feather
+    magnifying-glass icon (`ICON_SEARCH`) absolutely positioned inside
+    its own left padding (a wrapper `<div>` + `search.style()
+    .set_property("padding-left", "32px")` on top of
+    `style_daisy_control`'s own `0 12px`) — same icon style as
+    `context_menu.rs`'s built-in action icons. The scrollable value list
+    itself has **no border** — just `overflow-y: auto` + padding — so it
+    reads as part of the popup, not a nested panel.
+  - "(Select All)" is a real tri-state
+    (`HtmlInputElement::set_indeterminate`), recomputed from the
+    currently-*visible* rows after every search or per-value checkbox
+    change (`update_select_all_state`) — acts on the visible subset
+    when toggled, matching AG Grid rather than a global check-all.
+  - On Apply, if every value ends up checked, the popup dispatches
+    `ClearColumnValueFilter` instead of storing a no-op full set — keeps
+    the filter row's own icon active/inactive color (and badge, below)
+    meaningful after a user
+    round-trips through "uncheck some → recheck all" via Select All.
+  - Every checkbox (`select_all` and each value row) reuses the
+    canvas-drawn row-selection checkbox column's own theme tokens
+    (`Theme::checkbox_size`/`checkbox_checked_bg`, read from
+    `self.0.builder.borrow().theme`) via the native CSS `accent-color`
+    property (`style_checkbox`) — same size and checked-state color as
+    the checkbox column, not a second, differently-styled checkbox
+    widget.
+  - The operator `<select>`, value `<input>`, and search `<input>` are
+    styled pixel-for-pixel like daisyUI's `.input`/`.select` (md size:
+    `style_daisy_control`/`style_daisy_select`/`wire_daisy_focus_ring`)
+    — this crate has no Tailwind/daisyUI dependency, so the values
+    (40px height, 12px horizontal padding, 4px corner radius, a 20%-
+    opacity `color-mix` border, the `<select>`'s exact two-gradient
+    chevron `background-image`, the `2px`-outline `focus`/`blur` ring)
+    are copied directly from daisyUI's own component CSS source rather
+    than assumed to be available via a `class` attribute on the host
+    page. If daisyUI's upstream `.input`/`.select` CSS changes, re-pull
+    the values from `packages/daisyui/src/components/{input,select}.css`
+    in the `saadeghi/daisyui` repo rather than guessing.
+- **Closures use `Closure::forget()`**, same policy as
+  `context_menu.rs` (its module comment explains why: removing the
+  shared shell root reclaims every attached listener via JS GC).
+- Right-click a column header (or its "⋮" menu icon) → **Clear
+  Filter** still appears in the existing context-menu extension point
+  (`BuiltinAction::ClearColumnFilter`, `context_menu.rs`/
+  `context_menu_config.rs`) only when that column has an active
+  condition **or** value filter — same gating pattern as `ClearSort`'s
+  `col_sorted` check, extended with `||
+  state.model.value_filters.contains_key(col_key)`. Its handler
+  dispatches both a cleared condition and `ClearColumnValueFilter`.
+  This stays as a right-click/⋮-menu shortcut alongside the popup's own
+  Clear button, matching AG Grid (which also exposes filter-clearing
+  from both places).
+- The popup itself needs no reserved header-band space and doesn't
+  touch `GridModel.show_filter_row`/`filter_row_height` at all — those
+  back the separate floating filter row below, which is the popup's
+  only trigger.
+
+## Floating filter row
+
+A second sticky row directly under the column headers — AG-Grid's
+floating filter row — opt-in via `GridModel.show_filter_row` (default
+`false`) and `GridCanvas::set_show_filter_row(bool)`. The row is a fast
+"contains" path; its own mini funnel icon is the **only** click path to
+the advanced condition/checklist popup documented above — the header
+itself has no funnel icon (removed; confirmed via `AskUserQuestion`
+when the header/row split was decided — the header stays AG-Grid-plain,
+name + "⋮" menu only).
+
+- **Rendering** (closed state) is entirely canvas-drawn —
+  `rs-grid-scene/builder.rs` draws a bordered "input-look" cell per
+  column, the current filter value (nothing at all when empty — no
+  placeholder text, same as the open-state overlay below), and a mini
+  funnel icon reusing the header's own colors. See
+  `rs-grid-scene/AGENTS.md`'s "Floating filter row" section.
+- **Interaction** (open state) is a transient DOM `<input>` overlay,
+  matching this crate's consistent architecture: canvas primary, DOM
+  only for the ephemeral moment of interaction (every other overlay —
+  inline cell editor, context menu, filter popup, search box — works
+  the same way). Unlike real AG Grid's always-editable native input,
+  a single click is needed to open it. Its geometry (`quick_filter.rs`)
+  mirrors the closed box's own geometry exactly — same horizontal
+  inset (`Theme::cell_padding` — the same distance a data cell's own
+  text sits from the column edge, not an unrelated constant, so the
+  box and the overlay both line up with the data cells' content),
+  `filter_row_input_margin_v`, and icon-zone narrowing as `builder.rs`'s
+  rendering block — rather than the whole cell. Using the whole cell
+  was a real bug: the overlay would visibly jump/resize the instant it
+  opened (covering the margins and the funnel icon's own reserved zone)
+  instead of sitting flush over the box that was just clicked.
+- **`style_daisy_control` must run *before* the geometry overrides, not
+  after** — a second real bug, same file: `style_daisy_control` sets
+  its own fixed `height: 40px` (correct for the popup's inputs, which
+  are always 40px), and calling it *after* setting this overlay's own
+  computed `width`/`height` silently clobbered them back to 40px —
+  invisible as long as the filter row's box height happened to equal
+  40px, and only surfaced once `filter_row_height`/
+  `filter_row_input_margin_v` were tuned to a different box height.
+  Caught by instrumenting `web_sys::console::log_1` at both the
+  `mount()` dispatch site and inside `show_quick_filter_input` to
+  compare the value actually flowing through against the DOM input's
+  own `getBoundingClientRect()` — the Rust-side math was right the
+  whole time; only the *order* of DOM calls was wrong. Fixed by calling
+  `style_daisy_control`/`wire_daisy_focus_ring` first, then applying
+  `position`/`left`/`top`/`width`/`height`/`z-index`/`box-sizing` after,
+  so the computed geometry always wins.
+- **Hit-testing**: `hit_filter_row_icon(vx, vy)` /
+  `filter_row_icon_anchor(col_idx)` (`canvas/hittest.rs`) mirror the
+  header's own menu-icon hit-test structure (`hit_header_menu_icon`/
+  `menu_icon_anchor`) — narrow a whole-cell hit-test result to a small
+  button rect — but checked against the filter row's own vertical band
+  (`[effective_header_height(), effective_header_height() +
+  effective_filter_row_height())`) instead of the header's, via
+  `GridState::hit_test_filter_row_cell` (rs-grid-core) for column-cell
+  resolution. **Hover-glow tracking mirrors the header's own menu icon
+  exactly**: `hovered_filter_row_icon_col: RefCell<Option<usize>>`
+  (`canvas/mod.rs`) is a second, independent copy of the
+  `hovered_menu_col` pattern — updated in the same `attach_mousemove`
+  branch right after the menu-icon check, reset on `mouseleave`, and
+  passed as `SceneBuilder::build`'s 5th parameter. `builder.rs` draws
+  the same hover-background `Rect` the menu icon uses, reusing its
+  theme tokens as-is (`header_menu_icon_hover_bg`/`_radius`) rather than
+  adding filter-icon-specific ones — the intent is for this button to
+  read as the *same kind* of icon button, not a differently-styled one.
+- **Click wiring** (`canvas/events.rs`, right after the column-header
+  cascade): icon-first — the mini funnel icon opens the popup
+  (`show_column_filter_popup`, unchanged); clicking anywhere else in
+  the cell opens the quick-filter `<input>`
+  (`show_quick_filter_input`, `canvas/quick_filter.rs`).
+- **`show_quick_filter_input` calls `evt.prevent_default()` on the
+  triggering mousedown, and this is load-bearing, not defensive
+  boilerplate.** The overlay is positioned exactly over the click point
+  (it covers the whole filter-row cell) and is focused synchronously on
+  open. Without `prevent_default()`, the browser's native mousedown
+  default action — focus the mousedown target, i.e. the canvas — runs
+  right after this listener returns and steals focus straight back
+  from the freshly-opened input, firing *its own* blur handler and
+  tearing it down before the user (or a Playwright test) ever sees it.
+  This only affects this overlay: the inline cell editor opens on
+  `dblclick` (focus-stealing happens on a later, separate event, not
+  the same click's remaining mouseup/click), and the filter row's own
+  funnel icon opens a popup that isn't positioned under the cursor and
+  isn't auto-focused on open — it didn't need this. Caught only via an actual
+  Playwright run (`page.locator('canvas').click({position})` on the
+  filter row consistently opened, then immediately closed, the input);
+  a manual chrome-devtools MCP session didn't reproduce it reliably
+  since manual clicks don't always replay the same mousedown→mouseup→
+  click sequence at the exact same coordinates.
+- Lifecycle mirrors `edit.rs`'s inline cell editor exactly: reuses the
+  shared `edit_input`/`edit_closures`/`edit_listener_refs` bookkeeping
+  and `remove_edit_input()` teardown, so only one transient overlay
+  (cell editor or quick filter input) can ever be open at a time.
+  Commit (`Enter` or blur) dispatches `GridCommand::SetColumnFilter`
+  with `FilterCondition::contains(value)` — even an emptied value,
+  which clears the filter via `FilterCondition::is_empty()`'s existing
+  semantics. `Escape` cancels without dispatching. Prefills with the
+  column's current `filters` value best-effort, regardless of the
+  stored operator — same AG-Grid-style simplification the popup's own
+  quick-input equivalent documents; typing into the row always
+  overwrites to `Contains`.
+- No new CSS theme variables for the overlay itself — styled via the
+  same `style_daisy_control`/`wire_daisy_focus_ring` helpers the filter
+  popup's value input uses (bumped to `pub(super)` in `filter_popup.rs`
+  for this cross-file reuse), and left placeholder-less (no
+  `set_attribute("placeholder", ...)`) to match the *closed*,
+  canvas-drawn look, which also draws no hint text for an empty cell.
+  Canvas-side `Theme` fields back that closed look — see
+  `rs-grid-scene/AGENTS.md`.
+
 ## Server-side page fetcher (`FetchConfig`)
 
 `canvas/fetcher.rs` implements the automatic fetch coordinator behind
