@@ -26,9 +26,12 @@ const ROLE_Y  = NAME_Y;                                        //  80
 // the last base column, locked on even rows via editable_predicate (see
 // editable-predicate.spec.ts), so tests below stick to odd rows and must
 // scroll it into view first (same pattern as that spec).
-const NOTES_ABS_START = 1470; // cumulative width of every column before it
+// Cumulative content-space width of every base column before "Notes"
+// (name 200, email 260, role 140, dept 170, salary 120, active 80,
+// status 120, badges 700, avatar 60, actions 700, completion 160) = 2710.
+const NOTES_ABS_START = 2710;
 const NOTES_W = 160;
-const SCROLL_X = 1400;
+const SCROLL_X = 2600;
 const NOTES_X = GUTTER + (NOTES_ABS_START + NOTES_W / 2) - SCROLL_X; // 210
 
 async function scrollToNotes(page: Page) {

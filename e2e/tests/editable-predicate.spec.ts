@@ -9,14 +9,14 @@ const GUTTER = 60;   // row-number gutter width (px)
 
 // Cumulative content-space width of every base column before "Notes"
 // (name 200, email 260, role 140, dept 170, salary 120, active 80,
-// status 120, avatar 60, actions 160, completion 160) = 1470.
-const NOTES_ABS_START = 1470;
+// status 120, badges 700, avatar 60, actions 700, completion 160) = 2710.
+const NOTES_ABS_START = 2710;
 const NOTES_W = 160;
 
 // Scroll far enough right to bring "Notes" comfortably into view
 // (mirrors progress.spec.ts's SCROLL_X pattern for the "Completion"
 // column, which lives just before "Notes").
-const SCROLL_X = 1400;
+const SCROLL_X = 2600;
 const NOTES_X = GUTTER + (NOTES_ABS_START + NOTES_W / 2) - SCROLL_X; // 210
 
 const LOCKED_ROW_Y   = HEADER + ROW_H / 2;              // row 0 (even → locked)
