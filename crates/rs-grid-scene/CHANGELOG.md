@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.2.8...rs-grid-scene-v0.3.0) - 2026-07-22
+
+### Other
+
+- Add filter functionality and localization support
+
 ## [0.2.8](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.2.7...rs-grid-scene-v0.2.8) - 2026-07-09
 
 ### Added
