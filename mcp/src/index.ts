@@ -25,7 +25,7 @@ import { loadCommands, COMMAND_DOC_PAGE } from "./commands.js";
 
 const server = new McpServer({
   name: "rs-grid-docs",
-  version: "0.3.0",
+  version: "0.3.5",
 });
 
 // --- Tool: search_rs_grid_docs ---
