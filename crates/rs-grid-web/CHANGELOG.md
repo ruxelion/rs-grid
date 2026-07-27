@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.18](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.17...rs-grid-web-v0.1.18) - 2026-07-27
+
+### Other
+
+- updated the following local packages: rs-grid-scene, rs-grid-render-canvas
+
 ## [0.1.17](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.16...rs-grid-web-v0.1.17) - 2026-07-22
 
 ### Other
