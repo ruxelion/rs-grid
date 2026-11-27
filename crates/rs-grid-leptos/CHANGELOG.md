@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.5...rs-grid-leptos-v0.4.0) - 2026-11-27
+
+### Added
+
+- add footer bar with client-side pagination
+
 ## [0.3.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.4...rs-grid-leptos-v0.3.5) - 2026-11-27
 
 ### Other
