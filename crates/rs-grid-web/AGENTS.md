@@ -702,6 +702,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_validation_state_changed` | `StartEdit`, `ValidateEdit`, `CommitEdit`, `CancelEdit` — fires with the fresh `validation_error()` value on *every keystroke*, not just rejected commits |
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 | `set_on_checked_rows_changed` | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
+| `set_on_sort_changed` | `ToggleSort` (header click), `SetSort`, `ClearSort` — read `sort_state()`. With `DataSourceMode::ServerSide` the indicator follows the click but rows are not reordered: the host re-queries its backend |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
 borrow on `state` — `apply()` returns its output by value, and each callback
