@@ -346,7 +346,9 @@ pub(super) fn emit_footer(
                 fill: t.footer_badge_bg,
                 stroke: None,
                 stroke_width: 0.0,
-                corner_radius: badge_h * 0.5,
+                // Same radius as the footer's buttons, not a pill: every
+                // rounded element of the bar shares one radius.
+                corner_radius: t.footer_button_radius,
                 clip: None,
             }));
         }
