@@ -61,7 +61,8 @@
 //! ## Tailwind utilities (canvas-meaningful)
 //!
 //! `font-bold`, `rounded-full`, `rounded-md`, `rounded`,
-//! `text-xs`, `text-sm`
+//! `text-xs`, `text-sm` (all three `rounded*` map to the grid's
+//! single 4px radius)
 //!
 //! ## Geometry (matches DaisyUI v5 exactly)
 //!
@@ -339,13 +340,10 @@ pub fn resolve_classes(classes: &str, theme: &Theme) -> CellElementStyle {
             "font-bold" => {
                 s.bold = true;
             }
-            "rounded-full" => {
-                s.border_radius = 9999.0;
-            }
-            "rounded-md" => {
-                s.border_radius = 6.0;
-            }
-            "rounded" => {
+            // Every rounded element in the grid shares one 4px radius, so
+            // the `rounded*` utilities all map to it (instead of
+            // Tailwind's 9999px / 6px / 4px).
+            "rounded-full" | "rounded-md" | "rounded" => {
                 s.border_radius = 4.0;
             }
             "text-xs" => {
@@ -557,10 +555,14 @@ mod tests {
     }
 
     #[test]
-    fn rounded_full_overrides_radius() {
-        let s =
-            resolve_classes("badge badge-info rounded-full", &Theme::light());
-        assert_eq!(s.border_radius, 9999.0);
+    fn rounded_utilities_all_use_the_shared_4px_radius() {
+        for class in ["rounded-full", "rounded-md", "rounded"] {
+            let s = resolve_classes(
+                &format!("badge badge-info {class}"),
+                &Theme::light(),
+            );
+            assert_eq!(s.border_radius, 4.0, "{class}");
+        }
     }
 
     #[test]

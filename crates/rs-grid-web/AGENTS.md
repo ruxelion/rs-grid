@@ -507,11 +507,17 @@ surface.
     round-trips through "uncheck some → recheck all" via Select All.
   - Every checkbox (`select_all` and each value row) reuses the
     canvas-drawn row-selection checkbox column's own theme tokens
-    (`Theme::checkbox_size`/`checkbox_checked_bg`, read from
-    `self.0.builder.borrow().theme`) via the native CSS `accent-color`
-    property (`style_checkbox`) — same size and checked-state color as
-    the checkbox column, not a second, differently-styled checkbox
-    widget.
+    (`Theme::checkbox_size`/`_border`/`_border_width`/`_radius`/
+    `_checked_bg`/`_mark_color`, read from `self.0.builder.borrow().theme`)
+    — same size, border, 4px corner radius, checked fill and check mark as
+    the checkbox column, not a second, differently-styled checkbox widget.
+    Still a real `<input type=checkbox>`, but with `appearance: none`
+    (`style_checkbox`): a native box can't take a custom corner radius.
+    The `:checked`/`:indeterminate` looks (fill + an inline-SVG mark/dash
+    matching `builder/checkbox.rs`'s geometry) come from one `<style>` tag
+    (`checkbox_state_style`) appended into the popup like the buttons'
+    focus-visible rule; the unchecked `background-color` lives there too,
+    not inline, or the inline value would beat the `:checked` rule.
   - The operator `<select>`, value `<input>`, and search `<input>` are
     styled pixel-for-pixel like daisyUI's `.input`/`.select` (md size:
     `style_daisy_control`/`style_daisy_select`/`wire_daisy_focus_ring`)

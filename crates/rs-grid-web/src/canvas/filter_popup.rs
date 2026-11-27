@@ -420,25 +420,76 @@ pub(super) fn wire_daisy_focus_ring(el: &HtmlElement, colors: &CtxColors) {
     cb_blur.forget();
 }
 
-/// Sizes and colors a checklist checkbox to match the canvas-drawn
-/// row-selection checkbox column (`Theme::checkbox_*`) — same size, same
-/// checked-state accent — via the native `accent-color` CSS property
-/// rather than a custom-drawn checkbox, so it stays a real, accessible
-/// `<input type=checkbox>`.
+/// Styles a checklist checkbox exactly like the canvas-drawn row-selection
+/// checkbox column (`Theme::checkbox_*`: size, border, corner radius,
+/// checked fill, mark color — see `rs-grid-scene`'s `builder/checkbox.rs`).
+/// It stays a real, accessible `<input type=checkbox>`, but with
+/// `appearance: none`: the native box can't take a custom corner radius,
+/// and every rounded element in the grid must share the themed one. The
+/// checked/indeterminate looks come from [`checkbox_state_style`].
 fn style_checkbox(cb: &HtmlInputElement, theme: &Theme) {
     let size = format!("{}px", theme.checkbox_size);
-    let accent = theme.checkbox_checked_bg.to_css();
+    let border = format!(
+        "{}px solid {}",
+        theme.checkbox_border_width,
+        theme.checkbox_border.to_css()
+    );
+    let radius = format!("{}px", theme.checkbox_radius);
     set_styles(
         cb.unchecked_ref(),
         &[
+            ("appearance", "none"),
+            ("-webkit-appearance", "none"),
+            ("box-sizing", "border-box"),
             ("width", &size),
             ("height", &size),
-            ("accent-color", &accent),
+            ("border", &border),
+            ("border-radius", &radius),
+            ("background-repeat", "no-repeat"),
+            ("background-position", "center"),
+            ("background-size", "100% 100%"),
             ("margin", "0"),
             ("cursor", "pointer"),
             ("flex", "none"),
         ],
     );
+}
+
+/// `:checked`/`:indeterminate` rules for the checklist checkboxes (drawn
+/// with `appearance: none` by [`style_checkbox`]): the themed checked fill
+/// plus the same check mark / dash geometry the canvas checkbox draws
+/// (`builder/checkbox.rs`), as an inline SVG. Appended once into the popup
+/// shell, like [`daisy_btn_focus_visible_style`], so `remove_ctx_menu()`
+/// tears it down with the popup.
+fn checkbox_state_style(doc: &web_sys::Document, theme: &Theme) -> HtmlElement {
+    let fill = theme.checkbox_checked_bg.to_css();
+    // `#` would end the data URI; everything else in a CSS color is safe
+    // inside the quoted `url("…")`.
+    let mark = theme.checkbox_mark_color.to_css().replace('#', "%23");
+    // Same stroke width as the canvas mark, in the SVG's 0..100 space.
+    let stroke = (theme.checkbox_border_width + 0.5).max(2.0)
+        / theme.checkbox_size.max(1.0)
+        * 100.0;
+    let svg = |d: &str| {
+        format!(
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/\
+             2000/svg' viewBox='0 0 100 100'><path d='{d}' fill='none' \
+             stroke='{mark}' stroke-width='{stroke}' \
+             stroke-linecap='round' stroke-linejoin='round'/></svg>\")"
+        )
+    };
+    let check = svg("M22 55 L42 75 L80 28");
+    let dash = svg("M20 50 L80 50");
+    let style_el = make_el(doc, "style");
+    style_el.set_text_content(Some(&format!(
+        "#rs-grid-ctx-menu input[type=\"checkbox\"] {{ \
+         background-color: transparent; }} \
+         #rs-grid-ctx-menu input[type=\"checkbox\"]:checked {{ \
+         background-color: {fill}; background-image: {check}; }} \
+         #rs-grid-ctx-menu input[type=\"checkbox\"]:indeterminate {{ \
+         background-color: {fill}; background-image: {dash}; }}"
+    )));
+    style_el
 }
 
 /// Recomputes the "(Select All)" checkbox's checked/indeterminate
@@ -1435,6 +1486,9 @@ impl GridCanvas {
         buttons
             .append_child(&daisy_btn_focus_visible_style(&doc))
             .expect("append button focus-visible style");
+        buttons
+            .append_child(&checkbox_state_style(&doc, &theme))
+            .expect("append checkbox state style");
         menu.append_child(&buttons).expect("append buttons");
 
         // Apply — dispatch the current operator/value, plus the value

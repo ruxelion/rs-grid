@@ -48,3 +48,11 @@ body {
   flex: 1 1 auto;
   min-height: 400px;
 }
+
+/* Every rounded element shares the grid's single 4px radius — including
+ * the fixture's own native controls. */
+button,
+select,
+input {
+  border-radius: 4px;
+}
