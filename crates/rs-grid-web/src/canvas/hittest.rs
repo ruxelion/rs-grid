@@ -411,18 +411,29 @@ impl GridCanvas {
         }
     }
 
-    /// Returns the bottom-left corner of the filter row's mini funnel
-    /// icon button for `col_idx` in canvas-local coordinates, suitable
-    /// for anchoring the filter popup at a fixed position.
+    /// Returns the bottom-left corner of the filter row's icon button for
+    /// `col_idx` in canvas-local coordinates, suitable for anchoring the
+    /// filter popup at a fixed position. The bottom is the *button's*
+    /// own bottom edge (the same box the hover background draws in
+    /// `rs-grid-scene`'s `builder.rs`), not the filter row's — so the
+    /// popup hangs right off the button, AG-Grid style, the same way
+    /// `menu_icon_anchor` anchors the header's "⋮" menu.
     pub(super) fn filter_row_icon_anchor(&self, col_idx: usize) -> (f64, f64) {
         let theme = self.0.builder.borrow();
         let mr = theme.theme.header_filter_icon_margin_r;
         let bw = theme.theme.header_filter_icon_btn_w;
+        let bh_cfg = theme.theme.header_menu_icon_btn_h;
         drop(theme);
         let state = self.0.state.borrow();
         let model = &state.model;
         let hh = model.effective_header_height();
         let fh = model.effective_filter_row_height();
+        let btn_h = if bh_cfg > 0.0 {
+            bh_cfg
+        } else {
+            (fh - 12.0).max(8.0)
+        };
+        let btn_bottom = hh + (fh - btn_h) / 2.0 + btn_h;
         let sx = state.viewport.scroll_x;
         let rnw = model.effective_row_number_width();
         let ccw = model.effective_checkbox_column_width();
@@ -434,7 +445,7 @@ impl GridCanvas {
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         let btn_left_vx = col_right_vx - mr - bw;
-        (btn_left_vx, hh + fh)
+        (btn_left_vx, btn_bottom)
     }
 
     /// Build a `ColumnDragHint` from the current drag state,

@@ -590,7 +590,9 @@ name + "⋮" menu only).
   `filter_row_icon_anchor(col_idx)` (`canvas/hittest.rs`) mirror the
   header's own menu-icon hit-test structure (`hit_header_menu_icon`/
   `menu_icon_anchor`) — narrow a whole-cell hit-test result to a small
-  button rect — but checked against the filter row's own vertical band
+  button rect, and the popup hangs from the *button's* bottom-left
+  corner, not the row's, AG-Grid style — but checked against the filter
+  row's own vertical band
   (`[effective_header_height(), effective_header_height() +
   effective_filter_row_height())`) instead of the header's, via
   `GridState::hit_test_filter_row_cell` (rs-grid-core) for column-cell
