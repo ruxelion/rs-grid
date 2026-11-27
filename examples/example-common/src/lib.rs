@@ -144,7 +144,7 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
                 // Self-contained SVG data URI generated per row — no
                 // external avatar service, no network request.
                 base_url: None,
-                border_radius: 16.0,
+                border_radius: 4.0,
                 padding: 4.0,
             });
             c
@@ -236,7 +236,7 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
                 base_url: String::new(),
                 suffix: String::new(),
                 image_size: 20.0,
-                border_radius: 2.0,
+                border_radius: 4.0,
                 gap: 6.0,
             }),
         };

@@ -523,7 +523,7 @@ impl GridCanvas {
                 let is = img.style();
                 let _ = is.set_property("width", "20px");
                 let _ = is.set_property("height", "15px");
-                let _ = is.set_property("border-radius", "2px");
+                let _ = is.set_property("border-radius", "4px");
                 let _ = is.set_property("margin-right", "6px");
                 let _ = is.set_property("flex-shrink", "0");
                 let _ = el.append_child(&img);

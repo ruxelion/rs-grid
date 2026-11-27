@@ -2,7 +2,7 @@
 // Regenerate: just gen-class-map  (or: cd tools/class-map && npm run gen)
 // Source: daisyui/theme/object.js + daisyui/components/*/object.js
 //         Light theme — daisyui v5.5.19
-// Generated: 2026-04-12
+// Generated: 2026-11-27
 
 use rs_grid_scene::primitives::Color;
 
@@ -43,7 +43,7 @@ pub mod badge {
     use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
-    pub const RADIUS: f64 = 8.0;
+    pub const RADIUS: f64 = 4.0;
     pub const BORDER: f64 = 1.0;
     pub const PADDING_X: f64 = 11.0;
     pub const FONT_SIZE: f64 = 14.0;
@@ -184,7 +184,7 @@ pub mod alert {
     use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
-    pub const RADIUS: f64 = 8.0;
+    pub const RADIUS: f64 = 4.0;
     pub const BORDER: f64 = 1.0;
     pub const PADDING_X: f64 = 16.0;
     pub const PADDING_Y: f64 = 12.0;
@@ -257,7 +257,7 @@ pub mod status {
     use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
-    pub const RADIUS: f64 = 8.0;
+    pub const RADIUS: f64 = 4.0;
     pub const BORDER: f64 = 1.0;
     pub const FONT_SIZE: f64 = 14.0;
 
@@ -327,7 +327,7 @@ pub mod progress {
     use rs_grid_scene::primitives::Color;
 
     // ── Geometry ──────────────────────────────────────────────────────────
-    pub const RADIUS: f64 = 8.0;
+    pub const RADIUS: f64 = 4.0;
     pub const BORDER: f64 = 1.0;
     pub const FONT_SIZE: f64 = 14.0;
 
