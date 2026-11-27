@@ -247,19 +247,15 @@ The three framework wrappers (`rs-grid-leptos`/`dioxus`/`yew`) forward
 existing `on_validation_error` plumbing exactly — no wrapper-managed
 reactive signal exists for this or any other `GridCanvas` state today.
 
-## Locked-cell cursor feedback
+## Locked-cell feedback
 
-The mousemove hover handler (`canvas/events.rs`) sets `cursor: not-allowed`
-when hovering a cell that resolves to non-editable via
-`ColumnDef::is_cell_editable` — the single source of truth combining the
-grid-wide `GridModel.editable` toggle, the column's static `editable` flag,
-and a false-resolving `editable_predicate` (all in `rs-grid-core`) — using
-the `hit_locked_cell(vx, vy)` helper in `canvas/hittest.rs` (delegates to
-`GridState::hit_test` for an O(log n) row+col lookup). Because
-`is_cell_editable` folds in `GridModel.editable`, a globally read-only grid
-shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
-overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
-`Theme` fields (see *CSS theme* below) for the themed visual.
+Hovering a cell that resolves to non-editable via
+`ColumnDef::is_cell_editable` does **not** change the mouse cursor — locked
+cells keep the `default` cursor (a `not-allowed` cursor on every read-only
+cell was too noisy, especially for a globally read-only grid). The only
+feedback is the themed locked-cell overlay painted by `emit_cell`
+(`rs-grid-scene`), driven by the `locked_cell_bg`/`locked_cell_text`
+`Theme` fields (see *CSS theme* below).
 
 ## Row-selection checkbox column
 
@@ -336,6 +332,11 @@ surface.
   (this popup, `show_col_header_menu`, `show_context_menu`) pass
   `theme.header_bg.to_css()`, so every popup reads as an extension of
   the header it's anchored under instead of a separately-themed surface.
+  Every popup menu (this shell, the filter popup's flyout and operator
+  list, the Select editor's dropdown) takes its corner radius from the
+  one `--rs-grid-ctx-radius` var (`CtxColors::radius`, default `4px` —
+  daisyUI's `--radius-field`, the same radius as the inputs/buttons),
+  so menus and controls share a single corner style.
   The popup's form: a collapsed-by-default "Text Filter" disclosure row
   as its first element — no column-name heading above it (removed; the
   column is already identified by whichever filter-row cell/icon was
@@ -500,13 +501,38 @@ surface.
     the filter row's own icon active/inactive color (and badge, below)
     meaningful after a user
     round-trips through "uncheck some → recheck all" via Select All.
+  - Every value is listed **as its cell shows it** (`value_look`), never
+    as the raw string: `ImageText` → the image (`base_url + KEY +
+    suffix`, `image_size`, `border_radius`) + label (the KEY is often a
+    whole `data:` URI, e.g. the demo's Country flags); `Image` → the
+    image; `Number`/`Percent`/`Currency` → `format_cell`'s text;
+    `ProgressBar` → the bar's `NN%`; `Styled`/`Boolean`/`Custom` →
+    `rs_grid_core::format::display_text`; an empty shown value →
+    `(Blanks)`. Numeric columns sort by value, the rest by shown label.
+    Search matches each row's shown text (`text_content()`). The
+    checkbox still carries the raw value, so `SetColumnValueFilter` is
+    unchanged.
+  - **Performance**: the rows `Vec` (each entry holds the raw value,
+    possibly a long `data:` URI) is shared through one `Rc`, and a single
+    delegated `change` listener on the list recomputes "(Select All)" —
+    an earlier per-checkbox listener cloned the whole `Vec` once per row
+    (O(n²)), freezing the popup ~10 s on the ~250-value Country column.
+  - Rows are roomy (`min-height: 32px`, `4px 8px` padding, 10px gap,
+    4px radius, hover background from `--rs-grid-ctx-hover-bg`), like
+    AG Grid's set-filter list; the list itself scrolls past 260px.
   - Every checkbox (`select_all` and each value row) reuses the
     canvas-drawn row-selection checkbox column's own theme tokens
-    (`Theme::checkbox_size`/`checkbox_checked_bg`, read from
-    `self.0.builder.borrow().theme`) via the native CSS `accent-color`
-    property (`style_checkbox`) — same size and checked-state color as
-    the checkbox column, not a second, differently-styled checkbox
-    widget.
+    (`Theme::checkbox_size`/`_border`/`_border_width`/`_radius`/
+    `_checked_bg`/`_mark_color`, read from `self.0.builder.borrow().theme`)
+    — same size, border, 4px corner radius, checked fill and check mark as
+    the checkbox column, not a second, differently-styled checkbox widget.
+    Still a real `<input type=checkbox>`, but with `appearance: none`
+    (`style_checkbox`): a native box can't take a custom corner radius.
+    The `:checked`/`:indeterminate` looks (fill + an inline-SVG mark/dash
+    matching `builder/checkbox.rs`'s geometry) come from one `<style>` tag
+    (`checkbox_state_style`) appended into the popup like the buttons'
+    focus-visible rule; the unchecked `background-color` lives there too,
+    not inline, or the inline value would beat the `:checked` rule.
   - The operator `<select>`, value `<input>`, and search `<input>` are
     styled pixel-for-pixel like daisyUI's `.input`/`.select` (md size:
     `style_daisy_control`/`style_daisy_select`/`wire_daisy_focus_ring`)

@@ -47,7 +47,7 @@
   --rs-grid-footer-page-active-bg: #422ad5;
   --rs-grid-footer-page-active-text: #ffffff;
   --rs-grid-footer-disabled-text: rgba(24, 29, 31, 0.30);
-  --rs-grid-footer-button-radius: 6px;
+  --rs-grid-footer-button-radius: 4px;
   --rs-grid-footer-button-height: 32px;
   --rs-grid-footer-font-size: 14px;
   --rs-grid-footer-font-bold: 1;
@@ -64,7 +64,7 @@
   --rs-grid-progress-track: #e2e8f0;
   --rs-grid-progress-fill: #422ad5;
   --rs-grid-progress-height: 8px;
-  --rs-grid-progress-radius: 8px;
+  --rs-grid-progress-radius: 4px;
   --rs-grid-checkbox-size: 18px;
   --rs-grid-checkbox-radius: 4px;
   --rs-grid-checkbox-border: #94a3b8;
@@ -73,7 +73,7 @@
   --rs-grid-checkbox-mark-color: #ffffff;
   --rs-grid-cell-padding: 12px;
   --rs-grid-scrollbar-width: 14px;
-  --rs-grid-scrollbar-radius: 6px;
+  --rs-grid-scrollbar-radius: 4px;
   --rs-grid-scrollbar-inset: 3px;
   --rs-grid-drag-overlay: rgba(0, 0, 0, 0.03);
   --rs-grid-drag-ghost-bg: #f8f9fb;
@@ -86,7 +86,7 @@
   --rs-grid-sort-arrow-height: 3.5px;
   --rs-grid-header-menu-icon: rgba(24, 29, 31, 0.71);
   --rs-grid-header-menu-icon-hover-bg: rgba(0, 0, 0, 0.06);
-  --rs-grid-header-menu-icon-radius: 3px;
+  --rs-grid-header-menu-icon-radius: 4px;
   --rs-grid-header-menu-icon-margin-r: 10px;
   --rs-grid-header-menu-icon-btn-w: 22px;
   --rs-grid-header-menu-icon-btn-h: 22px;

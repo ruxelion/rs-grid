@@ -10,6 +10,7 @@ use std::{cell::Cell, collections::HashSet, rc::Rc};
 use rs_grid_core::{
     commands::GridCommand,
     filter::{FilterCondition, FilterOp, UniqueValues},
+    format::{CellFormat, display_text, format_cell},
 };
 use rs_grid_scene::Theme;
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -20,7 +21,8 @@ use web_sys::{
 use super::{
     GridCanvas,
     context_menu::{
-        CtxColors, create_menu_shell, read_ctx_colors, remove_ctx_menu,
+        CtxColors, clamp_menu_to_canvas, create_menu_shell, read_ctx_colors,
+        remove_ctx_menu,
     },
     dom_helpers::{document, make_el, set_styles},
     edit::{dd_idx_from_event, dd_scroll_into_view, dd_set_highlight},
@@ -420,20 +422,34 @@ pub(super) fn wire_daisy_focus_ring(el: &HtmlElement, colors: &CtxColors) {
     cb_blur.forget();
 }
 
-/// Sizes and colors a checklist checkbox to match the canvas-drawn
-/// row-selection checkbox column (`Theme::checkbox_*`) — same size, same
-/// checked-state accent — via the native `accent-color` CSS property
-/// rather than a custom-drawn checkbox, so it stays a real, accessible
-/// `<input type=checkbox>`.
+/// Styles a checklist checkbox exactly like the canvas-drawn row-selection
+/// checkbox column (`Theme::checkbox_*`: size, border, corner radius,
+/// checked fill, mark color — see `rs-grid-scene`'s `builder/checkbox.rs`).
+/// It stays a real, accessible `<input type=checkbox>`, but with
+/// `appearance: none`: the native box can't take a custom corner radius,
+/// and every rounded element in the grid must share the themed one. The
+/// checked/indeterminate looks come from [`checkbox_state_style`].
 fn style_checkbox(cb: &HtmlInputElement, theme: &Theme) {
     let size = format!("{}px", theme.checkbox_size);
-    let accent = theme.checkbox_checked_bg.to_css();
+    let border = format!(
+        "{}px solid {}",
+        theme.checkbox_border_width,
+        theme.checkbox_border.to_css()
+    );
+    let radius = format!("{}px", theme.checkbox_radius);
     set_styles(
         cb.unchecked_ref(),
         &[
+            ("appearance", "none"),
+            ("-webkit-appearance", "none"),
+            ("box-sizing", "border-box"),
             ("width", &size),
             ("height", &size),
-            ("accent-color", &accent),
+            ("border", &border),
+            ("border-radius", &radius),
+            ("background-repeat", "no-repeat"),
+            ("background-position", "center"),
+            ("background-size", "100% 100%"),
             ("margin", "0"),
             ("cursor", "pointer"),
             ("flex", "none"),
@@ -441,6 +457,139 @@ fn style_checkbox(cb: &HtmlInputElement, theme: &Theme) {
     );
 }
 
+/// `:checked`/`:indeterminate` rules for the checklist checkboxes (drawn
+/// with `appearance: none` by [`style_checkbox`]): the themed checked fill
+/// plus the same check mark / dash geometry the canvas checkbox draws
+/// (`builder/checkbox.rs`), as an inline SVG. Appended once into the popup
+/// shell, like [`daisy_btn_focus_visible_style`], so `remove_ctx_menu()`
+/// tears it down with the popup.
+fn checkbox_state_style(doc: &web_sys::Document, theme: &Theme) -> HtmlElement {
+    let fill = theme.checkbox_checked_bg.to_css();
+    // `#` would end the data URI; everything else in a CSS color is safe
+    // inside the quoted `url("…")`.
+    let mark = theme.checkbox_mark_color.to_css().replace('#', "%23");
+    // Same stroke width as the canvas mark, in the SVG's 0..100 space.
+    let stroke = (theme.checkbox_border_width + 0.5).max(2.0)
+        / theme.checkbox_size.max(1.0)
+        * 100.0;
+    let svg = |d: &str| {
+        format!(
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/\
+             2000/svg' viewBox='0 0 100 100'><path d='{d}' fill='none' \
+             stroke='{mark}' stroke-width='{stroke}' \
+             stroke-linecap='round' stroke-linejoin='round'/></svg>\")"
+        )
+    };
+    let check = svg("M22 55 L42 75 L80 28");
+    let dash = svg("M20 50 L80 50");
+    let style_el = make_el(doc, "style");
+    style_el.set_text_content(Some(&format!(
+        "#rs-grid-ctx-menu input[type=\"checkbox\"] {{ \
+         background-color: transparent; }} \
+         #rs-grid-ctx-menu input[type=\"checkbox\"]:checked {{ \
+         background-color: {fill}; background-image: {check}; }} \
+         #rs-grid-ctx-menu input[type=\"checkbox\"]:indeterminate {{ \
+         background-color: {fill}; background-image: {dash}; }}"
+    )));
+    style_el
+}
+
+/// What one value-checklist row shows for a raw value — the same content
+/// the column's cells show, never the raw string when the cell draws
+/// something else (a `data:` URI image key, a number to format…).
+struct ValueLook {
+    /// `(src, size, radius)` of the image the cell draws, if any.
+    img: Option<(String, f64, f64)>,
+    /// The text the cell shows (`"(Blanks)"` when it shows nothing).
+    label: String,
+    /// Sort key: numeric columns sort by value, the rest by label.
+    numeric: Option<f64>,
+}
+
+/// Builds the [`ValueLook`] of `raw` under the column's `fmt`.
+fn value_look(raw: &str, fmt: Option<&CellFormat>) -> ValueLook {
+    let (img, label, numeric) = match fmt {
+        None => (None, raw.to_owned(), None),
+        Some(CellFormat::Image {
+            base_url,
+            border_radius,
+            ..
+        }) => {
+            let src = format!("{}{raw}", base_url.as_deref().unwrap_or(""));
+            (Some((src, IMG_SIZE, *border_radius)), String::new(), None)
+        }
+        // Same split as `rs-grid-scene`'s `emit_image_text`.
+        Some(CellFormat::ImageText {
+            base_url,
+            suffix,
+            image_size,
+            border_radius,
+            ..
+        }) => {
+            let (key, label) = raw.split_once(' ').unwrap_or((raw, ""));
+            let src = format!("{base_url}{key}{suffix}");
+            (
+                Some((src, *image_size, *border_radius)),
+                label.to_owned(),
+                None,
+            )
+        }
+        // Same percentage the bar's own label shows.
+        Some(CellFormat::ProgressBar { min, max, .. }) => {
+            match raw.trim().parse::<f64>() {
+                Ok(v) => {
+                    let span = (max - min).abs().max(f64::EPSILON);
+                    let pct = ((v - min) / span * 100.0).clamp(0.0, 100.0);
+                    (None, format!("{pct:.0}%"), Some(v))
+                }
+                Err(_) => (None, raw.to_owned(), None),
+            }
+        }
+        Some(f) if f.is_numeric_like() => (
+            None,
+            format_cell(raw, f).text,
+            raw.trim().parse::<f64>().ok(),
+        ),
+        Some(f) => (None, display_text(raw, f).into_owned(), None),
+    };
+    let label = if label.trim().is_empty() && img.is_none() {
+        "(Blanks)".to_owned()
+    } else {
+        label
+    };
+    ValueLook {
+        img,
+        label,
+        numeric,
+    }
+}
+
+/// Image size for `CellFormat::Image` values, which carry none of their
+/// own (the cell sizes them to the row).
+const IMG_SIZE: f64 = 20.0;
+
+/// An `<img>` showing a value's image, sized and rounded like the cell's.
+fn value_img(
+    doc: &web_sys::Document,
+    (src, size, radius): &(String, f64, f64),
+) -> HtmlElement {
+    let img = make_el(doc, "img");
+    let _ = img.set_attribute("src", src);
+    let _ = img.set_attribute("alt", "");
+    let size = format!("{size}px");
+    let radius = format!("{radius}px");
+    set_styles(
+        &img,
+        &[
+            ("width", &size),
+            ("height", &size),
+            ("border-radius", &radius),
+            ("object-fit", "cover"),
+            ("flex", "none"),
+        ],
+    );
+    img
+}
 /// Recomputes the "(Select All)" checkbox's checked/indeterminate
 /// tri-state from the currently-*visible* value rows — visibility is
 /// read directly from each row's own `display` style (already updated
@@ -490,7 +639,7 @@ impl GridCanvas {
     ) {
         remove_ctx_menu();
 
-        let (col_key, current, existing_value_filter, unique) = {
+        let (col_key, current, existing_value_filter, unique, format) = {
             let state = self.0.state.borrow();
             let model = &state.model;
             let Some(col) = model.columns.get(col_idx) else {
@@ -502,7 +651,15 @@ impl GridCanvas {
                 model.value_filters.get(&col.key).cloned();
             let unique =
                 model.unique_values(&col.key, MAX_VALUE_FILTER_OPTIONS);
-            (col.key.clone(), current, existing_value_filter, unique)
+            // The checklist shows each value the way the column's cells
+            // do (see `value_look`), so it needs the column's format.
+            (
+                col.key.clone(),
+                current,
+                existing_value_filter,
+                unique,
+                col.format.clone(),
+            )
         };
 
         let colors = read_ctx_colors();
@@ -597,7 +754,8 @@ impl GridCanvas {
                 ("display", "none"),
                 ("box-sizing", "border-box"),
                 ("border", &op_list_border),
-                ("border-radius", "8px"),
+                // Shared menu radius (`--rs-grid-ctx-radius`).
+                ("border-radius", &colors.radius),
                 ("padding", "8px"),
                 ("background-color", &colors.bg),
                 (
@@ -1171,7 +1329,7 @@ impl GridCanvas {
                 menu.append_child(&msg).expect("append too-many message");
                 None
             }
-            UniqueValues::Values(values) => {
+            UniqueValues::Values(mut values) => {
                 let divider = make_el(&doc, "div");
                 let border = format!("1px solid {}", colors.separator);
                 set_styles(
@@ -1252,9 +1410,9 @@ impl GridCanvas {
                 set_styles(
                     &list,
                     &[
-                        ("max-height", "180px"),
+                        ("max-height", "260px"),
                         ("overflow-y", "auto"),
-                        ("padding", "4px 6px"),
+                        ("padding", "4px 0"),
                         ("margin-bottom", "10px"),
                     ],
                 );
@@ -1262,8 +1420,13 @@ impl GridCanvas {
                 let row_style: &[(&str, &str)] = &[
                     ("display", "flex"),
                     ("align-items", "center"),
-                    ("gap", "6px"),
-                    ("padding", "2px 0"),
+                    // Roomy rows (AG Grid's set-filter list is ~32px
+                    // per item): 4px+4px padding around a 24px line.
+                    ("gap", "10px"),
+                    ("min-height", "32px"),
+                    ("box-sizing", "border-box"),
+                    ("padding", "4px 8px"),
+                    ("border-radius", &colors.radius),
                     ("cursor", "pointer"),
                 ];
 
@@ -1286,9 +1449,26 @@ impl GridCanvas {
                 list.append_child(&select_all_row)
                     .expect("append select-all row");
 
+                // Each value as the cell shows it, listed in the order
+                // a user expects: numeric columns by value, the rest by
+                // the shown label — never by the raw string (whose
+                // `data:` URI key, say, would otherwise drive it).
+                let mut looks: Vec<(String, ValueLook)> = values
+                    .iter()
+                    .map(|v| (v.clone(), value_look(v, format.as_ref())))
+                    .collect();
+                looks.sort_by(|(_, a), (_, b)| match (a.numeric, b.numeric) {
+                    (Some(x), Some(y)) => x.total_cmp(&y),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => {
+                        a.label.to_lowercase().cmp(&b.label.to_lowercase())
+                    }
+                });
+                values = looks.iter().map(|(v, _)| v.clone()).collect();
                 let mut rows: Vec<(String, HtmlElement, HtmlInputElement)> =
                     Vec::with_capacity(values.len());
-                for value in &values {
+                for (value, look) in &looks {
                     let row = make_el(&doc, "label");
                     set_styles(&row, row_style);
                     let cb: HtmlInputElement = make_el(&doc, "input")
@@ -1304,13 +1484,32 @@ impl GridCanvas {
                         .unwrap_or(true);
                     cb.set_checked(checked);
                     row.append_child(&cb).expect("append checkbox");
+                    let _ = row.set_attribute("data-value-row", "");
+                    if let Some(img) = &look.img {
+                        row.append_child(&value_img(&doc, img))
+                            .expect("append value image");
+                    }
                     let label_el = make_el(&doc, "span");
-                    label_el.set_text_content(Some(value));
+                    label_el.set_text_content(Some(&look.label));
                     row.append_child(&label_el).expect("append label");
                     list.append_child(&row).expect("append value row");
                     rows.push((value.clone(), row, cb));
                 }
                 menu.append_child(&list).expect("append list");
+                // Hover highlight for the (roomier) rows, like the
+                // context menu's own items.
+                let hover_style = make_el(&doc, "style");
+                hover_style.set_text_content(Some(&format!(
+                    "#rs-grid-ctx-menu [data-value-row]:hover {{ \
+                     background-color: {}; }}",
+                    colors.hover_bg
+                )));
+                list.append_child(&hover_style).expect("append hover style");
+                // Shared, not cloned per listener: every row carries the
+                // raw value, which can be a long `data:` URI — cloning
+                // the whole list once per checkbox was O(n²) and froze
+                // the popup for seconds on a ~250-value column.
+                let rows = Rc::new(rows);
 
                 // Derive the select-all checkbox's initial tri-state
                 // from the rows just built, rather than duplicating
@@ -1322,14 +1521,18 @@ impl GridCanvas {
                 // (AG-Grid behavior — select-all acts on the
                 // search-filtered subset, not hidden rows).
                 {
-                    let rows = rows.clone();
+                    let rows = Rc::clone(&rows);
                     let select_all = select_all.clone();
                     let search_el = search.clone();
                     let cb = Closure::<dyn FnMut(_)>::new(move |_: Event| {
                         let query = search_el.value().to_lowercase();
-                        for (value, row, _) in &rows {
+                        for (_, row, _) in rows.iter() {
+                            // Match what the row *shows* (its label), not
+                            // the raw value — for an image + label column
+                            // the raw value starts with the image key.
+                            let shown = row.text_content().unwrap_or_default();
                             let visible = query.is_empty()
-                                || value.to_lowercase().contains(&query);
+                                || shown.to_lowercase().contains(&query);
                             // "flex", not "" — an empty value clears the
                             // inline style override entirely, falling
                             // back to <label>'s default `display: inline`
@@ -1356,11 +1559,11 @@ impl GridCanvas {
                 // Select-all: check/uncheck every currently-visible
                 // row.
                 {
-                    let rows = rows.clone();
+                    let rows = Rc::clone(&rows);
                     let select_all_el = select_all.clone();
                     let cb = Closure::<dyn FnMut(_)>::new(move |_: Event| {
                         let checked = select_all_el.checked();
-                        for (_, row, cb) in &rows {
+                        for (_, row, cb) in rows.iter() {
                             let visible = row
                                 .style()
                                 .get_property_value("display")
@@ -1380,26 +1583,30 @@ impl GridCanvas {
                     cb.forget();
                 }
 
-                // Each value checkbox recomputes select-all's
-                // tri-state.
-                for (_, _, value_cb) in &rows {
-                    let rows2 = rows.clone();
+                // Any value checkbox change recomputes select-all's
+                // tri-state — one listener on the list (`change`
+                // bubbles), not one per row. Select-all's own `change`
+                // bubbles here too, after its handler above has
+                // updated the rows, which is harmless.
+                {
+                    let rows = Rc::clone(&rows);
                     let select_all = select_all.clone();
                     let listener =
                         Closure::<dyn FnMut(_)>::new(move |_: Event| {
-                            update_select_all_state(&select_all, &rows2);
+                            update_select_all_state(&select_all, &rows);
                         });
-                    value_cb
-                        .add_event_listener_with_callback(
-                            "change",
-                            listener.as_ref().unchecked_ref(),
-                        )
-                        .expect("add value checkbox change listener");
+                    list.add_event_listener_with_callback(
+                        "change",
+                        listener.as_ref().unchecked_ref(),
+                    )
+                    .expect("add value list change listener");
                     listener.forget();
                 }
 
-                let checkboxes: Vec<(String, HtmlInputElement)> =
-                    rows.into_iter().map(|(v, _, cb)| (v, cb)).collect();
+                let checkboxes: Vec<(String, HtmlInputElement)> = rows
+                    .iter()
+                    .map(|(v, _, cb)| (v.clone(), cb.clone()))
+                    .collect();
                 Some((values, checkboxes))
             }
             // `UniqueValues` is `#[non_exhaustive]` — treat any
@@ -1434,6 +1641,9 @@ impl GridCanvas {
         buttons
             .append_child(&daisy_btn_focus_visible_style(&doc))
             .expect("append button focus-visible style");
+        buttons
+            .append_child(&checkbox_state_style(&doc, &theme))
+            .expect("append checkbox state style");
         menu.append_child(&buttons).expect("append buttons");
 
         // Apply — dispatch the current operator/value, plus the value
@@ -1546,6 +1756,12 @@ impl GridCanvas {
                 .expect("add keydown listener");
             cb.forget();
         }
+
+        // `create_menu_shell` clamped the shell while it was still empty;
+        // re-clamp now that the form and checklist give it its real size,
+        // or a popup opened near the canvas's right/bottom edge (e.g. the
+        // last column's filter icon) overflows it.
+        clamp_menu_to_canvas(&menu, &self.0.canvas, x, y);
 
         // Initial focus, AG-Grid style: the checklist's "Search..."
         // input when it exists, so the user can type to narrow the

@@ -117,7 +117,11 @@ pub(super) fn read_ctx_colors() -> CtxColors {
         text_disabled: v("--rs-grid-ctx-text-disabled", "#9ca3af"),
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
-        radius: v("--rs-grid-ctx-radius", "8px"),
+        // 4px = daisyUI `--radius-field`, the radius the inputs, buttons
+        // and filter-row boxes already use, so menus match the rest of
+        // the grid. Shared by every popup menu (context menu, header
+        // menu, filter popup + flyout, select-editor dropdown).
+        radius: v("--rs-grid-ctx-radius", "4px"),
         font_size: v("--rs-grid-ctx-font-size", "14px"),
         min_width: v("--rs-grid-ctx-min-width", "180px"),
         shortcut_font_size: v("--rs-grid-ctx-shortcut-font-size", "11px"),
@@ -391,7 +395,22 @@ pub(super) fn create_menu_shell(
     body.append_child(&backdrop).expect("append backdrop");
     body.append_child(&menu).expect("append menu");
 
-    // Clamp position so the menu stays within the canvas bounds.
+    clamp_menu_to_canvas(&menu, canvas, x, y);
+
+    (backdrop, menu)
+}
+
+/// Places `menu` at `(x, y)` (client coordinates), shifted so it stays
+/// within the canvas bounds. Uses the menu's *current* laid-out size, so a
+/// caller that appends content after [`create_menu_shell`] (which clamps
+/// the still-empty shell) must call this again once the content is in —
+/// otherwise a popup opened near the right/bottom edge overflows it.
+pub(super) fn clamp_menu_to_canvas(
+    menu: &HtmlElement,
+    canvas: &HtmlCanvasElement,
+    x: i32,
+    y: i32,
+) {
     let rect = canvas.get_bounding_client_rect();
     let mw = menu.offset_width();
     let mh = menu.offset_height();
@@ -401,8 +420,6 @@ pub(super) fn create_menu_shell(
     let cy = y.min(max_y).max(rect.top() as i32);
     let _ = menu.style().set_property("left", &format!("{}px", cx));
     let _ = menu.style().set_property("top", &format!("{}px", cy));
-
-    (backdrop, menu)
 }
 
 // ── impl GridCanvas ─────────────────────────────────────

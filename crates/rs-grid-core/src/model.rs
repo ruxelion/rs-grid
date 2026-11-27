@@ -4,7 +4,7 @@ use crate::{
     column::{ColumnDef, ColumnOffsets},
     datasource::{CellStatus, DataSource, VecDataSource},
     filter::{FilterCondition, UniqueValues},
-    format::CellFormat,
+    format::{self, CellFormat},
     pagination::{
         self, DEFAULT_FOOTER_HEIGHT, DEFAULT_PAGE_SIZE,
         DEFAULT_PAGE_SIZE_OPTIONS, FooterLabels,
@@ -575,19 +575,26 @@ impl GridModel {
         // Resolve each active filter's column numeric-ness once,
         // not once per row — otherwise this degrades from
         // O(n_rows * n_filters) to O(n_rows * n_filters * n_columns).
-        let active: Vec<(&str, &FilterCondition, bool)> = self
-            .filters
-            .iter()
-            .map(|(col_key, condition)| {
-                let numeric = self
-                    .columns
-                    .iter()
-                    .find(|c| &c.key == col_key)
-                    .and_then(|c| c.format.as_ref())
-                    .is_some_and(CellFormat::is_numeric_like);
-                (col_key.as_str(), condition, numeric)
-            })
-            .collect();
+        // Same for the text a condition tests: numeric-like columns (and
+        // unformatted ones) test the raw value, every other formatted
+        // column tests what the cell *shows* (`format::display_text`) —
+        // e.g. an `ImageText` label rather than its `data:` URI key, a
+        // badge's label, a boolean's ✓/✗.
+        let active: Vec<(&str, &FilterCondition, bool, Option<&CellFormat>)> =
+            self.filters
+                .iter()
+                .map(|(col_key, condition)| {
+                    let format = self
+                        .columns
+                        .iter()
+                        .find(|c| &c.key == col_key)
+                        .and_then(|c| c.format.as_ref());
+                    let numeric =
+                        format.is_some_and(CellFormat::is_numeric_like);
+                    let shown = format.filter(|_| !numeric);
+                    (col_key.as_str(), condition, numeric, shown)
+                })
+                .collect();
         let value_active: Vec<(&str, &HashSet<String>)> = self
             .value_filters
             .iter()
@@ -601,19 +608,24 @@ impl GridModel {
             } else {
                 self.sort_order[i]
             };
-            let passes = active.iter().all(|(col_key, condition, numeric)| {
-                let cell = self
-                    .data
-                    .get_cell_ref(physical, col_key)
-                    .unwrap_or_default();
-                condition.matches(&cell, *numeric)
-            }) && value_active.iter().all(|(col_key, allowed)| {
-                let cell = self
-                    .data
-                    .get_cell_ref(physical, col_key)
-                    .unwrap_or_default();
-                allowed.contains(cell.as_ref())
-            });
+            let passes =
+                active.iter().all(|(col_key, condition, numeric, shown)| {
+                    let cell = self
+                        .data
+                        .get_cell_ref(physical, col_key)
+                        .unwrap_or_default();
+                    match shown {
+                        Some(fmt) => condition
+                            .matches(&format::display_text(&cell, fmt), false),
+                        None => condition.matches(&cell, *numeric),
+                    }
+                }) && value_active.iter().all(|(col_key, allowed)| {
+                    let cell = self
+                        .data
+                        .get_cell_ref(physical, col_key)
+                        .unwrap_or_default();
+                    allowed.contains(cell.as_ref())
+                });
             if passes {
                 result.push(physical);
             }
@@ -2185,6 +2197,39 @@ mod tests {
 
     // ── ImageText sort extraction ────────────────────────
 
+    #[test]
+    fn text_filter_on_image_text_column_matches_the_label_only() {
+        use crate::{filter::FilterCondition, format::CellFormat};
+        let mut col = ColumnDef::new("c", "C", 100.0);
+        col.format = Some(CellFormat::ImageText {
+            base_url: String::new(),
+            suffix: String::new(),
+            image_size: 20.0,
+            border_radius: 4.0,
+            gap: 4.0,
+        });
+        // The image key (a stand-in for a `data:` URI) contains "fr", but
+        // only the label is what the cell shows.
+        let values = ["data:frflag France", "data:frflag2 Spain"];
+        let rows: Vec<RowRecord> = values
+            .iter()
+            .enumerate()
+            .map(|(i, v)| {
+                let mut r = RowRecord::new(i as u64);
+                r.set("c", *v);
+                r
+            })
+            .collect();
+        let mut m = GridModel::new(vec![col], rows, 30.0, 40.0);
+        m.filters
+            .insert("c".into(), FilterCondition::contains("fr"));
+        m.apply_filter();
+        assert_eq!(m.filtered_indices, vec![0]);
+        m.filters
+            .insert("c".into(), FilterCondition::contains("spa"));
+        m.apply_filter();
+        assert_eq!(m.filtered_indices, vec![1]);
+    }
     #[test]
     fn sort_image_text_column_numeric() {
         use crate::format::CellFormat;

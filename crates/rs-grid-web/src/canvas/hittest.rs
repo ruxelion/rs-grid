@@ -95,31 +95,13 @@ impl GridCanvas {
         let _ = self.0.canvas.style().set_property("cursor", cursor);
     }
 
-    /// Returns `true` when the data cell under viewport point `(vx, vy)`
-    /// resolves to non-editable via `ColumnDef::is_cell_editable` — the
-    /// grid-wide `GridModel.editable` toggle, the column's static
-    /// `editable=false`, or a false-resolving `editable_predicate`.
-    /// `false` (not locked) for any point outside a data cell (header,
-    /// gutter, out of bounds) — callers should treat that as "no
-    /// override", falling through to the existing cursor logic.
-    pub(super) fn hit_locked_cell(&self, vx: f64, vy: f64) -> bool {
-        let state = self.0.state.borrow();
-        let Some(coord) = state.hit_test(vx, vy) else {
-            return false;
-        };
-        state
-            .model
-            .columns
-            .get(coord.col)
-            .is_some_and(|c| !c.is_cell_editable(coord.row, &state.model))
-    }
-
     /// Recomputes and applies the hover cursor for viewport point
     /// `(vx, vy)` — the same precedence used by the mousemove handler
-    /// (header menu icon > resize separator > locked cell > default).
-    /// Also called after a column drag/resize ends, so the cursor
-    /// doesn't stay stale (e.g. showing `default` over a locked cell,
-    /// or over a resize separator) until the next `mousemove` fires.
+    /// (header menu icon > resize separator > default). Locked
+    /// (non-editable) cells deliberately keep the default cursor; their
+    /// only feedback is the themed locked-cell overlay. Also called
+    /// after a column drag/resize ends, so the cursor doesn't stay
+    /// stale (e.g. still showing `w-resize`) until the next `mousemove`.
     pub(super) fn refresh_hover_cursor(&self, vx: f64, vy: f64) {
         if self.in_footer_band(vy) {
             // The footer is not part of the data area: pointer over an
@@ -141,8 +123,6 @@ impl GridCanvas {
             self.set_cursor("pointer");
         } else if self.hit_col_resize_separator(vx, vy).is_some() {
             self.set_cursor("w-resize");
-        } else if self.hit_locked_cell(vx, vy) {
-            self.set_cursor("not-allowed");
         } else {
             self.set_cursor("default");
         }
@@ -425,18 +405,29 @@ impl GridCanvas {
         }
     }
 
-    /// Returns the bottom-left corner of the filter row's mini funnel
-    /// icon button for `col_idx` in canvas-local coordinates, suitable
-    /// for anchoring the filter popup at a fixed position.
+    /// Returns the bottom-left corner of the filter row's icon button for
+    /// `col_idx` in canvas-local coordinates, suitable for anchoring the
+    /// filter popup at a fixed position. The bottom is the *button's*
+    /// own bottom edge (the same box the hover background draws in
+    /// `rs-grid-scene`'s `builder.rs`), not the filter row's — so the
+    /// popup hangs right off the button, AG-Grid style, the same way
+    /// `menu_icon_anchor` anchors the header's "⋮" menu.
     pub(super) fn filter_row_icon_anchor(&self, col_idx: usize) -> (f64, f64) {
         let theme = self.0.builder.borrow();
         let mr = theme.theme.header_filter_icon_margin_r;
         let bw = theme.theme.header_filter_icon_btn_w;
+        let bh_cfg = theme.theme.header_menu_icon_btn_h;
         drop(theme);
         let state = self.0.state.borrow();
         let model = &state.model;
         let hh = model.effective_header_height();
         let fh = model.effective_filter_row_height();
+        let btn_h = if bh_cfg > 0.0 {
+            bh_cfg
+        } else {
+            (fh - 12.0).max(8.0)
+        };
+        let btn_bottom = hh + (fh - btn_h) / 2.0 + btn_h;
         let sx = state.viewport.scroll_x;
         let rnw = model.effective_row_number_width();
         let ccw = model.effective_checkbox_column_width();
@@ -448,7 +439,7 @@ impl GridCanvas {
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         let btn_left_vx = col_right_vx - mr - bw;
-        (btn_left_vx, hh + fh)
+        (btn_left_vx, btn_bottom)
     }
 
     /// Build a `ColumnDragHint` from the current drag state,

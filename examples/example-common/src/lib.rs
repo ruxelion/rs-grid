@@ -144,7 +144,7 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
                 // Self-contained SVG data URI generated per row — no
                 // external avatar service, no network request.
                 base_url: None,
-                border_radius: 16.0,
+                border_radius: 4.0,
                 padding: 4.0,
             });
             c
@@ -197,8 +197,8 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
             let mut c = ColumnDef::new("notes", "Notes", 160.0);
             c.editor = Some(CellEditor::Text);
             // Demo: locked for even row indices, to exercise the
-            // per-cell editable predicate (not-allowed cursor +
-            // locked-cell style) in the e2e fixture.
+            // per-cell editable predicate (locked-cell style) in the
+            // e2e fixture.
             c.editable_predicate =
                 Some(EditablePredicate::new(|row, _model| row % 2 == 1));
             c
@@ -236,7 +236,7 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
                 base_url: String::new(),
                 suffix: String::new(),
                 image_size: 20.0,
-                border_radius: 2.0,
+                border_radius: 4.0,
                 gap: 6.0,
             }),
         };

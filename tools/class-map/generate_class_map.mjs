@@ -22,8 +22,21 @@ const require = createRequire(import.meta.url);
 const daisyPkg    = require('daisyui/package.json');
 const daisyThemes = require('daisyui/theme/object.js');
 
-/** All CSS custom properties for the DaisyUI light theme */
-const THEME = (daisyThemes.default ?? daisyThemes).light;
+/**
+ * Corner radius forced onto every DaisyUI radius token below. rs-grid's UI
+ * uses a single 4px radius everywhere (badges, buttons, progress bars,
+ * inputs, menus), matching the host app, instead of DaisyUI's defaults
+ * (`--radius-selector`/`--radius-box` 0.5rem, `--radius-field` 0.25rem).
+ */
+const RADIUS = '0.25rem';
+
+/** All CSS custom properties for the DaisyUI light theme (radii overridden) */
+const THEME = {
+    ...(daisyThemes.default ?? daisyThemes).light,
+    '--radius-selector': RADIUS,
+    '--radius-field': RADIUS,
+    '--radius-box': RADIUS,
+};
 
 // ── oklch → sRGB conversion ───────────────────────────────────────────────────
 

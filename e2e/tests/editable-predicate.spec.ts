@@ -55,12 +55,12 @@ test.describe('editable predicate (per-cell locking)', () => {
     await expect(canvas).toBeVisible();
   });
 
-  test('hovering a locked cell shows the not-allowed cursor', async ({ page }) => {
+  test('hovering a locked cell keeps the default cursor', async ({ page }) => {
     const canvas = await scrollToNotes(page);
     await canvas.hover({ position: { x: NOTES_X, y: LOCKED_ROW_Y } });
     await waitForPaint(page, 200);
     const cursor = await canvas.evaluate((el) => getComputedStyle(el).cursor);
-    expect(cursor).toBe('not-allowed');
+    expect(cursor).toBe('default');
   });
 
   test('hovering an unlocked cell shows the default cursor', async ({ page }) => {

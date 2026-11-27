@@ -438,12 +438,11 @@ Checked only when the grid-wide `GridModel.editable` and the static
 per-column `editable` flag are both `true` — either one short-circuits
 before the predicate is ever called (mirrors the `rules` → `validator`
 layering above). `ColumnDef::is_cell_editable(row, model)` resolves all
-three layers and is the single source of truth reused by `rs-grid-web`'s
-cursor logic, `PasteAt`/`CutSelection`, and `rs-grid-scene`'s cell
-renderer.
+three layers and is the single source of truth reused by
+`PasteAt`/`CutSelection` and `rs-grid-scene`'s cell renderer.
 
-When a cell resolves to non-editable: `rs-grid-web` shows a
-`not-allowed` cursor on hover and `PasteAt`/`CutSelection` skip the cell,
+When a cell resolves to non-editable: the hover cursor is unchanged
+(`default`), `PasteAt`/`CutSelection` skip the cell,
 and the canvas paints a `--rs-grid-locked-cell-bg` background wash behind
 the cell regardless of its `CellFormat` (transparent `locked_cell_bg` = no
 visual change). The `--rs-grid-locked-cell-text` color swap is scoped to

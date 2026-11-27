@@ -155,9 +155,9 @@ bespoke, since their gating logic differs (`is_cell_editable` alone has a
   result can change between `StartEdit` and `CommitEdit`),
   `PasteAt`/`CutSelection` (`state/cmd_clipboard.rs` — locked cells are
   silently skipped, `continue`, not `break`, since a locked cell says
-  nothing about its neighbours), `rs-grid-web`'s `hit_locked_cell`
-  (`not-allowed` cursor), and `rs-grid-scene`'s `emit_cell` (themed
-  locked-cell overlay — see `rs-grid-scene/AGENTS.md`).
+  nothing about its neighbours), and `rs-grid-scene`'s `emit_cell`
+  (themed locked-cell overlay — see `rs-grid-scene/AGENTS.md`). Locked
+  cells do not change the hover cursor in `rs-grid-web`.
 
 ## Per-cell decoration (`CellDecorator`)
 
@@ -184,7 +184,7 @@ bespoke, since their gating logic differs (`is_cell_editable` alone has a
 - Consumed only by `rs-grid-scene`'s `emit_cell` (themed border width,
   consumer-supplied colors — see `rs-grid-scene/AGENTS.md`). No other
   crate needs to call it — there is no hit-test/cursor semantics for
-  decoration, unlike `editable_predicate`'s `hit_locked_cell`.
+  decoration.
 
 ## Cell button visibility (`CellButtonsVisible`)
 
@@ -262,6 +262,15 @@ non-numeric cell never matches, it never panics (same precedent as
 `CellFormat::is_numeric_like()` (true for `Number`/`Percent`/`Currency`/
 `ProgressBar`): numeric compare for numeric-like columns, case-insensitive
 string equality otherwise.
+
+A condition tests what the cell **shows**: numeric-like (and unformatted)
+columns test the raw value, every other formatted column tests
+`format::display_text(raw, fmt)` — an `ImageText` label (never its KEY,
+often a whole `data:` URI that would match almost any short query), a
+`Styled` badge's text, a `Boolean`'s ✓/✗ label (raw when that label is
+empty), a `Custom` formatter's text. Resolved once per filter, like
+`is_numeric_like`. `display_text` is public so UIs (the filter popup's
+value list) can show the same text.
 
 `GridCommand::SetColumnFilter { col_key, condition }` sets/clears a
 column's filter (`condition.is_empty()` — an operator that needs a value
