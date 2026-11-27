@@ -575,24 +575,28 @@ impl GridModel {
         // Resolve each active filter's column numeric-ness once,
         // not once per row — otherwise this degrades from
         // O(n_rows * n_filters) to O(n_rows * n_filters * n_columns).
-        let active: Vec<(&str, &FilterCondition, bool)> = self
-            .filters
-            .iter()
-            .map(|(col_key, condition)| {
-                let numeric = self
-                    .columns
-                    .iter()
-                    .find(|c| &c.key == col_key)
-                    .and_then(|c| c.format.as_ref())
-                    .is_some_and(CellFormat::is_numeric_like);
-                (col_key.as_str(), condition, numeric)
-            })
-            .collect();
-        let value_active: Vec<(&str, &HashSet<String>)> = self
-            .value_filters
-            .iter()
-            .map(|(col_key, allowed)| (col_key.as_str(), allowed))
-            .collect();
+        let format_of = |col_key: &str| {
+            self.columns
+                .iter()
+                .find(|c| c.key == col_key)
+                .and_then(|c| c.format.as_ref())
+        };
+        let active: Vec<(&str, &FilterCondition, bool, Option<&CellFormat>)> =
+            self.filters
+                .iter()
+                .map(|(col_key, condition)| {
+                    let fmt = format_of(col_key);
+                    let numeric = fmt.is_some_and(CellFormat::is_numeric_like);
+                    (col_key.as_str(), condition, numeric, fmt)
+                })
+                .collect();
+        let value_active: Vec<(&str, &HashSet<String>, Option<&CellFormat>)> =
+            self.value_filters
+                .iter()
+                .map(|(col_key, allowed)| {
+                    (col_key.as_str(), allowed, format_of(col_key))
+                })
+                .collect();
         let count = n as usize;
         let mut result = Vec::with_capacity(count);
         for i in 0..count {
@@ -601,19 +605,24 @@ impl GridModel {
             } else {
                 self.sort_order[i]
             };
-            let passes = active.iter().all(|(col_key, condition, numeric)| {
-                let cell = self
-                    .data
-                    .get_cell_ref(physical, col_key)
-                    .unwrap_or_default();
-                condition.matches(&cell, *numeric)
-            }) && value_active.iter().all(|(col_key, allowed)| {
-                let cell = self
-                    .data
-                    .get_cell_ref(physical, col_key)
-                    .unwrap_or_default();
-                allowed.contains(cell.as_ref())
-            });
+            let passes =
+                active.iter().all(|(col_key, condition, numeric, fmt)| {
+                    let cell = self
+                        .data
+                        .get_cell_ref(physical, col_key)
+                        .unwrap_or_default();
+                    let text =
+                        fmt.map_or(cell.as_ref(), |f| f.filter_text(&cell));
+                    condition.matches(text, *numeric)
+                }) && value_active.iter().all(|(col_key, allowed, fmt)| {
+                    let cell = self
+                        .data
+                        .get_cell_ref(physical, col_key)
+                        .unwrap_or_default();
+                    let text =
+                        fmt.map_or(cell.as_ref(), |f| f.filter_text(&cell));
+                    allowed.contains(text)
+                });
             if passes {
                 result.push(physical);
             }
@@ -633,9 +642,17 @@ impl GridModel {
     pub fn unique_values(&self, col_key: &str, cap: usize) -> UniqueValues {
         let mut set = BTreeSet::new();
         let n = self.data.row_count().min(Self::MAX_CLIENT_SORT_ROWS);
+        let fmt = self
+            .columns
+            .iter()
+            .find(|c| c.key == col_key)
+            .and_then(|c| c.format.as_ref());
         for i in 0..n {
             let cell = self.data.get_cell_ref(i, col_key).unwrap_or_default();
-            set.insert(cell.into_owned());
+            // Show what the user sees (e.g. the label of an ImageText
+            // cell), not the raw `"data:image/... Label"` string.
+            let text = fmt.map_or(cell.as_ref(), |f| f.filter_text(&cell));
+            set.insert(text.to_owned());
             if set.len() > cap {
                 return UniqueValues::TooMany { cap };
             }
@@ -2128,6 +2145,44 @@ mod tests {
             m.unique_values("a", 10),
             UniqueValues::Values(vec!["foo".to_string(), "hello".to_string()])
         );
+    }
+
+    #[test]
+    fn unique_values_and_value_filter_use_image_text_label() {
+        let cols = vec![ColumnDef::new("g", "G", 100.0).with_format(
+            CellFormat::ImageText {
+                base_url: String::new(),
+                suffix: String::new(),
+                image_size: 16.0,
+                border_radius: 0.0,
+                gap: 4.0,
+            },
+        )];
+        let rows = [
+            "data:image/svg+xml;base64,AAA Female",
+            "data:image/svg+xml;base64,BBB Male",
+            "data:image/svg+xml;base64,AAA Female",
+        ]
+        .iter()
+        .enumerate()
+        .map(|(i, v)| {
+            let mut r = RowRecord::new(i as u64);
+            r.set("g", *v);
+            r
+        })
+        .collect();
+        let mut m = GridModel::new(cols, rows, 30.0, 40.0);
+        assert_eq!(
+            m.unique_values("g", 10),
+            UniqueValues::Values(vec![
+                "Female".to_string(),
+                "Male".to_string()
+            ])
+        );
+        m.value_filters
+            .insert("g".into(), ["Male".to_string()].into_iter().collect());
+        m.apply_filter();
+        assert_eq!(m.filtered_indices, vec![1]);
     }
 
     #[test]
