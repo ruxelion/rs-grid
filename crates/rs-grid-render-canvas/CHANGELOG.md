@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.20](https://github.com/ruxelion/rs-grid/compare/rs-grid-render-canvas-v0.1.19...rs-grid-render-canvas-v0.1.20) - 2026-11-27
+
+### Other
+
+- updated the following local packages: rs-grid-scene
+
 ## [0.1.19](https://github.com/ruxelion/rs-grid/compare/rs-grid-render-canvas-v0.1.18...rs-grid-render-canvas-v0.1.19) - 2026-11-27
 
 ### Other
