@@ -83,6 +83,8 @@ impl GridState {
                     } else {
                         self.selection.select_cell(new_row, new_col);
                     }
+                    // Keep the moved focus on screen (arrow keys).
+                    self.reveal_cell(new_row, new_col);
                 }
                 CommandOutput::None
             }
@@ -209,5 +211,92 @@ mod tests {
         let focus = s.selection.focus.expect("focus must be set");
         assert_eq!(focus.row, 9);
         assert_eq!(focus.col, 2);
+    }
+
+    /// 100 rows of 30 px and 450 px of columns, so both axes overflow a
+    /// 300×200 viewport.
+    fn make_scrollable_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows = (0..100).map(RowRecord::new).collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 300.0, 200.0)
+    }
+
+    /// Whether the full band of `row` lies inside the visible data area.
+    fn row_fully_visible(s: &GridState, row: u64) -> bool {
+        let top = s.model.row_top(row) - s.viewport.scroll_y;
+        top >= s.model.data_top()
+            && top + s.model.row_height <= s.viewport.height
+    }
+
+    #[test]
+    fn move_selection_down_reveals_focus() {
+        let mut s = make_scrollable_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 50,
+            delta_col: 0,
+            extend: false,
+        });
+        assert!(s.viewport.scroll_y > 0.0);
+        assert!(row_fully_visible(&s, 50));
+    }
+
+    #[test]
+    fn move_selection_up_reveals_focus() {
+        let mut s = make_scrollable_state();
+        s.apply(GridCommand::ScrollTo { x: 0.0, y: 1000.0 });
+        s.apply(GridCommand::SelectCell(CellCoord { row: 20, col: 0 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: -1,
+            delta_col: 0,
+            extend: false,
+        });
+        assert!(row_fully_visible(&s, 19));
+    }
+
+    #[test]
+    fn move_selection_extend_reveals_focus() {
+        let mut s = make_scrollable_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 30,
+            delta_col: 0,
+            extend: true,
+        });
+        assert!(row_fully_visible(&s, 30));
+    }
+
+    #[test]
+    fn move_selection_right_reveals_focus() {
+        let mut s = make_scrollable_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 1 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 0,
+            delta_col: 1,
+            extend: false,
+        });
+        // Column 2 spans content x 250..450; its right edge must be on
+        // screen once the row-number gutter is added back.
+        let lgw = s.model.effective_row_number_width()
+            + s.model.effective_checkbox_column_width();
+        assert!(s.viewport.scroll_x > 0.0);
+        assert!(450.0 - s.viewport.scroll_x + lgw <= s.viewport.width);
+    }
+
+    #[test]
+    fn move_selection_within_view_does_not_scroll() {
+        let mut s = make_scrollable_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::MoveSelection {
+            delta_row: 1,
+            delta_col: 0,
+            extend: false,
+        });
+        assert_eq!(s.viewport.scroll_y, 0.0);
     }
 }
