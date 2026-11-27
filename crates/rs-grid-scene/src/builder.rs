@@ -18,6 +18,24 @@ use crate::{
     theme::Theme,
 };
 
+// ── filter-row "filter list" glyph ───────────────────────────────────────────
+
+/// Pixel-snapped geometry of the filter-row icon (AG Grid-style "filter
+/// list": three centered horizontal bars of decreasing width), derived
+/// from `Theme::header_filter_icon_size` (`gw`, the top bar's nominal
+/// width).
+///
+/// Returns `(bar_height, bar_pitch, [top, middle, bottom] widths)`.
+/// Bar height and pitch are whole pixels and every width is an *even*
+/// whole number, so bars centered on an integer x land on pixel
+/// boundaries and render crisp at DPR 1.
+fn filter_glyph_bars(gw: f64) -> (f64, f64, [f64; 3]) {
+    let bar_h = (gw / 8.0).round().max(1.0);
+    let pitch = (gw * 0.37).round().max(bar_h + 1.0);
+    let even = |ratio: f64| (2.0 * (gw * ratio / 2.0).round()).max(2.0);
+    (bar_h, pitch, [even(1.0), even(0.62), even(0.25)])
+}
+
 // ── boundary-line rectangle border ───────────────────────────────────────────
 
 /// Push a crisp 1px-per-edge rectangle border — used by both the
@@ -1052,41 +1070,41 @@ impl SceneBuilder {
                             t.header_filter_icon
                         };
                         let gw = t.header_filter_icon_size;
-                        // Heroicons "funnel" (solid) silhouette: a wide
-                        // rounded top tapering through a shoulder bend
-                        // to a single rounded point — one continuous
-                        // polygon rather than a flat neck + separate
-                        // spout line, which used to read as a plain
-                        // triangle-with-a-stick rather than a funnel.
-                        let gh = gw * 1.05;
-                        let neck_w = gw * 0.32;
-                        let shoulder_y_frac = 0.4;
-                        let icon_cx = cx + col.width - icon_mr - icon_bw / 2.0;
-                        let top_y = hh + (fh - gh) / 2.0;
-                        frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
-                            points: vec![
-                                [icon_cx - gw / 2.0, top_y],
-                                [icon_cx + gw / 2.0, top_y],
-                                [
-                                    icon_cx + neck_w / 2.0,
-                                    top_y + gh * shoulder_y_frac,
-                                ],
-                                [icon_cx, top_y + gh],
-                                [
-                                    icon_cx - neck_w / 2.0,
-                                    top_y + gh * shoulder_y_frac,
-                                ],
-                            ],
-                            fill: glyph_color,
-                            corner_radius: gw * 0.08,
-                        }));
+                        // "Filter list" glyph (AG Grid style): three
+                        // centered horizontal bars of decreasing
+                        // width, with rounded ends. Built from plain
+                        // `Rect`s so each bar gets the cell clip.
+                        // Every dimension is snapped to whole pixels
+                        // (bar widths to even values around an
+                        // integer center) so the bars stay crisp at
+                        // DPR 1 instead of anti-aliasing into a blur.
+                        let (bar_h, bar_pitch, bar_widths) =
+                            filter_glyph_bars(gw);
+                        let glyph_h = bar_pitch * 2.0 + bar_h;
+                        let icon_cx =
+                            (cx + col.width - icon_mr - icon_bw / 2.0).round();
+                        let top_y = (hh + (fh - glyph_h) / 2.0).round();
+                        for (i, bw) in bar_widths.into_iter().enumerate() {
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: icon_cx - bw / 2.0,
+                                y: top_y + bar_pitch * i as f64,
+                                width: bw,
+                                height: bar_h,
+                                fill: glyph_color,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: bar_h / 2.0,
+                                clip: Some([clip_x, hh, clip_w, fh]),
+                            }));
+                        }
                         // Notification-style badge dot overlapping the
-                        // glyph's top-right corner — on top of, not
-                        // instead of, the color swap above (both signal
+                        // glyph's top-right corner (the widest, top
+                        // bar's right end) — on top of, not instead
+                        // of, the color swap above (both signal
                         // "active" at once).
                         if is_active {
                             let badge_r = t.header_filter_icon_badge_r;
-                            let badge_cx = icon_cx + gw / 2.0;
+                            let badge_cx = icon_cx + bar_widths[0] / 2.0;
                             let badge_cy = top_y;
                             frame.push(ScenePrimitive::Rect(RectPrimitive {
                                 x: badge_cx - badge_r,
@@ -1830,22 +1848,44 @@ mod tests {
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
 
+        // A glyph bar is a fill-only rect, `bar_h` tall, fully rounded.
+        let (bar_h, _, _) = filter_glyph_bars(t.header_filter_icon_size);
+        let is_bar = |r: &&RectPrimitive| {
+            (r.height - bar_h).abs() < 0.01
+                && (r.corner_radius - bar_h / 2.0).abs() < 0.01
+        };
+
         let frame_unfiltered =
             b.build(&state_no_filter, None, None, None, None);
-        let inactive_glyphs = polygon_primitives(&frame_unfiltered)
+        let inactive_bars = rect_primitives(&frame_unfiltered)
             .into_iter()
-            .filter(|p| p.fill == t.header_filter_icon)
+            .filter(is_bar)
+            .filter(|r| r.fill == t.header_filter_icon)
             .count();
-        // 3 filter-row icons (no header icon — removed), all inactive.
-        assert_eq!(inactive_glyphs, 3);
+        // 3 filter-row icons (no header icon — removed) × 3 bars each,
+        // all inactive.
+        assert_eq!(inactive_bars, 9);
 
         let frame_filtered = b.build(&state_filtered, None, None, None, None);
-        let active_glyphs = polygon_primitives(&frame_filtered)
+        let active_bars = rect_primitives(&frame_filtered)
             .into_iter()
-            .filter(|p| p.fill == t.header_filter_icon_active)
+            .filter(is_bar)
+            .filter(|r| r.fill == t.header_filter_icon_active)
             .count();
-        // Column "a"'s filter-row icon is active.
-        assert_eq!(active_glyphs, 1);
+        // Column "a"'s filter-row icon (3 bars) is active.
+        assert_eq!(active_bars, 3);
+    }
+
+    #[test]
+    fn filter_glyph_bars_are_pixel_snapped_and_decreasing() {
+        let (bar_h, pitch, widths) = filter_glyph_bars(13.0);
+        assert_eq!(bar_h.fract(), 0.0);
+        assert_eq!(pitch.fract(), 0.0);
+        assert!(pitch > bar_h, "bars must not touch");
+        for w in widths {
+            assert_eq!(w % 2.0, 0.0, "width {w} must be even");
+        }
+        assert!(widths[0] > widths[1] && widths[1] > widths[2]);
     }
 
     #[test]
