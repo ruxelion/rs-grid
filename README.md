@@ -42,8 +42,6 @@ rows up to very large datasets (row indices are `u64`).
 - **Scrollbars** — custom-drawn vertical and horizontal scrollbars with
   drag, click-track and arrow buttons
 - **Cell formatting** — number, currency, percent, boolean, image, image+text
-- **Footer & pagination** — total / selected row counts, rows-per-page
-  selector and page navigation (client-side paging), styled after daisyUI
 - **Theming** — CSS custom properties (`--rs-grid-*`), light and dark mode
 - **HiDPI** — device-pixel-ratio aware for crisp rendering on Retina displays
 - **Context menu** — right-click with built-in and custom actions

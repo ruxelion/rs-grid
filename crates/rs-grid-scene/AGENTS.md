@@ -296,36 +296,6 @@ header's own band) was extended to `hh + fh` (`data_top` locally) when
 this shipped — see `rs-grid-core/AGENTS.md`'s classification list for
 which `rs-grid-core` hit-test functions extend the same way.
 
-## Footer bar (`builder/footer.rs`)
-
-`footer::emit_footer` runs right after `emit_scrollbars`, so it paints over
-any row that straddles the body's bottom edge. The frame is
-`vp.height + footer_height` tall (`vp.height` is the scrollable body). Only
-existing primitives are used. Left: total rows, selected rows (muted) and,
-with pagination, the rows-per-page label + a `select-sm`-style box. Right:
-the range label (right-aligned against the strip) and the page strip.
-
-- **daisyUI is the visual reference**: the strip is a `join` of `btn btn-sm`
-  — one rounded outline plus inner divider `Line`s, the current page a
-  square `footer_page_active_bg` fill (`btn-active`), disabled prev/next at
-  the ends in `footer_disabled_text`. Colors and sizes are all
-  `Theme::footer_*` (`--rs-grid-footer-*`, daisyUI `btn-sm`/`select-sm`
-  values as defaults); `footer_height` is pushed into the model at
-  mount/`set_theme` like `filter_row_height`.
-- **Click targets are `FooterZone`s** (`frame.rs`): `SceneFrame::footer_zones`
-  + `hit_footer`, each carrying a `FooterAction`
-  (`FirstPage`/`PrevPage`/`NextPage`/`LastPage`/`GoToPage(p)`/`PageSizeMenu`).
-  Only *enabled* controls get a zone, so `rs-grid-web` never recomputes this
-  geometry. `footer_zones` is omitted from the serde output when empty, so
-  footer-less frames (and MCP fixtures) serialize unchanged; the insta
-  snapshots (Debug) gained a `footer_zones: []` line.
-- No text measurement exists here: left-hand items are positioned with the
-  same ~0.6 em-per-char estimate used for cell content, the right-hand strip
-  needs none (it is right-anchored).
-- With pagination the visible range from `visible_rows` is *page-local*; the
-  builder shifts it by `page_start` right after deriving the sub-row offset,
-  so every `ri` below indexes global data/selection/row numbers.
-
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`
