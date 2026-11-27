@@ -483,8 +483,13 @@ impl SceneBuilder {
             } else {
                 (col_start, col_end)
             };
-            for ci in sep_start..sep_end {
-                let col = &model.columns[ci];
+            for (ci, col) in model
+                .columns
+                .iter()
+                .enumerate()
+                .take(sep_end)
+                .skip(sep_start)
+            {
                 let cx = col_vx(ci);
                 if preview_offsets.is_some()
                     && (cx + col.width <= lgw || cx >= vp.width)
@@ -618,8 +623,9 @@ impl SceneBuilder {
             // including the band's own right edge — that already has a
             // dedicated separator via pinned_separator_color/width below).
             if t.column_separator_width > 0.0 && pinned_count > 1 {
-                for ci in 0..pinned_count - 1 {
-                    let col = &model.columns[ci];
+                for (ci, col) in
+                    model.columns.iter().enumerate().take(pinned_count - 1)
+                {
                     let cx = col_vx(ci);
                     let sep_x = cx + col.width - 0.5;
                     frame.push(ScenePrimitive::Line(LinePrimitive {
