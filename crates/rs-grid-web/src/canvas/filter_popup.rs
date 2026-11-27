@@ -21,7 +21,7 @@ use super::{
     GridCanvas,
     context_menu::{
         CtxColors, clamp_menu_to_bounds, create_menu_shell, read_ctx_colors,
-        remove_ctx_menu,
+        remove_ctx_menu, viewport_size,
     },
     dom_helpers::{document, make_el, set_styles},
     edit::{dd_idx_from_event, dd_scroll_into_view, dd_set_highlight},
@@ -812,17 +812,14 @@ impl GridCanvas {
                     // already placed `menu`, so this can only run here,
                     // at click time.
                     let _ = panel.style().set_property("display", "block");
+                    // Measure at 0,0 so a fixed box near the right edge
+                    // doesn't shrink-wrap and under-report its width.
+                    let _ = panel.style().set_property("left", "0px");
+                    let _ = panel.style().set_property("top", "0px");
                     let row_rect = row.get_bounding_client_rect();
                     let panel_w = panel.offset_width() as f64;
                     let panel_h = panel.offset_height() as f64;
-                    let win_w = web_sys::window()
-                        .and_then(|w| w.inner_width().ok())
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(f64::MAX);
-                    let win_h = web_sys::window()
-                        .and_then(|w| w.inner_height().ok())
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(f64::MAX);
+                    let (win_w, win_h) = viewport_size();
                     let mut left = row_rect.right() + 4.0;
                     if left + panel_w > win_w {
                         left = row_rect.left() - panel_w - 4.0;

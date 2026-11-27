@@ -304,43 +304,73 @@ fn builtin_shortcut(action: BuiltinAction, locale: &Locale) -> &str {
 // and the menu lifetime is bounded by the user's single
 // right-click gesture.
 
+/// Gap kept between a menu and the viewport edge.
+const VIEWPORT_MARGIN: f64 = 4.0;
+
+/// Visible viewport size in CSS px, **excluding** scrollbars
+/// (`documentElement.clientWidth/Height`). `window.innerWidth` includes
+/// the vertical scrollbar, so clamping to it lets a menu slide under it.
+pub(super) fn viewport_size() -> (f64, f64) {
+    let doc = document();
+    if let Some(el) = doc.document_element() {
+        let (w, h) = (el.client_width(), el.client_height());
+        if w > 0 && h > 0 {
+            return (f64::from(w), f64::from(h));
+        }
+    }
+    let win = web_sys::window();
+    let dim = |v: Option<wasm_bindgen::JsValue>| {
+        v.and_then(|v| v.as_f64()).unwrap_or(f64::MAX)
+    };
+    (
+        dim(win.as_ref().and_then(|w| w.inner_width().ok())),
+        dim(win.as_ref().and_then(|w| w.inner_height().ok())),
+    )
+}
+
 /// Moves `menu` so it stays fully inside the visible part of the canvas:
-/// the canvas rect intersected with the browser viewport. The canvas can
-/// extend past the viewport (page scrolled horizontally, grid wider than
+/// the canvas rect intersected with the viewport (minus scrollbars). The
+/// canvas can extend past the viewport (page scrolled, grid wider than
 /// the window), so clamping to the canvas alone is not enough.
 ///
-/// Reads the menu's current `offset_width/height`, so call it again once
-/// the content has been built (the shell is measured while still empty).
+/// Measures the menu's current size, so call it once the content has been
+/// built — the shell is first clamped while still empty.
 pub(super) fn clamp_menu_to_bounds(
     menu: &HtmlElement,
     canvas: &HtmlCanvasElement,
 ) {
     let rect = canvas.get_bounding_client_rect();
-    let (mut left, mut top) = (rect.left(), rect.top());
-    let (mut right, mut bottom) = (rect.right(), rect.bottom());
-    if let Some(win) = web_sys::window() {
-        let vw = win.inner_width().ok().and_then(|v| v.as_f64());
-        let vh = win.inner_height().ok().and_then(|v| v.as_f64());
-        if let Some(vw) = vw {
-            left = left.max(0.0);
-            right = right.min(vw);
-        }
-        if let Some(vh) = vh {
-            top = top.max(0.0);
-            bottom = bottom.min(vh);
-        }
-    }
-    let (left, top) = (left as i32, top as i32);
-    let mw = menu.offset_width();
-    let mh = menu.offset_height();
-    let max_x = (right as i32 - mw).max(left);
-    let max_y = (bottom as i32 - mh).max(top);
-    let cur_x = menu.offset_left();
-    let cur_y = menu.offset_top();
-    let cx = cur_x.min(max_x).max(left);
-    let cy = cur_y.min(max_y).max(top);
-    let _ = menu.style().set_property("left", &format!("{cx}px"));
-    let _ = menu.style().set_property("top", &format!("{cy}px"));
+    let (vw, vh) = viewport_size();
+    let left = rect.left().max(VIEWPORT_MARGIN);
+    let top = rect.top().max(VIEWPORT_MARGIN);
+    let right = rect.right().min(vw - VIEWPORT_MARGIN);
+    let bottom = rect.bottom().min(vh - VIEWPORT_MARGIN);
+    // The requested anchor, stored by `create_menu_shell`. Falls back to
+    // the current position for a menu that was not built by it.
+    let anchor = |name: &str, fallback: f64| {
+        menu.get_attribute(name)
+            .and_then(|v| v.parse::<f64>().ok())
+            .unwrap_or(fallback)
+    };
+    let cur = menu.get_bounding_client_rect();
+    let (ax, ay) = (
+        anchor("data-anchor-x", cur.left()),
+        anchor("data-anchor-y", cur.top()),
+    );
+    // Measure at the top-left corner: a `position: fixed` box placed near
+    // the right edge shrinks to the space left, wrapping its labels, so
+    // measuring in place under-reports its natural width.
+    let _ = menu.style().set_property("left", "0px");
+    let _ = menu.style().set_property("top", "0px");
+    let size = menu.get_bounding_client_rect();
+    let x = ax.min(right - size.width()).max(left);
+    let y = ay.min(bottom - size.height()).max(top);
+    let _ = menu
+        .style()
+        .set_property("left", &format!("{}px", x.round()));
+    let _ = menu
+        .style()
+        .set_property("top", &format!("{}px", y.round()));
 }
 
 pub(super) fn create_menu_shell(
@@ -426,6 +456,9 @@ pub(super) fn create_menu_shell(
             ("user-select", "none"),
         ],
     );
+
+    let _ = menu.set_attribute("data-anchor-x", &x.to_string());
+    let _ = menu.set_attribute("data-anchor-y", &y.to_string());
 
     body.append_child(&backdrop).expect("append backdrop");
     body.append_child(&menu).expect("append menu");
@@ -608,6 +641,8 @@ impl GridCanvas {
                 }
             }
         }
+        // Re-clamp now that the items give the menu its real size.
+        clamp_menu_to_bounds(&menu, &self.0.canvas);
     }
 
     fn show_context_menu(&self, x: i32, y: i32) {
@@ -677,6 +712,7 @@ impl GridCanvas {
                 }
             }
         }
+        clamp_menu_to_bounds(&menu, &self.0.canvas);
     }
 
     /// Attach the click handler for a built-in action to a
