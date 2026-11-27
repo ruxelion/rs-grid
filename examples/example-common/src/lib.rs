@@ -197,8 +197,8 @@ pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
             let mut c = ColumnDef::new("notes", "Notes", 160.0);
             c.editor = Some(CellEditor::Text);
             // Demo: locked for even row indices, to exercise the
-            // per-cell editable predicate (not-allowed cursor +
-            // locked-cell style) in the e2e fixture.
+            // per-cell editable predicate (locked-cell style) in the
+            // e2e fixture.
             c.editable_predicate =
                 Some(EditablePredicate::new(|row, _model| row % 2 == 1));
             c

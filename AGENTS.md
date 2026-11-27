@@ -358,7 +358,7 @@ cd e2e && npm run update-snapshots
 column, locked on even row indices via `ColumnDef::editable_predicate`):
 - `dblclick on an unlocked (odd row) Notes cell opens the text input` /
   `dblclick on a locked (even row) Notes cell does not open the text input`
-- `hovering a locked cell shows the not-allowed cursor` /
+- `hovering a locked cell keeps the default cursor` /
   `hovering an unlocked cell shows the default cursor`
 
 `e2e/tests/footer.spec.ts` — footer bar + pagination (harness toggles
