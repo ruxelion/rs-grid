@@ -117,7 +117,11 @@ pub(super) fn read_ctx_colors() -> CtxColors {
         text_disabled: v("--rs-grid-ctx-text-disabled", "#9ca3af"),
         hover_bg: v("--rs-grid-ctx-hover-bg", "#f3f4f6"),
         separator: v("--rs-grid-ctx-separator", "#e5e7eb"),
-        radius: v("--rs-grid-ctx-radius", "8px"),
+        // 4px = daisyUI `--radius-field`, the radius the inputs, buttons
+        // and filter-row boxes already use, so menus match the rest of
+        // the grid. Shared by every popup menu (context menu, header
+        // menu, filter popup + flyout, select-editor dropdown).
+        radius: v("--rs-grid-ctx-radius", "4px"),
         font_size: v("--rs-grid-ctx-font-size", "14px"),
         min_width: v("--rs-grid-ctx-min-width", "180px"),
         shortcut_font_size: v("--rs-grid-ctx-shortcut-font-size", "11px"),

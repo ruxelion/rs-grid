@@ -336,6 +336,11 @@ surface.
   (this popup, `show_col_header_menu`, `show_context_menu`) pass
   `theme.header_bg.to_css()`, so every popup reads as an extension of
   the header it's anchored under instead of a separately-themed surface.
+  Every popup menu (this shell, the filter popup's flyout and operator
+  list, the Select editor's dropdown) takes its corner radius from the
+  one `--rs-grid-ctx-radius` var (`CtxColors::radius`, default `4px` —
+  daisyUI's `--radius-field`, the same radius as the inputs/buttons),
+  so menus and controls share a single corner style.
   The popup's form: a collapsed-by-default "Text Filter" disclosure row
   as its first element — no column-name heading above it (removed; the
   column is already identified by whichever filter-row cell/icon was

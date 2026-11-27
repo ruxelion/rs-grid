@@ -455,8 +455,13 @@ impl GridCanvas {
         let _ = s.set_property("overflow-y", "auto");
         let _ = s.set_property("z-index", "10000");
         let _ = s.set_property("border", &format!("1px solid {border_c}"));
-        // daisyUI `rounded-box` (`--radius-box: 0.5rem`).
-        let _ = s.set_property("border-radius", "8px");
+        // Same radius as every other popup menu (`--rs-grid-ctx-radius`,
+        // 4px by default — daisyUI's `--radius-field`, matching the
+        // inputs/buttons), so all menus share one corner style.
+        let _ = s.set_property(
+            "border-radius",
+            &super::context_menu::read_ctx_colors().radius,
+        );
         let _ = s.set_property("background", &bg);
         let _ = s.set_property("color", &text_c);
         let _ = s.set_property("font-size", &format!("{fsz}px"));

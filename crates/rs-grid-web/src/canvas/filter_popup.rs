@@ -597,7 +597,8 @@ impl GridCanvas {
                 ("display", "none"),
                 ("box-sizing", "border-box"),
                 ("border", &op_list_border),
-                ("border-radius", "8px"),
+                // Shared menu radius (`--rs-grid-ctx-radius`).
+                ("border-radius", &colors.radius),
                 ("padding", "8px"),
                 ("background-color", &colors.bg),
                 (
