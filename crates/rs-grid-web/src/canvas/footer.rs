@@ -99,6 +99,20 @@ impl GridCanvas {
         s.model.effective_footer_height() > 0.0 && vy >= s.viewport.height
     }
 
+    /// Pull a viewport-y that strayed into the footer band back onto the
+    /// body's last pixel row. Used while a selection drag is in progress:
+    /// dragging down over the footer must keep extending the selection
+    /// (and auto-scrolling), exactly like dragging past the canvas edge
+    /// does without a footer — even though the footer itself is never a
+    /// hit target.
+    pub(super) fn clamp_to_body(&self, vy: f64) -> f64 {
+        if self.in_footer_band(vy) {
+            self.0.state.borrow().viewport.height - 1.0
+        } else {
+            vy
+        }
+    }
+
     /// The enabled footer control under `(vx, vy)`, from the last frame.
     pub(super) fn hit_footer(&self, vx: f64, vy: f64) -> Option<FooterZone> {
         self.0

@@ -96,6 +96,22 @@ test.describe('footer & pagination', () => {
     expect(await pageState(page)).toBe('');
   });
 
+  test('dblclick on the footer does not edit the row hidden beneath it', async ({
+    page,
+  }) => {
+    // Regression: rows keep laying out under the footer, so a dblclick
+    // there used to open the editor of the covered Name cell.
+    await enable(page);
+    const box = (await page.locator('canvas').boundingBox())!;
+    await page.mouse.dblclick(box.x + 150, box.y + box.height - FOOTER_H / 2);
+    await waitForPaint(page);
+    await expect(page.locator('input, textarea')).toHaveCount(0);
+    // Same column, just above the footer: the editor does open.
+    await page.mouse.dblclick(box.x + 150, box.y + box.height - FOOTER_H - 30);
+    await waitForPaint(page);
+    await expect(page.locator('input, textarea')).toHaveCount(1);
+  });
+
   test('turning pagination off restores continuous scrolling', async ({
     page,
   }) => {

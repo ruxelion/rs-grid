@@ -663,7 +663,8 @@ impl GridCanvas {
                     // Extend selection to the cell under the cursor.
                     // Use an explicit `let` so the immutable borrow from
                     // hit_test() is dropped before dispatch() borrows mutably.
-                    let coord = gc.0.state.borrow().hit_test(x, y);
+                    let hit_y = gc.clamp_to_body(y);
+                    let coord = gc.0.state.borrow().hit_test(x, hit_y);
                     if let Some(coord) = coord {
                         gc.dispatch(GridCommand::ExtendSelection(coord));
                     }
@@ -674,7 +675,8 @@ impl GridCanvas {
                 Some(ActiveDrag::Row) => {
                     drop(drag);
                     let (x, y) = gc.canvas_xy(&evt);
-                    let row = gc.0.state.borrow().hit_test_row_header(x, y);
+                    let hit_y = gc.clamp_to_body(y);
+                    let row = gc.0.state.borrow().hit_test_row_header(x, hit_y);
                     if let Some(row) = row {
                         gc.dispatch(GridCommand::ExtendRowSelection(row));
                     }

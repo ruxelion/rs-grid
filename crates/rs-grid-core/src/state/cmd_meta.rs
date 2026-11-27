@@ -424,6 +424,27 @@ mod tests {
     }
 
     #[test]
+    fn footer_band_never_hits_the_rows_hidden_beneath_it() {
+        // 100 rows of 30px: rows keep laying out far past the 600px
+        // canvas, so the footer band covers real rows.
+        let mut s = make_rows_state(100);
+        s.apply(GridCommand::SetShowCheckboxColumn(true));
+        let y = 600.0 - 10.0;
+        assert!(s.hit_test(150.0, y).is_some());
+        assert!(s.hit_test_row_header(10.0, y).is_some());
+        assert!(s.hit_test_checkbox_row(60.0, y).is_some());
+
+        s.apply(GridCommand::SetShowFooter(true));
+        // Same point, now inside the footer band.
+        assert!(s.hit_test(150.0, y).is_none());
+        assert!(s.hit_test_row_header(10.0, y).is_none());
+        assert!(s.hit_test_checkbox_row(60.0, y).is_none());
+        // Just above the footer still hits.
+        let above = s.viewport.height - 1.0;
+        assert!(s.hit_test(150.0, above).is_some());
+    }
+
+    #[test]
     fn pagination_off_leaves_geometry_untouched() {
         let s = make_rows_state(100);
         assert_eq!(s.model.page_window(), (0, 100));

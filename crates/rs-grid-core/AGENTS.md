@@ -379,6 +379,13 @@ rows into pages. Both are `Meta`, non-undoable commands (`SetShowFooter`,
   (`state.rs`) re-derives `height` whenever the canvas size, `show_footer` or
   `footer_height` changes. Anything that writes `viewport.height` directly
   (tests only) must also set `canvas_height`.
+- **The footer band is never a row hit target.** Rows keep laying out past
+  the body's bottom edge (the footer just covers them), so
+  `GridState::hit_test`, `hit_test_row_header` and `hit_test_checkbox_row`
+  return `None` for `vy >= viewport.height` while the footer is shown —
+  otherwise a double-click on the footer opens the editor of the row hidden
+  beneath it. The free functions in `hit_test.rs` take no viewport and are
+  unguarded: go through the `GridState` wrappers.
 - **Pagination is a window over global rows.** Row indices (data,
   selection, sort, edits, the row-number gutter) stay global `u64`;
   `GridModel::page_window() -> (start, end)` is the slice that is laid out.

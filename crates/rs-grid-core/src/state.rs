@@ -240,8 +240,21 @@ impl GridState {
         }
     }
 
+    /// `true` when viewport-y `vy` lies in the footer bar, below the
+    /// scrollable body. Rows keep laying out past the body's bottom edge
+    /// (they are simply covered by the footer), so without this guard a
+    /// pointer over the footer would resolve to the hidden row beneath
+    /// it — and a double-click there would open that row's editor.
+    fn in_footer_band(&self, vy: f64) -> bool {
+        self.model.effective_footer_height() > 0.0 && vy >= self.viewport.height
+    }
+
     /// Hit-test a viewport-space pointer position against the data cells.
+    /// `None` over the footer bar.
     pub fn hit_test(&self, vx: f64, vy: f64) -> Option<CellCoord> {
+        if self.in_footer_band(vy) {
+            return None;
+        }
         hit_test::hit_test(
             vx,
             vy,
@@ -253,6 +266,9 @@ impl GridState {
 
     /// Hit-test the sticky row-number gutter. Returns the row index or `None`.
     pub fn hit_test_row_header(&self, vx: f64, vy: f64) -> Option<u64> {
+        if self.in_footer_band(vy) {
+            return None;
+        }
         hit_test::hit_test_row_header(
             vx,
             vy,
@@ -285,6 +301,9 @@ impl GridState {
     /// Hit-test the checkbox column (scrolls with the data). Returns the
     /// row index or `None`.
     pub fn hit_test_checkbox_row(&self, vx: f64, vy: f64) -> Option<u64> {
+        if self.in_footer_band(vy) {
+            return None;
+        }
         hit_test::hit_test_checkbox_row(
             vx,
             vy,

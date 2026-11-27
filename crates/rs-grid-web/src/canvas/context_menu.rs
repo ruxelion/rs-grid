@@ -418,6 +418,12 @@ impl GridCanvas {
 
             let (cx, cy) = gc.canvas_xy(&evt);
 
+            // The footer bar has no context menu of its own, and must not
+            // open the cell menu for the row hidden beneath it.
+            if gc.in_footer_band(cy) {
+                return;
+            }
+
             // Right-click on column header → column menu.
             let col = gc.0.state.borrow().hit_test_col_header(cx, cy);
             if let Some(col_idx) = col {

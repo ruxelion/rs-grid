@@ -368,6 +368,7 @@ span mirrors `on_page_change` as `"<page>/<size>"`):
 - `next page button moves to page 2` / `last page button jumps to the final page`
 - `page-size menu changes the rows per page`
 - `clicks in the footer never select a data cell`
+- `dblclick on the footer does not edit the row hidden beneath it`
 - `turning pagination off restores continuous scrolling`
 
 `e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.

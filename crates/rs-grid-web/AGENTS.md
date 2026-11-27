@@ -653,11 +653,6 @@ name + "⋮" menu only).
   Canvas-side `Theme` fields back that closed look — see
   `rs-grid-scene/AGENTS.md`.
 
-## Server-side page fetcher (`FetchConfig`)
-
-`canvas/fetcher.rs` implements the automatic fetch coordinator behind
-`GridCanvas::enable_async_fetch(page_cache, FetchConfig { .. })` — detects
-needed pages for the current viewport (`PageCacheDataSource::needed_pages`),
 ## Footer bar & pagination (`canvas/footer.rs`)
 
 The footer is drawn on the canvas by `rs-grid-scene` (see its
@@ -670,6 +665,11 @@ rows-per-page menu.
   selection, and `hit_footer` resolves the enabled `FooterZone` from the last
   frame. `refresh_hover_cursor` shows `pointer` over zones, `default`
   elsewhere in the band; `row_at` returns `None` below the body.
+- Every other pointer route is covered too: `GridState::hit_test*` return
+  `None` over the footer (dblclick-to-edit, validation tooltip, locked
+  cursor), `attach_contextmenu` returns early there, and the selection-drag
+  paths hit-test through `clamp_to_body` so dragging down over the footer
+  keeps extending the selection and auto-scrolling.
 - Page buttons dispatch `GridCommand::SetPage`; the selector opens
   `show_page_size_menu`, which reuses the context menu's DOM shell
   (`create_menu_shell`/`make_menu_item`, so same ids, theme tokens and
@@ -695,6 +695,11 @@ rows-per-page menu.
   font-size,font-bold}`. The bar defaults to the header's background/border; controls
   follow daisyUI `btn-sm`/`select-sm`/`badge-soft`.
 
+## Server-side page fetcher (`FetchConfig`)
+
+`canvas/fetcher.rs` implements the automatic fetch coordinator behind
+`GridCanvas::enable_async_fetch(page_cache, FetchConfig { .. })` — detects
+needed pages for the current viewport (`PageCacheDataSource::needed_pages`),
 fetches them via `build_url`/`parse_response`, and inserts the response.
 Full usage guide: `rs-grid-site`'s `data/page-cache.mdx` and
 `howto/server-pagination.mdx` (see root `AGENTS.md`'s doc-sync rule — this
@@ -747,12 +752,12 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 | `set_on_checked_rows_changed` | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
 | `set_on_sort_changed` | `ToggleSort` (header click), `SetSort`, `ClearSort` — read `sort_state()`. With `DataSourceMode::ServerSide` the indicator follows the click but rows are not reordered: the host re-queries its backend |
+| `set_on_page_change` | The current page or the page size changed — `(zero_based_page, rows_per_page)`. Compares a before/after snapshot, so it covers footer clicks, `SetPage`/`SetPageSize`, arrow-key navigation past a page edge and a filter shrinking the row set |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
 borrow on `state` — `apply()` returns its output by value, and each callback
 `Rc` is cloned out of its own cell before invocation. So a callback may both
 read grid state (e.g. `selected_row_indices()`, `cell_at_logical()`) **and**
-| `set_on_page_change` | The current page or the page size changed — `(zero_based_page, rows_per_page)`. Compares a before/after snapshot, so it covers footer clicks, `SetPage`/`SetPageSize`, arrow-key navigation past a page edge and a filter shrinking the row set |
 synchronously dispatch another `GridCommand` without panicking. (Guard against
 unbounded recursion if a dispatch re-triggers the same callback.)
 
