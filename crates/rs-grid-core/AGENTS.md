@@ -364,6 +364,42 @@ DOM popup for the operator/value form plus the value checklist) on top
 of this — see `rs-grid-web/AGENTS.md`'s "Header filter icon + popup"
 section.
 
+## Footer & pagination (`show_footer`, `pagination_enabled`)
+
+`GridModel.show_footer` (opt-in, default `false`) reserves a bar at the
+bottom of the canvas; `GridModel.pagination_enabled` (opt-in) splits the
+rows into pages. Both are `Meta`, non-undoable commands (`SetShowFooter`,
+`SetFooterHeight`, `SetFooterLabels`, `SetPaginationEnabled`, `SetPage`,
+`SetPageSize`, `SetPageSizeOptions`), also settable on `GridModelBuilder`.
+
+- **The footer lives outside the scrollable body.** `ViewportState.height`
+  stays "body height" (= `canvas_height` − `effective_footer_height()`), so
+  scrollbars, `visible_rows`, `clamp_scroll` and `reveal_cell` need no
+  footer logic. `Resize` stores `canvas_height`; `sync_viewport_height()`
+  (`state.rs`) re-derives `height` whenever the canvas size, `show_footer` or
+  `footer_height` changes. Anything that writes `viewport.height` directly
+  (tests only) must also set `canvas_height`.
+- **Pagination is a window over global rows.** Row indices (data,
+  selection, sort, edits, the row-number gutter) stay global `u64`;
+  `GridModel::page_window() -> (start, end)` is the slice that is laid out.
+  `row_top`, `total_height`, `hit_test::logical_row_at_vy` and the scene's
+  `visible_rows` call are relative to `page_start()`. With pagination off the
+  window is `[0, display_row_count())`, so nothing changes.
+  `current_page()` clamps the stored `page`; `apply_filter()` and
+  `SetTotalRowCount` call `clamp_page()` so a shrinking row set never leaves
+  an empty page.
+- `reveal_cell` (arrow keys, search) switches to the page that holds the
+  target row first, then scrolls within it.
+- `GridState::selected_row_count()` backs the footer's "selected" count: the
+  checked rows when the checkbox column is shown, otherwise the height of the
+  selection range. `checked_row_count()` is the filter-scoped checked count
+  that `checkbox_header_state()` now shares.
+- `pagination.rs` holds the pure helpers: `page_count`, `page_items`
+  (`1 … 4 5 6 … 50` strip), `group_thousands`, and `FooterLabels` (templates
+  the host fills with localized text — the scene crate has no locale access).
+- `PageCacheDataSource`'s own `page_size` is a server-fetch detail and is
+  unrelated to the UI page size.
+
 ## Useful commands
 
 ```sh

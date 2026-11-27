@@ -306,12 +306,29 @@ with pagination, the rows-per-page label + a `select-sm`-style box. Right:
 the range label (right-aligned against the strip) and the page strip.
 
 - **daisyUI is the visual reference**: the strip is a `join` of `btn btn-sm`
-  — one rounded outline plus inner divider `Line`s, the current page a
-  square `footer_page_active_bg` fill (`btn-active`), disabled prev/next at
-  the ends in `footer_disabled_text`. Colors and sizes are all
-  `Theme::footer_*` (`--rs-grid-footer-*`, daisyUI `btn-sm`/`select-sm`
-  values as defaults); `footer_height` is pushed into the model at
+  — one rounded group (`footer_button_bg` fill, inner divider `Line`s, one
+  outline), the current page a `footer_page_active_bg` segment, disabled
+  prev/next in `footer_disabled_text`; the rows-per-page box is a
+  `select-sm`; the selected count is a soft primary `badge`
+  (`footer_badge_bg`/`_text`, plain muted text at 0 so the layout doesn't
+  jump). The bar mirrors the header band (`footer_bg`/`footer_border`
+  default to the header's values) and its controls use the grid background,
+  like the filter row's input boxes. Everything is `Theme::footer_*`
+  (`--rs-grid-footer-*`); `footer_height` is pushed into the model at
   mount/`set_theme` like `filter_row_height`.
+- **Joined segments** (`push_segment`): a hover/active fill rounds only the
+  group's outer corners — a rounded rect overshooting the inner side,
+  clipped back to the segment, so translucent fills never overlap.
+- **Text widths**: `SceneBuilder::text_measurer` (`TextMeasurer`, set by the
+  host via `set_text_measurer`) gives real widths, so labels, badge and
+  selector are spaced exactly. Without one (native tests, scene dumps) a
+  per-character estimate is used — never assert exact x positions of
+  left-hand items in native tests.
+- **Hover**: `SceneBuilder::hovered_footer: Option<FooterAction>` (set by the
+  host on pointer move) selects the control drawn with
+  `footer_button_hover_bg`.
+- **Narrow bars** drop items in order: range label, rows-per-page label,
+  page numbers (strip becomes prev / current / next), selected badge.
 - **Click targets are `FooterZone`s** (`frame.rs`): `SceneFrame::footer_zones`
   + `hit_footer`, each carrying a `FooterAction`
   (`FirstPage`/`PrevPage`/`NextPage`/`LastPage`/`GoToPage(p)`/`PageSizeMenu`).
@@ -319,9 +336,6 @@ the range label (right-aligned against the strip) and the page strip.
   geometry. `footer_zones` is omitted from the serde output when empty, so
   footer-less frames (and MCP fixtures) serialize unchanged; the insta
   snapshots (Debug) gained a `footer_zones: []` line.
-- No text measurement exists here: left-hand items are positioned with the
-  same ~0.6 em-per-char estimate used for cell content, the right-hand strip
-  needs none (it is right-anchored).
 - With pagination the visible range from `visible_rows` is *page-local*; the
   builder shifts it by `page_start` right after deriving the sub-row offset,
   so every `ri` below indexes global data/selection/row numbers.

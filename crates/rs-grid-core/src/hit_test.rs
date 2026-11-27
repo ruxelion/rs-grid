@@ -230,10 +230,13 @@ fn logical_row_at_vy(vy: f64, model: &GridModel, scroll_y: f64) -> Option<u64> {
     } else {
         ((vy + scroll_y - hh) / rh) as u64
     };
-    if row >= model.display_row_count() {
+    // `row` is relative to the first row of the current page (the whole
+    // data set when pagination is off).
+    let (page_start, page_end) = model.page_window();
+    if row >= page_end - page_start {
         return None;
     }
-    Some(row)
+    Some(page_start + row)
 }
 
 #[cfg(test)]

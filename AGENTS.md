@@ -361,6 +361,15 @@ column, locked on even row indices via `ColumnDef::editable_predicate`):
 - `hovering a locked cell shows the not-allowed cursor` /
   `hovering an unlocked cell shows the default cursor`
 
+`e2e/tests/footer.spec.ts` — footer bar + pagination (harness toggles
+`show-footer-toggle`/`pagination-toggle`, off under Playwright; `page-state`
+span mirrors `on_page_change` as `"<page>/<size>"`):
+- `footer and pagination are off by default`
+- `next page button moves to page 2` / `last page button jumps to the final page`
+- `page-size menu changes the rows per page`
+- `clicks in the footer never select a data cell`
+- `turning pagination off restores continuous scrolling`
+
 `e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.
 
 **Canvas note**: the grid is rendered on `<canvas>`, not in the DOM.

@@ -33,6 +33,8 @@ pub mod lru_ring;
 pub mod model;
 /// Page-based cache for lazy/virtual data sources.
 pub mod page_cache;
+/// Footer bar and UI pagination helpers (page strip, label templates).
+pub mod pagination;
 /// Row record storage and metadata.
 pub mod row;
 /// Tri-state (checked/unchecked/indeterminate) for the row-selection

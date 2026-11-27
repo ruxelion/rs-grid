@@ -177,6 +177,15 @@ fn App() -> impl IntoView {
     // Whether the floating filter row is shown — same rationale as
     // `show_checkboxes` (plain `<button>`, off under Playwright).
     let show_filter_row = RwSignal::new(!automated);
+    // Whether the footer bar (row counts + rows-per-page selector) and
+    // the pagination it carries are shown — same rationale as above
+    // (plain `<button>`s, off under Playwright so every pixel-coordinate
+    // baseline stays put).
+    let show_footer = RwSignal::new(!automated);
+    let pagination = RwSignal::new(!automated);
+    // e2e-only: last on_page_change value as `"<page>/<size>"` (page is
+    // one-based), empty until the page first changes.
+    let page_state = RwSignal::new(String::new());
     // e2e-only, manual QA: which DataSource backs the grid — see the
     // "data-source-select" control and DataSourceKind below.
     let data_source = RwSignal::new(DataSourceKind::Fn);
@@ -216,6 +225,13 @@ fn App() -> impl IntoView {
                 {move || {
                     validation_state.get().map(|(_, _, msg)| msg).unwrap_or_default()
                 }}
+            </span>
+            // e2e-only: last on_page_change value, `"<page>/<size>"`.
+            <span
+                data-testid="page-state"
+                style="position:absolute;width:1px;height:1px;overflow:hidden"
+            >
+                {move || page_state.get()}
             </span>
             <div class="fixture-header">
                 <h1 class="fixture-title">"rs-grid basic example"</h1>
@@ -381,6 +397,50 @@ fn App() -> impl IntoView {
                         }
                     }}
                 </button>
+                // e2e-only: toggles the footer bar live — same rationale/
+                // positioning as the toggles above.
+                <button
+                    data-testid="show-footer-toggle"
+                    style="position:absolute; top:76px; right:16px;"
+                    on:click={
+                        let gc_holder = gc_holder.clone();
+                        move |_| {
+                            let next = !show_footer.get_untracked();
+                            show_footer.set(next);
+                            if let Some(gc) = gc_holder.borrow().as_ref() {
+                                gc.set_show_footer(next);
+                            }
+                        }
+                    }
+                >
+                    {move || {
+                        if show_footer.get() { "Footer: on" } else { "Footer: off" }
+                    }}
+                </button>
+                // e2e-only: toggles pagination live (needs the footer for
+                // its controls).
+                <button
+                    data-testid="pagination-toggle"
+                    style="position:absolute; top:108px; right:16px;"
+                    on:click={
+                        let gc_holder = gc_holder.clone();
+                        move |_| {
+                            let next = !pagination.get_untracked();
+                            pagination.set(next);
+                            if let Some(gc) = gc_holder.borrow().as_ref() {
+                                gc.set_pagination_enabled(next);
+                            }
+                        }
+                    }
+                >
+                    {move || {
+                        if pagination.get() {
+                            "Pagination: on"
+                        } else {
+                            "Pagination: off"
+                        }
+                    }}
+                </button>
             </div>
             <div class="fixture-grid">
                 {move || {
@@ -458,6 +518,10 @@ fn App() -> impl IntoView {
                             gc.set_show_filter_row(
                                 show_filter_row.get_untracked(),
                             );
+                            gc.set_pagination_enabled(
+                                pagination.get_untracked(),
+                            );
+                            gc.set_show_footer(show_footer.get_untracked());
                             // e2e-only: reproduces daisyUI's tooltip via
                             // the class hook — rs-grid renders no
                             // visual of its own, this is entirely
@@ -488,6 +552,9 @@ fn App() -> impl IntoView {
                     let on_cell_button_click = Box::new(
                         move |_row: u64, _col: String, _btn: String| {},
                     );
+                    let on_page_change = Box::new(move |page: u64, size: u64| {
+                        page_state.set(format!("{}/{}", page + 1, size));
+                    });
 
                     view! {
                         <GridCanvas
@@ -500,6 +567,7 @@ fn App() -> impl IntoView {
                             on_validation_error=on_validation_error
                             on_validation_state_changed=on_validation_state_changed
                             on_cell_button_click=on_cell_button_click
+                            on_page_change=on_page_change
                         />
                     }
                 }}

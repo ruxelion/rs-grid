@@ -24,6 +24,17 @@
   --rs-grid-locked-cell-text: rgba(208, 208, 208, 0.55);
   --rs-grid-invalid-cell-bg: rgba(220, 38, 38, 0.08);
   --rs-grid-invalid-cell-border: #dc2626;
+  --rs-grid-footer-bg: #2c2c2e;
+  --rs-grid-footer-text: #b0b0b0;
+  --rs-grid-footer-text-muted: rgba(176, 176, 176, 0.60);
+  --rs-grid-footer-border: #333335;
+  --rs-grid-footer-button-border: rgba(208, 208, 208, 0.18);
+  --rs-grid-footer-button-bg: #1c1c1e;
+  --rs-grid-footer-button-hover-bg: rgba(208, 208, 208, 0.15);
+  --rs-grid-footer-badge-bg: rgba(99, 80, 240, 0.24);
+  --rs-grid-footer-badge-text: #b0a6ff;
+  --rs-grid-footer-page-active-bg: #6350f0;
+  --rs-grid-footer-disabled-text: rgba(176, 176, 176, 0.30);
   --rs-grid-skeleton-fg: rgba(80, 80, 82, 0.78);
   --rs-grid-progress-track: #3c3f44;
   --rs-grid-progress-fill: #6350f0;

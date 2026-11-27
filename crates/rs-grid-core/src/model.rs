@@ -5,6 +5,10 @@ use crate::{
     datasource::{CellStatus, DataSource, VecDataSource},
     filter::{FilterCondition, UniqueValues},
     format::CellFormat,
+    pagination::{
+        self, DEFAULT_FOOTER_HEIGHT, DEFAULT_PAGE_SIZE,
+        DEFAULT_PAGE_SIZE_OPTIONS, FooterLabels,
+    },
     row::RowRecord,
     sort::SortDir,
     validation::InvalidEditMode,
@@ -247,6 +251,28 @@ pub struct GridModel {
     /// `Block` keeps the edit session active until the value is
     /// corrected.
     pub invalid_edit_mode: InvalidEditMode,
+    /// Whether the footer bar (row counts, rows-per-page selector and,
+    /// when [`Self::pagination_enabled`], the page navigation) is
+    /// reserved and rendered at the bottom of the grid. Opt-in, `false`
+    /// by default.
+    pub show_footer: bool,
+    /// Footer height in logical pixels, when shown. The stored value is
+    /// preserved while the footer is hidden — same pattern as
+    /// `header_height`/`show_header`.
+    pub footer_height: f64,
+    /// Whether rows are split into pages of [`Self::page_size`] rows.
+    /// When `false` (default) the grid scrolls continuously over every
+    /// row and the page fields are ignored.
+    pub pagination_enabled: bool,
+    /// Zero-based current page. Always read through
+    /// [`Self::current_page`], which clamps it to the valid range.
+    pub page: u64,
+    /// Rows per page (at least 1) when pagination is enabled.
+    pub page_size: u64,
+    /// Choices offered by the footer's rows-per-page selector.
+    pub page_size_options: Vec<u64>,
+    /// Localized footer text templates (pushed by the host).
+    pub footer_labels: FooterLabels,
 }
 
 impl GridModel {
@@ -311,7 +337,83 @@ impl GridModel {
             selectable: true,
             column_reorderable: true,
             invalid_edit_mode: InvalidEditMode::default(),
+            show_footer: false,
+            footer_height: DEFAULT_FOOTER_HEIGHT,
+            pagination_enabled: false,
+            page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
+            page_size_options: DEFAULT_PAGE_SIZE_OPTIONS.to_vec(),
+            footer_labels: FooterLabels::default(),
         }
+    }
+
+    /// Effective footer height for layout and rendering.
+    ///
+    /// Returns `footer_height` when `show_footer` is `true`, `0.0`
+    /// otherwise — same pattern as `effective_header_height()`.
+    pub fn effective_footer_height(&self) -> f64 {
+        if self.show_footer {
+            self.footer_height
+        } else {
+            0.0
+        }
+    }
+
+    /// Number of pages. Always `1` when pagination is disabled.
+    pub fn page_count(&self) -> u64 {
+        if self.pagination_enabled {
+            pagination::page_count(self.display_row_count(), self.page_size)
+        } else {
+            1
+        }
+    }
+
+    /// Zero-based current page, clamped to `0..page_count()` (the stored
+    /// [`Self::page`] can briefly exceed it after a filter shrank the
+    /// row set). Always `0` when pagination is disabled.
+    pub fn current_page(&self) -> u64 {
+        if self.pagination_enabled {
+            self.page.min(self.page_count() - 1)
+        } else {
+            0
+        }
+    }
+
+    /// Display-row window `[start, end)` currently shown: the current
+    /// page when pagination is enabled, every row otherwise. Row indices
+    /// stay global (display indices) — only the geometry is relative to
+    /// `start`.
+    pub fn page_window(&self) -> (u64, u64) {
+        let total = self.display_row_count();
+        if !self.pagination_enabled {
+            return (0, total);
+        }
+        let size = self.page_size.max(1);
+        let start = self.current_page().saturating_mul(size).min(total);
+        (start, start.saturating_add(size).min(total))
+    }
+
+    /// First display row of the current page (`0` without pagination).
+    pub fn page_start(&self) -> u64 {
+        self.page_window().0
+    }
+
+    /// Number of rows laid out on the current page.
+    pub fn page_row_count(&self) -> u64 {
+        let (start, end) = self.page_window();
+        end - start
+    }
+
+    /// Re-clamp the stored page after the row set changed (filter,
+    /// total-count update, page-size change). Returns `true` when the
+    /// stored page had to move.
+    pub fn clamp_page(&mut self) -> bool {
+        let clamped = self.current_page();
+        let moved = self.pagination_enabled && clamped != self.page;
+        if moved {
+            self.page = clamped;
+        }
+        moved
     }
 
     /// Effective header height for layout and rendering.
@@ -447,6 +549,12 @@ impl GridModel {
     /// restriction (the two AND-combine).  No-op for datasets larger
     /// than 1 000 000 rows.
     pub fn apply_filter(&mut self) {
+        self.recompute_filter();
+        // The row set may have shrunk below the current page.
+        self.clamp_page();
+    }
+
+    fn recompute_filter(&mut self) {
         if self.mode == DataSourceMode::ServerSide {
             self.filter_computed = false;
             return;
@@ -743,11 +851,12 @@ impl GridModel {
         }
     }
 
-    /// Total scrollable height (header + filter row + visible rows).
+    /// Total scrollable height (header + filter row + the rows of the
+    /// current page — every row when pagination is disabled).
     pub fn total_height(&self) -> f64 {
         self.effective_header_height()
             + self.effective_filter_row_height()
-            + self.display_row_count() as f64 * self.row_height
+            + self.page_row_count() as f64 * self.row_height
     }
 
     /// Total scrollable width — real columns plus the checkbox column
@@ -758,11 +867,13 @@ impl GridModel {
     }
 
     /// Y position of the top edge of a data row (in content space, before
-    /// scroll offset).
+    /// scroll offset). With pagination the position is relative to the
+    /// first row of the current page.
     pub fn row_top(&self, row_index: u64) -> f64 {
+        let local = row_index as f64 - self.page_start() as f64;
         self.effective_header_height()
             + self.effective_filter_row_height()
-            + row_index as f64 * self.row_height
+            + local * self.row_height
     }
 
     /// On-screen X position of column `col_idx`'s left edge,
@@ -907,6 +1018,10 @@ pub struct GridModelBuilder {
     selectable: bool,
     column_reorderable: bool,
     invalid_edit_mode: InvalidEditMode,
+    show_footer: bool,
+    pagination_enabled: bool,
+    page_size: u64,
+    page_size_options: Vec<u64>,
 }
 
 impl GridModelBuilder {
@@ -933,6 +1048,10 @@ impl GridModelBuilder {
             selectable: true,
             column_reorderable: true,
             invalid_edit_mode: InvalidEditMode::default(),
+            show_footer: false,
+            pagination_enabled: false,
+            page_size: DEFAULT_PAGE_SIZE,
+            page_size_options: DEFAULT_PAGE_SIZE_OPTIONS.to_vec(),
         }
     }
 
@@ -1024,6 +1143,37 @@ impl GridModelBuilder {
         self
     }
 
+    /// Show or hide the footer bar (row counts, rows-per-page selector
+    /// and, with [`Self::pagination`], the page navigation).
+    pub fn show_footer(mut self, v: bool) -> Self {
+        self.show_footer = v;
+        self
+    }
+
+    /// Enable or disable pagination. Pagination needs the footer to be
+    /// navigable, so this does not turn the footer on by itself.
+    pub fn pagination(mut self, v: bool) -> Self {
+        self.pagination_enabled = v;
+        self
+    }
+
+    /// Set the number of rows per page (clamped to at least 1).
+    pub fn page_size(mut self, n: u64) -> Self {
+        self.page_size = n.max(1);
+        self
+    }
+
+    /// Set the choices offered by the footer's rows-per-page selector.
+    /// Zero entries are dropped; an empty result keeps the defaults.
+    pub fn page_size_options(mut self, options: Vec<u64>) -> Self {
+        let options: Vec<u64> =
+            options.into_iter().filter(|&n| n > 0).collect();
+        if !options.is_empty() {
+            self.page_size_options = options;
+        }
+        self
+    }
+
     /// Build the [`GridModel`].
     pub fn build(self) -> GridModel {
         let pinned = self.pinned_count.min(self.columns.len());
@@ -1045,6 +1195,10 @@ impl GridModelBuilder {
         model.selectable = self.selectable;
         model.column_reorderable = self.column_reorderable;
         model.invalid_edit_mode = self.invalid_edit_mode;
+        model.show_footer = self.show_footer;
+        model.pagination_enabled = self.pagination_enabled;
+        model.page_size = self.page_size;
+        model.page_size_options = self.page_size_options;
         model
     }
 }

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
     filter::FilterCondition,
+    pagination::FooterLabels,
     selection::{CellCoord, CopyError},
     sort::SortDir,
     validation::InvalidEditMode,
@@ -31,6 +32,7 @@ use crate::{
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
 /// | **Row checkboxes** | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
 /// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetFilterRowHeight`, `SetShowFilterRow`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
+/// | **Footer & pagination** | `SetShowFooter`, `SetFooterHeight`, `SetFooterLabels`, `SetPaginationEnabled`, `SetPage`, `SetPageSize`, `SetPageSizeOptions` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum GridCommand {
@@ -343,6 +345,31 @@ pub enum GridCommand {
     /// both write to the same `GridModel::filters` map via
     /// `SetColumnFilter`.
     SetShowFilterRow(bool),
+    /// Show or hide the footer bar at the bottom of the grid (row counts,
+    /// rows-per-page selector and, with pagination, the page navigation).
+    /// The footer's height is reserved out of the scrollable viewport, so
+    /// toggling it re-derives `ViewportState::height` immediately — no
+    /// `Resize` needed. Not undoable.
+    SetShowFooter(bool),
+    /// Set the footer height in logical pixels (ignored if `<= 0.0`).
+    SetFooterHeight(f64),
+    /// Replace the footer text templates (the host pushes localized
+    /// strings; the scene crate has no locale access).
+    SetFooterLabels(FooterLabels),
+    /// Enable or disable pagination. When enabled the grid lays out and
+    /// hit-tests only the rows of the current page; row indices (data,
+    /// selection, sort, edits) stay global. Not undoable.
+    SetPaginationEnabled(bool),
+    /// Go to a zero-based page (clamped to the last page). No-op when
+    /// pagination is disabled. Resets the vertical scroll offset, like
+    /// sort and filter do.
+    SetPage(u64),
+    /// Set the number of rows per page (at least 1). The page is chosen
+    /// so the first row currently shown stays visible.
+    SetPageSize(u64),
+    /// Replace the choices offered by the footer's rows-per-page
+    /// selector. Zero entries are dropped; an empty result is ignored.
+    SetPageSizeOptions(Vec<u64>),
 }
 
 /// Value returned by [`crate::state::GridState::apply`]

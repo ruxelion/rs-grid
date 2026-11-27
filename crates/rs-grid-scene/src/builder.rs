@@ -1,5 +1,6 @@
 mod cells;
 mod checkbox;
+mod footer;
 mod scrollbars;
 
 use std::{collections::HashSet, rc::Rc};
@@ -10,7 +11,7 @@ use rs_grid_core::{
 
 use crate::{
     class_map::ClassResolver,
-    frame::SceneFrame,
+    frame::{FooterAction, SceneFrame},
     primitives::{
         Color, LinePrimitive, PolygonPrimitive, RectPrimitive, ScenePrimitive,
         TextAlign, TextPrimitive,
@@ -153,6 +154,16 @@ pub struct FlashHint {
 // ── builder
 // ───────────────────────────────────────────────────────────────────
 
+/// Measures a text run: `(text, font_size, bold) -> width` in logical
+/// pixels, for the renderer's font.
+///
+/// The scene crate cannot measure text itself. A host that can (the web
+/// layer, through Canvas2D `measureText`) registers one with
+/// [`SceneBuilder::set_text_measurer`] so chrome made of several text
+/// runs laid out side by side — the footer bar — is spaced exactly.
+/// Without one, a per-character estimate is used.
+pub type TextMeasurer = dyn Fn(&str, f64, bool) -> f64;
+
 /// Transforms a `GridState` snapshot into a `SceneFrame`.
 ///
 /// Instantiate once and reuse; all state is read from `GridState` on each
@@ -167,6 +178,12 @@ pub struct SceneBuilder {
     /// When `None`, styled elements render as plain text (no background
     /// or padding). Set via [`SceneBuilder::set_class_resolver`].
     pub class_resolver: Option<Rc<ClassResolver>>,
+    /// Optional text measurer for laying out the footer bar. Set via
+    /// [`SceneBuilder::set_text_measurer`].
+    pub text_measurer: Option<Rc<TextMeasurer>>,
+    /// Footer control currently under the pointer, drawn with the
+    /// hover fill. Set by the host on pointer move; `None` otherwise.
+    pub hovered_footer: Option<FooterAction>,
 }
 
 impl Default for SceneBuilder {
@@ -175,6 +192,8 @@ impl Default for SceneBuilder {
             dpr: 1.0,
             theme: Theme::default(),
             class_resolver: None,
+            text_measurer: None,
+            hovered_footer: None,
         }
     }
 }
@@ -186,6 +205,8 @@ impl SceneBuilder {
             dpr,
             theme: Theme::default(),
             class_resolver: None,
+            text_measurer: None,
+            hovered_footer: None,
         }
     }
 
@@ -195,12 +216,19 @@ impl SceneBuilder {
             dpr,
             theme,
             class_resolver: None,
+            text_measurer: None,
+            hovered_footer: None,
         }
     }
 
     /// Set the class resolver used for `CellFormat::Styled` elements.
     pub fn set_class_resolver(&mut self, resolver: Rc<ClassResolver>) {
         self.class_resolver = Some(resolver);
+    }
+
+    /// Register the text measurer used to lay out the footer bar.
+    pub fn set_text_measurer(&mut self, measurer: Rc<TextMeasurer>) {
+        self.text_measurer = Some(measurer);
     }
 
     /// Build a complete `SceneFrame` from the current
@@ -218,14 +246,18 @@ impl SceneBuilder {
         let sel = &state.selection;
         let t = &self.theme;
 
-        let mut frame = SceneFrame::new(vp.width, vp.height, self.dpr);
+        // `vp.height` is the scrollable body; the footer bar (when shown)
+        // sits below it, so the frame covers the whole canvas.
+        let footer_h = model.effective_footer_height();
+        let mut frame =
+            SceneFrame::new(vp.width, vp.height + footer_h, self.dpr);
 
         // ── background ───────────────────────────────────────────────────────
         frame.push(ScenePrimitive::Rect(RectPrimitive {
             x: 0.0,
             y: 0.0,
             width: vp.width,
-            height: vp.height,
+            height: vp.height + footer_h,
             fill: t.bg,
             stroke: None,
             stroke_width: 0.0,
@@ -253,8 +285,12 @@ impl SceneBuilder {
                 ccw,
             )
         };
+        // With pagination only the current page is laid out: the visible
+        // range below is *page-local*, and shifted to global row indices
+        // once the sub-row offset has been derived from it.
+        let page_start = model.page_start();
         let (row_start, row_end) = vp.visible_rows(
-            model.display_row_count(),
+            model.page_row_count(),
             model.row_height,
             model.data_top(),
         );
@@ -305,6 +341,11 @@ impl SceneBuilder {
         let first_no_os = (sy_content / rh) as u64;
         let os_rows = first_no_os.saturating_sub(row_start);
         let frac = frac_first + os_rows as f64 * rh;
+        // From here on `row_start`/`row_end` are global row indices
+        // (`ri` everywhere below indexes data, selection and the row-
+        // number gutter); `row_vy` only ever uses their difference.
+        let (row_start, row_end) =
+            (row_start + page_start, row_end + page_start);
         // ry of row_start in viewport coords:
         let ry_base = (data_top - sy).max(0.0) - frac;
 
@@ -1296,6 +1337,17 @@ impl SceneBuilder {
         // `model.total_width()` (it scrolls with the data), not into this
         // fixed reserve.
         scrollbars::emit_scrollbars(&mut frame, vp, model, rnw, t);
+
+        // ── footer bar ─────────────────────────────────────────
+        // Below the scrollable body; drawn after the scrollbars so any
+        // partially visible row at the body's bottom edge is covered.
+        footer::emit_footer(
+            &mut frame,
+            state,
+            t,
+            self.text_measurer.as_deref(),
+            self.hovered_footer,
+        );
 
         // ── column drag preview ────────────────────────────────
         if let Some(hint) = col_drag {

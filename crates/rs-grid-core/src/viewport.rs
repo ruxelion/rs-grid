@@ -9,8 +9,15 @@ pub struct ViewportState {
     pub scroll_y: f64,
     /// Canvas width in logical pixels.
     pub width: f64,
-    /// Canvas height in logical pixels.
+    /// Height of the scrollable *body* in logical pixels: the canvas
+    /// height minus the footer bar when shown (see `canvas_height`).
+    /// Everything that bounds scrolling — visible rows, scrollbar
+    /// geometry, scroll clamping — keeps reading this field, so none of
+    /// it needs to know about the footer.
     pub height: f64,
+    /// Full canvas height in logical pixels, footer included. Set by
+    /// `GridCommand::Resize`; `height` is derived from it.
+    pub canvas_height: f64,
     /// Extra rows rendered above and below the visible area to prevent
     /// flicker.
     pub overscan: usize,
@@ -23,6 +30,7 @@ impl Default for ViewportState {
             scroll_y: 0.0,
             width: 800.0,
             height: 600.0,
+            canvas_height: 600.0,
             overscan: 3,
         }
     }
@@ -35,6 +43,7 @@ impl ViewportState {
         Self {
             width,
             height,
+            canvas_height: height,
             ..Default::default()
         }
     }

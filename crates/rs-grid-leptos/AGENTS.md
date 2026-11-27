@@ -23,6 +23,7 @@ pub fn GridCanvas(
     #[prop(optional)] on_validation_state_changed: Option<ValidationStateChangedCb>,
     #[prop(optional)] on_cell_button_click: Option<CellButtonClickCb>,
     #[prop(optional)] on_checked_rows_changed: Option<CheckedRowsChangedCb>,
+    #[prop(optional)] on_page_change: Option<PageChangeCb>,
 ) -> impl IntoView
 ```
 
@@ -43,6 +44,13 @@ Callback arguments:
   header select-all/deselect-all (`GridModel.show_checkbox_column`). No
   arguments; read `checked_row_indices()`/`checkbox_header_state()` on the
   `on_mount` handle for the current state.
+- `on_page_change(page, rows_per_page)` — fires when the current page or the
+  page size changes (footer click, keyboard navigation past a page edge, a
+  filter shrinking the row set). `page` is zero-based. Turn the footer and
+  pagination on through the model:
+  `GridModelBuilder::show_footer(true).pagination(true).page_size(25)`. The
+  Dioxus and Yew wrappers expose the same via `set_on_page_change` on the
+  `on_mount` handle.
 
 ## Behaviour
 

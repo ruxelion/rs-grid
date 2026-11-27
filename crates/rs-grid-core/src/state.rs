@@ -124,7 +124,7 @@ impl GridState {
     ) -> Self {
         model.recalculate_flex_widths(viewport_width);
         model.rebuild_offsets();
-        Self {
+        let mut state = Self {
             model,
             viewport: ViewportState::new(viewport_width, viewport_height),
             selection: SelectionState::default(),
@@ -136,7 +136,28 @@ impl GridState {
             checked_row_anchor: None,
             checked_row_last_extend: None,
             history: UndoHistory::default(),
-        }
+        };
+        // A model built with the footer already shown reserves its
+        // height out of the scrollable viewport from the first frame.
+        state.sync_viewport_height();
+        state
+    }
+
+    /// Re-derive `viewport.height` (the scrollable body height) from the
+    /// full canvas height minus the footer, then re-clamp the scroll
+    /// offsets. Called whenever either input changes.
+    pub(super) fn sync_viewport_height(&mut self) {
+        self.viewport.height = (self.viewport.canvas_height
+            - self.model.effective_footer_height())
+        .max(0.0);
+        let (sx, sy) = clamp_scroll(
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+            &self.model,
+            &self.viewport,
+        );
+        self.viewport.scroll_x = sx;
+        self.viewport.scroll_y = sy;
     }
 
     /// Apply a command, mutating state in place.
@@ -207,6 +228,13 @@ impl GridState {
             | GridCommand::SetSelectable(_)
             | GridCommand::SetColumnReorderable(_)
             | GridCommand::SetInvalidEditMode(_)
+            | GridCommand::SetShowFooter(_)
+            | GridCommand::SetFooterHeight(_)
+            | GridCommand::SetFooterLabels(_)
+            | GridCommand::SetPaginationEnabled(_)
+            | GridCommand::SetPage(_)
+            | GridCommand::SetPageSize(_)
+            | GridCommand::SetPageSizeOptions(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -289,17 +317,7 @@ impl GridState {
         if total == 0 {
             return CheckboxTriState::Unchecked;
         }
-        let checked_count = if self.model.is_filter_applied() {
-            self.model
-                .filtered_indices
-                .iter()
-                .filter(|id| self.checked_rows.contains(id))
-                .count() as u64
-        } else {
-            // Guard against stale physical ids left over from a shrunk
-            // dataset — only count ones still in range.
-            self.checked_rows.iter().filter(|&&id| id < total).count() as u64
-        };
+        let checked_count = self.checked_row_count();
         if checked_count == 0 {
             CheckboxTriState::Unchecked
         } else if checked_count == total {
@@ -307,6 +325,35 @@ impl GridState {
         } else {
             CheckboxTriState::Indeterminate
         }
+    }
+
+    /// Number of checked rows among those currently in scope: the rows
+    /// passing the active filter, or every row when unfiltered. Stale
+    /// physical ids left over from a shrunk dataset are ignored.
+    pub fn checked_row_count(&self) -> u64 {
+        if self.model.is_filter_applied() {
+            self.model
+                .filtered_indices
+                .iter()
+                .filter(|id| self.checked_rows.contains(id))
+                .count() as u64
+        } else {
+            let total = self.model.data.row_count();
+            self.checked_rows.iter().filter(|&&id| id < total).count() as u64
+        }
+    }
+
+    /// Row count shown as "selected" in the footer: the checked rows when
+    /// the checkbox column is displayed, otherwise the height of the
+    /// selection range (a single cell counts as one row, a column
+    /// selection as every row).
+    pub fn selected_row_count(&self) -> u64 {
+        if self.model.show_checkbox_column {
+            return self.checked_row_count();
+        }
+        self.selection
+            .range()
+            .map_or(0, |(tl, br)| br.row - tl.row + 1)
     }
 }
 

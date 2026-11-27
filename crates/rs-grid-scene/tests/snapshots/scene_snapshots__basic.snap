@@ -1,6 +1,5 @@
 ---
 source: crates/rs-grid-scene/tests/scene_snapshots.rs
-assertion_line: 22
 expression: frame
 ---
 SceneFrame {
@@ -3444,6 +3443,7 @@ SceneFrame {
         ),
     ],
     button_zones: [],
+    footer_zones: [],
     viewport_width: 800.0,
     viewport_height: 400.0,
     dpr: 1.0,

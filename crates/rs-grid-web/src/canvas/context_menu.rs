@@ -137,7 +137,7 @@ fn make_menu_separator(
     sep
 }
 
-fn make_menu_item(
+pub(super) fn make_menu_item(
     doc: &web_sys::Document,
     icon: &str,
     label: &str,
