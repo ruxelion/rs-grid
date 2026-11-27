@@ -25,7 +25,7 @@ use dom_helpers::document;
 use fetcher::FetchConfig;
 use rs_grid_core::{
     commands::GridCommand, filter::FilterCondition,
-    page_cache::PageCacheDataSource, state::GridState,
+    page_cache::PageCacheDataSource, sort::SortDir, state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{
@@ -129,6 +129,9 @@ struct Inner {
     /// Optional callback fired after every command that mutates
     /// `checked_rows` (row checkbox toggle, header select-all/deselect-all).
     on_checked_rows_changed: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Optional callback fired after every command that changes the
+    /// active sort (header click, context-menu sort actions).
+    on_sort_changed: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
@@ -379,6 +382,7 @@ impl GridCanvas {
             on_columns_changed: RefCell::new(None),
             on_selection_changed: RefCell::new(None),
             on_checked_rows_changed: RefCell::new(None),
+            on_sort_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             on_validation_state_changed: RefCell::new(None),
             native_validation_tooltip: Cell::new(true),
@@ -682,6 +686,22 @@ impl GridCanvas {
         &self,
     ) -> rs_grid_core::row_check::CheckboxTriState {
         self.0.state.borrow().checkbox_header_state()
+    }
+
+    /// The active sort as `(col_key, direction)`, or `None` when the grid
+    /// is in natural order.
+    ///
+    /// Pair with [`GridCanvas::set_on_sort_changed`]. To show an initial
+    /// sort indicator (e.g. the one a server applied), dispatch
+    /// `GridCommand::SetSort`: in server-side mode it only records the
+    /// state and does not reorder rows.
+    pub fn sort_state(&self) -> Option<(String, SortDir)> {
+        self.0
+            .state
+            .borrow()
+            .sort
+            .as_ref()
+            .map(|s| (s.col_key.clone(), s.dir.clone()))
     }
 
     /// Show or hide the row-selection checkbox column.

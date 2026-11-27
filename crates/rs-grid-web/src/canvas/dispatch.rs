@@ -46,6 +46,21 @@ fn invalidates_cache(cmd: &GridCommand) -> bool {
     )
 }
 
+/// Commands that change the active sort (`GridState::sort`).
+///
+/// Drives [`GridCanvas::set_on_sort_changed`]. Must list every sort
+/// variant: a missing one would change the sort without telling the
+/// host, which matters most in server-side mode where the host owns
+/// the ordering.
+fn changes_sort(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+    )
+}
+
 impl GridCanvas {
     /// Trigger a brief golden-yellow flash on exactly `cells`.
     ///
@@ -123,6 +138,9 @@ impl GridCanvas {
                 | GridCommand::SelectCol(_)
                 | GridCommand::ExtendColSelection(_)
         );
+        // Commands that change the sort — fire on_sort_changed so a host
+        // that owns the ordering (server-side mode) can re-query.
+        let is_sort_change = changes_sort(&cmd);
         // Commands that mutate `checked_rows` — fire the
         // on_checked_rows_changed callback so JS callers can react to row
         // checkbox toggles (e.g. show a bulk-action toolbar).
@@ -207,6 +225,12 @@ impl GridCanvas {
                 cb();
             }
         }
+        if is_sort_change {
+            let cb = self.0.on_sort_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb();
+            }
+        }
         if is_checked_rows_change {
             let cb = self.0.on_checked_rows_changed.borrow().clone();
             if let Some(cb) = cb {
@@ -283,6 +307,26 @@ impl GridCanvas {
     /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
     pub fn set_on_checked_rows_changed(&self, cb: impl Fn() + 'static) {
         *self.0.on_checked_rows_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired after every command that changes the
+    /// active sort: `ToggleSort` (header click), `SetSort` and `ClearSort`
+    /// (context menu). Read the new state with
+    /// [`GridCanvas::sort_state`].
+    ///
+    /// Meant for hosts that own the ordering — typically a grid built
+    /// with [`DataSourceMode::ServerSide`], where the sort indicator
+    /// follows the header click but the rows are not reordered locally
+    /// — so they can re-query their backend.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    ///
+    /// [`DataSourceMode::ServerSide`]: rs_grid_core::model::DataSourceMode::ServerSide
+    pub fn set_on_sort_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_sort_changed.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an
@@ -464,7 +508,7 @@ impl GridCanvas {
 mod tests {
     use rs_grid_core::{commands::GridCommand, sort::SortDir};
 
-    use super::{invalidates_cache, triggers_fetch};
+    use super::{changes_sort, invalidates_cache, triggers_fetch};
 
     /// Regression test for the bug where `SetSort` (menu ⋮ → "Sort
     /// Ascending"/"Descending") and `ClearSort` updated `GridState`
@@ -488,5 +532,24 @@ mod tests {
                 "{cmd:?} should invalidate the page cache"
             );
         }
+    }
+
+    #[test]
+    fn only_sort_commands_change_the_sort() {
+        let sort_cmds = [
+            GridCommand::ToggleSort {
+                col_key: "name".into(),
+            },
+            GridCommand::SetSort {
+                col_key: "name".into(),
+                dir: SortDir::Desc,
+            },
+            GridCommand::ClearSort,
+        ];
+        for cmd in &sort_cmds {
+            assert!(changes_sort(cmd), "{cmd:?} should change the sort");
+        }
+        assert!(!changes_sort(&GridCommand::ClearAllFilters));
+        assert!(!changes_sort(&GridCommand::SetShowFilterRow(true)));
     }
 }
