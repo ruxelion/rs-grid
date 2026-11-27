@@ -505,6 +505,13 @@ surface.
     the filter row's own icon active/inactive color (and badge, below)
     meaningful after a user
     round-trips through "uncheck some → recheck all" via Select All.
+  - `CellFormat::ImageText` columns (raw value `"KEY Label"`, KEY often a
+    whole `data:` URI — e.g. the demo's Country flags) list each value as
+    the cell shows it: an `<img>` built like the cell's own
+    (`base_url + KEY + suffix`, `image_size`, `border_radius`) plus the
+    label, sorted by label. Search matches each row's shown text
+    (`text_content()`), never the raw value. The checkbox still carries
+    the raw value, so `SetColumnValueFilter` is unchanged.
   - Every checkbox (`select_all` and each value row) reuses the
     canvas-drawn row-selection checkbox column's own theme tokens
     (`Theme::checkbox_size`/`_border`/`_border_width`/`_radius`/

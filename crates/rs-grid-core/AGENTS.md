@@ -263,6 +263,11 @@ non-numeric cell never matches, it never panics (same precedent as
 `ProgressBar`): numeric compare for numeric-like columns, case-insensitive
 string equality otherwise.
 
+On a `CellFormat::ImageText` column a condition tests the label part of
+the raw `"KEY Label"` value (`image_text_label`, resolved once per filter
+like `is_numeric_like`), not the image key — which is often a whole
+`data:` URI that would otherwise match almost any short query.
+
 `GridCommand::SetColumnFilter { col_key, condition }` sets/clears a
 column's filter (`condition.is_empty()` — an operator that needs a value
 with none — clears it); `GridCommand::ClearAllFilters` clears every

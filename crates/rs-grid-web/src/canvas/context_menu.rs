@@ -395,7 +395,22 @@ pub(super) fn create_menu_shell(
     body.append_child(&backdrop).expect("append backdrop");
     body.append_child(&menu).expect("append menu");
 
-    // Clamp position so the menu stays within the canvas bounds.
+    clamp_menu_to_canvas(&menu, canvas, x, y);
+
+    (backdrop, menu)
+}
+
+/// Places `menu` at `(x, y)` (client coordinates), shifted so it stays
+/// within the canvas bounds. Uses the menu's *current* laid-out size, so a
+/// caller that appends content after [`create_menu_shell`] (which clamps
+/// the still-empty shell) must call this again once the content is in —
+/// otherwise a popup opened near the right/bottom edge overflows it.
+pub(super) fn clamp_menu_to_canvas(
+    menu: &HtmlElement,
+    canvas: &HtmlCanvasElement,
+    x: i32,
+    y: i32,
+) {
     let rect = canvas.get_bounding_client_rect();
     let mw = menu.offset_width();
     let mh = menu.offset_height();
@@ -405,8 +420,6 @@ pub(super) fn create_menu_shell(
     let cy = y.min(max_y).max(rect.top() as i32);
     let _ = menu.style().set_property("left", &format!("{}px", cx));
     let _ = menu.style().set_property("top", &format!("{}px", cy));
-
-    (backdrop, menu)
 }
 
 // ── impl GridCanvas ─────────────────────────────────────

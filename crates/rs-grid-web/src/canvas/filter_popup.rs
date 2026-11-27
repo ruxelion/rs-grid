@@ -10,6 +10,7 @@ use std::{cell::Cell, collections::HashSet, rc::Rc};
 use rs_grid_core::{
     commands::GridCommand,
     filter::{FilterCondition, FilterOp, UniqueValues},
+    format::CellFormat,
 };
 use rs_grid_scene::Theme;
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -20,7 +21,8 @@ use web_sys::{
 use super::{
     GridCanvas,
     context_menu::{
-        CtxColors, create_menu_shell, read_ctx_colors, remove_ctx_menu,
+        CtxColors, clamp_menu_to_canvas, create_menu_shell, read_ctx_colors,
+        remove_ctx_menu,
     },
     dom_helpers::{document, make_el, set_styles},
     edit::{dd_idx_from_event, dd_scroll_into_view, dd_set_highlight},
@@ -492,6 +494,48 @@ fn checkbox_state_style(doc: &web_sys::Document, theme: &Theme) -> HtmlElement {
     style_el
 }
 
+/// Splits a `CellFormat::ImageText` raw value `"KEY Label"` into its image
+/// key and label — the same split `rs-grid-scene`'s `emit_image_text`
+/// draws from (no space → key only, empty label).
+fn image_text_parts(raw: &str) -> (&str, &str) {
+    raw.split_once(' ').unwrap_or((raw, ""))
+}
+
+/// How an `ImageText` column draws its image, so the value checklist can
+/// show the same image + label the cells show.
+struct ImageTextLook {
+    base_url: String,
+    suffix: String,
+    size: f64,
+    radius: f64,
+}
+
+impl ImageTextLook {
+    /// An `<img>` for image `key`, built exactly like the cell's own image
+    /// URL (`base_url + key + suffix`).
+    fn img(&self, doc: &web_sys::Document, key: &str) -> HtmlElement {
+        let img = make_el(doc, "img");
+        let _ = img.set_attribute(
+            "src",
+            &format!("{}{key}{}", self.base_url, self.suffix),
+        );
+        let _ = img.set_attribute("alt", "");
+        let size = format!("{}px", self.size);
+        let radius = format!("{}px", self.radius);
+        set_styles(
+            &img,
+            &[
+                ("width", &size),
+                ("height", &size),
+                ("border-radius", &radius),
+                ("object-fit", "cover"),
+                ("flex", "none"),
+            ],
+        );
+        img
+    }
+}
+
 /// Recomputes the "(Select All)" checkbox's checked/indeterminate
 /// tri-state from the currently-*visible* value rows — visibility is
 /// read directly from each row's own `display` style (already updated
@@ -541,7 +585,7 @@ impl GridCanvas {
     ) {
         remove_ctx_menu();
 
-        let (col_key, current, existing_value_filter, unique) = {
+        let (col_key, current, existing_value_filter, unique, image_text) = {
             let state = self.0.state.borrow();
             let model = &state.model;
             let Some(col) = model.columns.get(col_idx) else {
@@ -553,7 +597,31 @@ impl GridCanvas {
                 model.value_filters.get(&col.key).cloned();
             let unique =
                 model.unique_values(&col.key, MAX_VALUE_FILTER_OPTIONS);
-            (col.key.clone(), current, existing_value_filter, unique)
+            // `ImageText` raw values are `"KEY Label"` (KEY is often a
+            // whole `data:` URI): the checklist must show the image +
+            // label the cell shows, not the raw string.
+            let image_text = match &col.format {
+                Some(CellFormat::ImageText {
+                    base_url,
+                    suffix,
+                    image_size,
+                    border_radius,
+                    ..
+                }) => Some(ImageTextLook {
+                    base_url: base_url.clone(),
+                    suffix: suffix.clone(),
+                    size: *image_size,
+                    radius: *border_radius,
+                }),
+                _ => None,
+            };
+            (
+                col.key.clone(),
+                current,
+                existing_value_filter,
+                unique,
+                image_text,
+            )
         };
 
         let colors = read_ctx_colors();
@@ -1223,7 +1291,7 @@ impl GridCanvas {
                 menu.append_child(&msg).expect("append too-many message");
                 None
             }
-            UniqueValues::Values(values) => {
+            UniqueValues::Values(mut values) => {
                 let divider = make_el(&doc, "div");
                 let border = format!("1px solid {}", colors.separator);
                 set_styles(
@@ -1338,6 +1406,14 @@ impl GridCanvas {
                 list.append_child(&select_all_row)
                     .expect("append select-all row");
 
+                // Image + label columns list by label, not by the raw
+                // `"KEY Label"` (whose KEY — e.g. a data URI — would
+                // otherwise drive the order).
+                if image_text.is_some() {
+                    values.sort_by_cached_key(|v| {
+                        image_text_parts(v).1.to_lowercase()
+                    });
+                }
                 let mut rows: Vec<(String, HtmlElement, HtmlInputElement)> =
                     Vec::with_capacity(values.len());
                 for value in &values {
@@ -1357,7 +1433,15 @@ impl GridCanvas {
                     cb.set_checked(checked);
                     row.append_child(&cb).expect("append checkbox");
                     let label_el = make_el(&doc, "span");
-                    label_el.set_text_content(Some(value));
+                    match &image_text {
+                        Some(look) => {
+                            let (key, label) = image_text_parts(value);
+                            row.append_child(&look.img(&doc, key))
+                                .expect("append value image");
+                            label_el.set_text_content(Some(label));
+                        }
+                        None => label_el.set_text_content(Some(value)),
+                    }
                     row.append_child(&label_el).expect("append label");
                     list.append_child(&row).expect("append value row");
                     rows.push((value.clone(), row, cb));
@@ -1379,9 +1463,13 @@ impl GridCanvas {
                     let search_el = search.clone();
                     let cb = Closure::<dyn FnMut(_)>::new(move |_: Event| {
                         let query = search_el.value().to_lowercase();
-                        for (value, row, _) in &rows {
+                        for (_, row, _) in &rows {
+                            // Match what the row *shows* (its label), not
+                            // the raw value — for an image + label column
+                            // the raw value starts with the image key.
+                            let shown = row.text_content().unwrap_or_default();
                             let visible = query.is_empty()
-                                || value.to_lowercase().contains(&query);
+                                || shown.to_lowercase().contains(&query);
                             // "flex", not "" — an empty value clears the
                             // inline style override entirely, falling
                             // back to <label>'s default `display: inline`
@@ -1601,6 +1689,12 @@ impl GridCanvas {
                 .expect("add keydown listener");
             cb.forget();
         }
+
+        // `create_menu_shell` clamped the shell while it was still empty;
+        // re-clamp now that the form and checklist give it its real size,
+        // or a popup opened near the canvas's right/bottom edge (e.g. the
+        // last column's filter icon) overflows it.
+        clamp_menu_to_canvas(&menu, &self.0.canvas, x, y);
 
         // Initial focus, AG-Grid style: the checklist's "Search..."
         // input when it exists, so the user can type to narrow the
