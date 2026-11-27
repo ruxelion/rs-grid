@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.21](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.20...rs-grid-web-v0.1.21) - 2026-11-27
+
+### Other
+
+- unify corner radius across UI components to 4px
+
 ## [0.1.20](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.19...rs-grid-web-v0.1.20) - 2026-11-27
 
 ### Fixed

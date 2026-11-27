@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.4.1...rs-grid-leptos-v0.4.2) - 2026-11-27
+
+### Other
+
+- updated the following local packages: rs-grid-scene, rs-grid-web
+
 ## [0.4.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.4.0...rs-grid-leptos-v0.4.1) - 2026-11-27
 
 ### Other
