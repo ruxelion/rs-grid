@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.6.0...rs-grid-core-v0.6.1) - 2026-11-27
+
+### Fixed
+
+- *(web)* keep the default cursor over non-editable cells
+
 ## [0.6.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.5.1...rs-grid-core-v0.6.0) - 2026-11-27
 
 ### Added
