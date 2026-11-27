@@ -1,10 +1,19 @@
 use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
+    model::DataSourceMode,
     sort::{SortDir, SortState},
 };
 
 impl GridState {
+    /// Whether sorting is the host's job (`DataSourceMode::ServerSide`):
+    /// the grid only records the sort state for the header indicator, so
+    /// `apply_sort` returning `false` is expected and not the "dataset too
+    /// large" case `CommandOutput::SortWarning` reports.
+    fn sort_is_delegated(&self) -> bool {
+        self.model.mode == DataSourceMode::ServerSide
+    }
+
     pub(super) fn cmd_sort_filter(
         &mut self,
         cmd: GridCommand,
@@ -46,7 +55,7 @@ impl GridState {
                     self.model.apply_filter();
                 }
                 self.viewport.scroll_y = 0.0;
-                if sorted {
+                if sorted || self.sort_is_delegated() {
                     CommandOutput::None
                 } else {
                     CommandOutput::SortWarning {
@@ -67,7 +76,7 @@ impl GridState {
                     self.model.apply_filter();
                 }
                 self.viewport.scroll_y = 0.0;
-                if sorted {
+                if sorted || self.sort_is_delegated() {
                     CommandOutput::None
                 } else {
                     CommandOutput::SortWarning {
@@ -150,8 +159,14 @@ impl GridState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        column::ColumnDef, commands::GridCommand, filter::FilterCondition,
-        model::GridModel, row::RowRecord, sort::SortDir, state::GridState,
+        column::ColumnDef,
+        commands::{CommandOutput, GridCommand},
+        datasource::VecDataSource,
+        filter::FilterCondition,
+        model::{DataSourceMode, GridModel, GridModelBuilder},
+        row::RowRecord,
+        sort::SortDir,
+        state::GridState,
     };
 
     fn make_state() -> GridState {
@@ -171,6 +186,31 @@ mod tests {
             .collect();
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn server_side_sort_records_state_without_a_sort_warning() {
+        let cols = vec![ColumnDef::new("name", "Name", 150.0)];
+        let rows = vec![RowRecord::new(0), RowRecord::new(1)];
+        let model =
+            GridModelBuilder::new(cols, Box::new(VecDataSource::new(rows)))
+                .mode(DataSourceMode::ServerSide)
+                .build();
+        let mut s = GridState::new(model, 800.0, 600.0);
+
+        let toggled = s.apply(GridCommand::ToggleSort {
+            col_key: "name".into(),
+        });
+        assert!(matches!(toggled, CommandOutput::None));
+        assert_eq!(s.sort.as_ref().map(|x| &x.dir), Some(&SortDir::Asc));
+        assert!(s.model.sort_order.is_empty(), "rows are not reordered");
+
+        let set = s.apply(GridCommand::SetSort {
+            col_key: "name".into(),
+            dir: SortDir::Desc,
+        });
+        assert!(matches!(set, CommandOutput::None));
+        assert_eq!(s.sort.as_ref().map(|x| &x.dir), Some(&SortDir::Desc));
     }
 
     #[test]
