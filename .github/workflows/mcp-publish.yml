@@ -1,0 +1,76 @@
+name: Publish MCP
+
+# Publishes the rs-grid-mcp npm package automatically when its version changes.
+# Token-less: npm Trusted Publishing (OIDC) + provenance — no NPM_TOKEN secret.
+#
+# Idempotent: the gate step skips publishing when mcp/package.json's version is
+# already on npm, so an ordinary mcp/** change never republishes. Bumping the
+# version (committed to main) is what triggers an actual publish.
+#
+# Gated by the repo variable AUTO_PUBLISH: the job is a no-op until you set
+# `AUTO_PUBLISH=true` (after configuring Trusted Publishing on npmjs for the
+# rs-grid-mcp package). `just mcp-publish` remains the local fallback.
+
+on:
+  push:
+    branches: [main]
+    paths: ['mcp/**']
+  workflow_dispatch:
+
+concurrency:
+  group: mcp-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # OIDC → npm Trusted Publishing + provenance
+
+jobs:
+  publish:
+    name: Publish rs-grid-mcp
+    if: vars.AUTO_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      # OIDC Trusted Publishing requires npm >= 11.5.
+      - name: Use npm >= 11.5
+        run: npm install -g npm@latest
+
+      # Idempotence gate: only publish when the local version is not yet on npm.
+      - name: Skip if version already published
+        id: gate
+        working-directory: mcp
+        run: |
+          local_version=$(node -p "require('./package.json').version")
+          remote_version=$(npm view "rs-grid-mcp@${local_version}" version 2>/dev/null || true)
+          if [ "$local_version" = "$remote_version" ]; then
+            echo "rs-grid-mcp@${local_version} already published — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publishing rs-grid-mcp@${local_version}."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install
+        if: steps.gate.outputs.skip == 'false'
+        working-directory: mcp
+        run: npm ci
+
+      # Force canonical GitHub docs into the package (never local doc edits).
+      - name: Build
+        if: steps.gate.outputs.skip == 'false'
+        working-directory: mcp
+        env:
+          RS_GRID_DOCS_SOURCE: github
+        run: npm run build
+
+      - name: Publish (provenance)
+        if: steps.gate.outputs.skip == 'false'
+        working-directory: mcp
+        run: npm publish --provenance --access public
