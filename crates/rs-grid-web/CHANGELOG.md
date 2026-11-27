@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.18...rs-grid-web-v0.1.19) - 2026-11-27
+
+### Added
+
+- add footer bar with client-side pagination
+
+### Fixed
+
+- *(web)* keep filter popup inside the visible viewport
+- keep the footer bar from hitting the rows hidden beneath it
+- *(web)* focus the value search input when the filter popup opens
+
+### Other
+
+- Merge pull request #95 from ruxelion/fix/filter-popup-viewport-clamp
+
 ## [0.1.18](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.17...rs-grid-web-v0.1.18) - 2026-11-27
 
 ### Added

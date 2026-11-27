@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.5.1...rs-grid-core-v0.6.0) - 2026-11-27
+
+### Added
+
+- add footer bar with client-side pagination
+
+### Fixed
+
+- *(core)* filter ImageText columns on their label, not the raw value
+- keep the footer bar from hitting the rows hidden beneath it
+
+### Other
+
+- Merge pull request #96 from ruxelion/fix/filter-image-text-values
+
 ## [0.5.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.5.0...rs-grid-core-v0.5.1) - 2026-11-27
 
 ### Fixed

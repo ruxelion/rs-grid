@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.3.1...rs-grid-scene-v0.4.0) - 2026-11-27
+
+### Added
+
+- add footer bar with client-side pagination
+
+### Fixed
+
+- *(scene)* redraw filter-row icon as an AG Grid-style filter list
+
 ## [0.3.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-scene-v0.3.0...rs-grid-scene-v0.3.1) - 2026-11-27
 
 ### Fixed
