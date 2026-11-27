@@ -31,6 +31,47 @@ impl GridState {
             _ => super::unreachable_cmd("cmd_scroll"),
         }
     }
+
+    /// Scrolls the viewport, only when needed, so the cell at `(row, col)`
+    /// is fully visible. Pinned columns are never scrolled horizontally
+    /// since they are always on screen. The selection is not modified.
+    pub(super) fn reveal_cell(&mut self, row: u64, col: usize) {
+        // Vertical: keep the row between the data band and the bottom edge.
+        let ry = self.model.row_top(row);
+        let cy = ry - self.viewport.scroll_y;
+        let hh = self.model.data_top();
+        if cy < hh {
+            self.viewport.scroll_y = ry - hh;
+        } else if cy + self.model.row_height > self.viewport.height {
+            self.viewport.scroll_y =
+                ry + self.model.row_height - self.viewport.height;
+        }
+        // Horizontal: keep the column clear of the pinned band and the
+        // right edge.
+        if col < self.model.columns.len() {
+            let off = self.model.column_offsets.offsets[col];
+            let w = self.model.columns[col].width;
+            let lgw = self.model.row_number_width
+                + self.model.effective_checkbox_column_width();
+            if col >= self.model.pinned_count {
+                let cx = off - self.viewport.scroll_x + lgw;
+                if cx < lgw + self.model.pinned_width() {
+                    self.viewport.scroll_x = off - self.model.pinned_width();
+                } else if cx + w > self.viewport.width {
+                    self.viewport.scroll_x =
+                        off + w - self.viewport.width + lgw;
+                }
+            }
+        }
+        let (sx, sy) = clamp_scroll(
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+            &self.model,
+            &self.viewport,
+        );
+        self.viewport.scroll_x = sx;
+        self.viewport.scroll_y = sy;
+    }
 }
 
 #[cfg(test)]

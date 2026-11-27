@@ -26,6 +26,10 @@ It must remain testable with standard native `cargo test`.
 - Row indices are **`u64`** (not `usize`) to support >4B rows on WASM32.
 - `GridState` mutations go **exclusively** through `GridState::apply(GridCommand)`.
 - Hit-testing must remain O(log n) — column offsets are precomputed.
+- `MoveSelection` (arrow keys, with or without `extend`) and the search
+  commands call `GridState::reveal_cell(row, col)` (`state/cmd_scroll.rs`)
+  so the focused cell is scrolled into view. Any new command that moves
+  the focus should do the same.
 
 ## Behaviour flags & cell buttons
 
