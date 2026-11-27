@@ -1,4 +1,4 @@
-use super::{GridState, clamp_scroll};
+use super::GridState;
 use crate::{
     commands::{CommandOutput, GridCommand},
     search::SearchState,
@@ -46,43 +46,9 @@ impl GridState {
             Some(c) => c.clone(),
             None => return,
         };
-        // Select the matched cell.
+        // Select the matched cell, then scroll it into view.
         self.selection.select_cell(coord.row, coord.col);
-        // Scroll to make the cell visible vertically.
-        let ry = self.model.row_top(coord.row);
-        let cy = ry - self.viewport.scroll_y;
-        let hh = self.model.data_top();
-        if cy < hh {
-            self.viewport.scroll_y = ry - hh;
-        } else if cy + self.model.row_height > self.viewport.height {
-            self.viewport.scroll_y =
-                ry + self.model.row_height - self.viewport.height;
-        }
-        // Scroll to make the cell visible horizontally.
-        if coord.col < self.model.columns.len() {
-            let off = self.model.column_offsets.offsets[coord.col];
-            let w = self.model.columns[coord.col].width;
-            let lgw = self.model.row_number_width
-                + self.model.effective_checkbox_column_width();
-            // Don't scroll for pinned columns.
-            if coord.col >= self.model.pinned_count {
-                let cx = off - self.viewport.scroll_x + lgw;
-                if cx < lgw + self.model.pinned_width() {
-                    self.viewport.scroll_x = off - self.model.pinned_width();
-                } else if cx + w > self.viewport.width {
-                    self.viewport.scroll_x =
-                        off + w - self.viewport.width + lgw;
-                }
-            }
-        }
-        let (sx, sy) = clamp_scroll(
-            self.viewport.scroll_x,
-            self.viewport.scroll_y,
-            &self.model,
-            &self.viewport,
-        );
-        self.viewport.scroll_x = sx;
-        self.viewport.scroll_y = sy;
+        self.reveal_cell(coord.row, coord.col);
     }
 }
 
