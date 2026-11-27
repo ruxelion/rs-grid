@@ -22,4 +22,5 @@ leptos = { version = "0.8", features = ["csr"] }
 send_wrapper = "0.6"
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
+js-sys = { workspace = true }
 console_error_panic_hook = { workspace = true }

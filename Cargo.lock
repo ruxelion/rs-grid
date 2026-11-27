@@ -2316,6 +2316,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "example-common",
+ "js-sys",
  "leptos",
  "rs-grid-core",
  "rs-grid-leptos",
