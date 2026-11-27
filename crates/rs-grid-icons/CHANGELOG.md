@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-icons-v0.1.2...rs-grid-icons-v0.1.3) - 2026-07-10
+
+### Other
+
+- Add country names in Ukrainian and Chinese, and integrate into country management
+
 ## [0.1.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-icons-v0.1.1...rs-grid-icons-v0.1.2) - 2026-06-15
 
 ### Other

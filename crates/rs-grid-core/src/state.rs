@@ -2,17 +2,21 @@ mod cmd_clipboard;
 mod cmd_column;
 mod cmd_edit;
 mod cmd_meta;
+mod cmd_row_check;
 mod cmd_scroll;
 mod cmd_search;
 mod cmd_selection;
 mod cmd_sort_filter;
 mod cmd_undo;
 
+use std::collections::HashSet;
+
 use crate::{
     commands::{CommandOutput, GridCommand},
     edit::EditCell,
     hit_test,
     model::GridModel,
+    row_check::CheckboxTriState,
     search::SearchState,
     selection::{CellCoord, SelectionState},
     sort::SortState,
@@ -57,6 +61,26 @@ pub struct GridState {
     pub edit: Option<EditCell>,
     /// Active search (empty query = inactive).
     pub search: SearchState,
+    /// Physical (datasource) row ids checked via the row-selection
+    /// checkbox column. Not affected by sort/filter (unlike display-order
+    /// selection), and not part of the undo history — same non-undoable
+    /// precedent as `SelectRow`/`SelectCol`/`ClearSelection`.
+    pub checked_rows: HashSet<u64>,
+    /// Anchor row and direction for an in-progress `ExtendRowChecked`
+    /// (shift+click) gesture: `(anchor_row, checking)`, set by the last
+    /// `ToggleRowChecked` from the row it toggled and the state it
+    /// toggled *to*. Mirrors `SelectionState.anchor` but kept separate
+    /// since checking and cell-selection are independent gestures.
+    checked_row_anchor: Option<(u64, bool)>,
+    /// Logical row of the previous `ExtendRowChecked` call in the
+    /// current shift+click gesture (or the anchor row itself, before
+    /// the first extend). Lets a further shift+click reconcile the
+    /// range against what the *previous* extend touched — rows that
+    /// fall out of the new [anchor, row] span are reverted to
+    /// `!checking`, so moving the shift+click focus inward "gives back"
+    /// rows the same way dragging a text/file selection does, instead
+    /// of only ever growing the checked set.
+    checked_row_last_extend: Option<u64>,
     /// Undo/redo history.
     history: UndoHistory,
 }
@@ -82,6 +106,9 @@ fn clamp_scroll(
 ) -> (f64, f64) {
     let rnw = model.row_number_width;
     let sb = model.scrollbar_size;
+    // `total_width()` already includes the checkbox column's width (it
+    // scrolls with the data, unlike the row-number gutter) — see
+    // `GridModel::total_width`.
     let max_x = (model.total_width() - (vp.width - rnw - sb)).max(0.0);
     let max_y = (model.total_height() - vp.height + sb).max(0.0);
     (x.clamp(0.0, max_x), y.clamp(0.0, max_y))
@@ -105,6 +132,9 @@ impl GridState {
             sort: None,
             edit: None,
             search: SearchState::default(),
+            checked_rows: HashSet::new(),
+            checked_row_anchor: None,
+            checked_row_last_extend: None,
             history: UndoHistory::default(),
         }
     }
@@ -125,14 +155,19 @@ impl GridState {
             | GridCommand::ScrollBy { .. }
             | GridCommand::Resize { .. } => self.cmd_scroll(cmd),
 
+            // ClearCells doesn't touch the clipboard, but shares
+            // `cmd_clipboard`'s cell-clearing helper with CutSelection.
             GridCommand::CopySelection
             | GridCommand::CutSelection
-            | GridCommand::PasteAt { .. } => self.cmd_clipboard(cmd),
+            | GridCommand::PasteAt { .. }
+            | GridCommand::ClearCells => self.cmd_clipboard(cmd),
 
             GridCommand::ToggleSort { .. }
             | GridCommand::SetSort { .. }
             | GridCommand::ClearSort
             | GridCommand::SetColumnFilter { .. }
+            | GridCommand::SetColumnValueFilter { .. }
+            | GridCommand::ClearColumnValueFilter { .. }
             | GridCommand::ClearAllFilters => self.cmd_sort_filter(cmd),
 
             GridCommand::ResizeColumn { .. }
@@ -144,9 +179,14 @@ impl GridState {
 
             GridCommand::StartEdit { .. }
             | GridCommand::CommitEdit { .. }
-            | GridCommand::CancelEdit => self.cmd_edit(cmd),
+            | GridCommand::CancelEdit
+            | GridCommand::ValidateEdit { .. } => self.cmd_edit(cmd),
 
             GridCommand::Undo | GridCommand::Redo => self.cmd_undo(cmd),
+
+            GridCommand::ToggleRowChecked(_)
+            | GridCommand::ExtendRowChecked(_)
+            | GridCommand::ToggleAllFilteredChecked => self.cmd_row_check(cmd),
 
             GridCommand::Search { .. }
             | GridCommand::SearchNext
@@ -155,12 +195,18 @@ impl GridState {
 
             GridCommand::SetHoveredRow(_)
             | GridCommand::SetHeaderHeight(_)
+            | GridCommand::SetFilterRowHeight(_)
             | GridCommand::SetRowHeight(_)
+            | GridCommand::SetRowNumberWidth(_)
             | GridCommand::SetShowHeader(_)
             | GridCommand::SetShowRowNumbers(_)
+            | GridCommand::SetShowCheckboxColumn(_)
+            | GridCommand::SetShowFilterRow(_)
+            | GridCommand::SetCheckboxColumnWidth(_)
             | GridCommand::SetEditable(_)
             | GridCommand::SetSelectable(_)
             | GridCommand::SetColumnReorderable(_)
+            | GridCommand::SetInvalidEditMode(_)
             | GridCommand::NotifyPageLoaded
             | GridCommand::SetTotalRowCount(_) => self.cmd_meta(cmd),
         }
@@ -196,6 +242,72 @@ impl GridState {
             self.viewport.scroll_x,
         )
     }
+
+    /// Returns the column index when the pointer is over the floating
+    /// filter row (see `hit_test::hit_test_filter_row_cell`).
+    pub fn hit_test_filter_row_cell(&self, vx: f64, vy: f64) -> Option<usize> {
+        hit_test::hit_test_filter_row_cell(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+        )
+    }
+
+    /// Hit-test the checkbox column (scrolls with the data). Returns the
+    /// row index or `None`.
+    pub fn hit_test_checkbox_row(&self, vx: f64, vy: f64) -> Option<u64> {
+        hit_test::hit_test_checkbox_row(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+            self.viewport.scroll_y,
+        )
+    }
+
+    /// Hit-test the header's checkbox (select-all) cell.
+    pub fn hit_test_checkbox_header(&self, vx: f64, vy: f64) -> bool {
+        hit_test::hit_test_checkbox_header(
+            vx,
+            vy,
+            &self.model,
+            self.viewport.scroll_x,
+        )
+    }
+
+    /// Tri-state of the header checkbox: `Checked` when every row
+    /// currently passing the active filter (or every row, if
+    /// unfiltered) is checked, `Unchecked` when none are, otherwise
+    /// `Indeterminate`.
+    pub fn checkbox_header_state(&self) -> CheckboxTriState {
+        let total = if self.model.is_filter_applied() {
+            self.model.filtered_indices.len() as u64
+        } else {
+            self.model.data.row_count()
+        };
+        if total == 0 {
+            return CheckboxTriState::Unchecked;
+        }
+        let checked_count = if self.model.is_filter_applied() {
+            self.model
+                .filtered_indices
+                .iter()
+                .filter(|id| self.checked_rows.contains(id))
+                .count() as u64
+        } else {
+            // Guard against stale physical ids left over from a shrunk
+            // dataset — only count ones still in range.
+            self.checked_rows.iter().filter(|&&id| id < total).count() as u64
+        };
+        if checked_count == 0 {
+            CheckboxTriState::Unchecked
+        } else if checked_count == total {
+            CheckboxTriState::Checked
+        } else {
+            CheckboxTriState::Indeterminate
+        }
+    }
 }
 
 #[cfg(test)]
@@ -204,6 +316,7 @@ mod tests {
     use crate::{
         column::ColumnDef,
         commands::{CommandOutput, GridCommand},
+        filter::FilterCondition,
         format::CellFormat,
         model::GridModel,
         row::RowRecord,
@@ -431,7 +544,7 @@ mod tests {
         // Only rows containing "a3" in column "a"
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a3".into(),
+            condition: FilterCondition::contains("a3"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         // Logical row 0 maps to physical row 3
@@ -443,12 +556,12 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "".into(),
+            condition: FilterCondition::contains(""),
         });
         assert_eq!(s.model.display_row_count(), 10);
     }
@@ -458,7 +571,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a5".into(),
+            condition: FilterCondition::contains("a5"),
         });
         s.apply(GridCommand::ClearAllFilters);
         assert_eq!(s.model.display_row_count(), 10);
@@ -558,6 +671,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         let new_width = s.model.columns[0].width;
         assert!(
@@ -576,6 +692,9 @@ mod tests {
             header_char_width: 0.1,
             cell_padding: 0.1,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert!(
             s.model.columns[0].width >= 20.0,
@@ -594,6 +713,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert_eq!(s.model.columns[0].width, old_width);
     }
@@ -616,9 +738,13 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
+            decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         // base64-like key + short label
         let mut row = RowRecord::new(0);
@@ -631,6 +757,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         let w = s.model.columns[0].width;
         // image_size(20) + gap(6) + "France".len(6)*8 + pad*2(20) = 94
@@ -716,6 +845,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert_ne!(s.model.columns[0].width, 100.0);
         s.apply(GridCommand::Undo);
@@ -838,7 +970,7 @@ mod tests {
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
         let out = s.apply(GridCommand::CutSelection);
-        assert!(matches!(out, CommandOutput::CopyText(_)));
+        assert!(matches!(out, CommandOutput::CutApplied { .. }));
         // Cells should be cleared.
         assert_eq!(s.model.get_cell(0, "a"), Some(String::new()),);
         assert_eq!(s.model.get_cell(0, "b"), Some(String::new()),);
@@ -1346,7 +1478,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "A3".into(),
+            condition: FilterCondition::contains("A3"),
         });
         // Data has "a3" (lowercase) — should match
         assert_eq!(s.model.display_row_count(), 1);
@@ -1359,7 +1491,7 @@ mod tests {
         assert!(s.selection.has_selection());
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert!(!s.selection.has_selection());
     }
@@ -1379,7 +1511,7 @@ mod tests {
         s.apply(GridCommand::ScrollTo { x: 0.0, y: 500.0 });
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "v1".into(),
+            condition: FilterCondition::contains("v1"),
         });
         assert_eq!(s.viewport.scroll_y, 0.0);
     }
@@ -1390,7 +1522,7 @@ mod tests {
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a5".into(),
+            condition: FilterCondition::contains("a5"),
         });
         s.apply(GridCommand::ClearAllFilters);
         assert!(!s.selection.has_selection());
@@ -1482,11 +1614,48 @@ mod tests {
     }
 
     #[test]
-    fn set_total_row_count_is_noop_for_vec() {
+    fn set_total_row_count_does_not_touch_the_data_source_row_count() {
+        // Renamed from `..._is_noop_for_vec`: the command stopped being
+        // a true no-op once it started recomputing row_number_width
+        // (see `set_total_row_count_recomputes_gutter_width_by_default`
+        // below) — this test's scope is narrower than its old name
+        // implied. It only asserts the one thing that IS still true for
+        // every `DataSource`: the command cannot reach into the boxed
+        // `dyn DataSource` to change its actual row count generically
+        // (only `PageCacheDataSource::set_total_rows` does that).
         let mut s = make_state();
         let count_before = s.model.data.row_count();
         s.apply(GridCommand::SetTotalRowCount(9999));
         assert_eq!(s.model.data.row_count(), count_before);
+    }
+
+    #[test]
+    fn set_total_row_count_recomputes_gutter_width_by_default() {
+        use crate::model::GridModel;
+
+        let mut s = make_state();
+        assert!(s.model.row_number_width_auto);
+        s.apply(GridCommand::SetTotalRowCount(1_000_000_000_000));
+        assert_eq!(
+            s.model.row_number_width,
+            GridModel::compute_row_number_width(1_000_000_000_000),
+        );
+    }
+
+    #[test]
+    fn set_row_number_width_disables_auto_and_locks_it_in() {
+        use crate::model::GridModel;
+
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(123.0));
+        assert!(!s.model.row_number_width_auto);
+        // A later total-count update must not override the manual width.
+        s.apply(GridCommand::SetTotalRowCount(1_000_000_000_000));
+        assert_eq!(s.model.row_number_width, 123.0);
+        assert_ne!(
+            s.model.row_number_width,
+            GridModel::compute_row_number_width(1_000_000_000_000),
+        );
     }
 
     // ── AutoFitAllColumns ────────────────────────────
@@ -1501,6 +1670,9 @@ mod tests {
             header_char_width: 8.45,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         for (i, old_w) in widths_before.iter().enumerate() {
             assert_ne!(
@@ -1532,7 +1704,7 @@ mod tests {
         });
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         assert_eq!(s.model.display_row_count(), 1);
         assert_eq!(s.model.get_cell(0, "a"), Some("a1".into()));
@@ -1543,7 +1715,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a".into(),
+            condition: FilterCondition::contains("a"),
         });
         // All rows match "a"
         assert_eq!(s.model.display_row_count(), 10);
@@ -1695,6 +1867,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         assert!(s.model.columns[1].flex.is_none());
     }
@@ -2016,9 +2191,13 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
+            decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("img", "photo.png");
@@ -2030,6 +2209,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         // Image: row_height(30) + padding*2(20) = 50
         // Header: "Img".len(3)*8 + 10*2 = 44
@@ -2060,9 +2242,13 @@ mod tests {
             }),
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
+            decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }];
         let mut row = RowRecord::new(0);
         row.set("v", "1234.5");
@@ -2074,6 +2260,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 10.0,
             header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
         // "$1,234.50" = 9 chars → 9*8+10*2 = 92
         // Header: "V" = 1 char → 1*8+10*2 = 28
@@ -2081,6 +2270,56 @@ mod tests {
         assert!(
             (s.model.columns[0].width - 92.0).abs() < 0.01,
             "expected 92, got {}",
+            s.model.columns[0].width
+        );
+    }
+
+    // ── AutoFit with cell_buttons ─────────────────────────
+
+    #[test]
+    fn auto_fit_column_accounts_for_cell_buttons() {
+        use crate::column::{ButtonDef, ButtonStyle};
+
+        let cols = vec![ColumnDef {
+            key: "actions".into(),
+            label: "Actions".into(),
+            width: 50.0,
+            min_width: None,
+            max_width: None,
+            flex: None,
+            format: None,
+            editor: None,
+            validator: None,
+            rules: Vec::new(),
+            bold: false,
+            editable: true,
+            editable_predicate: None,
+            decorator: None,
+            cell_buttons: vec![
+                ButtonDef::new("edit", "Edit", ButtonStyle::Primary),
+                ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+            ],
+            cell_buttons_visible: None,
+        }];
+        let row = RowRecord::new(0);
+        let model = GridModel::new(cols, vec![row], 30.0, 40.0);
+        let mut s = GridState::new(model, 800.0, 600.0);
+        s.apply(GridCommand::AutoFitColumn {
+            col_idx: 0,
+            char_width: 8.0,
+            header_char_width: 8.0,
+            cell_padding: 10.0,
+            header_right_reserve: 0.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
+        });
+        // "Edit"(4)*8+8*2=48, "Delete"(6)*8+8*2=64 → labels_w=112
+        // + gap(4)*1 + cell_padding(10)*2 = 136
+        // Header: "Actions"(7)*8+10*2=76 → max(136, 76) = 136
+        assert!(
+            (s.model.columns[0].width - 136.0).abs() < 0.01,
+            "expected 136, got {}",
             s.model.columns[0].width
         );
     }
@@ -2093,7 +2332,7 @@ mod tests {
         // Apply filter first
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a".into(),
+            condition: FilterCondition::contains("a"),
         });
         assert_eq!(s.model.display_row_count(), 10);
         // Toggle sort → cmd_sort_filter should reapply filter
@@ -2108,7 +2347,7 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnFilter {
             col_key: "a".into(),
-            text: "a1".into(),
+            condition: FilterCondition::contains("a1"),
         });
         s.apply(GridCommand::ToggleSort {
             col_key: "a".into(),

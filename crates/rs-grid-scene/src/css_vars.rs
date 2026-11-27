@@ -62,7 +62,12 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-header-bg", fmt_color(t.header_bg)),
         ("--rs-grid-header-text", fmt_color(t.header_text)),
         ("--rs-grid-cell-text", fmt_color(t.cell_text)),
+        (
+            "--rs-grid-filter-row-input-border",
+            fmt_color(t.filter_row_input_border),
+        ),
         ("--rs-grid-grid-line", fmt_color(t.grid_line)),
+        ("--rs-grid-grid-line-width", fmt_px(t.grid_line_width)),
         ("--rs-grid-header-border", fmt_color(t.header_border)),
         (
             "--rs-grid-header-separator-inset",
@@ -86,8 +91,29 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-scrollbar-thumb", fmt_color(t.scrollbar_thumb)),
         ("--rs-grid-row-alt-bg", fmt_color(t.row_alt_bg)),
         ("--rs-grid-row-hover-bg", fmt_color(t.row_hover_bg)),
+        ("--rs-grid-checked-row-bg", fmt_color(t.checked_row_bg)),
+        ("--rs-grid-locked-cell-bg", fmt_color(t.locked_cell_bg)),
+        ("--rs-grid-locked-cell-text", fmt_color(t.locked_cell_text)),
+        ("--rs-grid-invalid-cell-bg", fmt_color(t.invalid_cell_bg)),
+        (
+            "--rs-grid-invalid-cell-border",
+            fmt_color(t.invalid_cell_border),
+        ),
+        (
+            "--rs-grid-invalid-cell-border-width",
+            fmt_px(t.invalid_cell_border_width),
+        ),
+        (
+            "--rs-grid-decoration-border-width",
+            fmt_px(t.decoration_border_width),
+        ),
         // dimensions
         ("--rs-grid-header-height", fmt_px(t.header_height)),
+        ("--rs-grid-filter-row-height", fmt_px(t.filter_row_height)),
+        (
+            "--rs-grid-filter-row-input-margin-v",
+            fmt_px(t.filter_row_input_margin_v),
+        ),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
         // typography
         ("--rs-grid-font-size", fmt_px(t.font_size)),
@@ -103,6 +129,7 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         // flash
         ("--rs-grid-flash-fill", fmt_color(t.flash_fill)),
         ("--rs-grid-flash-border", fmt_color(t.flash_border)),
+        ("--rs-grid-flash-error-fill", fmt_color(t.flash_error_fill)),
         // search
         ("--rs-grid-search-highlight", fmt_color(t.search_highlight)),
         ("--rs-grid-search-current", fmt_color(t.search_current)),
@@ -113,6 +140,22 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         ("--rs-grid-progress-fill", fmt_color(t.progress_fill)),
         ("--rs-grid-progress-height", fmt_px(t.progress_height)),
         ("--rs-grid-progress-radius", fmt_px(t.progress_radius)),
+        // checkbox
+        ("--rs-grid-checkbox-size", fmt_px(t.checkbox_size)),
+        ("--rs-grid-checkbox-radius", fmt_px(t.checkbox_radius)),
+        ("--rs-grid-checkbox-border", fmt_color(t.checkbox_border)),
+        (
+            "--rs-grid-checkbox-border-width",
+            fmt_px(t.checkbox_border_width),
+        ),
+        (
+            "--rs-grid-checkbox-checked-bg",
+            fmt_color(t.checkbox_checked_bg),
+        ),
+        (
+            "--rs-grid-checkbox-mark-color",
+            fmt_color(t.checkbox_mark_color),
+        ),
         // spacing
         ("--rs-grid-cell-padding", fmt_px(t.cell_padding)),
         // scrollbar
@@ -162,6 +205,31 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-header-menu-icon-dot-r",
             fmt_px(t.header_menu_icon_dot_r),
         ),
+        // header filter icon
+        (
+            "--rs-grid-header-filter-icon",
+            fmt_color(t.header_filter_icon),
+        ),
+        (
+            "--rs-grid-header-filter-icon-active",
+            fmt_color(t.header_filter_icon_active),
+        ),
+        (
+            "--rs-grid-header-filter-icon-margin-r",
+            fmt_px(t.header_filter_icon_margin_r),
+        ),
+        (
+            "--rs-grid-header-filter-icon-btn-w",
+            fmt_px(t.header_filter_icon_btn_w),
+        ),
+        (
+            "--rs-grid-header-filter-icon-size",
+            fmt_px(t.header_filter_icon_size),
+        ),
+        (
+            "--rs-grid-header-filter-icon-badge-r",
+            fmt_px(t.header_filter_icon_badge_r),
+        ),
         // pinned columns
         ("--rs-grid-pinned-bg", fmt_color(t.pinned_bg)),
         ("--rs-grid-pinned-header-bg", fmt_color(t.pinned_header_bg)),
@@ -172,6 +240,14 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
         (
             "--rs-grid-pinned-separator-width",
             fmt_px(t.pinned_separator_width),
+        ),
+        (
+            "--rs-grid-column-separator-color",
+            fmt_color(t.column_separator_color),
+        ),
+        (
+            "--rs-grid-column-separator-width",
+            fmt_px(t.column_separator_width),
         ),
         // row-number gutter
         ("--rs-grid-gutter-bg", fmt_color(t.gutter_bg)),
@@ -215,6 +291,43 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             "--rs-grid-cell-btn-ghost-color",
             fmt_color(t.cell_btn_ghost_color),
         ),
+        (
+            "--rs-grid-cell-btn-neutral-bg",
+            fmt_color(t.cell_btn_neutral_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-neutral-text",
+            fmt_color(t.cell_btn_neutral_text),
+        ),
+        (
+            "--rs-grid-cell-btn-accent-bg",
+            fmt_color(t.cell_btn_accent_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-accent-text",
+            fmt_color(t.cell_btn_accent_text),
+        ),
+        ("--rs-grid-cell-btn-info-bg", fmt_color(t.cell_btn_info_bg)),
+        (
+            "--rs-grid-cell-btn-info-text",
+            fmt_color(t.cell_btn_info_text),
+        ),
+        (
+            "--rs-grid-cell-btn-success-bg",
+            fmt_color(t.cell_btn_success_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-success-text",
+            fmt_color(t.cell_btn_success_text),
+        ),
+        (
+            "--rs-grid-cell-btn-warning-bg",
+            fmt_color(t.cell_btn_warning_bg),
+        ),
+        (
+            "--rs-grid-cell-btn-warning-text",
+            fmt_color(t.cell_btn_warning_text),
+        ),
         ("--rs-grid-cell-btn-radius", fmt_px(t.cell_btn_radius)),
         ("--rs-grid-cell-btn-padding-y", fmt_px(t.cell_btn_padding_y)),
         ("--rs-grid-cell-btn-padding-x", fmt_px(t.cell_btn_padding_x)),
@@ -246,7 +359,12 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.header_bg = color("--rs-grid-header-bg", t.header_bg);
     t.header_text = color("--rs-grid-header-text", t.header_text);
     t.cell_text = color("--rs-grid-cell-text", t.cell_text);
+    t.filter_row_input_border = color(
+        "--rs-grid-filter-row-input-border",
+        t.filter_row_input_border,
+    );
     t.grid_line = color("--rs-grid-grid-line", t.grid_line);
+    t.grid_line_width = px("--rs-grid-grid-line-width", t.grid_line_width);
     t.header_border = color("--rs-grid-header-border", t.header_border);
     t.header_separator_inset =
         px("--rs-grid-header-separator-inset", t.header_separator_inset);
@@ -263,7 +381,28 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.scrollbar_thumb = color("--rs-grid-scrollbar-thumb", t.scrollbar_thumb);
     t.row_alt_bg = color("--rs-grid-row-alt-bg", t.row_alt_bg);
     t.row_hover_bg = color("--rs-grid-row-hover-bg", t.row_hover_bg);
+    t.checked_row_bg = color("--rs-grid-checked-row-bg", t.checked_row_bg);
+    t.locked_cell_bg = color("--rs-grid-locked-cell-bg", t.locked_cell_bg);
+    t.locked_cell_text =
+        color("--rs-grid-locked-cell-text", t.locked_cell_text);
+    t.invalid_cell_bg = color("--rs-grid-invalid-cell-bg", t.invalid_cell_bg);
+    t.invalid_cell_border =
+        color("--rs-grid-invalid-cell-border", t.invalid_cell_border);
+    t.invalid_cell_border_width = px(
+        "--rs-grid-invalid-cell-border-width",
+        t.invalid_cell_border_width,
+    );
+    t.decoration_border_width = px(
+        "--rs-grid-decoration-border-width",
+        t.decoration_border_width,
+    );
     t.header_height = px("--rs-grid-header-height", t.header_height);
+    t.filter_row_height =
+        px("--rs-grid-filter-row-height", t.filter_row_height);
+    t.filter_row_input_margin_v = px(
+        "--rs-grid-filter-row-input-margin-v",
+        t.filter_row_input_margin_v,
+    );
     t.row_height = px("--rs-grid-row-height", t.row_height);
     t.font_size = px("--rs-grid-font-size", t.font_size);
     t.header_font_size = px("--rs-grid-header-font-size", t.header_font_size);
@@ -273,6 +412,8 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         boolean("--rs-grid-header-font-italic", t.header_font_italic);
     t.flash_fill = color("--rs-grid-flash-fill", t.flash_fill);
     t.flash_border = color("--rs-grid-flash-border", t.flash_border);
+    t.flash_error_fill =
+        color("--rs-grid-flash-error-fill", t.flash_error_fill);
     t.search_highlight =
         color("--rs-grid-search-highlight", t.search_highlight);
     t.search_current = color("--rs-grid-search-current", t.search_current);
@@ -281,6 +422,15 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
     t.progress_fill = color("--rs-grid-progress-fill", t.progress_fill);
     t.progress_height = px("--rs-grid-progress-height", t.progress_height);
     t.progress_radius = px("--rs-grid-progress-radius", t.progress_radius);
+    t.checkbox_size = px("--rs-grid-checkbox-size", t.checkbox_size);
+    t.checkbox_radius = px("--rs-grid-checkbox-radius", t.checkbox_radius);
+    t.checkbox_border = color("--rs-grid-checkbox-border", t.checkbox_border);
+    t.checkbox_border_width =
+        px("--rs-grid-checkbox-border-width", t.checkbox_border_width);
+    t.checkbox_checked_bg =
+        color("--rs-grid-checkbox-checked-bg", t.checkbox_checked_bg);
+    t.checkbox_mark_color =
+        color("--rs-grid-checkbox-mark-color", t.checkbox_mark_color);
     t.cell_padding = px("--rs-grid-cell-padding", t.cell_padding);
     t.scrollbar_width = px("--rs-grid-scrollbar-width", t.scrollbar_width);
     t.scrollbar_radius = px("--rs-grid-scrollbar-radius", t.scrollbar_radius);
@@ -320,6 +470,28 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         px("--rs-grid-header-menu-icon-btn-h", t.header_menu_icon_btn_h);
     t.header_menu_icon_dot_r =
         px("--rs-grid-header-menu-icon-dot-r", t.header_menu_icon_dot_r);
+    t.header_filter_icon =
+        color("--rs-grid-header-filter-icon", t.header_filter_icon);
+    t.header_filter_icon_active = color(
+        "--rs-grid-header-filter-icon-active",
+        t.header_filter_icon_active,
+    );
+    t.header_filter_icon_margin_r = px(
+        "--rs-grid-header-filter-icon-margin-r",
+        t.header_filter_icon_margin_r,
+    );
+    t.header_filter_icon_btn_w = px(
+        "--rs-grid-header-filter-icon-btn-w",
+        t.header_filter_icon_btn_w,
+    );
+    t.header_filter_icon_size = px(
+        "--rs-grid-header-filter-icon-size",
+        t.header_filter_icon_size,
+    );
+    t.header_filter_icon_badge_r = px(
+        "--rs-grid-header-filter-icon-badge-r",
+        t.header_filter_icon_badge_r,
+    );
     t.pinned_bg = color("--rs-grid-pinned-bg", t.pinned_bg);
     t.pinned_header_bg =
         color("--rs-grid-pinned-header-bg", t.pinned_header_bg);
@@ -327,6 +499,10 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         color("--rs-grid-pinned-separator-color", t.pinned_separator_color);
     t.pinned_separator_width =
         px("--rs-grid-pinned-separator-width", t.pinned_separator_width);
+    t.column_separator_color =
+        color("--rs-grid-column-separator-color", t.column_separator_color);
+    t.column_separator_width =
+        px("--rs-grid-column-separator-width", t.column_separator_width);
     t.gutter_bg = color("--rs-grid-gutter-bg", t.gutter_bg);
     t.gutter_text = color("--rs-grid-gutter-text", t.gutter_text);
     t.gutter_font_size = px("--rs-grid-gutter-font-size", t.gutter_font_size);
@@ -351,6 +527,26 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         color("--rs-grid-cell-btn-danger-text", t.cell_btn_danger_text);
     t.cell_btn_ghost_color =
         color("--rs-grid-cell-btn-ghost-color", t.cell_btn_ghost_color);
+    t.cell_btn_neutral_bg =
+        color("--rs-grid-cell-btn-neutral-bg", t.cell_btn_neutral_bg);
+    t.cell_btn_neutral_text =
+        color("--rs-grid-cell-btn-neutral-text", t.cell_btn_neutral_text);
+    t.cell_btn_accent_bg =
+        color("--rs-grid-cell-btn-accent-bg", t.cell_btn_accent_bg);
+    t.cell_btn_accent_text =
+        color("--rs-grid-cell-btn-accent-text", t.cell_btn_accent_text);
+    t.cell_btn_info_bg =
+        color("--rs-grid-cell-btn-info-bg", t.cell_btn_info_bg);
+    t.cell_btn_info_text =
+        color("--rs-grid-cell-btn-info-text", t.cell_btn_info_text);
+    t.cell_btn_success_bg =
+        color("--rs-grid-cell-btn-success-bg", t.cell_btn_success_bg);
+    t.cell_btn_success_text =
+        color("--rs-grid-cell-btn-success-text", t.cell_btn_success_text);
+    t.cell_btn_warning_bg =
+        color("--rs-grid-cell-btn-warning-bg", t.cell_btn_warning_bg);
+    t.cell_btn_warning_text =
+        color("--rs-grid-cell-btn-warning-text", t.cell_btn_warning_text);
     t.cell_btn_radius = px("--rs-grid-cell-btn-radius", t.cell_btn_radius);
     t.cell_btn_padding_y =
         px("--rs-grid-cell-btn-padding-y", t.cell_btn_padding_y);
@@ -478,7 +674,9 @@ mod tests {
             header_bg: c(2),
             header_text: c(3),
             cell_text: c(4),
+            filter_row_input_border: c(216),
             grid_line: c(5),
+            grid_line_width: 79.0,
             header_border: c(6),
             header_separator_inset: 7.0,
             header_separator_width: 8.0,
@@ -490,7 +688,10 @@ mod tests {
             scrollbar_thumb: c(14),
             row_alt_bg: c(15),
             row_hover_bg: c(16),
+            checked_row_bg: c(200),
             header_height: 17.0,
+            filter_row_height: 305.0,
+            filter_row_input_margin_v: 306.0,
             row_height: 18.0,
             font_size: 19.0,
             header_font_size: 20.0,
@@ -498,6 +699,7 @@ mod tests {
             header_font_italic: false,
             flash_fill: c(23),
             flash_border: c(24),
+            flash_error_fill: c(201),
             search_highlight: c(25),
             search_current: c(26),
             skeleton_fg: c(27),
@@ -505,6 +707,12 @@ mod tests {
             progress_fill: c(29),
             progress_height: 30.0,
             progress_radius: 31.0,
+            checkbox_size: 82.0,
+            checkbox_radius: 83.0,
+            checkbox_border: c(84),
+            checkbox_border_width: 85.0,
+            checkbox_checked_bg: c(86),
+            checkbox_mark_color: c(87),
             cell_padding: 32.0,
             scrollbar_width: 33.0,
             scrollbar_radius: 34.0,
@@ -525,6 +733,12 @@ mod tests {
             header_menu_icon_btn_w: 49.0,
             header_menu_icon_btn_h: 50.0,
             header_menu_icon_dot_r: 51.0,
+            header_filter_icon: c(212),
+            header_filter_icon_active: c(213),
+            header_filter_icon_margin_r: 301.0,
+            header_filter_icon_btn_w: 302.0,
+            header_filter_icon_size: 304.0,
+            header_filter_icon_badge_r: 305.0,
             pinned_bg: c(52),
             pinned_header_bg: c(53),
             pinned_separator_color: c(54),
@@ -542,11 +756,29 @@ mod tests {
             cell_btn_danger_bg: c(66),
             cell_btn_danger_text: c(67),
             cell_btn_ghost_color: c(68),
+            cell_btn_neutral_bg: c(202),
+            cell_btn_neutral_text: c(203),
+            cell_btn_accent_bg: c(204),
+            cell_btn_accent_text: c(205),
+            cell_btn_info_bg: c(206),
+            cell_btn_info_text: c(207),
+            cell_btn_success_bg: c(208),
+            cell_btn_success_text: c(209),
+            cell_btn_warning_bg: c(210),
+            cell_btn_warning_text: c(211),
             cell_btn_radius: 69.0,
             cell_btn_padding_y: 70.0,
             cell_btn_padding_x: 71.0,
             cell_btn_gap: 72.0,
             cell_btn_margin_r: 73.0,
+            locked_cell_bg: c(74),
+            locked_cell_text: c(75),
+            invalid_cell_bg: c(88),
+            invalid_cell_border: c(76),
+            invalid_cell_border_width: 77.0,
+            decoration_border_width: 78.0,
+            column_separator_color: c(80),
+            column_separator_width: 81.0,
         }
     }
 

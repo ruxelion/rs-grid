@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.4...rs-grid-leptos-v0.3.5) - 2026-11-27
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.3.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.3...rs-grid-leptos-v0.3.4) - 2026-07-22
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.3.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.2...rs-grid-leptos-v0.3.3) - 2026-07-09
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.3.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.1...rs-grid-leptos-v0.3.2) - 2026-07-08
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.3.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.3.0...rs-grid-leptos-v0.3.1) - 2026-07-08
+
+### Other
+
+- updated the following local packages: rs-grid-scene, rs-grid-web
+
+## [0.3.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.6...rs-grid-leptos-v0.3.0) - 2026-07-07
+
+### Added
+
+- add row-selection checkbox column with tri-state functionality
+
+## [0.2.6](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.5...rs-grid-leptos-v0.2.6) - 2026-07-04
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.2.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.4...rs-grid-leptos-v0.2.5) - 2026-07-03
+
+### Other
+
+- updated the following local packages: rs-grid-scene, rs-grid-web
+
+## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.3...rs-grid-leptos-v0.2.4) - 2026-07-03
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.2.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.2...rs-grid-leptos-v0.2.3) - 2026-07-02
+
+### Other
+
+- updated the following local packages: rs-grid-web
+
+## [0.2.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.1...rs-grid-leptos-v0.2.2) - 2026-07-02
+
+### Other
+
+- updated the following local packages: rs-grid-web
+
+## [0.2.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.2.0...rs-grid-leptos-v0.2.1) - 2026-07-02
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-web
+
+## [0.2.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.1.5...rs-grid-leptos-v0.2.0) - 2026-07-01
+
+### Added
+
+- *(validation)* add live validation state callback and improve validation UI integration
+
 ## [0.1.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-leptos-v0.1.4...rs-grid-leptos-v0.1.5) - 2026-06-21
 
 ### Other

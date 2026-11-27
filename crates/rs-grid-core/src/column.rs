@@ -1,6 +1,10 @@
 use std::{fmt, rc::Rc};
 
-use crate::format::CellFormat;
+use crate::{
+    format::CellFormat,
+    model::GridModel,
+    validation::{ValidationRule, validate_rules},
+};
 
 // ── cell validator ──────────────────────────────────────
 
@@ -55,6 +59,153 @@ impl fmt::Debug for CellValidator {
     }
 }
 
+// ── generic row callback ────────────────────────────────
+
+/// Signature shared by every [`RowPredicate<T>`] instantiation. Factored
+/// out (rather than inlined in the struct field) purely to keep
+/// `RowPredicate`'s own definition under clippy's `type_complexity`
+/// threshold — it carries no independent meaning beyond that.
+type RowPredicateFn<T> = dyn Fn(u64, &GridModel) -> T;
+
+/// Generic per-row callback wrapper: an [`Rc`]-shared closure taking
+/// the row index and full [`GridModel`] access, returning `T`. Backs
+/// [`EditablePredicate`], [`CellDecorator`], and [`CellButtonsVisible`]
+/// (see each alias for its specific semantics/gating rules — this type
+/// only supplies the shared `Rc<dyn Fn>` mechanics: construction,
+/// evaluation, cheap `Rc::clone`, and an opaque `Debug` placeholder).
+///
+/// `T: 'static` is required on the struct (and repeated on every impl
+/// below, since a struct's bounds aren't inherited by its impls):
+/// `Rc<dyn Fn(..) -> T>` binds `T` as the trait object's `Output`
+/// associated type, and Rust requires everything bound into an
+/// implicit `+ 'static` trait object to itself be `'static` (the
+/// classic `Box<dyn Fn() -> T>` footgun, rustc E0310) — unlike the
+/// `&GridModel` *argument*, which is consumed per-call and needs no
+/// such bound.
+///
+/// # Thread safety
+///
+/// `RowPredicate` is `!Send + !Sync` (it wraps an `Rc`) — the grid
+/// targets single-threaded WASM / browser environments.
+pub struct RowPredicate<T: 'static>(pub Rc<RowPredicateFn<T>>);
+
+impl<T: 'static> RowPredicate<T> {
+    /// Create a new callback from a closure.
+    pub fn new(f: impl Fn(u64, &GridModel) -> T + 'static) -> Self {
+        Self(Rc::new(f))
+    }
+
+    /// Evaluate the callback for `row` against `model`.
+    pub fn evaluate(&self, row: u64, model: &GridModel) -> T {
+        (self.0)(row, model)
+    }
+}
+
+// Manual, not `#[derive(Clone)]`: derive would add an `T: Clone`
+// bound (it inspects only the generic parameter list, not what the
+// fields actually need) — `Rc::clone` never touches `T`, so this impl
+// is strictly more permissive than derive would produce.
+impl<T: 'static> Clone for RowPredicate<T> {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
+
+// Manual, not `#[derive(Debug)]`: derive is not just unnecessarily
+// bounded here, it's outright impossible — `dyn Fn(..) -> T` has no
+// `Debug` impl in `std` for any `T`. The placeholder text is
+// intentionally generic (not per-alias) since it's never parsed.
+impl<T: 'static> fmt::Debug for RowPredicate<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RowPredicate(..)")
+    }
+}
+
+// ── cell editability predicate ──────────────────────────
+
+/// Dynamic per-cell editability override.
+///
+/// Checked *after* the static [`ColumnDef::editable`] flag — if the
+/// column is statically non-editable, the predicate is never called
+/// (mirrors the `rules` → `validator` layering of
+/// [`ColumnDef::validate_value`]).
+///
+/// Wrap your closure with [`EditablePredicate::new`]:
+/// ```ignore
+/// EditablePredicate::new(|row, model| {
+///     model.get_cell(row, "status").as_deref() != Some("locked")
+/// })
+/// ```
+pub type EditablePredicate = RowPredicate<bool>;
+
+// ── cell decoration ─────────────────────────────────────
+
+/// Persistent, at-rest visual annotation for a single cell. Purely
+/// cosmetic — never affects whether a value can be written (contrast
+/// with `rules`/`validator`). RGBA fields follow the `[u8; 4]`
+/// convention used by
+/// [`FormattedCell::color`](crate::format::FormattedCell::color),
+/// not `rs-grid-scene`'s `Color`, so `rs-grid-core` stays
+/// renderer-agnostic.
+#[non_exhaustive]
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CellDecoration {
+    /// RGBA border color. `None` = no border drawn. The stroke width
+    /// itself is themed (`Theme::decoration_border_width` in
+    /// `rs-grid-scene`) since it's uniform across every decorated cell
+    /// regardless of color.
+    pub border_color: Option<[u8; 4]>,
+    /// RGBA background tint, blended over the cell's normal background.
+    /// `None` = no tint drawn.
+    pub background_tint: Option<[u8; 4]>,
+    /// Reserved for a future native hover tooltip — **not rendered
+    /// anywhere yet**. Safe to leave `None`.
+    pub message: Option<String>,
+}
+
+impl CellDecoration {
+    /// Set the border color. Returns `self` for chaining.
+    ///
+    /// `#[non_exhaustive]` blocks struct-literal construction from
+    /// outside this crate, so these builders (mirroring `ColumnDef`'s
+    /// own `with_*`/`.*_when` chaining style) are the public way to
+    /// build a `CellDecoration`, starting from `CellDecoration::default()`.
+    pub fn with_border_color(mut self, color: [u8; 4]) -> Self {
+        self.border_color = Some(color);
+        self
+    }
+
+    /// Set the background tint. Returns `self` for chaining.
+    pub fn with_background_tint(mut self, color: [u8; 4]) -> Self {
+        self.background_tint = Some(color);
+        self
+    }
+
+    /// Set the reserved tooltip message. Returns `self` for chaining.
+    pub fn with_message(mut self, message: impl Into<String>) -> Self {
+        self.message = Some(message.into());
+        self
+    }
+}
+
+/// Dynamic per-cell decoration override.
+///
+/// Evaluated every frame for every visible cell — same cost profile as
+/// [`EditablePredicate`] and `CellFormat::Custom`. Not gated by any
+/// static flag: a column either has a decorator or it doesn't.
+///
+/// Wrap your closure with [`CellDecorator::new`]:
+/// ```ignore
+/// CellDecorator::new(|row, model| {
+///     let mismatched = model.get_cell(row, "doc1_file").as_deref().unwrap_or("").is_empty()
+///         != model.get_cell(row, "doc1_label").as_deref().unwrap_or("").is_empty();
+///     mismatched.then(|| {
+///         CellDecoration::default().with_border_color([239, 68, 68, 255])
+///     })
+/// })
+/// ```
+pub type CellDecorator = RowPredicate<Option<CellDecoration>>;
+
 // ── cell button ────────────────────────────────────────────
 
 /// Visual style variant for a cell button.
@@ -70,6 +221,16 @@ pub enum ButtonStyle {
     Danger,
     /// Transparent background, border only.
     Ghost,
+    /// Solid neutral (near-black) fill.
+    Neutral,
+    /// Solid accent-colour fill.
+    Accent,
+    /// Solid informational fill.
+    Info,
+    /// Solid success fill.
+    Success,
+    /// Solid warning fill.
+    Warning,
 }
 
 /// Definition of a single button rendered inside a cell.
@@ -102,6 +263,23 @@ impl ButtonDef {
         }
     }
 }
+
+// ── cell button visibility ──────────────────────────────────
+
+/// Dynamic per-row visibility override for [`ColumnDef::cell_buttons`].
+///
+/// Not gated by any static flag: a column either has `cell_buttons`
+/// or it doesn't (an empty `Vec` already means "no buttons"), so this
+/// predicate is a single layer, matching [`CellDecorator`] rather than
+/// [`EditablePredicate`]'s two-layer stack.
+///
+/// Wrap your closure with [`CellButtonsVisible::new`]:
+/// ```ignore
+/// CellButtonsVisible::new(|row, model| {
+///     model.get_cell(row, "url").as_deref().is_some_and(|u| !u.is_empty())
+/// })
+/// ```
+pub type CellButtonsVisible = RowPredicate<bool>;
 
 // ── cell editor ────────────────────────────────────────────
 
@@ -177,12 +355,27 @@ pub struct ColumnDef {
     pub editor: Option<CellEditor>,
     /// Optional validator called before committing an edit.
     /// Returns `Ok(())` to accept or `Err(message)` to reject.
+    ///
+    /// Kept alongside [`Self::rules`] for backward compatibility;
+    /// prefer `rules` for new code.
     pub validator: Option<CellValidator>,
+    /// Declarative validation rules checked (in order) before
+    /// committing an edit. Evaluated before the legacy `validator`.
+    pub rules: Vec<ValidationRule>,
     /// Render cell text with bold weight (`font-weight: 600`).
     pub bold: bool,
     /// Allow inline editing for this column (`true` by default).
     /// When `false`, double-clicking the column does nothing.
     pub editable: bool,
+    /// Optional dynamic per-cell editability override, checked after
+    /// `editable` (only when `editable` is `true`). `None` = every
+    /// cell in the column follows the static `editable` flag
+    /// unconditionally. See [`ColumnDef::is_cell_editable`].
+    pub editable_predicate: Option<EditablePredicate>,
+    /// Optional dynamic per-cell decoration (border/tint/message),
+    /// evaluated every frame. Purely cosmetic. `None` = no decoration.
+    /// See [`ColumnDef::cell_decoration`].
+    pub decorator: Option<CellDecorator>,
     /// Clickable buttons rendered at the right side of every
     /// cell in this column.
     ///
@@ -190,6 +383,11 @@ pub struct ColumnDef {
     /// rightmost).  The click callback receives the row
     /// index, column key, and the button's `id`.
     pub cell_buttons: Vec<ButtonDef>,
+    /// Optional dynamic per-row visibility override for `cell_buttons`.
+    /// `None` = buttons always shown (today's behavior, subject to
+    /// `cell_buttons` being non-empty). See
+    /// [`ColumnDef::are_cell_buttons_visible`].
+    pub cell_buttons_visible: Option<CellButtonsVisible>,
 }
 
 impl ColumnDef {
@@ -210,9 +408,13 @@ impl ColumnDef {
             format: None,
             editor: None,
             validator: None,
+            rules: Vec::new(),
             bold: false,
             editable: true,
+            editable_predicate: None,
+            decorator: None,
             cell_buttons: Vec::new(),
+            cell_buttons_visible: None,
         }
     }
 
@@ -231,6 +433,27 @@ impl ColumnDef {
     /// Disable inline editing for this column. Returns `self` for chaining.
     pub fn read_only(mut self) -> Self {
         self.editable = false;
+        self
+    }
+
+    /// Set a dynamic per-cell editability predicate. Returns `self`
+    /// for chaining. Checked only when `editable` (the static flag)
+    /// is `true` — see [`ColumnDef::editable_predicate`].
+    pub fn editable_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> bool + 'static,
+    ) -> Self {
+        self.editable_predicate = Some(EditablePredicate::new(f));
+        self
+    }
+
+    /// Set a dynamic per-cell decoration callback. Returns `self` for
+    /// chaining. Purely visual — see [`ColumnDef::decorator`].
+    pub fn decorated_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> Option<CellDecoration> + 'static,
+    ) -> Self {
+        self.decorator = Some(CellDecorator::new(f));
         self
     }
 
@@ -272,10 +495,113 @@ impl ColumnDef {
         self
     }
 
+    /// Set the declarative validation rules. Returns `self` for
+    /// chaining.
+    pub fn with_rules(mut self, rules: Vec<ValidationRule>) -> Self {
+        self.rules = rules;
+        self
+    }
+
+    /// Require a non-empty value. Returns `self` for chaining.
+    pub fn required(mut self) -> Self {
+        self.rules.push(ValidationRule::required());
+        self
+    }
+
+    /// Require at least `min` characters. Returns `self` for
+    /// chaining.
+    pub fn with_min_length(mut self, min: usize) -> Self {
+        self.rules.push(ValidationRule::min_length(min));
+        self
+    }
+
+    /// Require at most `max` characters. Returns `self` for
+    /// chaining.
+    pub fn with_max_length(mut self, max: usize) -> Self {
+        self.rules.push(ValidationRule::max_length(max));
+        self
+    }
+
+    /// Require a numeric value within `min..=max`. Returns `self`
+    /// for chaining.
+    pub fn with_range(mut self, min: f64, max: f64) -> Self {
+        self.rules.push(ValidationRule::range(min, max));
+        self
+    }
+
+    /// Require the value to match one entry of an allowed-value
+    /// list. Returns `self` for chaining.
+    pub fn with_allowed_values(mut self, values: Vec<String>) -> Self {
+        self.rules.push(ValidationRule::one_of(values));
+        self
+    }
+
+    /// Validate `value` against [`Self::rules`] (in order), then
+    /// against the legacy [`Self::validator`] if all rules passed.
+    /// Returns the first failure's message, if any.
+    pub fn validate_value(&self, value: &str) -> Result<(), String> {
+        validate_rules(&self.rules, value)?;
+        if let Some(v) = &self.validator {
+            v.validate(value)?;
+        }
+        Ok(())
+    }
+
+    /// Resolve whether `row` is editable in this column — the single
+    /// source of truth combining all three editability layers, in
+    /// order (each short-circuits the next): `model.editable` (grid-wide
+    /// toggle), then the static per-column `editable` flag, then the
+    /// dynamic `editable_predicate` (not even called if either static
+    /// layer is `false`); `true` if no predicate is set and both static
+    /// layers pass.
+    pub fn is_cell_editable(&self, row: u64, model: &GridModel) -> bool {
+        model.editable
+            && self.editable
+            && self
+                .editable_predicate
+                .as_ref()
+                .is_none_or(|p| p.evaluate(row, model))
+    }
+
+    /// Resolve this cell's decoration, if any. No static gate (unlike
+    /// `is_cell_editable`'s 3-layer stack) — purely cosmetic.
+    pub fn cell_decoration(
+        &self,
+        row: u64,
+        model: &GridModel,
+    ) -> Option<CellDecoration> {
+        self.decorator.as_ref().and_then(|d| d.evaluate(row, model))
+    }
+
     /// Set the cell buttons. Returns `self` for chaining.
     pub fn with_cell_buttons(mut self, buttons: Vec<ButtonDef>) -> Self {
         self.cell_buttons = buttons;
         self
+    }
+
+    /// Set a dynamic per-row visibility predicate for `cell_buttons`.
+    /// Returns `self` for chaining. See
+    /// [`ColumnDef::cell_buttons_visible`].
+    pub fn cell_buttons_visible_when(
+        mut self,
+        f: impl Fn(u64, &GridModel) -> bool + 'static,
+    ) -> Self {
+        self.cell_buttons_visible = Some(CellButtonsVisible::new(f));
+        self
+    }
+
+    /// Resolve whether `cell_buttons` should be drawn for `row`. No
+    /// static gate (unlike `is_cell_editable`'s 3-layer stack) —
+    /// purely a per-row on/off switch. `true` when no predicate is
+    /// set (today's behavior).
+    pub fn are_cell_buttons_visible(
+        &self,
+        row: u64,
+        model: &GridModel,
+    ) -> bool {
+        self.cell_buttons_visible
+            .as_ref()
+            .is_none_or(|p| p.evaluate(row, model))
     }
 
     /// Clamp `w` to this column's [`min_width`]..=[`max_width`]
@@ -528,6 +854,189 @@ mod tests {
         assert!(s.contains("CellValidator"));
     }
 
+    // ── RowPredicate<T> ─────────────────────────────────────
+    // Generic wrapper mechanics, tested once here — each alias
+    // (EditablePredicate, CellDecorator, CellButtonsVisible) below
+    // reuses the exact same new/evaluate/Clone/Debug code, so testing
+    // Clone-sharing/Debug-format per alias would just re-run the same
+    // source three times over. The `_delegates_to_*`/
+    // `_reads_other_column` tests below stay per-alias since those
+    // exercise each resolver's own (non-generic) business logic.
+
+    #[test]
+    fn row_predicate_new_and_evaluate() {
+        let p = RowPredicate::<bool>::new(|row, _| row == 0);
+        let model = model_with_status("open");
+        assert!(p.evaluate(0, &model));
+        assert!(!p.evaluate(1, &model));
+    }
+
+    #[test]
+    fn row_predicate_clone_shares_closure() {
+        let p = RowPredicate::<bool>::new(|row, _| row == 0);
+        let p2 = p.clone();
+        let model = model_with_status("open");
+        assert!(p2.evaluate(0, &model));
+        assert!(!p2.evaluate(1, &model));
+    }
+
+    #[test]
+    fn row_predicate_debug_format() {
+        let p = RowPredicate::<bool>::new(|_, _| true);
+        assert_eq!(format!("{p:?}"), "RowPredicate(..)");
+    }
+
+    // ── EditablePredicate / editable_when ──────────────────
+
+    fn model_with_status(row0_status: &str) -> GridModel {
+        use crate::row::RowRecord;
+        let cols = vec![
+            ColumnDef::new("status", "Status", 100.0),
+            ColumnDef::new("notes", "Notes", 100.0),
+        ];
+        let rows = vec![
+            {
+                let mut r = RowRecord::new(0);
+                r.set("status", row0_status);
+                r
+            },
+            {
+                let mut r = RowRecord::new(1);
+                r.set("status", "open");
+                r
+            },
+        ];
+        GridModel::new(cols, rows, 30.0, 40.0)
+    }
+
+    #[test]
+    fn editable_predicate_default_none() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.editable_predicate.is_none());
+    }
+
+    #[test]
+    fn editable_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0).editable_when(|_, _| false);
+        assert!(col.editable_predicate.is_some());
+    }
+
+    #[test]
+    fn is_cell_editable_true_when_no_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert!(col.is_cell_editable(0, &model));
+        assert!(col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_false_when_static_false_predicate_not_called() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .read_only()
+            .editable_when(|_, _| panic!("predicate must not be called"));
+        let model = model_with_status("open");
+        assert!(!col.is_cell_editable(0, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_delegates_to_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .editable_when(|row, _| row % 2 == 0);
+        let model = model_with_status("open");
+        assert!(col.is_cell_editable(0, &model));
+        assert!(!col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_predicate_reads_other_column() {
+        let col = ColumnDef::new("notes", "Notes", 100.0).editable_when(
+            |row, model| {
+                model.get_cell(row, "status").as_deref() != Some("locked")
+            },
+        );
+        let model = model_with_status("locked");
+        assert!(!col.is_cell_editable(0, &model));
+        assert!(col.is_cell_editable(1, &model));
+    }
+
+    #[test]
+    fn is_cell_editable_false_when_grid_wide_editable_false_predicate_not_called()
+     {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .editable_when(|_, _| panic!("predicate must not be called"));
+        let mut model = model_with_status("open");
+        model.editable = false;
+        assert!(!col.is_cell_editable(0, &model));
+    }
+
+    #[test]
+    fn editable_predicate_debug_format() {
+        let p = EditablePredicate::new(|_, _| true);
+        assert_eq!(format!("{p:?}"), "RowPredicate(..)");
+    }
+
+    // ── decorator ────────────────────────────────────────
+
+    #[test]
+    fn decorator_default_none() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.decorator.is_none());
+    }
+
+    #[test]
+    fn decorated_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0).decorated_when(|_, _| None);
+        assert!(col.decorator.is_some());
+    }
+
+    #[test]
+    fn cell_decoration_none_when_no_decorator() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert_eq!(col.cell_decoration(0, &model), None);
+    }
+
+    #[test]
+    fn cell_decoration_delegates_to_closure() {
+        let col = ColumnDef::new("a", "A", 100.0).decorated_when(|row, _| {
+            (row == 0).then(|| CellDecoration {
+                border_color: Some([239, 68, 68, 255]),
+                ..Default::default()
+            })
+        });
+        let model = model_with_status("open");
+        assert!(col.cell_decoration(0, &model).is_some());
+        assert!(col.cell_decoration(1, &model).is_none());
+    }
+
+    #[test]
+    fn cell_decoration_predicate_reads_other_column() {
+        let col = ColumnDef::new("notes", "Notes", 100.0).decorated_when(
+            |row, model| {
+                let mismatched =
+                    model.get_cell(row, "status").as_deref() == Some("locked");
+                mismatched.then(CellDecoration::default)
+            },
+        );
+        let model = model_with_status("locked");
+        assert!(col.cell_decoration(0, &model).is_some());
+        assert!(col.cell_decoration(1, &model).is_none());
+    }
+
+    #[test]
+    fn decorator_debug_format() {
+        let d = CellDecorator::new(|_, _| None);
+        assert_eq!(format!("{d:?}"), "RowPredicate(..)");
+    }
+
+    #[test]
+    fn cell_decoration_default_all_none() {
+        let deco = CellDecoration::default();
+        assert!(deco.border_color.is_none());
+        assert!(deco.background_tint.is_none());
+        assert!(deco.message.is_none());
+    }
+
     // ── with_editor ───────────────────────────────────────
 
     #[test]
@@ -566,6 +1075,73 @@ mod tests {
         assert!(v.validate("anything").is_ok());
     }
 
+    // ── validation rules ──────────────────────────────────
+
+    #[test]
+    fn required_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).required();
+        assert_eq!(col.rules.len(), 1);
+        assert!(col.validate_value("").is_err());
+        assert!(col.validate_value("x").is_ok());
+    }
+
+    #[test]
+    fn with_min_length_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_min_length(3);
+        assert!(col.validate_value("ab").is_err());
+        assert!(col.validate_value("abc").is_ok());
+    }
+
+    #[test]
+    fn with_max_length_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_max_length(3);
+        assert!(col.validate_value("abcd").is_err());
+        assert!(col.validate_value("abc").is_ok());
+    }
+
+    #[test]
+    fn with_range_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0).with_range(0.0, 10.0);
+        assert!(col.validate_value("5").is_ok());
+        assert!(col.validate_value("50").is_err());
+    }
+
+    #[test]
+    fn with_allowed_values_pushes_rule() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_allowed_values(vec!["A".into(), "B".into()]);
+        assert!(col.validate_value("A").is_ok());
+        assert!(col.validate_value("C").is_err());
+    }
+
+    #[test]
+    fn with_rules_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .with_rules(vec![ValidationRule::required()]);
+        assert_eq!(col.rules.len(), 1);
+    }
+
+    #[test]
+    fn rules_default_empty() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        assert!(col.rules.is_empty());
+        assert!(col.validate_value("anything").is_ok());
+    }
+
+    #[test]
+    fn validate_value_runs_rules_before_legacy_validator() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .required()
+            .with_validator(CellValidator::new(|_| Err("legacy".into())));
+        // Required fails first — legacy validator is never reached.
+        assert_eq!(
+            col.validate_value("").unwrap_err(),
+            "This field is required."
+        );
+        // Once rules pass, the legacy validator still runs.
+        assert_eq!(col.validate_value("x").unwrap_err(), "legacy");
+    }
+
     #[test]
     fn with_bold_sets_flag() {
         let col = ColumnDef::new("a", "A", 100.0).with_bold();
@@ -579,5 +1155,48 @@ mod tests {
         ]);
         assert_eq!(col.cell_buttons.len(), 1);
         assert_eq!(col.cell_buttons[0].id, "del");
+    }
+
+    // ── CellButtonsVisible / cell_buttons_visible_when ──────
+
+    #[test]
+    fn cell_buttons_visible_when_sets_field() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .cell_buttons_visible_when(|_, _| false);
+        assert!(col.cell_buttons_visible.is_some());
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_true_when_no_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0);
+        let model = model_with_status("open");
+        assert!(col.are_cell_buttons_visible(0, &model));
+        assert!(col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_delegates_to_predicate() {
+        let col = ColumnDef::new("a", "A", 100.0)
+            .cell_buttons_visible_when(|row, _| row % 2 == 0);
+        let model = model_with_status("open");
+        assert!(col.are_cell_buttons_visible(0, &model));
+        assert!(!col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn are_cell_buttons_visible_predicate_reads_other_column() {
+        let col = ColumnDef::new("eshop_url", "eshop", 100.0)
+            .cell_buttons_visible_when(|row, model| {
+                model.get_cell(row, "status").as_deref() != Some("locked")
+            });
+        let model = model_with_status("locked");
+        assert!(!col.are_cell_buttons_visible(0, &model));
+        assert!(col.are_cell_buttons_visible(1, &model));
+    }
+
+    #[test]
+    fn cell_buttons_visible_debug_format() {
+        let visible = CellButtonsVisible::new(|_, _| true);
+        assert_eq!(format!("{visible:?}"), "RowPredicate(..)");
     }
 }

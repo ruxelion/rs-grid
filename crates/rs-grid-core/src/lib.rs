@@ -19,17 +19,25 @@ pub mod commands;
 pub mod datasource;
 /// Inline cell edit state snapshot.
 pub mod edit;
+/// Per-column filter conditions: `FilterOp`, `FilterCondition`.
+pub mod filter;
 /// Cell formatting: `CellFormat`, `CellAlign`, `FormattedCell`,
 /// and `format_cell`.
 pub mod format;
 /// O(log n) hit-testing on cells, headers, and gutters.
 pub mod hit_test;
+/// O(1) least-recently-used order tracking (fixed node pool, free-list
+/// recycled), used by [`page_cache`] for cache eviction.
+pub mod lru_ring;
 /// Grid data model: columns, datasource, and sizing.
 pub mod model;
 /// Page-based cache for lazy/virtual data sources.
 pub mod page_cache;
 /// Row record storage and metadata.
 pub mod row;
+/// Tri-state (checked/unchecked/indeterminate) for the row-selection
+/// checkbox column.
+pub mod row_check;
 /// Scrollbar geometry and drag state.
 pub mod scrollbar;
 /// Active search state and local text search logic.
@@ -43,5 +51,8 @@ pub mod sort;
 pub mod state;
 /// Undo/redo history stack for reversible grid mutations.
 pub(crate) mod undo;
+/// Declarative per-column validation rules and the
+/// invalid-edit-value handling policy.
+pub mod validation;
 /// Viewport scroll position and visible-range computation.
 pub mod viewport;

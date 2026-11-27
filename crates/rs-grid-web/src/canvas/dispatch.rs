@@ -1,17 +1,89 @@
 use std::rc::Rc;
 
-use rs_grid_core::commands::{CommandOutput, GridCommand};
+use rs_grid_core::{
+    commands::{CommandOutput, GridCommand},
+    selection::CellCoord,
+};
 use wasm_bindgen::{JsCast, JsValue};
 
 use super::{FlashState, GridCanvas, dom_helpers::document};
 
+/// Commands that may expose new rows — trigger a page fetch in
+/// server-side pagination mode (`PageCacheDataSource`).
+///
+/// Every sort/filter variant must be listed here: skipping one leaves
+/// that command's in-memory state updated (and, for sort, silently
+/// reflected in `GridState`) without ever re-fetching the server-backed
+/// page, which is indistinguishable from the command doing nothing.
+fn triggers_fetch(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ScrollTo { .. }
+            | GridCommand::ScrollBy { .. }
+            | GridCommand::Resize { .. }
+            | GridCommand::NotifyPageLoaded
+            | GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+            | GridCommand::SetColumnFilter { .. }
+            | GridCommand::ClearAllFilters
+    )
+}
+
+/// In server-side mode, sort/filter changes invalidate the entire page
+/// cache. Must stay in sync with [`triggers_fetch`] for every sort/filter
+/// variant — a command that invalidates the cache but doesn't also
+/// trigger a fetch would leave the cache empty until the next unrelated
+/// fetch.
+fn invalidates_cache(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+            | GridCommand::SetColumnFilter { .. }
+            | GridCommand::ClearAllFilters
+    )
+}
+
+/// Commands that change the active sort (`GridState::sort`).
+///
+/// Drives [`GridCanvas::set_on_sort_changed`]. Must list every sort
+/// variant: a missing one would change the sort without telling the
+/// host, which matters most in server-side mode where the host owns
+/// the ordering.
+fn changes_sort(cmd: &GridCommand) -> bool {
+    matches!(
+        cmd,
+        GridCommand::ToggleSort { .. }
+            | GridCommand::SetSort { .. }
+            | GridCommand::ClearSort
+    )
+}
+
 impl GridCanvas {
-    /// Trigger a brief golden-yellow flash on the currently selected cells.
+    /// Trigger a brief golden-yellow flash on exactly `cells`.
     ///
-    /// No-op if there is no active selection. Multiple calls restart
-    /// the animation from full intensity.
-    pub fn flash_selection(&self) {
-        if !self.0.state.borrow().selection.has_selection() {
+    /// No-op for an empty slice. Multiple calls restart the animation
+    /// from full intensity, replacing the previous cell set. Callers
+    /// should pass the cells actually written by a mutation (e.g.
+    /// `CommandOutput::PasteApplied`'s or `CommandOutput::CellsCleared`'s
+    /// `cells`), not a selection rectangle, which may extend past cells
+    /// that were skipped.
+    pub fn flash_cells(&self, cells: &[CellCoord]) {
+        self.flash_cells_kind(cells, false);
+    }
+
+    /// Trigger a brief red error-flash on exactly `cells` — cells a
+    /// `CutSelection` copied but could not clear (locked or failing
+    /// validation), so the user sees why the cut didn't remove data
+    /// instead of it silently behaving like a copy.
+    pub fn flash_cells_error(&self, cells: &[CellCoord]) {
+        self.flash_cells_kind(cells, true);
+    }
+
+    fn flash_cells_kind(&self, cells: &[CellCoord], is_error: bool) {
+        if cells.is_empty() {
             return;
         }
         let now = web_sys::window()
@@ -22,6 +94,8 @@ impl GridCanvas {
         *self.0.flash.borrow_mut() = Some(FlashState {
             start_ms: now,
             duration_ms: 400.0,
+            cells: cells.iter().map(|c| (c.row, c.col)).collect(),
+            is_error,
         });
         self.render();
     }
@@ -31,39 +105,13 @@ impl GridCanvas {
         &self,
         cmd: GridCommand,
     ) -> CommandOutput {
-        // Run per-column validator before committing a cell edit.
-        if let GridCommand::CommitEdit {
-            row,
-            ref col_key,
-            ref value,
-        } = cmd
-        {
-            let validation_result = {
-                let state = self.0.state.borrow();
-                state
-                    .model
-                    .columns
-                    .iter()
-                    .find(|c| c.key == *col_key)
-                    .and_then(|c| c.validator.as_ref())
-                    .map(|v| v.validate(value))
-            };
-            if let Some(Err(msg)) = validation_result {
-                self.0.state.borrow_mut().apply(GridCommand::CancelEdit);
-                self.render();
-                let cb = self.0.on_validation_error.borrow().clone();
-                if let Some(cb) = cb {
-                    cb(row, col_key, &msg);
-                }
-                return CommandOutput::None;
-            }
-        }
-
         // Commands that write cell data — fire the on_change callback
         // so JS callers can react (e.g. mark the document as dirty).
         let is_mutation = matches!(
             cmd,
-            GridCommand::PasteAt { .. } | GridCommand::CommitEdit { .. }
+            GridCommand::PasteAt { .. }
+                | GridCommand::CommitEdit { .. }
+                | GridCommand::ClearCells
         );
         // Commands that mutate column layout (width, order, pin count) —
         // fire the on_columns_changed callback so JS callers can persist
@@ -90,26 +138,34 @@ impl GridCanvas {
                 | GridCommand::SelectCol(_)
                 | GridCommand::ExtendColSelection(_)
         );
+        // Commands that change the sort — fire on_sort_changed so a host
+        // that owns the ordering (server-side mode) can re-query.
+        let is_sort_change = changes_sort(&cmd);
+        // Commands that mutate `checked_rows` — fire the
+        // on_checked_rows_changed callback so JS callers can react to row
+        // checkbox toggles (e.g. show a bulk-action toolbar).
+        let is_checked_rows_change = matches!(
+            cmd,
+            GridCommand::ToggleRowChecked(_)
+                | GridCommand::ExtendRowChecked(_)
+                | GridCommand::ToggleAllFilteredChecked
+        );
         // Commands that may expose new rows — trigger a page fetch in
         // server-side pagination mode (PageCacheDataSource).
-        let triggers_fetch = matches!(
+        let triggers_fetch = triggers_fetch(&cmd);
+        // Commands that change the active edit session's validation
+        // state — fire on_validation_state_changed with the fresh
+        // value so a consumer can drive a live, custom validation UI.
+        let is_edit_state_change = matches!(
             cmd,
-            GridCommand::ScrollTo { .. }
-                | GridCommand::ScrollBy { .. }
-                | GridCommand::Resize { .. }
-                | GridCommand::NotifyPageLoaded
-                | GridCommand::ToggleSort { .. }
-                | GridCommand::SetColumnFilter { .. }
-                | GridCommand::ClearAllFilters
+            GridCommand::StartEdit { .. }
+                | GridCommand::ValidateEdit { .. }
+                | GridCommand::CommitEdit { .. }
+                | GridCommand::CancelEdit
         );
         // In server-side mode, sort/filter changes
         // invalidate the entire page cache.
-        let invalidates_cache = matches!(
-            cmd,
-            GridCommand::ToggleSort { .. }
-                | GridCommand::SetColumnFilter { .. }
-                | GridCommand::ClearAllFilters
-        );
+        let invalidates_cache = invalidates_cache(&cmd);
         if invalidates_cache
             && let Some(cache) = self.0.page_cache.borrow().as_ref()
         {
@@ -123,14 +179,38 @@ impl GridCanvas {
                  server-side data source for large datasets."
             )));
         }
+        let validation_error = if let CommandOutput::ValidationError {
+            row,
+            col_key,
+            message,
+        } = &out
+        {
+            Some((*row, col_key.clone(), message.clone()))
+        } else {
+            None
+        };
         self.render();
         // Clone the `Rc` out of each `RefCell` before invoking — that
         // releases the borrow, so a callback that re-dispatches a command
         // of the same kind won't re-borrow the cell and panic.
-        if is_mutation {
+        // A rejected CommitEdit (ValidationError) never wrote to the
+        // model, so it must not fire on_change.
+        if is_mutation && validation_error.is_none() {
             let cb = self.0.on_change.borrow().clone();
             if let Some(cb) = cb {
                 cb();
+            }
+        }
+        if let Some((row, col_key, message)) = &validation_error {
+            let cb = self.0.on_validation_error.borrow().clone();
+            if let Some(cb) = cb {
+                cb(*row, col_key, message);
+            }
+        }
+        if is_edit_state_change {
+            let cb = self.0.on_validation_state_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb(self.validation_error());
             }
         }
         if is_column_change {
@@ -141,6 +221,18 @@ impl GridCanvas {
         }
         if is_selection_change {
             let cb = self.0.on_selection_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb();
+            }
+        }
+        if is_sort_change {
+            let cb = self.0.on_sort_changed.borrow().clone();
+            if let Some(cb) = cb {
+                cb();
+            }
+        }
+        if is_checked_rows_change {
+            let cb = self.0.on_checked_rows_changed.borrow().clone();
             if let Some(cb) = cb {
                 cb();
             }
@@ -203,6 +295,40 @@ impl GridCanvas {
         *self.0.on_selection_changed.borrow_mut() = Some(Rc::new(cb));
     }
 
+    /// Register a callback fired after every command that mutates
+    /// `checked_rows`: `ToggleRowChecked`, `ExtendRowChecked`,
+    /// `ToggleAllFilteredChecked`. Use it together with
+    /// [`GridCanvas::checked_row_indices`] to drive row-level
+    /// bulk-action toolbars.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    pub fn set_on_checked_rows_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_checked_rows_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired after every command that changes the
+    /// active sort: `ToggleSort` (header click), `SetSort` and `ClearSort`
+    /// (context menu). Read the new state with
+    /// [`GridCanvas::sort_state`].
+    ///
+    /// Meant for hosts that own the ordering — typically a grid built
+    /// with [`DataSourceMode::ServerSide`], where the sort indicator
+    /// follows the header click but the rows are not reordered locally
+    /// — so they can re-query their backend.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    ///
+    /// [`DataSourceMode::ServerSide`]: rs_grid_core::model::DataSourceMode::ServerSide
+    pub fn set_on_sort_changed(&self, cb: impl Fn() + 'static) {
+        *self.0.on_sort_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
     /// Register a callback fired when a per-column validator rejects an
     /// edit. Arguments: `(row, col_key, error_message)`.
     ///
@@ -215,6 +341,39 @@ impl GridCanvas {
         cb: impl Fn(u64, &str, &str) + 'static,
     ) {
         *self.0.on_validation_error.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired after `StartEdit`, `ValidateEdit`,
+    /// `CommitEdit`, or `CancelEdit` with the fresh
+    /// [`GridCanvas::validation_error`] value.
+    ///
+    /// Unlike [`GridCanvas::set_on_validation_error`] (fired only when a
+    /// commit is rejected), this fires on *every* keystroke while editing —
+    /// use it to drive a custom validation UI (tooltip, banner, icon) built
+    /// with your own framework/CSS, rs-grid does not impose one. Combine
+    /// with [`GridCanvas::set_native_validation_tooltip`] to opt out of the
+    /// built-in `title`-attribute fallback if it competes with your UI.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    #[allow(clippy::type_complexity)]
+    pub fn set_on_validation_state_changed(
+        &self,
+        cb: impl Fn(Option<(u64, String, String)>) + 'static,
+    ) {
+        *self.0.on_validation_state_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Enable or disable the native `title` attribute on the inline edit
+    /// `<input>` (default `true`). The attribute reflects the current
+    /// validation error message, giving a zero-config browser tooltip.
+    /// Disable it when building a custom validation UI via
+    /// [`GridCanvas::set_on_validation_state_changed`] to avoid a competing
+    /// native tooltip.
+    pub fn set_native_validation_tooltip(&self, enabled: bool) {
+        self.0.native_validation_tooltip.set(enabled);
     }
 
     /// Register a callback fired when a cell button is clicked.
@@ -342,5 +501,55 @@ impl GridCanvas {
         }
         drop(state);
         self.render();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rs_grid_core::{commands::GridCommand, sort::SortDir};
+
+    use super::{changes_sort, invalidates_cache, triggers_fetch};
+
+    /// Regression test for the bug where `SetSort` (menu ⋮ → "Sort
+    /// Ascending"/"Descending") and `ClearSort` updated `GridState`
+    /// in-memory but never re-fetched the server-backed page, unlike
+    /// `ToggleSort` (direct header click) which did both.
+    #[test]
+    fn set_sort_and_clear_sort_trigger_fetch_and_invalidate_cache() {
+        let set_sort = GridCommand::SetSort {
+            col_key: "name".into(),
+            dir: SortDir::Asc,
+        };
+        let clear_sort = GridCommand::ClearSort;
+        let toggle_sort = GridCommand::ToggleSort {
+            col_key: "name".into(),
+        };
+
+        for cmd in [&set_sort, &clear_sort, &toggle_sort] {
+            assert!(triggers_fetch(cmd), "{cmd:?} should trigger a fetch");
+            assert!(
+                invalidates_cache(cmd),
+                "{cmd:?} should invalidate the page cache"
+            );
+        }
+    }
+
+    #[test]
+    fn only_sort_commands_change_the_sort() {
+        let sort_cmds = [
+            GridCommand::ToggleSort {
+                col_key: "name".into(),
+            },
+            GridCommand::SetSort {
+                col_key: "name".into(),
+                dir: SortDir::Desc,
+            },
+            GridCommand::ClearSort,
+        ];
+        for cmd in &sort_cmds {
+            assert!(changes_sort(cmd), "{cmd:?} should change the sort");
+        }
+        assert!(!changes_sort(&GridCommand::ClearAllFilters));
+        assert!(!changes_sort(&GridCommand::SetShowFilterRow(true)));
     }
 }

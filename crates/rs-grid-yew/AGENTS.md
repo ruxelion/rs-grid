@@ -22,11 +22,22 @@ pub struct GridCanvasProps {
     pub locale: Option<Locale>,
     pub on_mount: Option<Callback<WebGridCanvas>>,
     pub on_validation_error: Option<ValidationErrorCb>,
+    pub on_validation_state_changed: Option<ValidationStateChangedCb>,
 }
 
 // Deprecated — use ModelSlot::new instead
 pub fn wrap_model(model: GridModel) -> ModelSlot;
 ```
+
+`on_validation_state_changed(Some((row, col_key, message)) | None)` fires
+on every `StartEdit`/`ValidateEdit`/`CommitEdit`/`CancelEdit`, reflecting
+the *live* validation state (every keystroke, not just commits) — unlike
+`on_validation_error` which fires only when a commit is rejected. Use it
+to drive a custom validation UI (tooltip, banner, icon) with your own
+state/CSS; rs-grid does not impose one. A zero-config native `title`
+tooltip is applied by `rs-grid-web` by default (see
+`GridCanvas::set_native_validation_tooltip` on the raw handle from
+`on_mount` to disable it).
 
 ## Behaviour
 

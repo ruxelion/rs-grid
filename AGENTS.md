@@ -20,7 +20,7 @@ GridState  ──►  SceneBuilder  ──►  SceneFrame  ──►  CanvasRend
 | `rs-grid-leptos`        | Leptos CSR component wrapper (`<GridCanvas>`)                                    |
 | `rs-grid-dioxus`        | Dioxus CSR component wrapper (`GridCanvas`)                                      |
 | `rs-grid-yew`           | Yew CSR component wrapper (`GridCanvas`)                                         |
-| `e2e/fixture-leptos`    | Minimal Leptos app — the e2e / CI / Pages target                                 |
+| `e2e/leptos-harness`    | Minimal Leptos app — the e2e / CI / Pages target                                 |
 
 Dependencies flow in one direction only — never introduce a reverse dependency:
 
@@ -42,7 +42,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude fixture-leptos --exclude example-common
+  --exclude leptos-harness --exclude example-common
 
 # Unit tests — core only
 cargo nextest run -p rs-grid-core
@@ -79,13 +79,13 @@ just wasm-size    # bundle WASM + estimation gzip
 cargo run -p rs-grid-scene --features serde --bin scene-dump -- selection
 
 # WASM build (e2e fixture — minimal Leptos app, no Tailwind)
-cd e2e/fixture-leptos
+cd e2e/leptos-harness
 trunk build
 
 # Dev server (hot-reload)
-cd e2e/fixture-leptos
-trunk serve
-# → http://localhost:9079  (config dans e2e/fixture-leptos/Trunk.toml)
+just dev
+# equivalent to: cd e2e/leptos-harness && trunk serve
+# → http://localhost:9079  (config dans e2e/leptos-harness/Trunk.toml)
 #
 # The framework demos moved to standalone repos:
 #   github.com/ruxelion/rs-grid-example-{leptos,dioxus,yew,js}
@@ -109,20 +109,34 @@ synchronisées avec `.vscode/tasks.json`.
 | Recette | Action |
 |---|---|
 | `just ci` | fmt + lint + check-arch + tests (gate pré-PR complet) |
+| `just fmt` | `cargo +nightly fmt --all` |
+| `just lint` | `cargo clippy --workspace --all-targets -- -D warnings` |
+| `just check` | `cargo check --workspace` (vérif rapide) |
 | `just check-arch` | invariant archi : rs-grid-core sans dépendance WASM/web |
+| `just build` | build natif de `rs-grid-core` |
 | `just test` | nextest, WASM crates exclus |
+| `just test-core` | nextest sur `rs-grid-core` uniquement |
 | `just coverage` | rapport HTML couverture (ouvre le navigateur) |
 | `just coverage-lcov` | format lcov pour CI |
 | `just bench` | tous les benchmarks (core + scene) |
+| `just bench-core` / `bench-hit` / `bench-sort` / `bench-scene` / `bench-init` / `bench-scroll` | benchmarks ciblés (voir Justfile pour le détail par bench) |
+| `just mem` | empreinte mémoire par ligne (`--release`) |
 | `just wasm-size` | taille du bundle WASM + estimation gzip |
 | `just scene-dump <scenario>` | sérialise un SceneFrame en JSON (basic/selection/pinned/scrolled) pour inspection IA |
 | `just gen-scene-fixtures` | régénère les fixtures de scène servies par le MCP (`mcp/scenes/`) |
+| `just gen-class-map` | régénère `class_map_data.rs` depuis les sources DaisyUI |
+| `just tls-setup` | génère les certificats TLS locaux (requiert `mkcert`) |
+| `just e2e-install` | installe les dépendances Playwright (une fois) |
 | `just e2e` | trunk build + Playwright |
 | `just e2e-update-snapshots` | régénérer les captures de référence Playwright |
+| `just dev` | serveur de dev hot-reload pour la fixture e2e (`localhost:9079`) |
 | `just mcp-build` | compiler le serveur MCP TypeScript → `dist/` |
+| `just mcp-dev` | serveur MCP en mode dev (tsx, sans build) |
 | `just mcp-publish` | publier le serveur MCP sur npm |
 | `just release-preview` | aperçu local release-plz (bumps + CHANGELOG par crate) |
 | `just publish` | publier sur crates.io les crates dont la version n'est pas encore publiée (ordre de dépendances) |
+
+(`just --list` liste toujours l'ensemble exact des recettes ; ce tableau doit rester synchronisé avec le Justfile à chaque ajout/suppression de recette.)
 
 ## Code conventions
 
@@ -150,6 +164,7 @@ synchronisées avec `.vscode/tasks.json`.
 |---|---|
 | `/test` | `cargo nextest run -p rs-grid-core` — après chaque changement core |
 | `/e2e` | `trunk build` + Playwright — avant toute PR |
+| `/new-command` | Checklist pour ajouter une variante `GridCommand` (classification version, handler `apply`, undo/redo, clipboard, callbacks, test, docs) |
 | `/publish` | **Fallback local** crates.io + tags (la publication est normalement automatisée par le job `release-plz-release`, gate `AUTO_PUBLISH`) |
 
 ## Versioning (SemVer)
@@ -201,6 +216,13 @@ reasoning.
 | **GitHub** (hosted) | Read changelogs / releases of dependency repos before a bump | Local-only `.mcp.json` (gitignored), HTTP → `api.githubcopilot.com/mcp`, read-only fine-grained PAT in `GITHUB_MCP_PAT` |
 | **rs-grid** (internal) | Exposes rs-grid docs (`search_rs_grid_docs`, `get_api_type`, `list_doc_pages`), **structured GridCommand variants** (`list_commands`, `get_command`) **and rendered scenes** (`list_scenes`, `get_scene` — serialized `SceneFrame` JSON so agents see the render without a browser) | `mcp/` (TypeScript), published to npm as `rs-grid-mcp` — **auto-published by `.github/workflows/mcp-publish.yml`** when `mcp/package.json` version changes (token-less OIDC + provenance, gate `AUTO_PUBLISH`); `just mcp-publish` is the local fallback. Build: `just mcp-build`; scene fixtures: `just gen-scene-fixtures`. Docs source: local sibling `rs-grid-site/doc_build` if present, else GitHub (`RS_GRID_DOCS_SOURCE=local\|github` to force) |
 | **Playwright** | Interactive visual checks during dev | See *End-to-end tests* below |
+| **docs** (personal) | Personal MCP doc server | `https://mcp.benoitpodwinski.com/mcp` — local-only, not project-specific; prune from `.mcp.json` if no longer needed |
+| **openai-docs** | OpenAI developer docs lookup, for cross-referencing API design against another provider | `https://developers.openai.com/mcp` — local-only, exploratory |
+| **ag-grid** | AG Grid (competing grid library) API reference, for competitive/API-shape comparisons | `npx -y -p ag-mcp@1.0.0 -p ajv ag-mcp` — local-only, exploratory |
+
+These 3 are configured in `.mcp.json` but personal/exploratory rather than
+project infrastructure — prune whichever are unused; the 3 above (GitHub,
+rs-grid, Playwright) are the ones every contributor session actually needs.
 
 The **GitHub** server is a personal, local config (the PAT must not be committed
 — `.mcp.json` and `.env` are gitignored). To register it:
@@ -213,6 +235,48 @@ claude mcp add --transport http github \
 
 The PAT needs only **Contents: Read** + **Metadata: Read** (read-only). It is
 unrelated to the internal `rs-grid-mcp` doc server above.
+
+### How the internal `rs-grid-mcp` server is built
+
+`mcp/` is a **hand-maintained TypeScript project**, not generated from Rust.
+Source: `mcp/src/{index.ts,commands.ts,type-map.ts,search.ts,paths.ts}`.
+
+- **Docs content is copied, not authored in `mcp/`.** `just mcp-build` runs
+  `tsc && node scripts/copy-docs.mjs`, which copies pre-rendered markdown from
+  the sibling repo `rs-grid-site/doc_build/` (or from GitHub if the sibling
+  isn't present locally — `RS_GRID_DOCS_SOURCE=local|github` forces one or
+  the other). **→ To update MCP doc content, edit `rs-grid-site`, then
+  rebuild the MCP.** Never add doc prose directly under `mcp/`.
+- **`list_commands` / `get_command`** parse `rs-grid/docs/skill.md` by regex
+  at runtime (`mcp/src/commands.ts`) to enumerate `GridCommand` variants. As
+  long as `docs/skill.md` documents a variant, it surfaces automatically —
+  no MCP code change needed when a `GridCommand` is added/documented there.
+- **`get_api_type`** resolves a type name (e.g. `ColumnDef`, `GridCommand`)
+  to a doc page via a hand-maintained lookup table,
+  `TYPE_TO_DOC_PATH` in `mcp/src/type-map.ts`. **This table does NOT
+  auto-discover new types** — adding a new public Rust type that should be
+  queryable (e.g. a new enum like `ValidationRule`) requires manually adding
+  an entry here pointing at its `rs-grid-site` doc page.
+- **`list_scenes` / `get_scene`** serve static JSON from `mcp/scenes/`,
+  regenerated by `just gen-scene-fixtures` (wraps the `scene-dump` Rust
+  binary) — checked in, not built on the fly. Only needs regenerating if a
+  change adds new rendered primitives/scenarios.
+- **No Rust→TypeScript codegen exists anywhere in this pipeline.**
+
+**So, when a Rust feature adds new public API surface**, the checklist is:
+1. Document it in `rs-grid-site` (source of truth for the public MCP docs).
+2. Document it in `docs/skill.md` if it's a `GridCommand` variant (for
+   `list_commands`/`get_command`) or general usage guidance.
+3. Add an entry to `TYPE_TO_DOC_PATH` in `mcp/src/type-map.ts` if it's a new
+   named type that should resolve via `get_api_type`.
+4. `just mcp-build` (+ `just mcp-publish` to ship it) to pick up 1–3.
+
+**Do not skip step 1 as "out of scope, separate repo."** `rs-grid-site` is
+a sibling checkout in the same local workspace (alongside the other repos
+listed in the workspace's own root guide), not an inaccessible external
+system — verify with `ls`/a directory listing before treating any
+checklist item as unreachable. Run all four steps mechanically and confirm
+each target file was actually edited; don't reason a step away.
 
 ## Important limits
 
@@ -251,7 +315,7 @@ Visual and functional tests are in `e2e/`.
 cd e2e && npm install && npx playwright install chromium
 
 # 2. Build the fixture app (required before each run)
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 
 # 3. Run the tests
 cd e2e && npm test
@@ -272,12 +336,30 @@ cd e2e && npm run update-snapshots
 - `dblclick on Name cell (CellEditor::Text) opens text input`
 - `dblclick on Role cell (editor=None) does not open any input` — regression guard for the None-editor fix
 - `Escape closes the text editor`
+- `multiline (Alt+Enter)`:
+  - `Alt+Enter switches the single-line <input> to a <textarea> with a newline`
+  - `a second Alt+Enter adds exactly one more line, and the box grows`
+  - `Shift+Enter is not a newline shortcut — it commits like plain Enter`
+
+`e2e/tests/validation.spec.ts`:
+- `typing an empty value into a required cell shows the invalid style` /
+  `typing a valid value clears the invalid style`
+- `invalid value sets a native title attribute, valid value clears it`
+- `Enter with an invalid value reverts and closes the editor (default Revert mode)`
+- `on_validation_state_changed fires live, not just on commit`
 
 `e2e/tests/progress.spec.ts`:
 - `scrolling to the Completion column does not crash` — scrolls right to the
   `CellFormat::ProgressBar` column, asserts no page error
 - `renders value-driven progress bars` — visual regression of the DaisyUI
   progress bars (per-value error/warning/success colours)
+
+`e2e/tests/editable-predicate.spec.ts` — the "Notes" column (last base
+column, locked on even row indices via `ColumnDef::editable_predicate`):
+- `dblclick on an unlocked (odd row) Notes cell opens the text input` /
+  `dblclick on a locked (even row) Notes cell does not open the text input`
+- `hovering a locked cell shows the not-allowed cursor` /
+  `hovering an unlocked cell shows the default cursor`
 
 `e2e/tests/csp.spec.ts` — Content Security Policy, no violations on load.
 
@@ -294,11 +376,11 @@ Pour vérifier visuellement un changement avec les outils Playwright MCP
 
 ```sh
 # 1. Démarrer le dev server (une seule fois par session)
-cd e2e/fixture-leptos && trunk serve
+cd e2e/leptos-harness && trunk serve
 # Écoute sur localhost:9079 — hot-reload automatique à chaque cargo build
 
 # 2. Après chaque modification, recompiler
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 ```
 
 Puis dans les outils MCP :
@@ -313,6 +395,13 @@ vérifications MCP interactives. Les tests formels `/e2e` utilisent
 
 ## Claude working rules
 
+<!-- keep in sync with the "Before coding" section in every other repo's AGENTS.md -->
+- **Plan before coding non-trivial changes.** For a bug fix or feature that
+  touches more than one file, changes a public API, or isn't an obvious
+  one-liner, propose a short plan (approach, files touched, version-bump
+  impact — see *Versioning* above) before writing code, using Plan Mode
+  rather than diving straight into edits. Skip this for trivial fixes;
+  planning every one-line change only adds friction.
 - **Directed compaction** — on a long session, before the context auto-compacts,
   write your own checkpoint summary that explicitly preserves the
   *non-negotiable invariants* (no WASM in core; `u64` row indices; O(log n)

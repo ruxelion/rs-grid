@@ -7,10 +7,13 @@ mod dom_helpers;
 mod edit;
 mod events;
 pub mod fetcher;
+mod filter_popup;
 mod hittest;
 mod keyboard;
+mod quick_filter;
 mod scroll;
 mod search;
+mod tooltip;
 
 use std::{
     any::Any,
@@ -21,7 +24,8 @@ use std::{
 use dom_helpers::document;
 use fetcher::FetchConfig;
 use rs_grid_core::{
-    commands::GridCommand, page_cache::PageCacheDataSource, state::GridState,
+    commands::GridCommand, filter::FilterCondition,
+    page_cache::PageCacheDataSource, sort::SortDir, state::GridState,
 };
 use rs_grid_render_canvas::renderer::CanvasRenderer;
 use rs_grid_scene::{
@@ -95,6 +99,10 @@ struct Inner {
     drag_scroll_ticks: Cell<u32>,
     /// Column index whose header menu icon is currently hovered, if any.
     hovered_menu_col: RefCell<Option<usize>>,
+    /// Column index whose floating filter row icon is currently
+    /// hovered, if any — same hover-background treatment as
+    /// `hovered_menu_col` above, mirrored for the row's own icon.
+    hovered_filter_row_icon_col: RefCell<Option<usize>>,
     /// Current animated column offsets during a drag
     /// (`col_idx → cumulative left offset`).
     /// Initialised from real positions when drag starts and
@@ -118,10 +126,28 @@ struct Inner {
     /// selection rectangle (single click, shift-extend, row/col select,
     /// clear, arrow-key move).
     on_selection_changed: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Optional callback fired after every command that mutates
+    /// `checked_rows` (row checkbox toggle, header select-all/deselect-all).
+    on_checked_rows_changed: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Optional callback fired after every command that changes the
+    /// active sort (header click, context-menu sort actions).
+    on_sort_changed: RefCell<Option<Rc<dyn Fn()>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
     on_validation_error: RefCell<Option<Rc<dyn Fn(u64, &str, &str)>>>,
+    /// Optional callback fired after `StartEdit`, `ValidateEdit`,
+    /// `CommitEdit`, or `CancelEdit` with the fresh
+    /// `validation_error()` value (`None` when there is no active
+    /// edit or the current value is valid).
+    #[allow(clippy::type_complexity)]
+    on_validation_state_changed:
+        RefCell<Option<Rc<dyn Fn(Option<(u64, String, String)>)>>>,
+    /// Whether the inline edit `<input>` gets a native `title`
+    /// attribute reflecting the current validation error (default
+    /// `true`). Disable when building a custom validation UI to
+    /// avoid a competing browser tooltip.
+    native_validation_tooltip: Cell<bool>,
     /// Optional callback fired when a cell button is clicked.
     /// Arguments: (row, col_key, button_id).
     #[allow(clippy::type_complexity)]
@@ -138,6 +164,18 @@ struct Inner {
     search_closures: RefCell<Vec<Box<dyn Any>>>,
     /// Event listener refs on the search input, for explicit removal.
     search_listener_refs: RefCell<Vec<(String, js_sys::Function)>>,
+    /// DOM element for the at-rest validation hover tooltip — a single
+    /// node reused across cells (never one per invalid cell), so cost is
+    /// O(1) regardless of how many cells are invalid.
+    tooltip_el: RefCell<Option<HtmlElement>>,
+    /// `(row, col)` of the cell the tooltip is currently showing for, if
+    /// any — change-guards `refresh_validation_tooltip` so DOM writes
+    /// only happen when the hovered cell actually changes.
+    tooltip_cell: RefCell<Option<(u64, usize)>>,
+    /// CSS class applied to the tooltip element (e.g. daisyUI's
+    /// `"tooltip tooltip-open tooltip-error"`). `None` = no visual
+    /// (rs-grid renders no fallback style of its own).
+    tooltip_class: RefCell<Option<String>>,
     /// Text waiting to be placed on the clipboard by the next
     /// `copy` event (set by context-menu copy/cut before
     /// triggering `execCommand("copy")`).
@@ -199,6 +237,13 @@ struct FlashState {
     start_ms: f64,
     /// Total fade duration in milliseconds.
     duration_ms: f64,
+    /// Coordinates of the cells to flash — the ones actually written
+    /// by the paste, not the full selection rectangle (which may
+    /// extend past cells skipped for being locked or invalid).
+    cells: std::collections::HashSet<(u64, usize)>,
+    /// When `true`, renders as an error flash (`Theme::flash_error_fill`)
+    /// instead of the success flash (`Theme::flash_fill`).
+    is_error: bool,
 }
 
 // ── impl ──────────────────────────────────────────────────────────────────────
@@ -291,6 +336,7 @@ impl GridCanvas {
             height: css_h,
         });
         state.apply(GridCommand::SetHeaderHeight(theme.header_height));
+        state.apply(GridCommand::SetFilterRowHeight(theme.filter_row_height));
         state.apply(GridCommand::SetRowHeight(theme.row_height));
 
         // Opaque canvas (alpha: false) enables sub-pixel text
@@ -328,13 +374,18 @@ impl GridCanvas {
             drag_scroll_closures: RefCell::new(Vec::new()),
             drag_scroll_ticks: Cell::new(0),
             hovered_menu_col: RefCell::new(None),
+            hovered_filter_row_icon_col: RefCell::new(None),
             drag_col_offsets: RefCell::new(Vec::new()),
             flash: RefCell::new(None),
             last_frame: RefCell::new(None),
             on_change: RefCell::new(None),
             on_columns_changed: RefCell::new(None),
             on_selection_changed: RefCell::new(None),
+            on_checked_rows_changed: RefCell::new(None),
+            on_sort_changed: RefCell::new(None),
             on_validation_error: RefCell::new(None),
+            on_validation_state_changed: RefCell::new(None),
+            native_validation_tooltip: Cell::new(true),
             on_cell_button_click: RefCell::new(None),
             edit_input: RefCell::new(None),
             edit_closures: RefCell::new(Vec::new()),
@@ -342,6 +393,9 @@ impl GridCanvas {
             search_input: RefCell::new(None),
             search_closures: RefCell::new(Vec::new()),
             search_listener_refs: RefCell::new(Vec::new()),
+            tooltip_el: RefCell::new(None),
+            tooltip_cell: RefCell::new(None),
+            tooltip_class: RefCell::new(None),
             pending_clipboard: RefCell::new(None),
             ctx_menu_config: RefCell::new(
                 context_menu_config::ContextMenuConfig::default(),
@@ -392,11 +446,13 @@ impl GridCanvas {
         let hint = self.column_drag_hint();
         let flash = self.compute_flash_hint();
         let hovered_menu = *self.0.hovered_menu_col.borrow();
+        let hovered_filter_icon = *self.0.hovered_filter_row_icon_col.borrow();
         let frame = self.0.builder.borrow().build(
             &state,
             hint.as_ref(),
             flash.as_ref(),
             hovered_menu,
+            hovered_filter_icon,
         );
         drop(state);
         self.0.renderer.render(&frame);
@@ -470,9 +526,10 @@ impl GridCanvas {
         // 4. Stop any running scroll timers.
         self.stop_scroll_repeat();
 
-        // 5. Remove ephemeral overlays (edit / search).
+        // 5. Remove ephemeral overlays (edit / search / tooltip).
         self.remove_edit_input();
         self.remove_search_input();
+        self.remove_validation_tooltip();
 
         // 6. Drop all stored closures (invalidates their JS functions and
         //    breaks Rc<Inner> cycles).
@@ -481,12 +538,29 @@ impl GridCanvas {
     }
 
     /// Update the theme in-place without remounting the grid.
+    ///
+    /// Also re-syncs the two layout-affecting theme fields —
+    /// `header_height` and `row_height` — into the model via
+    /// `GridCommand::SetHeaderHeight`/`SetRowHeight`, mirroring what
+    /// `mount()` does at construction time. Without this, row
+    /// positions, the header rect's own drawn height, row
+    /// virtualization, and scroll clamping would stay frozen at
+    /// whatever was passed to `mount()` regardless of how the theme
+    /// changes afterward.
     pub fn set_theme(&self, theme: Theme) {
         let _ = self
             .0
             .canvas
             .style()
             .set_property("background-color", &theme.bg.to_css());
+        {
+            let mut state = self.0.state.borrow_mut();
+            state.apply(GridCommand::SetHeaderHeight(theme.header_height));
+            state.apply(GridCommand::SetFilterRowHeight(
+                theme.filter_row_height,
+            ));
+            state.apply(GridCommand::SetRowHeight(theme.row_height));
+        }
         self.0.builder.borrow_mut().theme = theme;
         self.render();
     }
@@ -549,6 +623,26 @@ impl GridCanvas {
         self.0.state.borrow().model.pinned_count
     }
 
+    /// Current validation error for the in-progress cell edit, if any.
+    ///
+    /// Returns `(row, col_key, message)` reflecting *live* state — updated
+    /// on every keystroke via `GridCommand::ValidateEdit`, not just on a
+    /// rejected commit. Returns `None` when there is no active edit or the
+    /// current value passes all rules.
+    ///
+    /// Unlike [`GridCanvas::set_on_validation_error`] (fired only when a
+    /// commit is rejected), this getter — paired with
+    /// [`GridCanvas::set_on_validation_state_changed`] — lets a consumer
+    /// build any UI (tooltip, banner, icon) reflecting the live validation
+    /// state, rs-grid does not impose one.
+    pub fn validation_error(&self) -> Option<(u64, String, String)> {
+        self.0.state.borrow().edit.as_ref().and_then(|e| {
+            e.validation_error
+                .as_ref()
+                .map(|msg| (e.row, e.col_key.clone(), msg.clone()))
+        })
+    }
+
     /// Logical (display) row indices currently inside the selection rectangle.
     ///
     /// These are *logical* indices — positions in the current display order,
@@ -568,6 +662,67 @@ impl GridCanvas {
             Some((tl, br)) => (tl.row..=br.row).collect(),
             None => Vec::new(),
         }
+    }
+
+    /// Physical (datasource) row ids currently checked via the
+    /// row-selection checkbox column.
+    ///
+    /// Unlike [`GridCanvas::selected_row_indices`] (logical/display
+    /// order), these are **physical** ids — checkbox state is tracked
+    /// by row identity so it survives sort/filter changes, not by
+    /// display position.
+    ///
+    /// Use together with [`GridCanvas::set_on_checked_rows_changed`] to
+    /// drive bulk-action toolbars.
+    pub fn checked_row_indices(&self) -> Vec<u64> {
+        self.0.state.borrow().checked_rows.iter().copied().collect()
+    }
+
+    /// Tri-state of the checkbox column's header cell: `Checked` when
+    /// every row passing the active filter (or every row, if
+    /// unfiltered) is checked, `Unchecked` when none are, otherwise
+    /// `Indeterminate`.
+    pub fn checkbox_header_state(
+        &self,
+    ) -> rs_grid_core::row_check::CheckboxTriState {
+        self.0.state.borrow().checkbox_header_state()
+    }
+
+    /// The active sort as `(col_key, direction)`, or `None` when the grid
+    /// is in natural order.
+    ///
+    /// Pair with [`GridCanvas::set_on_sort_changed`]. To show an initial
+    /// sort indicator (e.g. the one a server applied), dispatch
+    /// `GridCommand::SetSort`: in server-side mode it only records the
+    /// state and does not reorder rows.
+    pub fn sort_state(&self) -> Option<(String, SortDir)> {
+        self.0
+            .state
+            .borrow()
+            .sort
+            .as_ref()
+            .map(|s| (s.col_key.clone(), s.dir.clone()))
+    }
+
+    /// Show or hide the row-selection checkbox column.
+    pub fn set_show_checkbox_column(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowCheckboxColumn(show));
+    }
+
+    /// Show or hide the floating filter row — a quick per-column
+    /// "contains" input directly under the column headers, AG-Grid
+    /// style. Opt-in, `false` by default. AND-combines with (does not
+    /// replace) the header funnel icon + popup: both write to the same
+    /// `GridModel.filters` map via `SetColumnFilter`.
+    pub fn set_show_filter_row(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowFilterRow(show));
+    }
+
+    /// Set the row-selection checkbox column's width in logical pixels.
+    /// The checkbox itself stays centered, so this also controls the
+    /// visual margin around it. Ignored if negative.
+    pub fn set_checkbox_column_width(&self, width: f64) {
+        self.dispatch(GridCommand::SetCheckboxColumnWidth(width));
     }
 
     /// Read a cell value for a *logical* (display) row. In client-side mode
@@ -636,12 +791,53 @@ impl GridCanvas {
         self.dispatch(GridCommand::SetShowRowNumbers(show));
     }
 
+    /// Set the row-number gutter width in logical pixels at runtime
+    /// (0 hides it, same as `set_show_row_numbers(false)`).
+    pub fn set_row_number_width(&self, width: f64) {
+        self.dispatch(GridCommand::SetRowNumberWidth(width));
+    }
+
+    /// Update the total row count for an async data source (e.g. a
+    /// `PageCacheDataSource` after its first server response). Recomputes
+    /// the row-number gutter width from the new total unless it was
+    /// manually overridden via `set_row_number_width` — see
+    /// `GridCommand::SetTotalRowCount`. `canvas/fetcher.rs`'s `FetchConfig`
+    /// coordinator already calls this internally; use it directly only
+    /// when driving a `PageCacheDataSource` by hand.
+    pub fn set_total_row_count(&self, n: u64) {
+        self.dispatch(GridCommand::SetTotalRowCount(n));
+    }
+
+    /// Trigger a re-render after mutating a `PageCacheDataSource`
+    /// externally (`insert_page`, `set_total_rows`) — see
+    /// `GridCommand::NotifyPageLoaded`. Only needed when driving the page
+    /// cache by hand; `canvas/fetcher.rs`'s `FetchConfig` coordinator
+    /// already calls this internally.
+    pub fn notify_page_loaded(&self) {
+        self.dispatch(GridCommand::NotifyPageLoaded);
+    }
+
     /// Set a text filter on a column (case-insensitive contains).
     /// Pass an empty string to clear the filter for that column.
+    /// Sugar for `set_filter_condition` with `FilterOp::Contains` —
+    /// use that directly for other operators (equals, greater
+    /// than, starts with, ...).
     pub fn set_filter(&self, col_key: &str, text: &str) {
+        self.set_filter_condition(col_key, FilterCondition::contains(text));
+    }
+
+    /// Set a filter condition (operator + value) on a column. A
+    /// condition whose operator needs a value but has none
+    /// (`FilterCondition::is_empty()`) clears the filter for that
+    /// column.
+    pub fn set_filter_condition(
+        &self,
+        col_key: &str,
+        condition: FilterCondition,
+    ) {
         self.dispatch(GridCommand::SetColumnFilter {
             col_key: col_key.to_string(),
-            text: text.to_string(),
+            condition,
         });
     }
 

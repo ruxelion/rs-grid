@@ -1,4 +1,4 @@
-use rs_grid_core::commands::GridCommand;
+use rs_grid_core::commands::{CommandOutput, GridCommand};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::{ClipboardEvent, KeyboardEvent};
 
@@ -41,6 +41,16 @@ impl GridCanvas {
                         delta_col: dc,
                         extend: shift,
                     });
+                }
+                "Delete" | "Backspace" => {
+                    if !gc.0.state.borrow().selection.has_selection() {
+                        return;
+                    }
+                    evt.prevent_default();
+                    let out = gc.dispatch_with_output(GridCommand::ClearCells);
+                    if let CommandOutput::CellsCleared { cells } = out {
+                        gc.flash_cells(&cells);
+                    }
                 }
                 "Escape" => {
                     if gc.0.state.borrow().edit.is_some() {
@@ -121,6 +131,9 @@ impl GridCanvas {
     pub(super) fn attach_paste(&self) {
         let gc = self.clone();
         let cb = Closure::<dyn FnMut(_)>::new(move |evt: ClipboardEvent| {
+            if gc.0.edit_input.borrow().is_some() {
+                return;
+            }
             if !gc.has_focus() {
                 return;
             }
@@ -131,8 +144,11 @@ impl GridCanvas {
                 && let Ok(text) = dt.get_data("text/plain")
             {
                 evt.prevent_default();
-                gc.dispatch(GridCommand::PasteAt { text });
-                gc.flash_selection();
+                let out =
+                    gc.dispatch_with_output(GridCommand::PasteAt { text });
+                if let CommandOutput::PasteApplied { cells } = out {
+                    gc.flash_cells(&cells);
+                }
             }
         });
         let f: js_sys::Function =

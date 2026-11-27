@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.18](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.17...rs-grid-web-v0.1.18) - 2026-11-27
+
+### Added
+
+- *(web)* add on_sort_changed callback and sort_state getter
+
+## [0.1.17](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.16...rs-grid-web-v0.1.17) - 2026-07-22
+
+### Other
+
+- Add filter functionality and localization support
+
+## [0.1.16](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.15...rs-grid-web-v0.1.16) - 2026-07-09
+
+### Added
+
+- per-row visibility predicate for cell buttons ([#64](https://github.com/ruxelion/rs-grid/pull/64))
+- implement row-number gutter width management and server-side page fetching
+
+## [0.1.15](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.14...rs-grid-web-v0.1.15) - 2026-07-08
+
+### Added
+
+- implement ExtendRowChecked command for shift+click row selection
+
+### Fixed
+
+- adjust cell position calculation to include checkbox column width
+
+## [0.1.14](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.13...rs-grid-web-v0.1.14) - 2026-07-08
+
+### Added
+
+- add support for invalid cell background and border theming
+
+## [0.1.13](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.12...rs-grid-web-v0.1.13) - 2026-07-07
+
+### Added
+
+- add row-selection checkbox column with tri-state functionality
+- text cell editor switches between a single-line `<input>` and a wrapping/multiline `<textarea>` based on content, with `Alt+Enter` for manual line breaks and live-resizing height as lines are added or removed
+- `flash_cells_error` renders a distinct error flash (`Theme::flash_error_fill`) on cells a `CutSelection`/Ctrl+X copied but couldn't clear (locked or failing validation), instead of looking identical to a fully-successful cut
+
+### Fixed
+
+- *(rs-grid-web)* SetSort and ClearSort never refetch server-side pages
+- prevent paste event when an edit input is active
+
+## [0.1.12](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.11...rs-grid-web-v0.1.12) - 2026-07-04
+
+### Added
+
+- add row-number gutter width adjustment and related tests
+
+## [0.1.11](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.10...rs-grid-web-v0.1.11) - 2026-07-03
+
+### Added
+
+- clamp cell content and row rendering to sticky header boundaries
+
+## [0.1.10](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.9...rs-grid-web-v0.1.10) - 2026-07-03
+
+### Other
+
+- updated the following local packages: rs-grid-core, rs-grid-scene, rs-grid-render-canvas
+
+## [0.1.9](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.8...rs-grid-web-v0.1.9) - 2026-07-02
+
+### Added
+
+- *(tooltip)* implement at-rest validation tooltip for invalid cells
+
+## [0.1.8](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.7...rs-grid-web-v0.1.8) - 2026-07-02
+
+### Fixed
+
+- *(canvas)* optimize canvas resizing to prevent visual flash during drag-resize
+
+## [0.1.7](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.6...rs-grid-web-v0.1.7) - 2026-07-02
+
+### Added
+
+- add per-cell editability with editable predicates
+
+## [0.1.6](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.5...rs-grid-web-v0.1.6) - 2026-07-01
+
+### Added
+
+- *(validation)* add live validation state callback and improve validation UI integration
+- *(validation)* add declarative validation rules and live feedback for edits
+
 ## [0.1.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-web-v0.1.4...rs-grid-web-v0.1.5) - 2026-06-21
 
 ### Added

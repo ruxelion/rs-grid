@@ -11,4 +11,9 @@ pub struct EditCell {
     pub col_idx: usize,
     /// Cell value at the moment editing started.
     pub initial_value: String,
+    /// Validation error for the value currently typed in the
+    /// active editor, if any. Set by `GridCommand::ValidateEdit`
+    /// (live, per-keystroke) and by a failed `CommitEdit`. Cleared
+    /// on a successful `ValidateEdit`/`CommitEdit`.
+    pub validation_error: Option<String>,
 }

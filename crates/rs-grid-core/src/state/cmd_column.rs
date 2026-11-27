@@ -59,6 +59,9 @@ impl GridState {
                 header_char_width,
                 cell_padding,
                 header_right_reserve,
+                btn_char_width,
+                btn_padding_x,
+                btn_gap,
             } => {
                 // Max rows sampled for auto-fit width.
                 const MAX_SAMPLE_ROWS: u64 = 1_000;
@@ -111,6 +114,24 @@ impl GridState {
                             }
                         }
                     }
+                    let cell_buttons =
+                        &self.model.columns[col_idx].cell_buttons;
+                    if !cell_buttons.is_empty() {
+                        let labels_w: f64 = cell_buttons
+                            .iter()
+                            .map(|b| {
+                                b.label.chars().count() as f64 * btn_char_width
+                                    + btn_padding_x * 2.0
+                            })
+                            .sum();
+                        let buttons_w = cell_padding * 2.0
+                            + labels_w
+                            + btn_gap
+                                * cell_buttons.len().saturating_sub(1) as f64;
+                        if buttons_w > max_w {
+                            max_w = buttons_w;
+                        }
+                    }
                     self.model.columns[col_idx].flex = None;
                     self.model.columns[col_idx].width =
                         self.model.columns[col_idx].clamp_width(max_w);
@@ -128,6 +149,9 @@ impl GridState {
                 header_char_width,
                 cell_padding,
                 header_right_reserve,
+                btn_char_width,
+                btn_padding_x,
+                btn_gap,
             } => {
                 let n = self.model.columns.len();
                 for col_idx in 0..n {
@@ -137,6 +161,9 @@ impl GridState {
                         header_char_width,
                         cell_padding,
                         header_right_reserve,
+                        btn_char_width,
+                        btn_padding_x,
+                        btn_gap,
                     });
                 }
                 CommandOutput::None
@@ -236,6 +263,9 @@ mod tests {
             header_char_width: 8.0,
             cell_padding: 8.0,
             header_right_reserve: 20.0,
+            btn_char_width: 8.0,
+            btn_padding_x: 8.0,
+            btn_gap: 4.0,
         });
     }
 }

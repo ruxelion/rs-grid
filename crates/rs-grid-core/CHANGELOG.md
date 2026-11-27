@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.5.0...rs-grid-core-v0.5.1) - 2026-11-27
+
+### Fixed
+
+- *(core)* reveal focused cell on arrow-key navigation
+- *(core)* no SortWarning when sorting is delegated to the server
+
+### Other
+
+- Merge pull request #89 from ruxelion/feat/web-sort-filter-callbacks
+
+## [0.5.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.4.0...rs-grid-core-v0.5.0) - 2026-07-22
+
+### Other
+
+- Add filter functionality and localization support
+
+## [0.4.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.3.1...rs-grid-core-v0.4.0) - 2026-07-09
+
+### Added
+
+- per-row visibility predicate for cell buttons ([#64](https://github.com/ruxelion/rs-grid/pull/64))
+- implement row-number gutter width management and server-side page fetching
+
+## [0.3.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.3.0...rs-grid-core-v0.3.1) - 2026-07-08
+
+### Added
+
+- implement ExtendRowChecked command for shift+click row selection
+
+## [0.3.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.5...rs-grid-core-v0.3.0) - 2026-07-07
+
+### Added
+
+- add row-selection checkbox column with tri-state functionality
+- `CutSelection` reports skipped cells (locked or failing validation) via a new `CommandOutput::CutApplied { text, skipped }`, distinguishing "cut succeeded" from "copied but couldn't clear"
+
+## [0.2.5](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.4...rs-grid-core-v0.2.5) - 2026-07-04
+
+### Added
+
+- add row-number gutter width adjustment and related tests
+
+## [0.2.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.3...rs-grid-core-v0.2.4) - 2026-07-03
+
+### Added
+
+- add per-cell decoration support with CellDecorator for visual annotations
+
+## [0.2.3](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.2...rs-grid-core-v0.2.3) - 2026-07-02
+
+### Added
+
+- implement ClearCells command to clear selected cells without clipboard interaction
+- *(clipboard)* enhance CutSelection to skip invalid cells during clearing
+
+## [0.2.2](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.1...rs-grid-core-v0.2.2) - 2026-07-02
+
+### Added
+
+- *(validation)* enhance cell validation during paste operations and add visual indicators for invalid cells
+
+## [0.2.1](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.2.0...rs-grid-core-v0.2.1) - 2026-07-02
+
+### Added
+
+- add per-cell editability with editable predicates
+
+## [0.2.0](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.1.4...rs-grid-core-v0.2.0) - 2026-07-01
+
+### Added
+
+- *(validation)* add declarative validation rules and live feedback for edits
+
 ## [0.1.4](https://github.com/ruxelion/rs-grid/compare/rs-grid-core-v0.1.3...rs-grid-core-v0.1.4) - 2026-06-21
 
 ### Added

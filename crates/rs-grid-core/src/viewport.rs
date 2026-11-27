@@ -104,7 +104,11 @@ impl ViewportState {
     /// Columns `0..pinned_count` are always visible and excluded
     /// from this range.  `pinned_width` is the sum of their widths,
     /// `row_number_width` is the gutter width; both are subtracted
-    /// from the viewport to obtain the scrollable band.
+    /// from the viewport to obtain the scrollable band. `checkbox_width`
+    /// is the row-selection checkbox column's width (0 if hidden) — it
+    /// occupies the first slot of the scrollable band and scrolls away
+    /// like a real column, so it shifts the search window (`x_start`)
+    /// without changing how much of the viewport is available (`avail`).
     ///
     /// Uses binary search on sorted offsets for O(log n).
     pub fn visible_scrollable_columns(
@@ -114,13 +118,14 @@ impl ViewportState {
         pinned_count: usize,
         pinned_width: f64,
         row_number_width: f64,
+        checkbox_width: f64,
     ) -> (usize, usize) {
         let col_count = offsets.offsets.len();
         if pinned_count >= col_count {
             return (col_count, col_count);
         }
         let avail = (self.width - row_number_width - pinned_width).max(0.0);
-        let x_start = pinned_width + self.scroll_x;
+        let x_start = pinned_width + self.scroll_x - checkbox_width;
         let x_end = x_start + avail;
 
         let slice = &offsets.offsets[pinned_count..col_count];
@@ -238,7 +243,7 @@ mod tests {
         let vp = ViewportState::new(800.0, 600.0);
         let (offsets, widths) = make_offsets();
         let (first, last) =
-            vp.visible_scrollable_columns(&offsets, &widths, 0, 0.0, 40.0);
+            vp.visible_scrollable_columns(&offsets, &widths, 0, 0.0, 40.0, 0.0);
         assert_eq!(first, 0);
         assert_eq!(last, 3);
     }
@@ -254,8 +259,8 @@ mod tests {
         // viewport=350, gutter=40, pinned=1 col (100px).
         // avail = 350 - 40 - 100 = 210, shows c1..c3
         let vp = ViewportState::new(350.0, 600.0);
-        let (first, last) =
-            vp.visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0);
+        let (first, last) = vp
+            .visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0, 0.0);
         assert!(first >= 1, "pinned col excluded, first={first}");
         assert!(last <= 5);
     }
@@ -273,8 +278,8 @@ mod tests {
         // viewport=300, gutter=40, pinned=2 cols (400px).
         // avail = (300 - 40 - 400).max(0) = 0
         let vp = ViewportState::new(300.0, 600.0);
-        let (first, last) =
-            vp.visible_scrollable_columns(&offsets, &widths, 2, 400.0, 40.0);
+        let (first, last) = vp
+            .visible_scrollable_columns(&offsets, &widths, 2, 400.0, 40.0, 0.0);
         assert_eq!(first, last, "no room for scrollable columns");
     }
 
@@ -296,8 +301,8 @@ mod tests {
         let widths: Vec<f64> = cols.iter().map(|c| c.width).collect();
         let offsets = ColumnOffsets::compute(&cols);
         let vp = ViewportState::new(800.0, 600.0);
-        let (first, last) =
-            vp.visible_scrollable_columns(&offsets, &widths, 5, 200.0, 40.0);
+        let (first, last) = vp
+            .visible_scrollable_columns(&offsets, &widths, 5, 200.0, 40.0, 0.0);
         assert_eq!(first, 2);
         assert_eq!(last, 2);
     }
@@ -336,8 +341,8 @@ mod tests {
             scroll_x: 250.0,
             ..ViewportState::new(400.0, 600.0)
         };
-        let (first, _last) =
-            vp.visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0);
+        let (first, _last) = vp
+            .visible_scrollable_columns(&offsets, &widths, 1, 100.0, 40.0, 0.0);
         assert!(
             first >= 2,
             "scrollable cols before scroll should be skipped, first={first}"

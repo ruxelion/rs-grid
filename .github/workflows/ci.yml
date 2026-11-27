@@ -21,7 +21,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # rustfmt.toml uses nightly-only options (wrap_comments,
       # imports_granularity, …) — must check with nightly rustfmt.
@@ -36,7 +36,7 @@ jobs:
     name: Check & Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -69,7 +69,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -85,14 +85,14 @@ jobs:
             --exclude rs-grid-dioxus \
             --exclude rs-grid-yew \
             --exclude rs-grid-render-canvas \
-            --exclude fixture-leptos \
+            --exclude leptos-harness \
             --exclude example-common
 
   wasm-build:
     name: WASM Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -104,15 +104,15 @@ jobs:
         run: cargo install trunk --locked
 
       # The e2e fixture is a plain Leptos app (no Tailwind) — no Node step needed.
-      - name: trunk build (fixture-leptos)
-        working-directory: e2e/fixture-leptos
+      - name: trunk build (leptos-harness)
+        working-directory: e2e/leptos-harness
         run: trunk build --release
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fixture-leptos-dist
-          path: e2e/fixture-leptos/dist/
+          name: leptos-harness-dist
+          path: e2e/leptos-harness/dist/
           retention-days: 1
 
   e2e:
@@ -120,9 +120,9 @@ jobs:
     needs: wasm-build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -139,8 +139,8 @@ jobs:
       - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: fixture-leptos-dist
-          path: e2e/fixture-leptos/dist/
+          name: leptos-harness-dist
+          path: e2e/leptos-harness/dist/
 
       - name: Run E2E tests (smoke + functional)
         working-directory: e2e

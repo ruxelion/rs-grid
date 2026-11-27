@@ -41,6 +41,259 @@ output from the primitives above — no new primitive type is added:
   optional right-aligned `"NN%"` label. Geometry via `Theme::progress_height`
   and `Theme::progress_radius`.
 
+### Locked-cell visual feedback
+
+`emit_cell` takes a `model: &GridModel` parameter (in addition to `col`)
+so it can call `ColumnDef::is_cell_editable(row, model)` — the single
+source of truth combining `GridModel.editable` (grid-wide toggle), the
+static `editable` flag, and the dynamic `editable_predicate`
+(rs-grid-core). When a cell resolves to non-editable:
+
+- A `locked_cell_bg` overlay `Rect` is pushed right before the cell's
+  content, **regardless of `CellFormat`** — it applies to
+  `Styled`/`Image`/`ImageText`/`ProgressBar` composite cells exactly the
+  same as plain text, since it's pushed before the format dispatch.
+  Skipped entirely when `Theme::locked_cell_bg.a == 0` (mirrors the
+  `row_hover_bg` "transparent = disabled" convention — no extra draw call
+  for themes that don't opt in).
+- The **text color** swap (`Theme::locked_cell_text` instead of
+  `Theme::cell_text`) is scoped to the default plain-text renderer only —
+  the `Styled`/`Image`/`ImageText`/`ProgressBar` composite branches keep
+  their own colors (badge class, image, progress-bar fill). Extending the
+  text-color treatment to those is a separate, explicit follow-up if
+  needed; the background wash already gives every locked cell a visible
+  affordance regardless of format.
+
+### At-rest invalid-value background/border
+
+`emit_cell` also calls `ColumnDef::validate_value` against the cell's
+current `CellStatus::Ready` value (peeked by reference before the
+format-dispatch `match` consumes it) — a cell with no `rules`/`validator`
+always resolves `Ok`, so this is a no-op for unvalidated columns. When it
+resolves `Err`:
+
+- A fill-only `Rect` (`fill: Theme::invalid_cell_bg`, no stroke) is
+  pushed right after the locked-cell overlay, before the format
+  dispatch — same format-agnostic placement as the locked overlay, so
+  it applies to composite `CellFormat`s too.
+- The border is **not** pushed here as a `Rect` — `emit_cell` only
+  collects its bounds into the `invalid_borders: &mut Vec<(f64, f64,
+  f64, f64)>` accumulator threaded through its signature (right after
+  the bg overlay, same placement precedent as before). `SceneBuilder::
+  build` draws it later as four boundary `Line`s via the shared
+  `push_boundary_lines` helper (`builder.rs`, also used for the
+  selection outer border) — placed right after the grid lines / column
+  separators / pinned-column overlay but *before* the header/gutter, so
+  it wins the draw-order race against this row's own trailing grid
+  line (the reason it isn't a `Rect` pushed inline: a stroked `Rect`
+  at the cell's exact bounds would otherwise have its bottom/right
+  edge painted over by that line) while still being masked by the
+  header/gutter for a row/column that's only partially scrolled into
+  view, the same way ordinary cell content is.
+- The bg and border overlays are independent primitives, each skipped
+  entirely when its own color has `.a == 0` (same "transparent =
+  disabled" convention as `locked_cell_bg`) — a consumer can theme
+  either, both, or neither.
+- This fires independently of an active edit session — a cell that's
+  invalid because the *data source* loaded it that way is flagged
+  immediately, unlike the DOM editor's invalid style
+  (`rs-grid-web`'s `apply_edit_validity_style`), which only exists while
+  `GridState.edit` is `Some`. A locked cell and an invalid cell aren't
+  mutually exclusive (e.g. read-only column seeded with bad data) — the
+  overlays layer without conflict.
+
+### At-rest cell decoration
+
+`emit_cell` also calls `ColumnDef::cell_decoration(row, model)` right
+after the invalid-value border block, before the format dispatch — same
+format-agnostic placement, so a decoration applies uniformly to
+composite `CellFormat`s too. When it resolves `Some(CellDecoration)`:
+
+- A fill-only `Rect` (`fill: Color::rgba` from `background_tint`,
+  `stroke: None`) is pushed first, only if `background_tint` is set.
+- A border-only `Rect` (`fill` fully transparent, `stroke: Color::rgba`
+  from `border_color`, `stroke_width: Theme::decoration_border_width`)
+  is pushed second, only if `border_color` is set. Two independent
+  primitives, so a decoration can set either, both, or neither without
+  an empty draw call for the unset one.
+- Unlike `locked_cell_bg`/`invalid_cell_border`, the colors themselves
+  are **not** themed — they're consumer-supplied `[u8; 4]` RGBA read
+  straight from `CellDecoration`, the same "app controls the value"
+  precedent as `FormattedCell::color`. Only the border's stroke width
+  is themed (`Theme::decoration_border_width`), since it's uniform
+  across every decorated cell regardless of which color the consumer
+  picked.
+- Resolved (and pushed) after the locked/invalid overlays, so a
+  decoration layers on top of them rather than being suppressed — same
+  "layer, don't suppress" precedent as invalid-and-locked composing
+  above. `CellDecoration::message` is not consumed here — no tooltip
+  rendering exists yet.
+
+### Cell button visibility
+
+`emit_cell_buttons` (called from `emit_cell`, right after the format
+dispatch) now takes `model: &GridModel` and early-returns — pushing no
+`Rect`/`Text` primitives and registering no `ButtonZone` hit-test entry —
+when `col.cell_buttons.is_empty()` **or**
+`!col.are_cell_buttons_visible(ri, model)` (rs-grid-core). A hidden row's
+buttons don't just render invisibly: they don't exist in the frame at
+all, so `SceneFrame::hit_button` (used by `rs-grid-web`'s click dispatch)
+correctly finds nothing there — no separate "disabled" click state to
+maintain.
+
+### Column separators (data rows)
+
+A themed vertical line at each column boundary in the data-row area
+(`Theme::column_separator_color` / `Theme::column_separator_width`),
+drawn in `builder.rs` right after the per-row loop closes — **once per
+column boundary, not once per cell**. Column x-positions don't vary by
+row (only scroll/drag-preview do, both already resolved before the row
+loop starts), so looping `row_count × column_count` times to draw this
+line would be an unjustified O(rows × columns) cost for geometry that's
+actually O(columns). This is the precedent to follow for any *future*
+per-column (not per-cell) decoration: hoist it out of the row loop
+rather than adding it inside `emit_cell`.
+
+- Guarded by `t.column_separator_width > 0.0` ("width = 0 disables it"
+  — there's no natural alpha channel to gate on for a line, unlike a
+  fill, so width is the off-switch).
+- `column_separator_color` defaults to the same RGB as `grid_line` in
+  every theme, so enabling this feature causes **no visual change**
+  until a consumer explicitly diverges the two — locked in by
+  `theme.rs`'s `*_column_separator_color_matches_grid_line_by_default`
+  tests.
+- Pinned columns get separators between themselves too (`0..pinned_count
+  - 1`), explicitly excluding the pinned band's own right edge — that
+  edge already has a dedicated line (`pinned_separator_color`/`width`,
+  pushed a few lines later). Drawing both there would double-stack or
+  z-fight; the two features must not overlap.
+
+### Success-flash cell scoping (paste, clear)
+
+`FlashHint.cells: HashSet<(u64, usize)>` (`builder.rs`) carries the exact
+coordinates to flash, supplied by `rs-grid-web` from either
+`CommandOutput::PasteApplied` (paste) or `CommandOutput::CellsCleared`
+(Delete/Backspace clear). `emit_cell` checks `flash.cells.contains(&(ri,
+ci))` directly — it does **not** reuse `SelectionState::is_selected`, since
+both `PasteAt` and `ClearCells` always expand the selection to the full
+target/cleared rectangle even when some cells were skipped (locked or
+failing validation). Flashing by selection would give a skipped cell the
+same "success" overlay as a cell that was actually written.
+
+### Row-selection checkbox column (`builder/checkbox.rs`)
+
+Gated by `GridModel.show_checkbox_column`, width
+`GridModel.checkbox_column_width` (default `GridModel::CHECKBOX_COLUMN_WIDTH`,
+runtime-configurable — `emit_checkbox` always centers the box within it,
+so widening it grows the margin symmetrically). Unlike the row-number
+gutter, this
+column is **not** a fixed/pinned band — it's the first slot of the
+scrollable (unpinned) region, so it scrolls away with `scroll_x` exactly
+like a real column, and pinned real columns (if any) render immediately
+after the gutter, unaffected by it, with the checkbox appearing after
+them. It's still never part of `columns: Vec<ColumnDef>` or
+`ColumnOffsets` — `rs-grid-core`'s `hit_test`/`hit_test_col_header`
+reserve its width (`effective_checkbox_column_width()`) as a scroll-shift
+term instead, so `ColumnOffsets::hit_column`'s O(log n) search never
+needs to know about it. Drawn in its own pass in `builder.rs` (row
+checkboxes right before the pinned-column overlay section; the header
+checkbox right before the pinned-header block) so the pinned band's
+overlay — rendered after, on top — correctly masks the checkbox once it
+scrolls underneath, the same z-order relationship real unpinned columns
+already have with the pinned band.
+
+- `emit_checkbox` (`builder/checkbox.rs`) draws a themed box (`Rect` with
+  `Theme::checkbox_border`/`checkbox_radius`/`checkbox_border_width`) plus,
+  for `Checked`/`Indeterminate`, a mark built from plain `Line` segments
+  (a two-segment check mark, or a single dash) — no new primitive type,
+  same "reuse an existing primitive" precedent as the sort-arrow's
+  `Polygon`.
+- The pinned band's z-order masking above only covers the pinned-width
+  region. As the checkbox column scrolls left it also dips under the
+  **row-number gutter** (`rnw`) itself, so `emit_checkbox` additionally
+  takes a `clip_left` parameter (both call sites pass `rnw`) and clamps
+  the box's own `Rect.clip` to `[band_x.max(clip_left), ...]` — mirroring
+  `cells.rs`/header-text's own `clip_x = cx.max(rnw)` clamp. Without it,
+  the box bleeds into the gutter/corner whenever `Theme::gutter_bg` has
+  any transparency, the same risk already called out for cell content and
+  header text. The check-mark `Line` segments have no `clip` field at all
+  (`LinePrimitive` doesn't support one), so they're skipped outright
+  whenever the box is left-clipped, rather than left to bleed past the
+  box's own clipped edge.
+- Per-row state (`Checked`/`Unchecked`) comes from `GridState.checked_rows:
+  HashSet<u64>`, keyed by **physical** row id (survives sort/filter,
+  mirroring `set_cell`'s logical→physical translation via
+  `model.logical_to_physical`) — never `Indeterminate` for a single row.
+- The header cell's tri-state comes from `GridState::checkbox_header_state()`
+  (rs-grid-core), scoped to `model.filtered_indices` when a filter is
+  active, otherwise all rows.
+- A checked row also gets a full-width background overlay
+  (`Theme::checked_row_bg`, transparent = disabled), drawn in the main
+  row loop right after the hover overlay — same "layer above alt-bg,
+  below selection" ordering as `row_hover_bg`, keyed by the same
+  physical-id lookup as the checkbox itself.
+
+## Floating filter row
+
+`builder.rs` renders the floating filter row (`model.show_filter_row`,
+see `rs-grid-core/AGENTS.md`'s "Floating filter row" section) in a block
+right after the header block closes (`if hh > 0.0 { ... }`), guarded
+`if fh > 0.0` where `fh = model.effective_filter_row_height()`. It
+reuses the header block's own `col_vx` closure for horizontal
+scroll/pin sync — called once for the scrollable range, once more for
+`0..pinned_count` with its own masking background rect, mirroring the
+header's own pinned-band pattern. Per column: a bordered "input-look"
+`RectPrimitive` (`t.bg` fill, `t.filter_row_input_border` border —
+matches the column filter popup's own value `<input>` border look
+rather than a plain grid-line, so the two read as the same design;
+vertical margin is themed (`filter_row_input_margin_v`, top and
+bottom, symmetric) while the horizontal inset reuses `t.cell_padding`
+— the same distance a data cell's own text sits from the column edge
+(`builder/cells.rs`), so the box's left/right edges line up with the
+data cells' content below rather than an unrelated hardcoded gap —
+narrowed on the right to keep the icon's own zone clear of the box
+rather than overlapping it), a hover-background `RectPrimitive` behind
+the icon
+when `hovered_filter_row_icon_col == Some(ci)` (`build`'s 5th
+parameter) — reuses the header menu icon's own
+`header_menu_icon_hover_bg`/`header_menu_icon_radius` tokens rather
+than new filter-icon-specific ones, so it reads as the same kind of
+icon button, not a differently-styled one; sized like the menu icon's
+own button box (`header_menu_icon_btn_h`, or `(fh - 12.0).max(8.0)`
+when that's `0.0`) but against the filter row's own band instead of
+the header's — a mini funnel icon (a single rounded `PolygonPrimitive`
+— wide top, a shoulder bend partway down, tapering to a rounded point,
+modeled after Heroicons' solid "funnel" glyph rather than a flat
+trapezoid + separate spout `Line`, which used to read as a triangle
+with a stick — reusing the `header_filter_icon`/`header_filter_icon_active`
+theme colors; this is the **only** place that draws this icon: the
+column header itself has none, by design — see `rs-grid-web/AGENTS.md`'s
+"Floating filter row" section for why), a small notification-style badge
+`RectPrimitive` (a circle via `corner_radius = header_filter_icon_badge_r`)
+overlapping the glyph's top-right corner when the column has an active
+filter — on top of, not instead of, the glyph's own active-color swap,
+so both cues fire together — and a `TextPrimitive` showing
+`state.model.filters.get(&col.key)`'s raw value **only when
+non-empty** — no placeholder text is drawn for an empty cell; the
+empty box + funnel icon are the affordance, same as
+`show_quick_filter_input`'s own placeholder-less transient overlay in
+`rs-grid-web`. (An earlier version drew a `"Filter..."` hint via a now-
+removed `Theme::filter_row_placeholder_text` field — deleted rather
+than left dead once the hint was dropped, following this crate's
+"delete over leave-dead" convention.) Three `Theme` fields back what's
+left: `filter_row_height: f64` (mirrors `header_height`, pushed into
+the model at mount/`set_theme` the same way), `filter_row_input_border:
+Color`, and `filter_row_input_margin_v: f64` — all three follow the
+standard "Adding a CSS variable" checklist in `rs-grid-web/AGENTS.md`
+(add to `Theme` + all 3 constructors, wire both directions in
+`css_vars.rs`).
+
+Every `hh`-based clip/background/separator site elsewhere in
+`builder.rs` that means "where does the *data* band start" (not the
+header's own band) was extended to `hh + fh` (`data_top` locally) when
+this shipped — see `rs-grid-core/AGENTS.md`'s classification list for
+which `rs-grid-core` hit-test functions extend the same way.
+
 ## Adding a primitive
 
 1. Add the struct in `primitives.rs`

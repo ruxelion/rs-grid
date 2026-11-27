@@ -83,7 +83,7 @@ fn bench_scroll_frame(c: &mut Criterion) {
         group.bench_function(BenchmarkId::from_parameter(cfg.label), |b| {
             b.iter(|| {
                 state.apply(scroll_step.clone());
-                black_box(builder.build(&state, None, None, None))
+                black_box(builder.build(&state, None, None, None, None))
             })
         });
     }
@@ -104,7 +104,7 @@ fn bench_scroll_frame_dpr2(c: &mut Criterion) {
         group.bench_function(BenchmarkId::from_parameter(cfg.label), |b| {
             b.iter(|| {
                 state.apply(scroll_step.clone());
-                black_box(builder.build(&state, None, None, None))
+                black_box(builder.build(&state, None, None, None, None))
             })
         });
     }

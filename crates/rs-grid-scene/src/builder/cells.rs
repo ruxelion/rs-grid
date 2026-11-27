@@ -4,6 +4,7 @@ use rs_grid_core::{
     column::{ButtonStyle, ColumnDef},
     datasource::CellStatus,
     format::{CellAlign, CellElement, CellFormat, format_cell},
+    model::GridModel,
     selection::SelectionState,
 };
 
@@ -27,6 +28,7 @@ use crate::{
 pub(super) fn emit_cell(
     frame: &mut SceneFrame,
     col: &ColumnDef,
+    model: &GridModel,
     ri: u64,
     ci: usize,
     cx: f64,
@@ -40,6 +42,7 @@ pub(super) fn emit_cell(
     t: &Theme,
     flash: Option<&FlashHint>,
     class_resolver: Option<&ClassResolver>,
+    invalid_borders: &mut Vec<(f64, f64, f64, f64)>,
 ) {
     // Selection fill (no border — outer border drawn separately)
     if sel.is_selected(ri, ci) {
@@ -54,26 +57,32 @@ pub(super) fn emit_cell(
             corner_radius: 0.0,
             clip: None,
         }));
-        // Flash overlay — themed fade on paste
-        if let Some(f) = flash {
-            let a = (t.flash_fill.a as f64 * f.alpha_factor).round() as u8;
-            frame.push(ScenePrimitive::Rect(RectPrimitive {
-                x: cx,
-                y: ry,
-                width: col.width,
-                height: row_height,
-                fill: Color::rgba(
-                    t.flash_fill.r,
-                    t.flash_fill.g,
-                    t.flash_fill.b,
-                    a,
-                ),
-                stroke: None,
-                stroke_width: 0.0,
-                corner_radius: 0.0,
-                clip: None,
-            }));
-        }
+    }
+
+    // Flash overlay — themed fade on paste, restricted to the cells
+    // actually written (`flash.cells`), not the whole selection
+    // rectangle, which may extend past cells skipped for being
+    // locked or failing validation.
+    if let Some(f) = flash
+        && f.cells.contains(&(ri, ci))
+    {
+        let base = if f.is_error {
+            t.flash_error_fill
+        } else {
+            t.flash_fill
+        };
+        let a = (base.a as f64 * f.alpha_factor).round() as u8;
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: Color::rgba(base.r, base.g, base.b, a),
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
     }
 
     // Search highlight
@@ -96,6 +105,110 @@ pub(super) fn emit_cell(
         }));
     }
 
+    // Locked-cell overlay (static `editable=false` or a
+    // false-resolving `editable_predicate`). Skipped when fully
+    // transparent to avoid an extra draw call (mirrors the
+    // `row_hover_bg` "transparent = disabled" convention).
+    let locked = !col.is_cell_editable(ri, model);
+    if locked && t.locked_cell_bg.a > 0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: t.locked_cell_bg,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
+    }
+
+    // At-rest invalid-value background/border — a cell can fail
+    // `ColumnDef.rules`/`validator` without ever being edited (e.g.
+    // loaded that way from the data source), so this doesn't wait for
+    // an active edit session the way the DOM editor's invalid style
+    // does. Background and border are independent primitives (either,
+    // both, or neither can be themed on), each skipped when fully
+    // transparent (same convention as `locked_cell_bg` above).
+    let invalid = matches!(
+        &cell_status,
+        CellStatus::Ready(raw) if col.validate_value(raw).is_err()
+    );
+    if invalid && t.invalid_cell_bg.a > 0 {
+        frame.push(ScenePrimitive::Rect(RectPrimitive {
+            x: cx,
+            y: ry,
+            width: col.width,
+            height: row_height,
+            fill: t.invalid_cell_bg,
+            stroke: None,
+            stroke_width: 0.0,
+            corner_radius: 0.0,
+            clip: None,
+        }));
+    }
+    if invalid && t.invalid_cell_border.a > 0 {
+        // Deferred rather than drawn here as a stroked `Rect`: a
+        // stroke sharing this cell's exact bounds lands on the
+        // same pixel as this row's grid line / this column's
+        // separator, both drawn later in the frame — which then
+        // paint over the bottom/right edges. Collecting the
+        // bounds and emitting them as boundary lines at the end
+        // (same technique as the selection outer border) keeps
+        // them on top, so all four edges stay visible.
+        invalid_borders.push((cx, ry, col.width, row_height));
+    }
+
+    // At-rest cell decoration — consumer-supplied border/tint driven by
+    // `ColumnDef::decorator`, resolved after the built-in locked/invalid
+    // overlays so it layers on top of them rather than being suppressed.
+    if let Some(deco) = col.cell_decoration(ri, model) {
+        if let Some(tint) = deco.background_tint {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill: Color::rgba(tint[0], tint[1], tint[2], tint[3]),
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+                clip: None,
+            }));
+        }
+        if let Some(border) = deco.border_color {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: cx,
+                y: ry,
+                width: col.width,
+                height: row_height,
+                fill: Color::rgba(0, 0, 0, 0),
+                stroke: Some(Color::rgba(
+                    border[0], border[1], border[2], border[3],
+                )),
+                stroke_width: t.decoration_border_width,
+                corner_radius: 0.0,
+                clip: None,
+            }));
+        }
+    }
+
+    // Clamp cell-content clip rects to the sticky header/filter-row/
+    // gutter boundary, mirroring the row-number gutter's own clamp in
+    // builder.rs ("Clamp everything to below the sticky header").
+    // Without this, an overscanned row (ry < hh) or column (cx < rnw)
+    // paints its text/image past the header/gutter's opaque overlay,
+    // which becomes visible whenever that overlay has any
+    // transparency or transiently disagrees with these bounds.
+    let hh = model.data_top();
+    let rnw = model.effective_row_number_width();
+    let clip_x = cx.max(rnw);
+    let clip_w = (cx + col.width - clip_x).max(0.0);
+    let clip_y = ry.max(hh);
+    let clip_h = (ry + row_height - clip_y).max(0.0);
+    let clip: [f64; 4] = [clip_x, clip_y, clip_w, clip_h];
+
     // Cell text, image, or skeleton
     match cell_status {
         CellStatus::Ready(raw) if !raw.is_empty() => {
@@ -108,6 +221,7 @@ pub(super) fn emit_cell(
                     mid_y,
                     col.width,
                     row_height,
+                    clip,
                     t,
                     class_resolver,
                 );
@@ -129,7 +243,7 @@ pub(super) fn emit_cell(
                     width: col.width - pad * 2.0,
                     height: row_height - pad * 2.0,
                     corner_radius: *border_radius,
-                    clip: Some([cx, ry, col.width, row_height]),
+                    clip: Some(clip),
                     placeholder_color: t.skeleton_fg,
                 }));
             } else if let Some(CellFormat::ImageText {
@@ -147,6 +261,7 @@ pub(super) fn emit_cell(
                     ry,
                     col.width,
                     row_height,
+                    clip,
                     mid_y,
                     t,
                     base_url,
@@ -169,6 +284,7 @@ pub(super) fn emit_cell(
                     ry,
                     col.width,
                     row_height,
+                    clip,
                     mid_y,
                     t,
                     class_resolver,
@@ -187,13 +303,23 @@ pub(super) fn emit_cell(
                             CellAlign::Center => TextAlign::Center,
                             _ => TextAlign::Left,
                         };
+                        let default_color = if locked {
+                            t.locked_cell_text
+                        } else {
+                            t.cell_text
+                        };
                         let c = fc
                             .color
                             .map(|c| Color::rgba(c[0], c[1], c[2], c[3]))
-                            .unwrap_or(t.cell_text);
+                            .unwrap_or(default_color);
                         (fc.text, a, fc.bold || col.bold, fc.italic, c)
                     } else {
-                        (raw, TextAlign::Left, col.bold, false, t.cell_text)
+                        let default_color = if locked {
+                            t.locked_cell_text
+                        } else {
+                            t.cell_text
+                        };
+                        (raw, TextAlign::Left, col.bold, false, default_color)
                     };
                 let x = match align {
                     TextAlign::Right => cx + col.width - t.cell_padding,
@@ -208,7 +334,7 @@ pub(super) fn emit_cell(
                     font_size: t.font_size,
                     bold,
                     italic,
-                    clip: Some([cx, ry, col.width, row_height]),
+                    clip: Some(clip),
                     align,
                     max_width: Some(
                         (col.width - 2.0 * t.cell_padding).max(0.0),
@@ -236,8 +362,9 @@ pub(super) fn emit_cell(
         _ => {}
     }
 
-    // Cell buttons — always rendered, on top of cell content.
-    emit_cell_buttons(frame, col, ri, ci, cx, ry, row_height, t);
+    // Cell buttons — rendered on top of cell content, subject to
+    // `ColumnDef::are_cell_buttons_visible` (see `emit_cell_buttons`).
+    emit_cell_buttons(frame, col, model, ri, ci, cx, ry, row_height, clip, t);
 }
 
 /// Emit an image + text pair for `CellFormat::ImageText`.
@@ -253,6 +380,7 @@ fn emit_image_text(
     ry: f64,
     col_width: f64,
     row_height: f64,
+    clip: [f64; 4],
     mid_y: f64,
     t: &Theme,
     base_url: &str,
@@ -275,7 +403,7 @@ fn emit_image_text(
         width: image_size,
         height: image_size,
         corner_radius: border_radius,
-        clip: Some([cx, ry, col_width, row_height]),
+        clip: Some(clip),
         placeholder_color: t.skeleton_fg,
     }));
 
@@ -290,7 +418,7 @@ fn emit_image_text(
             font_size: t.font_size,
             bold: false,
             italic: false,
-            clip: Some([cx, ry, col_width, row_height]),
+            clip: Some(clip),
             align: TextAlign::Left,
             max_width: Some(
                 (col_width - 2.0 * t.cell_padding - image_size - gap).max(0.0),
@@ -317,6 +445,7 @@ fn emit_progress_bar(
     ry: f64,
     col_width: f64,
     row_height: f64,
+    clip: [f64; 4],
     mid_y: f64,
     t: &Theme,
     class_resolver: Option<&ClassResolver>,
@@ -325,8 +454,6 @@ fn emit_progress_bar(
     show_label: bool,
     class_of: Option<&dyn Fn(&str) -> String>,
 ) {
-    let clip = [cx, ry, col_width, row_height];
-
     // Value → fraction in [0, 1].
     let value = raw.parse::<f64>().unwrap_or(min);
     let frac = if max > min {
@@ -420,10 +547,10 @@ fn emit_styled(
     mid_y: f64,
     cell_w: f64,
     row_height: f64,
+    clip: [f64; 4],
     t: &Theme,
     class_resolver: Option<&ClassResolver>,
 ) {
-    let clip = [cx, ry, cell_w, row_height];
     let mut x = cx + t.cell_padding;
 
     for el in elements {
@@ -486,25 +613,30 @@ fn emit_styled(
 /// Emit Rect + Text primitives for each [`ButtonDef`] in
 /// `col.cell_buttons` and record their hit zones.
 ///
-/// Buttons are laid out right-to-left: the first entry in
-/// `cell_buttons` is the rightmost button.  This makes
-/// positions stable when more buttons are added.
+/// The button group is horizontally centred within the column (inset
+/// by `cell_padding` on both sides — the same padding every other cell
+/// format uses, see `emit_cell`'s `TextAlign::Left` branch) — and lays
+/// out left-to-right in `cell_buttons` declaration order.
 ///
-/// Skips any button that would overflow the left cell edge.
+/// Skips any button that would overflow the cell's right edge, and
+/// emits nothing at all for `ri` when
+/// `col.are_cell_buttons_visible(ri, model)` is `false`.
 #[allow(clippy::too_many_arguments)]
 fn emit_cell_buttons(
     frame: &mut SceneFrame,
     col: &ColumnDef,
+    model: &GridModel,
     ri: u64,
     ci: usize,
     cx: f64,
     ry: f64,
     row_height: f64,
+    clip: [f64; 4],
     t: &Theme,
 ) {
     use crate::frame::ButtonZone;
 
-    if col.cell_buttons.is_empty() {
+    if col.cell_buttons.is_empty() || !col.are_cell_buttons_visible(ri, model) {
         return;
     }
 
@@ -515,21 +647,33 @@ fn emit_cell_buttons(
     // Baseline for vertically-centred text inside the button.
     // 0.35 ≈ half cap-height for system-ui.
     let mid_y = btn_y + btn_h * 0.5 + t.font_size * 0.35;
-    let clip = [cx, ry, col.width, row_height];
 
-    // Accumulate right edge inward from the cell's right border.
-    let mut right_x = cx + col.width - t.cell_btn_margin_r;
+    // Width from character count (same heuristic as emit_styled:
+    // 0.65 × font_size per char), computed up front so the whole
+    // group can be centred as a block.
+    let widths: Vec<f64> = col
+        .cell_buttons
+        .iter()
+        .map(|btn| {
+            let text_w = btn.label.len() as f64 * t.font_size * 0.65;
+            (text_w + t.cell_btn_padding_x * 2.0).max(0.0)
+        })
+        .collect();
+    let total_w = widths.iter().sum::<f64>()
+        + t.cell_btn_gap * (widths.len().saturating_sub(1)) as f64;
 
-    for btn in col.cell_buttons.iter().rev() {
-        // Width from character count (same heuristic as
-        // emit_styled: 0.65 × font_size per char).
-        let text_w = btn.label.len() as f64 * t.font_size * 0.65;
-        let btn_w = (text_w + t.cell_btn_padding_x * 2.0).max(0.0);
-        let btn_x = right_x - btn_w;
+    // Centre the block within the column, inset by `cell_padding` on
+    // both sides. Clamp to the left inset if the group is too wide to
+    // fit (more buttons than the column can show).
+    let mut btn_x = (cx
+        + t.cell_padding
+        + (col.width - 2.0 * t.cell_padding - total_w) / 2.0)
+        .max(cx + t.cell_padding);
 
-        // Skip if the button would bleed past the left edge.
-        if btn_x < cx {
-            right_x = btn_x - t.cell_btn_gap;
+    for (btn, &btn_w) in col.cell_buttons.iter().zip(widths.iter()) {
+        // Skip if the button would bleed past the right cell edge.
+        if btn_x + btn_w > cx + col.width - t.cell_padding {
+            btn_x += btn_w + t.cell_btn_gap;
             continue;
         }
 
@@ -548,9 +692,24 @@ fn emit_cell_buttons(
             ButtonStyle::Ghost => {
                 (None, t.cell_btn_ghost_color, Some(t.cell_btn_ghost_color))
             }
+            ButtonStyle::Neutral => {
+                (Some(t.cell_btn_neutral_bg), t.cell_btn_neutral_text, None)
+            }
+            ButtonStyle::Accent => {
+                (Some(t.cell_btn_accent_bg), t.cell_btn_accent_text, None)
+            }
+            ButtonStyle::Info => {
+                (Some(t.cell_btn_info_bg), t.cell_btn_info_text, None)
+            }
+            ButtonStyle::Success => {
+                (Some(t.cell_btn_success_bg), t.cell_btn_success_text, None)
+            }
+            ButtonStyle::Warning => {
+                (Some(t.cell_btn_warning_bg), t.cell_btn_warning_text, None)
+            }
             // Future variants via #[non_exhaustive].
             _ => {
-                right_x = btn_x - t.cell_btn_gap;
+                btn_x += btn_w + t.cell_btn_gap;
                 continue;
             }
         };
@@ -593,7 +752,7 @@ fn emit_cell_buttons(
             height: btn_h,
         });
 
-        right_x = btn_x - t.cell_btn_gap;
+        btn_x += btn_w + t.cell_btn_gap;
     }
 }
 
@@ -602,7 +761,9 @@ mod tests {
     use std::collections::HashSet;
 
     use rs_grid_core::{
-        column::ColumnDef, datasource::CellStatus, format::CellFormat,
+        column::{CellDecoration, ColumnDef},
+        datasource::CellStatus,
+        format::CellFormat,
         selection::SelectionState,
     };
 
@@ -622,6 +783,15 @@ mod tests {
         ColumnDef::new("a", "Alpha", 100.0)
     }
 
+    fn make_model(col: &ColumnDef) -> rs_grid_core::model::GridModel {
+        rs_grid_core::model::GridModel::new(
+            vec![col.clone()],
+            vec![rs_grid_core::row::RowRecord::new(0)],
+            42.0,
+            30.0,
+        )
+    }
+
     fn no_search() -> HashSet<(u64, usize)> {
         HashSet::new()
     }
@@ -637,6 +807,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -650,6 +821,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -671,6 +843,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -684,6 +857,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -697,6 +871,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -710,6 +885,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 0);
     }
@@ -723,10 +899,15 @@ mod tests {
         let mut sel = SelectionState::default();
         sel.select_cell(0, 0);
         let t = Theme::light();
-        let flash = FlashHint { alpha_factor: 0.5 };
+        let flash = FlashHint {
+            alpha_factor: 0.5,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -740,6 +921,7 @@ mod tests {
             &t,
             Some(&flash),
             None,
+            &mut Vec::new(),
         );
         // selection fill + flash overlay = 2 Rect primitives
         assert_eq!(frame.primitive_count(), 2);
@@ -749,6 +931,49 @@ mod tests {
                 .iter()
                 .all(|p| matches!(p, ScenePrimitive::Rect(_)))
         );
+    }
+
+    #[test]
+    fn emit_cell_selected_but_not_flashed_emits_no_flash_overlay() {
+        // A cell can be selected (e.g. part of a paste's target
+        // rectangle) without being in `flash.cells` (e.g. it was
+        // skipped for being locked or failing validation) — only
+        // the selection fill should render, no flash overlay.
+        let mut frame = make_frame();
+        let col = make_col();
+        let mut sel = SelectionState::default();
+        sel.select_cell(0, 1);
+        let t = Theme::light();
+        let flash = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            1,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            Some(&flash),
+            None,
+            &mut Vec::new(),
+        );
+        // Only the selection fill — no flash overlay for (0, 1).
+        assert_eq!(frame.primitive_count(), 1);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.selection_fill),
+            _ => panic!("expected the selection fill Rect"),
+        }
     }
 
     // ── Search highlight ─────────────────────────────────────
@@ -764,6 +989,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -777,6 +1003,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -798,6 +1025,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -811,6 +1039,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -838,6 +1067,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -851,6 +1081,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -876,6 +1107,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -889,6 +1121,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -919,6 +1152,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -932,6 +1166,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         let has_image = frame
             .primitives
@@ -962,6 +1197,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -975,6 +1211,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1000,6 +1237,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1013,6 +1251,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         match &frame.primitives[0] {
@@ -1047,6 +1286,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1060,6 +1300,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // No background → only a Text primitive.
         assert_eq!(frame.primitive_count(), 1);
@@ -1097,6 +1338,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1110,6 +1352,7 @@ mod tests {
             &t,
             None,
             Some(resolver),
+            &mut Vec::new(),
         );
         // background rect + text
         assert_eq!(frame.primitive_count(), 2);
@@ -1145,6 +1388,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1158,6 +1402,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // 2 elements → 2 Text primitives (no bg).
         assert_eq!(frame.primitive_count(), 2);
@@ -1183,6 +1428,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1196,6 +1442,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // track + fill = 2 rects (no label).
         assert_eq!(frame.primitive_count(), 2);
@@ -1228,6 +1475,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1241,6 +1489,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // track + fill + label text.
         assert_eq!(frame.primitive_count(), 3);
@@ -1260,6 +1509,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1273,6 +1523,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Only the track rect (zero fill is skipped).
         assert_eq!(frame.primitive_count(), 1);
@@ -1303,6 +1554,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1316,6 +1568,7 @@ mod tests {
             &t,
             None,
             Some(resolver),
+            &mut Vec::new(),
         );
         // Fill rect (second) uses the resolved background.
         match &frame.primitives[1] {
@@ -1335,6 +1588,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1348,6 +1602,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         match &frame.primitives[1] {
             ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.progress_fill),
@@ -1370,6 +1625,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             1,
             0,
             0.0,
@@ -1383,6 +1639,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         // Rect + Text for the button.
         assert_eq!(frame.primitive_count(), 2);
@@ -1406,6 +1663,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1419,6 +1677,7 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         let has_stroke = frame.primitives.iter().any(
             |p| matches!(p, ScenePrimitive::Rect(r) if r.stroke.is_some()),
@@ -1440,6 +1699,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1453,8 +1713,120 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.button_zones.len(), 2);
+    }
+
+    #[test]
+    fn emit_cell_button_semantic_variants_emit_zones() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 600.0).with_cell_buttons(vec![
+            ButtonDef::new("n", "Neutral", ButtonStyle::Neutral),
+            ButtonDef::new("a", "Accent", ButtonStyle::Accent),
+            ButtonDef::new("i", "Info", ButtonStyle::Info),
+            ButtonDef::new("s", "Success", ButtonStyle::Success),
+            ButtonDef::new("w", "Warning", ButtonStyle::Warning),
+        ]);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.button_zones.len(), 5);
+    }
+
+    #[test]
+    fn emit_cell_button_hidden_when_predicate_false_emits_nothing() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 0);
+        assert_eq!(frame.button_zones.len(), 0);
+    }
+
+    #[test]
+    fn emit_cell_button_visible_when_predicate_true_emits_rect_text_and_zone() {
+        use rs_grid_core::column::{ButtonDef, ButtonStyle};
+
+        let mut frame = make_frame();
+        let col = ColumnDef::new("x", "X", 200.0)
+            .with_cell_buttons(vec![ButtonDef::new(
+                "open",
+                "Open",
+                ButtonStyle::Primary,
+            )])
+            .cell_buttons_visible_when(|row, _| row == 1);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            1,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Absent,
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        assert_eq!(frame.button_zones.len(), 1);
+        assert_eq!(frame.button_zones[0].button_id, "open");
     }
 
     #[test]
@@ -1475,6 +1847,7 @@ mod tests {
         emit_cell(
             &mut frame,
             &col,
+            &make_model(&col),
             0,
             0,
             0.0,
@@ -1488,11 +1861,645 @@ mod tests {
             &t,
             None,
             None,
+            &mut Vec::new(),
         );
         assert_eq!(frame.primitive_count(), 1);
         assert!(
             matches!(frame.primitives[0], ScenePrimitive::Image(_)),
             "expected Image only"
         );
+    }
+
+    // ── header/gutter clip clamping ──────────────────────────
+
+    #[test]
+    fn emit_cell_text_clip_clamped_below_header_when_row_overlaps() {
+        // make_model() uses header_height = 30.0. ry = 10.0 simulates
+        // an overscanned row whose top edge is still under the header.
+        let mut frame = make_frame();
+        let col = make_col();
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            10.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        match &frame.primitives[0] {
+            ScenePrimitive::Text(txt) => {
+                let clip = txt.clip.expect("text should carry a clip rect");
+                assert_eq!(
+                    clip[1], 30.0,
+                    "clip.y must clamp to header_height, not ry"
+                );
+                assert!(
+                    clip[3] < 42.0,
+                    "clip.h must shrink to exclude the header overlap"
+                );
+            }
+            _ => panic!("expected Text primitive"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_text_clip_clamped_right_of_gutter_when_col_overlaps() {
+        // make_model() auto-computes row_number_width = 40.0 for a
+        // 1-row model. cx = 0.0 simulates a column whose left edge
+        // sits under the gutter.
+        let mut frame = make_frame();
+        let col = make_col();
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &make_model(&col),
+            0,
+            0,
+            0.0,
+            50.0,
+            71.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        match &frame.primitives[0] {
+            ScenePrimitive::Text(txt) => {
+                let clip = txt.clip.expect("text should carry a clip rect");
+                assert_eq!(
+                    clip[0], 40.0,
+                    "clip.x must clamp to row_number_width, not cx"
+                );
+            }
+            _ => panic!("expected Text primitive"),
+        }
+    }
+
+    // ── locked cell overlay ──────────────────────────────────
+
+    #[test]
+    fn emit_cell_locked_static_editable_false_emits_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_locked_predicate_false_emits_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().editable_when(|_, _| false);
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_editable_emits_no_overlay() {
+        let mut frame = make_frame();
+        let col = make_col();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // Only the text primitive — no locked-cell overlay.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_locked_uses_locked_cell_text_color() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        match &frame.primitives[1] {
+            ScenePrimitive::Text(txt) => {
+                assert_eq!(txt.color, t.locked_cell_text);
+            }
+            _ => panic!("expected Text primitive after the overlay"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_locked_bg_skipped_when_theme_transparent() {
+        let mut frame = make_frame();
+        let col = make_col().read_only();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        t.locked_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("hello".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // No overlay rect — only the text primitive.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    // ── at-rest invalid-value background/border ──────────────
+
+    #[test]
+    fn emit_cell_invalid_value_emits_border_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        // Isolate the border: bg overlay covered separately below.
+        t.invalid_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
+        let mut invalid_borders = Vec::new();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            // Empty value fails `.required()` even though the cell
+            // was never edited.
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut invalid_borders,
+        );
+        // The border itself isn't drawn here — it's collected so the
+        // caller (SceneBuilder::build) can emit it once every grid
+        // line / separator is already in the frame. See the push
+        // site's comment for why.
+        assert_eq!(frame.primitive_count(), 0);
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
+    }
+
+    #[test]
+    fn emit_cell_invalid_value_emits_bg_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        // Isolate the bg: border overlay covered separately above.
+        t.invalid_cell_border = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 1);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(r.fill, t.invalid_cell_bg);
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the invalid-cell bg Rect"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_valid_value_emits_no_border_overlay() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // Only the text primitive — no invalid-cell border.
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_invalid_border_skipped_when_theme_transparent() {
+        let mut frame = make_frame();
+        let col = make_col().required();
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let mut t = Theme::light();
+        t.invalid_cell_border = crate::primitives::Color::rgba(0, 0, 0, 0);
+        t.invalid_cell_bg = crate::primitives::Color::rgba(0, 0, 0, 0);
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // No bg/border rect — empty text yields no primitives at all.
+        assert_eq!(frame.primitive_count(), 0);
+    }
+
+    #[test]
+    fn emit_cell_invalid_and_locked_both_render() {
+        let mut frame = make_frame();
+        let col = make_col().read_only().with_rules(vec![
+            rs_grid_core::validation::ValidationRule::required(),
+        ]);
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        let mut invalid_borders = Vec::new();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut invalid_borders,
+        );
+        // Locked overlay (fill) + invalid bg — both conditions can hold
+        // at once and don't suppress each other. The invalid border is
+        // collected separately (see the border-overlay test above) so
+        // it isn't a frame primitive here.
+        assert_eq!(frame.primitive_count(), 2);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.invalid_cell_bg),
+            _ => panic!("expected the invalid-cell bg Rect second"),
+        }
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
+    }
+
+    // ── at-rest cell decoration ───────────────────────────────
+
+    #[test]
+    fn emit_cell_decoration_emits_tint_and_border() {
+        let mut frame = make_frame();
+        let col = make_col().decorated_when(|_, _| {
+            Some(
+                CellDecoration::default()
+                    .with_border_color([239, 68, 68, 255])
+                    .with_background_tint([255, 0, 0, 40]),
+            )
+        });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // tint Rect + border Rect + text primitive.
+        assert_eq!(frame.primitive_count(), 3);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.fill,
+                    crate::primitives::Color::rgba(255, 0, 0, 40)
+                );
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the tint Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.stroke,
+                    Some(crate::primitives::Color::rgba(239, 68, 68, 255))
+                );
+                assert_eq!(r.stroke_width, t.decoration_border_width);
+                assert_eq!(r.fill.a, 0);
+            }
+            _ => panic!("expected the border Rect second"),
+        }
+    }
+
+    #[test]
+    fn emit_cell_decoration_skipped_when_none() {
+        let mut frame = make_frame();
+        let col = make_col(); // no decorator attached
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        assert_eq!(frame.primitive_count(), 1);
+        assert!(matches!(frame.primitives[0], ScenePrimitive::Text(_)));
+    }
+
+    #[test]
+    fn emit_cell_decoration_border_only_emits_single_rect() {
+        let mut frame = make_frame();
+        let col = make_col().decorated_when(|_, _| {
+            Some(
+                CellDecoration::default().with_border_color([239, 68, 68, 255]),
+            )
+        });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready("ok".into()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut Vec::new(),
+        );
+        // border Rect + text — no tint Rect since it wasn't set.
+        assert_eq!(frame.primitive_count(), 2);
+    }
+
+    #[test]
+    fn emit_cell_decoration_composes_with_locked_and_invalid() {
+        let mut frame = make_frame();
+        let col = make_col()
+            .read_only()
+            .with_rules(vec![
+                rs_grid_core::validation::ValidationRule::required(),
+            ])
+            .decorated_when(|_, _| {
+                Some(
+                    CellDecoration::default()
+                        .with_border_color([0, 0, 255, 255])
+                        .with_background_tint([0, 0, 255, 30]),
+                )
+            });
+        let model = make_model(&col);
+        let sel = SelectionState::default();
+        let t = Theme::light();
+        let mut invalid_borders = Vec::new();
+        emit_cell(
+            &mut frame,
+            &col,
+            &model,
+            0,
+            0,
+            0.0,
+            0.0,
+            21.0,
+            42.0,
+            CellStatus::Ready(String::new()),
+            &sel,
+            &no_search(),
+            None,
+            &t,
+            None,
+            None,
+            &mut invalid_borders,
+        );
+        // locked fill + invalid bg + decoration tint + decoration
+        // border — 4 overlay Rects, none suppressing others. The
+        // invalid border is collected separately (not a frame
+        // primitive here — see the border-overlay test above).
+        assert_eq!(frame.primitive_count(), 4);
+        match &frame.primitives[0] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.locked_cell_bg),
+            _ => panic!("expected the locked-cell overlay Rect first"),
+        }
+        match &frame.primitives[1] {
+            ScenePrimitive::Rect(r) => assert_eq!(r.fill, t.invalid_cell_bg),
+            _ => panic!("expected the invalid-cell bg Rect second"),
+        }
+        match &frame.primitives[2] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.fill,
+                    crate::primitives::Color::rgba(0, 0, 255, 30)
+                );
+                assert!(r.stroke.is_none());
+            }
+            _ => panic!("expected the decoration tint Rect third"),
+        }
+        match &frame.primitives[3] {
+            ScenePrimitive::Rect(r) => {
+                assert_eq!(
+                    r.stroke,
+                    Some(crate::primitives::Color::rgba(0, 0, 255, 255))
+                );
+            }
+            _ => panic!("expected the decoration border Rect fourth"),
+        }
+        assert_eq!(invalid_borders, vec![(0.0, 0.0, col.width, 42.0)]);
     }
 }

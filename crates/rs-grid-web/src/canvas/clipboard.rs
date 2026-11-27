@@ -58,6 +58,13 @@ impl GridCanvas {
             return;
         }
         match self.dispatch_with_output(GridCommand::CutSelection) {
+            CommandOutput::CutApplied { text, skipped } => {
+                if let Some(dt) = evt.clipboard_data() {
+                    evt.prevent_default();
+                    let _ = dt.set_data("text/plain", &text);
+                }
+                self.flash_cells_error(&skipped);
+            }
             CommandOutput::CopyText(text) => {
                 if let Some(dt) = evt.clipboard_data() {
                     evt.prevent_default();
@@ -89,6 +96,10 @@ impl GridCanvas {
 
     pub(super) fn handle_cut(&self) {
         match self.dispatch_with_output(GridCommand::CutSelection) {
+            CommandOutput::CutApplied { text, skipped } => {
+                self.write_clipboard(text);
+                self.flash_cells_error(&skipped);
+            }
             CommandOutput::CopyText(text) => {
                 self.write_clipboard(text);
             }

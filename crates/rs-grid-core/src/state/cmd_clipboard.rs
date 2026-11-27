@@ -8,6 +8,9 @@ use crate::{
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+/// `(row, col_key, old_value)` triples ready for `UndoEntry::SetCells`.
+type UndoCells = Vec<(u64, String, Option<String>)>;
+
 /// Returns `true` when the selection spans every row of the model —
 /// i.e. the user clicked a column header rather than dragging a cell range.
 /// Full-column selections carry positional/sort intent, not bulk data.
@@ -27,6 +30,45 @@ fn header_tsv(model: &GridModel, col_start: usize, col_end: usize) -> String {
 // ── command handler ──────────────────────────────────────────────────────────
 
 impl GridState {
+    /// Clears every editable cell in `tl..=br` to an empty string,
+    /// skipping (not writing) any cell that's locked or whose empty
+    /// value would fail validation (e.g. `.required()`) — same
+    /// silent-skip precedent as `PasteAt`. Returns the `(row, col_key,
+    /// old_value)` triples for the undo history alongside the
+    /// coordinates actually cleared; shared by `CutSelection` (clear
+    /// step, after copying — ignores the coordinates, it has no flash
+    /// feedback) and `ClearCells` (Delete/Backspace, no clipboard
+    /// involved, reports the coordinates as `CommandOutput::
+    /// CellsCleared` for success-flash feedback).
+    fn clear_cell_range(
+        &mut self,
+        tl: &CellCoord,
+        br: &CellCoord,
+    ) -> (UndoCells, Vec<CellCoord>, Vec<CellCoord>) {
+        let mut old_cells = Vec::new();
+        let mut cleared = Vec::new();
+        let mut skipped = Vec::new();
+        for r in tl.row..=br.row {
+            for ci in tl.col..=br.col {
+                let coord = CellCoord { row: r, col: ci };
+                if !self.model.columns[ci].is_cell_editable(r, &self.model) {
+                    skipped.push(coord);
+                    continue;
+                }
+                if self.model.columns[ci].validate_value("").is_err() {
+                    skipped.push(coord);
+                    continue;
+                }
+                let key = self.model.columns[ci].key.clone();
+                let old = self.model.get_cell(r, &key);
+                old_cells.push((r, key.clone(), old));
+                self.model.set_cell(r, key, String::new());
+                cleared.push(coord);
+            }
+        }
+        (old_cells, cleared, skipped)
+    }
+
     pub(super) fn cmd_clipboard(&mut self, cmd: GridCommand) -> CommandOutput {
         match cmd {
             // ── Copy ─────────────────────────────────────────────────────────
@@ -65,23 +107,42 @@ impl GridState {
                     }
                 }
                 // Normal cut: copy data then clear cells.
-                let result = match self.selection.to_tsv(&self.model) {
-                    Ok(text) => CommandOutput::CopyText(text),
+                let text = match self.selection.to_tsv(&self.model) {
+                    Ok(text) => text,
                     Err(e) => return CommandOutput::CopyError(e),
                 };
+                let mut skipped = Vec::new();
                 if let Some((tl, br)) = self.selection.range() {
-                    let mut old_cells = Vec::new();
-                    for r in tl.row..=br.row {
-                        for ci in tl.col..=br.col {
-                            let key = self.model.columns[ci].key.clone();
-                            let old = self.model.get_cell(r, &key);
-                            old_cells.push((r, key.clone(), old));
-                            self.model.set_cell(r, key, String::new());
-                        }
+                    let (old_cells, _cleared, cell_skipped) =
+                        self.clear_cell_range(&tl, &br);
+                    if !old_cells.is_empty() {
+                        self.history.push(UndoEntry::SetCells(old_cells));
                     }
-                    self.history.push(UndoEntry::SetCells(old_cells));
+                    skipped = cell_skipped;
                 }
-                result
+                CommandOutput::CutApplied { text, skipped }
+            }
+
+            // ── Clear (Delete/Backspace) ────────────────────────────────────
+            GridCommand::ClearCells => {
+                let Some((tl, br)) = self.selection.range() else {
+                    return CommandOutput::None;
+                };
+                let row_count = self.model.display_row_count();
+                if is_full_col_sel(&tl, &br, row_count) {
+                    // Same rationale as CutSelection's full-column
+                    // guard: a header click carries positional intent,
+                    // not "clear this entire column of potentially
+                    // billions of rows".
+                    return CommandOutput::None;
+                }
+                let (old_cells, cleared, _skipped) =
+                    self.clear_cell_range(&tl, &br);
+                if old_cells.is_empty() {
+                    return CommandOutput::None;
+                }
+                self.history.push(UndoEntry::SetCells(old_cells));
+                CommandOutput::CellsCleared { cells: cleared }
             }
 
             // ── Paste ────────────────────────────────────────────────────────
@@ -125,6 +186,7 @@ impl GridState {
                     };
 
                     let mut old_cells = Vec::new();
+                    let mut written_cells = Vec::new();
                     for dr in 0..target_rows {
                         let r = orig.row.saturating_add(dr as u64);
                         if r >= row_count {
@@ -136,11 +198,23 @@ impl GridState {
                             if c >= col_count {
                                 break;
                             }
+                            if !self.model.columns[c]
+                                .is_cell_editable(r, &self.model)
+                            {
+                                continue;
+                            }
                             let val = &src_row[dc % clip_cols];
+                            if self.model.columns[c]
+                                .validate_value(val)
+                                .is_err()
+                            {
+                                continue;
+                            }
                             let key = self.model.columns[c].key.clone();
                             let old = self.model.get_cell(r, &key);
                             old_cells.push((r, key.clone(), old));
                             self.model.set_cell(r, key, val.clone());
+                            written_cells.push(CellCoord { row: r, col: c });
                         }
                     }
                     if !old_cells.is_empty() {
@@ -159,6 +233,9 @@ impl GridState {
                         row: last_r,
                         col: last_c,
                     });
+                    return CommandOutput::PasteApplied {
+                        cells: written_cells,
+                    };
                 }
                 CommandOutput::None
             }
@@ -304,7 +381,333 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let out = s.apply(GridCommand::CutSelection);
-        assert!(matches!(out, CommandOutput::CopyText(_)));
+        assert!(matches!(out, CommandOutput::CutApplied { .. }));
         assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+    }
+
+    // ── locked cells ─────────────────────────────────────────────────────
+
+    fn make_locked_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "Name", 100.0),
+            ColumnDef::new("b", "Email", 150.0).read_only(),
+        ];
+        let rows = (0..4)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn paste_at_skips_locked_cells() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("X"),
+            "editable column receives the pasted value"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("b0"),
+            "read-only column keeps its original value"
+        );
+    }
+
+    #[test]
+    fn paste_at_reports_only_written_cells() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::PasteAt {
+            text: "X\tY\n".into(),
+        });
+        match out {
+            CommandOutput::PasteApplied { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![CellCoord { row: 0, col: 0 }],
+                    "only the editable column's cell is reported written, \
+                     not the locked one"
+                );
+            }
+            other => panic!("expected PasteApplied, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn cut_selection_skips_locked_cells_but_copies_everything() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::CutSelection);
+        if let CommandOutput::CutApplied { text, skipped } = out {
+            assert_eq!(
+                text, "a0\tb0\n",
+                "the copy side is unaffected by editability"
+            );
+            assert_eq!(
+                skipped,
+                vec![CellCoord { row: 0, col: 1 }],
+                "the locked cell is reported as skipped"
+            );
+        } else {
+            panic!("expected CutApplied");
+        }
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some(""),
+            "editable column is cleared"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("b0"),
+            "read-only column is left untouched"
+        );
+    }
+
+    // ── ClearCells (Delete/Backspace) ──────────────────────────────────────
+
+    #[test]
+    fn clear_cells_without_selection_is_noop() {
+        let mut s = make_state();
+        let out = s.apply(GridCommand::ClearCells);
+        assert!(matches!(out, CommandOutput::None));
+    }
+
+    #[test]
+    fn clear_cells_clears_selected_range() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 1 }));
+        s.apply(GridCommand::ClearCells);
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+        assert_eq!(s.model.get_cell(0, "b").as_deref(), Some(""));
+        assert_eq!(s.model.get_cell(1, "a").as_deref(), Some(""));
+        assert_eq!(s.model.get_cell(1, "b").as_deref(), Some(""));
+    }
+
+    #[test]
+    fn clear_cells_does_not_touch_clipboard() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        let out = s.apply(GridCommand::ClearCells);
+        assert!(
+            matches!(out, CommandOutput::CellsCleared { .. }),
+            "unlike CutSelection, ClearCells never returns CopyText"
+        );
+    }
+
+    #[test]
+    fn clear_cells_reports_cleared_coordinates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 1 }));
+        let out = s.apply(GridCommand::ClearCells);
+        match out {
+            CommandOutput::CellsCleared { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![
+                        CellCoord { row: 0, col: 0 },
+                        CellCoord { row: 0, col: 1 },
+                        CellCoord { row: 1, col: 0 },
+                        CellCoord { row: 1, col: 1 },
+                    ]
+                );
+            }
+            other => panic!("expected CellsCleared, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn clear_cells_reports_only_cleared_cells_when_some_are_skipped() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::ClearCells);
+        match out {
+            CommandOutput::CellsCleared { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![CellCoord { row: 0, col: 0 }],
+                    "only the editable column's cell is reported cleared, \
+                     not the locked one"
+                );
+            }
+            other => panic!("expected CellsCleared, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn clear_cells_skips_locked_cells() {
+        let mut s = make_locked_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        s.apply(GridCommand::ClearCells);
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("b0"),
+            "read-only column is left untouched"
+        );
+    }
+
+    #[test]
+    fn clear_cells_skips_cells_that_would_become_invalid() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        s.apply(GridCommand::ClearCells);
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "required column keeps its value"
+        );
+        assert_eq!(s.model.get_cell(0, "b").as_deref(), Some(""));
+    }
+
+    #[test]
+    fn clear_cells_on_full_column_selection_is_noop() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCol(0));
+        s.apply(GridCommand::ClearCells);
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "full-column selection is not bulk-cleared"
+        );
+        assert_eq!(s.model.get_cell(3, "a").as_deref(), Some("a3"));
+    }
+
+    #[test]
+    fn clear_cells_is_undoable() {
+        let mut s = make_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ClearCells);
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some(""));
+        s.apply(GridCommand::Undo);
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("a0"));
+    }
+
+    // ── validation ───────────────────────────────────────────────────────
+
+    fn make_validated_state() -> GridState {
+        let cols = vec![
+            ColumnDef::new("a", "Name", 100.0).required(),
+            ColumnDef::new("b", "Email", 150.0),
+        ];
+        let rows = (0..4)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let model = GridModel::new(cols, rows, 30.0, 40.0);
+        GridState::new(model, 800.0, 600.0)
+    }
+
+    #[test]
+    fn paste_at_skips_invalid_values() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        // Empty string fails "a"'s `required()` rule; "b" has no rules.
+        s.apply(GridCommand::PasteAt {
+            text: "\tY\n".into(),
+        });
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "the required column keeps its original value"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some("Y"),
+            "the unvalidated column still receives the pasted value"
+        );
+    }
+
+    #[test]
+    fn paste_at_tiled_partial_validity() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 1, col: 0 }));
+        // Tiled single-column paste: row 0 gets a valid value, row 1
+        // gets a whitespace-only (invalid per `required()`) one.
+        s.apply(GridCommand::PasteAt {
+            text: "Z\n \n".into(),
+        });
+        assert_eq!(s.model.get_cell(0, "a").as_deref(), Some("Z"));
+        assert_eq!(
+            s.model.get_cell(1, "a").as_deref(),
+            Some("a1"),
+            "row 1's invalid pasted value is skipped, not written"
+        );
+    }
+
+    #[test]
+    fn cut_selection_skips_cells_that_would_become_invalid() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        let out = s.apply(GridCommand::CutSelection);
+        // The copy side is unaffected — the full original values are
+        // still placed on the clipboard.
+        if let CommandOutput::CutApplied { text, skipped } = out {
+            assert_eq!(text, "a0\tb0\n");
+            assert_eq!(
+                skipped,
+                vec![CellCoord { row: 0, col: 0 }],
+                "the required cell is reported as skipped"
+            );
+        } else {
+            panic!("expected CutApplied");
+        }
+        assert_eq!(
+            s.model.get_cell(0, "a").as_deref(),
+            Some("a0"),
+            "required column keeps its value — clearing it would fail \
+             validation"
+        );
+        assert_eq!(
+            s.model.get_cell(0, "b").as_deref(),
+            Some(""),
+            "unvalidated column is cleared normally"
+        );
+    }
+
+    #[test]
+    fn paste_at_reports_only_valid_cells() {
+        let mut s = make_validated_state();
+        s.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        s.apply(GridCommand::ExtendSelection(CellCoord { row: 0, col: 1 }));
+        // Empty string fails "a"'s `required()` rule; "b" has no rules.
+        let out = s.apply(GridCommand::PasteAt {
+            text: "\tY\n".into(),
+        });
+        match out {
+            CommandOutput::PasteApplied { cells } => {
+                assert_eq!(
+                    cells,
+                    vec![CellCoord { row: 0, col: 1 }],
+                    "only the unvalidated column's cell is reported \
+                     written, not the one that failed validation"
+                );
+            }
+            other => panic!("expected PasteApplied, got {other:?}"),
+        }
     }
 }

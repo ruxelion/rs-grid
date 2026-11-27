@@ -18,8 +18,26 @@ pub struct Theme {
     pub header_text: Color,
     /// Default cell text color.
     pub cell_text: Color,
+    /// Border color of the filter row's bordered "input look" box —
+    /// matches the column filter popup's own value `<input>` border
+    /// look (`style_daisy_control` in rs-grid-web: the header/cell text
+    /// color at ~20% opacity via `color-mix(..., transparent)`), so the
+    /// canvas-drawn box reads as the same design as the DOM-drawn popup
+    /// input rather than a plain grid-line-bordered box.
+    pub filter_row_input_border: Color,
     /// Grid line (cell border) color.
     pub grid_line: Color,
+    /// Width of the horizontal grid line between data rows, and of the
+    /// row-number gutter's matching line, in logical pixels.
+    pub grid_line_width: f64,
+    /// Color of the vertical line separating adjacent data-row columns.
+    /// Defaults to the same value as `grid_line` so enabling this
+    /// feature causes no visual change until the user diverges it. See
+    /// also `pinned_separator_color` for the pinned-band boundary line.
+    pub column_separator_color: Color,
+    /// Width of the vertical column-separator line in logical pixels.
+    /// See also `pinned_separator_width`.
+    pub column_separator_width: f64,
     /// Bottom border below the header row.
     pub header_border: Color,
     /// Vertical inset applied to each end of the column separator
@@ -48,11 +66,59 @@ pub struct Theme {
     /// Background overlay for the row under the cursor (transparent =
     /// disabled).
     pub row_hover_bg: Color,
+    /// Background overlay for a row checked via the row-selection checkbox
+    /// column (transparent = disabled). Drawn above `row_hover_bg`.
+    pub checked_row_bg: Color,
+
+    // ── locked cell (non-editable)
+    // ────────────────────────────────────────────────────
+    /// Background overlay drawn over a cell that resolves to
+    /// non-editable (static `ColumnDef::editable == false`, or the
+    /// dynamic `editable_predicate` returns `false`). Transparent =
+    /// no visual change.
+    pub locked_cell_bg: Color,
+    /// Text color for a locked cell's content. Defaults to a dimmed
+    /// variant of `cell_text`.
+    pub locked_cell_text: Color,
+
+    // ── invalid cell (at-rest validation)
+    // ─────────────────────────────────
+    /// Background overlay drawn over a cell whose current value fails
+    /// `ColumnDef::validate_value`, independent of `invalid_cell_border`
+    /// (either, both, or neither can be themed on). Transparent = no
+    /// visual change (same "opt out via alpha 0" convention as
+    /// `locked_cell_bg`).
+    pub invalid_cell_bg: Color,
+    /// Border drawn around a cell whose current value fails
+    /// `ColumnDef::validate_value` — shown even when the cell isn't
+    /// being edited, unlike the DOM editor's invalid style. Transparent
+    /// = no visual change (same "opt out via alpha 0" convention as
+    /// `locked_cell_bg`).
+    pub invalid_cell_border: Color,
+    /// Width of `invalid_cell_border` in logical pixels.
+    pub invalid_cell_border_width: f64,
+
+    // ── cell decoration (at-rest, consumer-driven)
+    // ──────────────────────────
+    /// Stroke width for `CellDecoration::border_color`, in logical
+    /// pixels. The color is consumer-supplied per cell (not themed —
+    /// same precedent as `FormattedCell::color`), but the width is
+    /// uniform, so it lives here like `invalid_cell_border_width`.
+    pub decoration_border_width: f64,
 
     // ── row / header dimensions
     // ──────────────────────────────────────────────
     /// Height of the sticky header row in logical pixels.
     pub header_height: f64,
+    /// Height of the floating filter row in logical pixels, when shown
+    /// (`GridModel::show_filter_row`). Pushed into the model at
+    /// mount/`set_theme` the same way `header_height` is.
+    pub filter_row_height: f64,
+    /// Vertical margin (top and bottom, symmetric) between the filter
+    /// row's own edges and its bordered "input look" box, in logical
+    /// pixels. The horizontal inset is a fixed `4.0` (not themed —
+    /// only the vertical margin was asked to be configurable).
+    pub filter_row_input_margin_v: f64,
     /// Height of each data row in logical pixels.
     pub row_height: f64,
 
@@ -74,6 +140,9 @@ pub struct Theme {
     pub flash_fill: Color,
     /// Border colour for the paste-flash animation.
     pub flash_border: Color,
+    /// Fill colour for the error-flash animation — cells a `CutSelection`
+    /// copied but could not clear (locked or failing validation).
+    pub flash_error_fill: Color,
 
     // ── search ──────────────────────────────────────────────────────────────
     /// Background highlight for cells matching the active search query.
@@ -96,6 +165,22 @@ pub struct Theme {
     pub progress_height: f64,
     /// Corner radius of the track and fill in logical pixels.
     pub progress_radius: f64,
+
+    // ── checkbox column (row-selection checkbox + header tri-state)
+    // ──────
+    /// Side length of the checkbox box in logical pixels.
+    pub checkbox_size: f64,
+    /// Corner radius of the checkbox box in logical pixels.
+    pub checkbox_radius: f64,
+    /// Border color of the checkbox box (unchecked state).
+    pub checkbox_border: Color,
+    /// Border width of the checkbox box in logical pixels.
+    pub checkbox_border_width: f64,
+    /// Fill color when checked or indeterminate. Default = DaisyUI
+    /// primary.
+    pub checkbox_checked_bg: Color,
+    /// Color of the check mark (checked) or dash (indeterminate).
+    pub checkbox_mark_color: Color,
 
     // ── spacing
     // ──────────────────────────────────────────────────────────────
@@ -160,6 +245,35 @@ pub struct Theme {
     /// Radius of each dot in the three-dot icon, in logical pixels.
     pub header_menu_icon_dot_r: f64,
 
+    // ── filter row funnel icon
+    // ─────────────────────────────────────
+    // Named `header_*` for historical reasons — this icon used to also
+    // be drawn in the column header itself; it now lives only in the
+    // floating filter row (see `GridModel.show_filter_row`), which
+    // reuses these same tokens. Kept unrenamed since a rename would be
+    // an unrelated, purely-cosmetic breaking change to the CSS
+    // variable surface.
+    /// Color of the funnel filter icon when the column has no
+    /// active filter.
+    pub header_filter_icon: Color,
+    /// Color of the funnel filter icon when the column has an
+    /// active filter — doubles as the "filter active" indicator.
+    pub header_filter_icon_active: Color,
+    /// Gap between the filter icon button and the column's right
+    /// edge, in logical pixels.
+    pub header_filter_icon_margin_r: f64,
+    /// Width of the filter icon button in logical pixels.
+    pub header_filter_icon_btn_w: f64,
+    /// Width of the funnel glyph inside the button, in logical
+    /// pixels.
+    pub header_filter_icon_size: f64,
+    /// Radius of the small notification-style badge dot overlapping
+    /// the funnel glyph's top-right corner when the column has an
+    /// active filter, in logical pixels. Drawn in
+    /// `header_filter_icon_active` — on top of, not instead of, the
+    /// glyph's own active-color swap (both signal "active" at once).
+    pub header_filter_icon_badge_r: f64,
+
     // ── pinned columns
     // ────────────────────────────────────────────────────────
     /// Background of the pinned-column data band.
@@ -206,6 +320,26 @@ pub struct Theme {
     /// Border and text color for Ghost-style buttons
     /// (transparent fill).
     pub cell_btn_ghost_color: Color,
+    /// Background of a Neutral-style cell button.
+    pub cell_btn_neutral_bg: Color,
+    /// Text color of a Neutral-style cell button.
+    pub cell_btn_neutral_text: Color,
+    /// Background of an Accent-style cell button.
+    pub cell_btn_accent_bg: Color,
+    /// Text color of an Accent-style cell button.
+    pub cell_btn_accent_text: Color,
+    /// Background of an Info-style cell button.
+    pub cell_btn_info_bg: Color,
+    /// Text color of an Info-style cell button.
+    pub cell_btn_info_text: Color,
+    /// Background of a Success-style cell button.
+    pub cell_btn_success_bg: Color,
+    /// Text color of a Success-style cell button.
+    pub cell_btn_success_text: Color,
+    /// Background of a Warning-style cell button.
+    pub cell_btn_warning_bg: Color,
+    /// Text color of a Warning-style cell button.
+    pub cell_btn_warning_text: Color,
     /// Corner radius of cell buttons in logical pixels.
     pub cell_btn_radius: f64,
     /// Vertical padding inside a cell button (top and
@@ -231,7 +365,11 @@ impl Theme {
             header_bg: Color::rgb(248, 249, 251),
             header_text: Color::rgb(24, 29, 31),
             cell_text: Color::rgb(24, 29, 31),
+            filter_row_input_border: Color::rgba(24, 29, 31, 51),
             grid_line: Color::rgb(226, 232, 240),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(226, 232, 240),
+            column_separator_width: 1.0,
             header_border: Color::rgb(186, 191, 199),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -247,8 +385,22 @@ impl Theme {
             row_alt_bg: Color::rgb(255, 255, 255),
             // rgba(33, 150, 243, 0.07) → a = round(0.07 × 255) = 18
             row_hover_bg: Color::rgba(33, 150, 243, 18),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(66, 42, 213, 22),
+            // locked cell — subtle gray wash, dimmed text
+            // rgba(0, 0, 0, 0.035) → a = round(0.035 × 255) = 9
+            locked_cell_bg: Color::rgba(0, 0, 0, 9),
+            locked_cell_text: Color::rgba(24, 29, 31, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(239, 68, 68, 0.06) → a = round(0.06 × 255) = 15
+            invalid_cell_bg: Color::rgba(239, 68, 68, 15),
+            invalid_cell_border: Color::rgb(239, 68, 68),
+            invalid_cell_border_width: 1.0,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -258,6 +410,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
@@ -268,6 +421,13 @@ impl Theme {
             progress_fill: Color::rgb(66, 42, 213),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = mid gray, checked fill = DaisyUI primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(148, 163, 184),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(66, 42, 213),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -293,6 +453,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(24, 29, 31, 180),
+            header_filter_icon_active: Color::rgba(33, 150, 243, 217),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(255, 255, 255),
             pinned_header_bg: Color::rgb(248, 249, 251),
@@ -305,15 +472,29 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(186, 191, 199),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(33, 150, 243),
+            // cell buttons — match DaisyUI light theme's semantic colors
+            // 1:1 (see `examples/example-common/src/class_map_data.rs`,
+            // generated from the installed `daisyui` package): primary
+            // #422ad5 (same source as `progress_fill`/`checkbox_checked_bg`
+            // above), secondary #f43098, error #ff627d.
+            cell_btn_primary_bg: Color::rgb(66, 42, 213),
             cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(226, 232, 240),
-            cell_btn_secondary_text: Color::rgb(24, 29, 31),
-            cell_btn_danger_bg: Color::rgb(239, 68, 68),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(33, 150, 243, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(33, 150, 243, 200),
+            cell_btn_secondary_bg: Color::rgb(244, 48, 152),
+            cell_btn_secondary_text: Color::rgb(249, 228, 240),
+            cell_btn_danger_bg: Color::rgb(255, 98, 125),
+            cell_btn_danger_text: Color::rgb(77, 2, 24),
+            // rgba(66, 42, 213, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(66, 42, 213, 200),
+            cell_btn_neutral_bg: Color::rgb(9, 9, 11),
+            cell_btn_neutral_text: Color::rgb(228, 228, 231),
+            cell_btn_accent_bg: Color::rgb(0, 211, 187),
+            cell_btn_accent_text: Color::rgb(8, 77, 73),
+            cell_btn_info_bg: Color::rgb(0, 186, 254),
+            cell_btn_info_text: Color::rgb(4, 46, 73),
+            cell_btn_success_bg: Color::rgb(0, 211, 144),
+            cell_btn_success_text: Color::rgb(0, 76, 57),
+            cell_btn_warning_bg: Color::rgb(252, 183, 0),
+            cell_btn_warning_text: Color::rgb(121, 50, 5),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
@@ -332,7 +513,11 @@ impl Theme {
             header_bg: Color::rgb(44, 44, 46),
             header_text: Color::rgb(176, 176, 176),
             cell_text: Color::rgb(208, 208, 208),
+            filter_row_input_border: Color::rgba(208, 208, 208, 51),
             grid_line: Color::rgb(51, 51, 53),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(51, 51, 53),
+            column_separator_width: 1.0,
             header_border: Color::rgb(51, 51, 53),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -349,8 +534,21 @@ impl Theme {
             row_alt_bg: Color::rgb(33, 33, 35),
             // rgba(255, 255, 255, 0.05) → a = round(0.05 × 255) = 13
             row_hover_bg: Color::rgba(255, 255, 255, 13),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(99, 80, 240, 30),
+            // locked cell — rgba(255, 255, 255, 0.04) → a = 10
+            locked_cell_bg: Color::rgba(255, 255, 255, 10),
+            locked_cell_text: Color::rgba(208, 208, 208, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(220, 38, 38, 0.08) → a = round(0.08 × 255) = 20
+            invalid_cell_bg: Color::rgba(220, 38, 38, 20),
+            invalid_cell_border: Color::rgb(220, 38, 38),
+            invalid_cell_border_width: 1.0,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -360,6 +558,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
@@ -370,6 +569,13 @@ impl Theme {
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = muted gray, checked fill = brighter primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(100, 106, 115),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(99, 80, 240),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -396,6 +602,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(176, 176, 176, 178),
+            header_filter_icon_active: Color::rgba(60, 130, 245, 230),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(28, 28, 30),
             pinned_header_bg: Color::rgb(44, 44, 46),
@@ -408,15 +621,29 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(51, 51, 53),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(60, 130, 245),
-            cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(60, 63, 68),
-            cell_btn_secondary_text: Color::rgb(208, 208, 208),
-            cell_btn_danger_bg: Color::rgb(220, 38, 38),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(60, 130, 245, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(60, 130, 245, 200),
+            // cell buttons — DaisyUI's built-in `dark` theme, same
+            // source as the 5 semantic colors below.
+            cell_btn_primary_bg: Color::rgb(96, 93, 255),
+            cell_btn_primary_text: Color::rgb(237, 241, 254),
+            cell_btn_secondary_bg: Color::rgb(244, 48, 152),
+            cell_btn_secondary_text: Color::rgb(249, 228, 240),
+            cell_btn_danger_bg: Color::rgb(255, 98, 125),
+            cell_btn_danger_text: Color::rgb(77, 2, 24),
+            // rgba(96, 93, 255, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(96, 93, 255, 200),
+            // DaisyUI's built-in `dark` theme reuses the same
+            // neutral/accent/info/success/warning oklch values as
+            // `light` — so these 5 are numerically identical to light().
+            cell_btn_neutral_bg: Color::rgb(9, 9, 11),
+            cell_btn_neutral_text: Color::rgb(228, 228, 231),
+            cell_btn_accent_bg: Color::rgb(0, 211, 187),
+            cell_btn_accent_text: Color::rgb(8, 77, 73),
+            cell_btn_info_bg: Color::rgb(0, 186, 254),
+            cell_btn_info_text: Color::rgb(4, 46, 73),
+            cell_btn_success_bg: Color::rgb(0, 211, 144),
+            cell_btn_success_text: Color::rgb(0, 76, 57),
+            cell_btn_warning_bg: Color::rgb(252, 183, 0),
+            cell_btn_warning_text: Color::rgb(121, 50, 5),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
@@ -434,7 +661,11 @@ impl Theme {
             header_bg: Color::rgb(45, 51, 59),
             header_text: Color::rgb(173, 186, 199),
             cell_text: Color::rgb(173, 186, 199),
+            filter_row_input_border: Color::rgba(173, 186, 199, 51),
             grid_line: Color::rgb(55, 62, 71),
+            grid_line_width: 1.0,
+            column_separator_color: Color::rgb(55, 62, 71),
+            column_separator_width: 1.0,
             header_border: Color::rgb(68, 76, 86),
             header_separator_inset: 15.0,
             header_separator_width: 2.0,
@@ -451,8 +682,21 @@ impl Theme {
             row_alt_bg: Color::rgb(34, 39, 46),
             // rgba(255, 255, 255, 0.04) → a = round(0.04 × 255) = 10
             row_hover_bg: Color::rgba(255, 255, 255, 10),
+            // checked row — same primary as checkbox_checked_bg, subtle tint
+            checked_row_bg: Color::rgba(99, 80, 240, 26),
+            // locked cell — rgba(255, 255, 255, 0.035) → a = 9
+            locked_cell_bg: Color::rgba(255, 255, 255, 9),
+            locked_cell_text: Color::rgba(173, 186, 199, 140),
+            // invalid cell — same red as `cell_btn_danger_bg` below
+            // rgba(218, 54, 51, 0.08) → a = round(0.08 × 255) = 20
+            invalid_cell_bg: Color::rgba(218, 54, 51, 20),
+            invalid_cell_border: Color::rgb(218, 54, 51),
+            invalid_cell_border_width: 1.0,
+            decoration_border_width: 1.5,
             // row / header dimensions
             header_height: 48.0,
+            filter_row_height: 52.0,
+            filter_row_input_margin_v: 10.0,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -462,6 +706,7 @@ impl Theme {
             // flash
             flash_fill: Color::rgba(255, 220, 0, 255),
             flash_border: Color::rgba(255, 220, 0, 255),
+            flash_error_fill: Color::rgba(220, 38, 38, 255),
             // search
             search_highlight: Color::rgba(255, 213, 0, 77),
             search_current: Color::rgba(255, 165, 0, 140),
@@ -472,6 +717,13 @@ impl Theme {
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
             progress_radius: 8.0,
+            // checkbox — border = muted slate, checked fill = brighter primary
+            checkbox_size: 18.0,
+            checkbox_radius: 4.0,
+            checkbox_border: Color::rgb(90, 98, 110),
+            checkbox_border_width: 1.5,
+            checkbox_checked_bg: Color::rgb(99, 80, 240),
+            checkbox_mark_color: Color::rgb(255, 255, 255),
             // spacing
             cell_padding: 12.0,
             // scrollbar
@@ -499,6 +751,13 @@ impl Theme {
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
             header_menu_icon_dot_r: 1.2,
+            // column header filter icon
+            header_filter_icon: Color::rgba(173, 186, 199, 178),
+            header_filter_icon_active: Color::rgba(56, 139, 253, 217),
+            header_filter_icon_margin_r: 6.0,
+            header_filter_icon_btn_w: 22.0,
+            header_filter_icon_size: 13.0,
+            header_filter_icon_badge_r: 3.0,
             // pinned columns
             pinned_bg: Color::rgb(34, 39, 46),
             pinned_header_bg: Color::rgb(45, 51, 59),
@@ -512,15 +771,28 @@ impl Theme {
             gutter_font_bold: true,
             gutter_font_italic: false,
             gutter_border: Color::rgb(68, 76, 86),
-            // cell buttons
-            cell_btn_primary_bg: Color::rgb(56, 139, 253),
-            cell_btn_primary_text: Color::rgb(255, 255, 255),
-            cell_btn_secondary_bg: Color::rgb(55, 62, 71),
-            cell_btn_secondary_text: Color::rgb(173, 186, 199),
-            cell_btn_danger_bg: Color::rgb(218, 54, 51),
-            cell_btn_danger_text: Color::rgb(255, 255, 255),
-            // rgba(56, 139, 253, 0.78) → a = 200
-            cell_btn_ghost_color: Color::rgba(56, 139, 253, 200),
+            // cell buttons — DaisyUI's built-in `dim` theme, same source
+            // as the 5 semantic colors below (see class_map_data.rs-style
+            // oklch → sRGB conversion of daisyui's theme/dim/object.js).
+            cell_btn_primary_bg: Color::rgb(159, 232, 141),
+            cell_btn_primary_text: Color::rgb(9, 19, 7),
+            cell_btn_secondary_bg: Color::rgb(255, 125, 93),
+            cell_btn_secondary_text: Color::rgb(22, 5, 3),
+            cell_btn_danger_bg: Color::rgb(255, 174, 155),
+            cell_btn_danger_text: Color::rgb(22, 11, 9),
+            // rgba(159, 232, 141, 0.78) → a = 200
+            cell_btn_ghost_color: Color::rgba(159, 232, 141, 200),
+            // DaisyUI's built-in `dim` theme.
+            cell_btn_neutral_bg: Color::rgb(28, 33, 43),
+            cell_btn_neutral_text: Color::rgb(178, 204, 214),
+            cell_btn_accent_bg: Color::rgb(199, 146, 233),
+            cell_btn_accent_text: Color::rgb(14, 8, 19),
+            cell_btn_info_bg: Color::rgb(40, 235, 255),
+            cell_btn_info_text: Color::rgb(1, 19, 22),
+            cell_btn_success_bg: Color::rgb(98, 239, 189),
+            cell_btn_success_text: Color::rgb(3, 20, 13),
+            cell_btn_warning_bg: Color::rgb(239, 208, 87),
+            cell_btn_warning_text: Color::rgb(20, 16, 3),
             cell_btn_radius: 4.0,
             cell_btn_padding_y: 4.0,
             cell_btn_padding_x: 8.0,
@@ -565,6 +837,12 @@ mod tests {
     }
 
     #[test]
+    fn light_filter_row_height_positive() {
+        let t = Theme::light();
+        assert!(t.filter_row_height > 0.0);
+    }
+
+    #[test]
     fn light_row_height_positive() {
         let t = Theme::light();
         assert!(t.row_height > 0.0);
@@ -596,6 +874,111 @@ mod tests {
         let t = Theme::light();
         assert!(t.selection_fill.a > 0);
         assert!(t.selection_fill.a < 255);
+    }
+
+    #[test]
+    fn light_locked_cell_bg_is_subtle() {
+        let t = Theme::light();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dark_locked_cell_bg_is_subtle() {
+        let t = Theme::dark();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dimmed_locked_cell_bg_is_subtle() {
+        let t = Theme::dimmed();
+        assert!(t.locked_cell_bg.a > 0 && t.locked_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn light_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::light();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn dark_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::dark();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_invalid_cell_border_is_opaque_and_positive_width() {
+        let t = Theme::dimmed();
+        assert_eq!(t.invalid_cell_border.a, 255);
+        assert!(t.invalid_cell_border_width > 0.0);
+    }
+
+    #[test]
+    fn light_invalid_cell_bg_is_subtle() {
+        let t = Theme::light();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dark_invalid_cell_bg_is_subtle() {
+        let t = Theme::dark();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn dimmed_invalid_cell_bg_is_subtle() {
+        let t = Theme::dimmed();
+        assert!(t.invalid_cell_bg.a > 0 && t.invalid_cell_bg.a < 40);
+    }
+
+    #[test]
+    fn light_decoration_border_width_positive() {
+        assert!(Theme::light().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn dark_decoration_border_width_positive() {
+        assert!(Theme::dark().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_decoration_border_width_positive() {
+        assert!(Theme::dimmed().decoration_border_width > 0.0);
+    }
+
+    #[test]
+    fn light_column_separator_width_positive() {
+        assert!(Theme::light().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn dark_column_separator_width_positive() {
+        assert!(Theme::dark().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn dimmed_column_separator_width_positive() {
+        assert!(Theme::dimmed().column_separator_width > 0.0);
+    }
+
+    #[test]
+    fn light_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::light();
+        assert_eq!(t.column_separator_color, t.grid_line);
+    }
+
+    #[test]
+    fn dark_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::dark();
+        assert_eq!(t.column_separator_color, t.grid_line);
+    }
+
+    #[test]
+    fn dimmed_column_separator_color_matches_grid_line_by_default() {
+        let t = Theme::dimmed();
+        assert_eq!(t.column_separator_color, t.grid_line);
     }
 
     #[test]

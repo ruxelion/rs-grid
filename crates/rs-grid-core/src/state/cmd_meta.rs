@@ -14,9 +14,30 @@ impl GridState {
                 }
                 CommandOutput::None
             }
+            GridCommand::SetFilterRowHeight(h) => {
+                if h > 0.0 {
+                    self.model.filter_row_height = h;
+                }
+                CommandOutput::None
+            }
             GridCommand::SetRowHeight(h) => {
                 if h > 0.0 {
                     self.model.row_height = h;
+                }
+                CommandOutput::None
+            }
+            GridCommand::SetRowNumberWidth(w) => {
+                if w >= 0.0 {
+                    self.model.row_number_width = w;
+                    // A manual width is a deliberate override — stop
+                    // auto-recomputing it on the next total-count update.
+                    self.model.row_number_width_auto = false;
+                }
+                CommandOutput::None
+            }
+            GridCommand::SetCheckboxColumnWidth(w) => {
+                if w >= 0.0 {
+                    self.model.checkbox_column_width = w;
                 }
                 CommandOutput::None
             }
@@ -25,10 +46,16 @@ impl GridState {
                 CommandOutput::None
             }
             GridCommand::SetTotalRowCount(n) => {
-                // Update the underlying data source row count.
-                // For PageCacheDataSource this is done
-                // externally; here we just trigger re-render.
-                let _ = n;
+                // The data source's own row count is updated
+                // externally (e.g. `PageCacheDataSource::set_total_rows`)
+                // — `GridState` has no generic way to mutate the boxed
+                // `dyn DataSource`. What this command *can* and does own:
+                // keeping the gutter width in sync, unless the caller
+                // fixed it manually via `SetRowNumberWidth`.
+                if self.model.row_number_width_auto {
+                    self.model.row_number_width =
+                        crate::model::GridModel::compute_row_number_width(n);
+                }
                 CommandOutput::None
             }
             GridCommand::SetShowHeader(v) => {
@@ -37,6 +64,14 @@ impl GridState {
             }
             GridCommand::SetShowRowNumbers(v) => {
                 self.model.show_row_numbers = v;
+                CommandOutput::None
+            }
+            GridCommand::SetShowCheckboxColumn(v) => {
+                self.model.show_checkbox_column = v;
+                CommandOutput::None
+            }
+            GridCommand::SetShowFilterRow(v) => {
+                self.model.show_filter_row = v;
                 CommandOutput::None
             }
             GridCommand::SetEditable(v) => {
@@ -52,6 +87,10 @@ impl GridState {
             }
             GridCommand::SetColumnReorderable(v) => {
                 self.model.column_reorderable = v;
+                CommandOutput::None
+            }
+            GridCommand::SetInvalidEditMode(v) => {
+                self.model.invalid_edit_mode = v;
                 CommandOutput::None
             }
             _ => super::unreachable_cmd("cmd_meta"),
@@ -107,6 +146,21 @@ mod tests {
     }
 
     #[test]
+    fn set_filter_row_height_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetFilterRowHeight(30.0));
+        assert_eq!(s.model.filter_row_height, 30.0);
+    }
+
+    #[test]
+    fn set_filter_row_height_zero_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.filter_row_height;
+        s.apply(GridCommand::SetFilterRowHeight(0.0));
+        assert_eq!(s.model.filter_row_height, before);
+    }
+
+    #[test]
     fn set_row_height_positive_updates() {
         let mut s = make_state();
         s.apply(GridCommand::SetRowHeight(50.0));
@@ -119,6 +173,51 @@ mod tests {
         let before = s.model.row_height;
         s.apply(GridCommand::SetRowHeight(0.0));
         assert_eq!(s.model.row_height, before);
+    }
+
+    #[test]
+    fn set_row_number_width_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(120.0));
+        assert_eq!(s.model.row_number_width, 120.0);
+    }
+
+    #[test]
+    fn set_row_number_width_zero_updates() {
+        // Unlike header/row height, 0 is a valid gutter width (hidden).
+        let mut s = make_state();
+        s.apply(GridCommand::SetRowNumberWidth(0.0));
+        assert_eq!(s.model.row_number_width, 0.0);
+    }
+
+    #[test]
+    fn set_row_number_width_negative_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.row_number_width;
+        s.apply(GridCommand::SetRowNumberWidth(-10.0));
+        assert_eq!(s.model.row_number_width, before);
+    }
+
+    #[test]
+    fn set_checkbox_column_width_positive_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetCheckboxColumnWidth(60.0));
+        assert_eq!(s.model.checkbox_column_width, 60.0);
+    }
+
+    #[test]
+    fn set_checkbox_column_width_zero_updates() {
+        let mut s = make_state();
+        s.apply(GridCommand::SetCheckboxColumnWidth(0.0));
+        assert_eq!(s.model.checkbox_column_width, 0.0);
+    }
+
+    #[test]
+    fn set_checkbox_column_width_negative_is_ignored() {
+        let mut s = make_state();
+        let before = s.model.checkbox_column_width;
+        s.apply(GridCommand::SetCheckboxColumnWidth(-10.0));
+        assert_eq!(s.model.checkbox_column_width, before);
     }
 
     #[test]
@@ -145,6 +244,22 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetShowRowNumbers(false));
         assert!(!s.model.show_row_numbers);
+    }
+
+    #[test]
+    fn set_show_checkbox_column_true() {
+        let mut s = make_state();
+        assert!(!s.model.show_checkbox_column);
+        s.apply(GridCommand::SetShowCheckboxColumn(true));
+        assert!(s.model.show_checkbox_column);
+    }
+
+    #[test]
+    fn set_show_filter_row_true() {
+        let mut s = make_state();
+        assert!(!s.model.show_filter_row);
+        s.apply(GridCommand::SetShowFilterRow(true));
+        assert!(s.model.show_filter_row);
     }
 
     #[test]
@@ -179,5 +294,14 @@ mod tests {
         let mut s = make_state();
         s.apply(GridCommand::SetColumnReorderable(false));
         assert!(!s.model.column_reorderable);
+    }
+
+    #[test]
+    fn set_invalid_edit_mode_toggles() {
+        use crate::validation::InvalidEditMode;
+        let mut s = make_state();
+        assert_eq!(s.model.invalid_edit_mode, InvalidEditMode::Revert);
+        s.apply(GridCommand::SetInvalidEditMode(InvalidEditMode::Block));
+        assert_eq!(s.model.invalid_edit_mode, InvalidEditMode::Block);
     }
 }

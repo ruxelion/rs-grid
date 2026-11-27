@@ -1,6 +1,10 @@
+use std::collections::HashSet;
+
 use crate::{
+    filter::FilterCondition,
     selection::{CellCoord, CopyError},
     sort::SortDir,
+    validation::InvalidEditMode,
 };
 
 /// All mutations that can be applied to a
@@ -20,12 +24,13 @@ use crate::{
 /// | **Selection** | `SelectCell`, `ExtendSelection`, `SelectRow`, `ExtendRowSelection`, `SelectCol`, `ExtendColSelection`, `ClearSelection`, `MoveSelection` |
 /// | **Scroll** | `ScrollTo`, `ScrollBy`, `Resize` |
 /// | **Clipboard** | `CopySelection`, `CutSelection`, `PasteAt` |
-/// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters` |
+/// | **Sort & filter** | `ToggleSort`, `SetSort`, `ClearSort`, `SetColumnFilter`, `ClearAllFilters`, `SetColumnValueFilter`, `ClearColumnValueFilter` |
 /// | **Columns** | `ResizeColumn`, `CommitColumnResize`, `SetPinnedColumnCount`, `MoveColumn`, `AutoFitColumn`, `AutoFitAllColumns` |
-/// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit` |
+/// | **Editing** | `StartEdit`, `CommitEdit`, `CancelEdit`, `ClearCells` |
 /// | **Undo** | `Undo`, `Redo` |
 /// | **Search** | `Search`, `SearchNext`, `SearchPrev`, `ClearSearch` |
-/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetRowHeight`, `NotifyPageLoaded`, `SetTotalRowCount` |
+/// | **Row checkboxes** | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked`, `SetShowCheckboxColumn`, `SetCheckboxColumnWidth` |
+/// | **Meta** | `SetHoveredRow`, `SetHeaderHeight`, `SetFilterRowHeight`, `SetShowFilterRow`, `SetRowHeight`, `SetRowNumberWidth`, `NotifyPageLoaded`, `SetTotalRowCount` |
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum GridCommand {
@@ -85,8 +90,19 @@ pub enum GridCommand {
     ExtendColSelection(usize),
     /// Set the header row height in logical pixels.
     SetHeaderHeight(f64),
+    /// Set the floating filter row height in logical pixels.
+    SetFilterRowHeight(f64),
     /// Set the data row height in logical pixels.
     SetRowHeight(f64),
+    /// Set the row-number gutter width in logical pixels (0 hides it,
+    /// same meaning as `SetShowRowNumbers(false)`). Also marks the width
+    /// as manually overridden (`GridModel.row_number_width_auto =
+    /// false`), so a later `SetTotalRowCount` no longer auto-resizes it.
+    SetRowNumberWidth(f64),
+    /// Set the row-selection checkbox column's width in logical pixels
+    /// (negative values are ignored). The checkbox itself stays centered,
+    /// so this also controls the visual margin around it.
+    SetCheckboxColumnWidth(f64),
     /// Show or hide the column header row.
     SetShowHeader(bool),
     /// Show or hide the row-number gutter.
@@ -98,6 +114,9 @@ pub enum GridCommand {
     /// Enable or disable header drag-to-reorder of columns.
     /// Does not affect programmatic `MoveColumn` commands.
     SetColumnReorderable(bool),
+    /// Set the grid-wide policy applied when a `CommitEdit` fails
+    /// validation (revert vs. block).
+    SetInvalidEditMode(InvalidEditMode),
     /// Set the width of a column (column resize drag).
     ResizeColumn {
         /// Index of the column to resize.
@@ -127,13 +146,31 @@ pub enum GridCommand {
         /// Number of leading columns to pin.
         count: usize,
     },
-    /// Set a text filter on a column (case-insensitive contains).
-    /// Empty text clears the filter for that column.
+    /// Set a filter condition on a column. A condition whose
+    /// operator needs a value but has none
+    /// (`FilterCondition::is_empty()`) clears the filter for that
+    /// column.
     SetColumnFilter {
         /// Column key to filter.
         col_key: String,
-        /// Filter text (empty = clear filter for this column).
-        text: String,
+        /// Operator + value to apply.
+        condition: FilterCondition,
+    },
+    /// Restrict a column to an explicit set of allowed values
+    /// (AG-Grid-style checklist filter). AND-combined with
+    /// `SetColumnFilter`'s condition (if any) and with other columns'
+    /// filters. An empty set is valid — it matches no rows.
+    SetColumnValueFilter {
+        /// Column key to restrict.
+        col_key: String,
+        /// The only values allowed to pass for this column.
+        values: HashSet<String>,
+    },
+    /// Remove the value-set restriction for a column. The column's
+    /// `SetColumnFilter` condition, if any, is untouched.
+    ClearColumnValueFilter {
+        /// Column key to clear.
+        col_key: String,
     },
     /// Clear all column filters at once.
     ClearAllFilters,
@@ -162,6 +199,24 @@ pub enum GridCommand {
     },
     /// Cancel the current cell edit.
     CancelEdit,
+    /// Clear every editable cell in the current selection to an empty
+    /// string (Delete/Backspace) — validated the same way as
+    /// `CutSelection`'s clear step (a cell whose rules reject an empty
+    /// value, e.g. `.required()`, keeps its original value instead of
+    /// being cleared). Unlike `CutSelection`, does not touch the
+    /// clipboard. No-op without a selection, or on a full-column
+    /// selection (same rationale as `CutSelection`: a header click
+    /// carries positional intent, not "clear this entire column of
+    /// potentially billions of rows").
+    ClearCells,
+    /// Re-validate the value currently typed in the active editor,
+    /// without committing it. Updates the active `EditCell`'s
+    /// `validation_error` for live (per-keystroke) UI feedback.
+    /// No-op if there is no active edit.
+    ValidateEdit {
+        /// Value currently typed in the editor.
+        value: String,
+    },
     /// Undo the last undoable action.
     Undo,
     /// Redo the last undone action.
@@ -185,8 +240,20 @@ pub enum GridCommand {
     /// Update the total row count for an async data source.
     ///
     /// Intended for use with `PageCacheDataSource` after the first
-    /// server response returns the real row count. Has no effect on
-    /// `VecDataSource` or `FnDataSource`.
+    /// server response returns the real row count — dispatch this
+    /// alongside (not instead of) `PageCacheDataSource::set_total_rows`,
+    /// which owns the data source's own count; this command cannot touch
+    /// the boxed `dyn DataSource` generically, so it only updates
+    /// `GridState`-derived UI state instead. Today that means
+    /// recomputing `GridModel.row_number_width` from `n`, unless it was
+    /// manually overridden via `SetRowNumberWidth` — this applies
+    /// regardless of which `DataSource` backs the model. It does
+    /// **not** touch `VecDataSource`/`FnDataSource`'s own row count
+    /// (only `PageCacheDataSource::set_total_rows` does that, and only
+    /// that data source exposes such a method) — dispatching this
+    /// against a `Vec`/`Fn`-backed model still resizes the gutter to
+    /// fit `n`'s digit count, even though the grid's actual row count
+    /// is unaffected.
     SetTotalRowCount(u64),
     /// Record an undo entry after a column-resize drag ends.
     ///
@@ -217,6 +284,14 @@ pub enum GridCommand {
         /// Extra space reserved at the right of the header for the
         /// menu icon button, sort arrow, and their margins.
         header_right_reserve: f64,
+        /// Average character width for `cell_buttons` labels (a
+        /// different constant than `char_width` — buttons render at a
+        /// different per-character ratio).
+        btn_char_width: f64,
+        /// Horizontal padding inside a single cell button (both sides).
+        btn_padding_x: f64,
+        /// Gap between consecutive cell buttons.
+        btn_gap: f64,
     },
     /// Auto-fit all column widths to their content.
     AutoFitAllColumns {
@@ -229,7 +304,45 @@ pub enum GridCommand {
         /// Extra space reserved at the right of the header for the
         /// menu icon button, sort arrow, and their margins.
         header_right_reserve: f64,
+        /// Average character width for `cell_buttons` labels.
+        btn_char_width: f64,
+        /// Horizontal padding inside a single cell button (both sides).
+        btn_padding_x: f64,
+        /// Gap between consecutive cell buttons.
+        btn_gap: f64,
     },
+    /// Toggle whether a single row (logical index) is checked in the
+    /// row-selection checkbox column. Checked state is tracked by
+    /// physical row id, so it survives sort/filter changes. Starts a
+    /// fresh shift+click gesture: records `logical_row` as the range
+    /// anchor and the state it toggled *to* as the gesture's fixed
+    /// direction, for any following `ExtendRowChecked` calls.
+    ToggleRowChecked(u64),
+    /// Shift+click on the checkbox column: set every row (logical
+    /// index) in `[anchor, logical_row]` to the direction fixed by the
+    /// last `ToggleRowChecked` — mirrors `ExtendRowSelection`'s
+    /// anchor/focus range. Unlike a plain range-set, this also
+    /// reconciles against the *previous* `ExtendRowChecked` call in the
+    /// same gesture: rows the previous call touched but the new range
+    /// no longer covers are reverted to the opposite state — so
+    /// checking 1‑10 then, while still holding shift, clicking row 9
+    /// gives row 10 back its earlier (unchecked) state instead of
+    /// leaving it checked. With no prior anchor, behaves like a single
+    /// `ToggleRowChecked` (range of one, checked).
+    ExtendRowChecked(u64),
+    /// Toggle the checkbox-column header: if every row currently
+    /// passing the active filter (or every row, if unfiltered) is
+    /// checked, uncheck them all; otherwise check them all. Never
+    /// touches rows filtered out of view.
+    ToggleAllFilteredChecked,
+    /// Show or hide the row-selection checkbox column.
+    SetShowCheckboxColumn(bool),
+    /// Show or hide the floating filter row (a quick per-column
+    /// "contains" input directly under the column headers). AND-
+    /// combines with, does not replace, the header funnel icon + popup —
+    /// both write to the same `GridModel::filters` map via
+    /// `SetColumnFilter`.
+    SetShowFilterRow(bool),
 }
 
 /// Value returned by [`crate::state::GridState::apply`]
@@ -250,5 +363,56 @@ pub enum CommandOutput {
         row_count: u64,
         /// Maximum rows supported for client-side sort.
         limit: u64,
+    },
+    /// A `CommitEdit` was rejected by the column's validation rules
+    /// (or legacy validator). Emitted whether the edit reverted
+    /// (`InvalidEditMode::Revert`) or stayed open
+    /// (`InvalidEditMode::Block`).
+    ValidationError {
+        /// Row index of the rejected edit.
+        row: u64,
+        /// Column key of the rejected edit.
+        col_key: String,
+        /// Error message from the failing rule/validator.
+        message: String,
+    },
+    /// A `PasteAt` completed. `cells` holds the coordinates actually
+    /// written — a subset of the target rectangle, since cells that
+    /// are locked (`ColumnDef::is_cell_editable` false) or whose
+    /// pasted value fails validation are silently skipped. Consumers
+    /// that give paste-success feedback (e.g. a flash animation)
+    /// should use this list rather than the selection rectangle,
+    /// which still covers the full target area regardless of skips.
+    PasteApplied {
+        /// Coordinates of cells that were actually written.
+        cells: Vec<CellCoord>,
+    },
+    /// A `ClearCells` completed and wrote at least one cell. `cells`
+    /// holds the coordinates actually cleared — a subset of the
+    /// selection, since locked or validation-rejecting cells (e.g.
+    /// `.required()`) are silently skipped, same as `PasteApplied`.
+    /// Not emitted when nothing was cleared (empty/full-column
+    /// selection, or every cell in range was skipped) — consumers use
+    /// this to scope success feedback (e.g. a flash animation) to
+    /// cells that were genuinely written.
+    CellsCleared {
+        /// Coordinates of cells that were actually cleared.
+        cells: Vec<CellCoord>,
+    },
+    /// A per-cell `CutSelection` completed (not the full-column-header
+    /// variant, which still returns plain `CopyText` — see the
+    /// `CutSelection` doc comment). `text` is the TSV to place on the
+    /// clipboard, always covering the full original selection
+    /// regardless of what the clear side skipped. `skipped` holds the
+    /// coordinates that were **not** cleared because the cell is locked
+    /// or its empty value fails validation (e.g. `.required()`) — a
+    /// subset of the selection. Consumers use `skipped` to give
+    /// feedback (e.g. an error flash) distinguishing "cut succeeded" from
+    /// "copied but couldn't clear", which otherwise look identical.
+    CutApplied {
+        /// TSV text to place on the clipboard.
+        text: String,
+        /// Coordinates that were copied but not cleared.
+        skipped: Vec<CellCoord>,
     },
 }

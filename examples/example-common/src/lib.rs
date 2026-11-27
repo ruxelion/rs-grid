@@ -20,20 +20,25 @@ use std::rc::Rc;
 use rs_grid_core::{
     column::{
         ButtonDef, ButtonStyle, CellEditor, CellValidator, ColumnDef,
-        SelectOption,
+        EditablePredicate, SelectOption,
     },
-    datasource::FnDataSource,
+    datasource::{FnDataSource, VecDataSource},
     format::{CellAlign, CellElement, CellFormat},
     model::GridModel,
+    row::RowRecord,
+    validation::ValidationRule,
 };
 
-/// Build a [`GridModel`] backed by deterministic fake
-/// data with the given number of rows and columns.
-pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
+/// Build the deterministic fake-data column set shared by every
+/// `build_*_model` variant below — the only difference between them is
+/// which [`rs_grid_core::datasource::DataSource`] backs the resulting
+/// [`GridModel`].
+pub fn build_columns(col_count: usize) -> Vec<ColumnDef> {
     let base: Vec<ColumnDef> = vec![
         {
             let mut c = ColumnDef::new("name", "Name", 200.0);
             c.editor = Some(CellEditor::Text);
+            c.rules = vec![ValidationRule::required()];
             c
         },
         ColumnDef::new("email", "Email", 260.0),
@@ -108,6 +113,32 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             c
         },
         {
+            // Solid DaisyUI badge showcase — mirrors the `actions`
+            // button showcase below, using the same class-map colours
+            // (no `badge-soft`/`badge-outline` modifier = solid fill).
+            let mut c = ColumnDef::new("badges", "Badges", 700.0);
+            c.format = Some(CellFormat::Styled(Rc::new(|_raw| {
+                [
+                    ("Primary", "badge-primary"),
+                    ("Secondary", "badge-secondary"),
+                    ("Accent", "badge-accent"),
+                    ("Neutral", "badge-neutral"),
+                    ("Info", "badge-info"),
+                    ("Success", "badge-success"),
+                    ("Warning", "badge-warning"),
+                    ("Error", "badge-error"),
+                ]
+                .into_iter()
+                .map(|(text, variant)| CellElement {
+                    text: text.to_string(),
+                    class: format!("badge {variant}"),
+                    align: CellAlign::Left,
+                })
+                .collect()
+            })));
+            c
+        },
+        {
             let mut c = ColumnDef::new("avatar", "Avatar", 60.0);
             c.format = Some(CellFormat::Image {
                 // Self-contained SVG data URI generated per row — no
@@ -119,14 +150,24 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
             c
         },
         {
-            let mut c = ColumnDef::new("actions", "Actions", 160.0);
+            let mut c = ColumnDef::new("actions", "Actions", 700.0);
             c.format = Some(CellFormat::Boolean {
                 true_label: String::new(),
                 false_label: String::new(),
             });
             c.cell_buttons = vec![
-                ButtonDef::new("edit", "Edit", ButtonStyle::Primary),
-                ButtonDef::new("delete", "Delete", ButtonStyle::Danger),
+                ButtonDef::new("neutral", "Neutral", ButtonStyle::Neutral),
+                ButtonDef::new("primary", "Primary", ButtonStyle::Primary),
+                ButtonDef::new(
+                    "secondary",
+                    "Secondary",
+                    ButtonStyle::Secondary,
+                ),
+                ButtonDef::new("accent", "Accent", ButtonStyle::Accent),
+                ButtonDef::new("info", "Info", ButtonStyle::Info),
+                ButtonDef::new("success", "Success", ButtonStyle::Success),
+                ButtonDef::new("warning", "Warning", ButtonStyle::Warning),
+                ButtonDef::new("error", "Error", ButtonStyle::Danger),
             ];
             c
         },
@@ -150,6 +191,16 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
                     }
                 })),
             });
+            c
+        },
+        {
+            let mut c = ColumnDef::new("notes", "Notes", 160.0);
+            c.editor = Some(CellEditor::Text);
+            // Demo: locked for even row indices, to exercise the
+            // per-cell editable predicate (not-allowed cursor +
+            // locked-cell style) in the e2e fixture.
+            c.editable_predicate =
+                Some(EditablePredicate::new(|row, _model| row % 2 == 1));
             c
         },
     ];
@@ -261,8 +312,7 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
 
     // Wire up a Select editor for the country column.
     if let Some(col) = columns.iter_mut().find(|c| c.key == "country") {
-        let options: Vec<SelectOption> = fake_data::COUNTRIES
-            .iter()
+        let options: Vec<SelectOption> = rs_grid_icons::all_countries()
             .map(|(code, name)| {
                 let uri = rs_grid_icons::flag_data_uri(code).unwrap_or("");
                 SelectOption {
@@ -294,13 +344,62 @@ pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
         col.editor = Some(CellEditor::Select { options });
     }
 
+    columns
+}
+
+/// Build one [`RowRecord`] of deterministic fake data for `row`, with a
+/// cell for every column in `columns` that [`fake_data::fake_cell`]
+/// produces a value for (columns it returns `None` for — none today, but
+/// the check mirrors `FnDataSource`'s own optionality — are simply
+/// omitted, same as a real backend that doesn't always populate every
+/// field).
+pub fn build_row(row: u64, columns: &[ColumnDef]) -> RowRecord {
+    let mut record = RowRecord::new(row);
+    for col in columns {
+        if let Some(value) = fake_data::fake_cell(row, &col.key) {
+            record.set(col.key.clone(), value);
+        }
+    }
+    record
+}
+
+/// Build a [`GridModel`] backed by deterministic fake
+/// data with the given number of rows and columns.
+///
+/// Virtual/computed source (`FnDataSource`) — cells are generated on
+/// demand, no upper bound on `row_count` (up to the `u64` row-count
+/// limits documented in `docs/row-count-limits.md`).
+pub fn build_model(row_count: u64, col_count: usize) -> GridModel {
+    let columns = build_columns(col_count);
     let source =
         FnDataSource::new(row_count, move |row: u64, col_key: &str| {
             fake_data::fake_cell(row, col_key)
         });
-
     GridModel::with_data_source(columns, Box::new(source), 40.0, 60.0)
 }
+
+/// Build a [`GridModel`] backed by an in-memory [`VecDataSource`] — every
+/// row materialized eagerly into a `Vec<RowRecord>` up front, unlike
+/// `build_model`'s on-demand `FnDataSource`. `row_count` is clamped to
+/// [`VEC_DEMO_MAX_ROWS`]: eagerly allocating a `RowRecord` (a `HashMap`
+/// per row) for the multi-billion-row counts the other two data sources
+/// handle fine would exhaust the browser tab's memory — that ceiling is
+/// exactly the tradeoff this data source exists to demonstrate.
+pub fn build_vec_model(row_count: u64, col_count: usize) -> GridModel {
+    let columns = build_columns(col_count);
+    let capped = row_count.min(VEC_DEMO_MAX_ROWS);
+    let rows: Vec<RowRecord> =
+        (0..capped).map(|row| build_row(row, &columns)).collect();
+    GridModel::with_data_source(
+        columns,
+        Box::new(VecDataSource::new(rows)),
+        40.0,
+        60.0,
+    )
+}
+
+/// Row cap for [`build_vec_model`] — see its doc comment.
+pub const VEC_DEMO_MAX_ROWS: u64 = 200_000;
 
 /// Format a row count for display in the UI.
 pub fn fmt_rows(n: u64) -> &'static str {

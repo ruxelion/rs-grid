@@ -76,6 +76,14 @@
       "detail": "Assert rs-grid-core has no WASM/web dependency (architecture invariant)"
     },
     {
+      "label": "just: gen-class-map",
+      "type": "shell",
+      "command": "just gen-class-map",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Regenerate class_map_data.rs from DaisyUI sources (node_modules)"
+    },
+    {
       "label": "just: ci",
       "type": "shell",
       "command": "just ci",
@@ -84,20 +92,12 @@
       "detail": "fmt + lint + check-arch + test"
     },
     {
-      "label": "just: build-wasm",
+      "label": "just: dev",
       "type": "shell",
-      "command": "just build-wasm ${input:example}",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Build WASM for an example"
-    },
-    {
-      "label": "just: serve",
-      "type": "shell",
-      "command": "just serve ${input:example}",
+      "command": "just dev",
       "isBackground": true,
       "problemMatcher": [],
-      "detail": "Dev server for an example"
+      "detail": "Dev server for the e2e fixture (hot-reload) → http://localhost:9079"
     },
     {
       "label": "just: tls-setup",
@@ -127,30 +127,6 @@
       "command": "just e2e-update-snapshots",
       "problemMatcher": [],
       "detail": "Regenerate Playwright reference screenshots"
-    },
-    {
-      "label": "just: build-site-wasm",
-      "type": "shell",
-      "command": "just build-site-wasm",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Build WASM demo and copy into site"
-    },
-    {
-      "label": "just: site",
-      "type": "shell",
-      "command": "just site",
-      "isBackground": true,
-      "problemMatcher": [],
-      "detail": "RSPress dev server (port 5173)"
-    },
-    {
-      "label": "just: build-site",
-      "type": "shell",
-      "command": "just build-site",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Build RSPress site (with WASM demo)"
     },
     {
       "label": "just: bench",
@@ -279,13 +255,6 @@
     }
   ],
   "inputs": [
-    {
-      "id": "example",
-      "type": "pickString",
-      "description": "Example to run",
-      "options": ["leptos", "dioxus", "yew", "js", "react"],
-      "default": "leptos"
-    },
     {
       "id": "scenario",
       "type": "pickString",

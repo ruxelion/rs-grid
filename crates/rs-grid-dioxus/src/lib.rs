@@ -85,6 +85,16 @@ pub fn GridCanvas(
     #[props(optional)] locale: Option<Signal<Locale>>,
     #[props(default)] on_mount: EventHandler<WebGridCanvas>,
     #[props(default)] on_validation_error: EventHandler<(u64, String, String)>,
+    /// Fires after every `StartEdit`/`ValidateEdit`/`CommitEdit`/
+    /// `CancelEdit` with the fresh live validation state — `Some((row,
+    /// col_key, message))` while the in-progress edit is invalid, `None`
+    /// otherwise. Unlike `on_validation_error` (fired only when a commit
+    /// is rejected), this fires on every keystroke — use it to drive a
+    /// custom validation UI with your own signal/CSS.
+    #[props(default)]
+    on_validation_state_changed: EventHandler<
+        Option<(u64, String, String)>,
+    >,
 ) -> Element {
     // Unique canvas id for this component instance.
     let canvas_id = use_hook(|| {
@@ -225,6 +235,11 @@ pub fn GridCanvas(
                         ));
                     },
                 );
+
+                let vsc = on_validation_state_changed;
+                gc.set_on_validation_state_changed(move |v| {
+                    vsc.call(v);
+                });
 
                 on_mount.call(gc);
             },

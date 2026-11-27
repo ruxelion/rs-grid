@@ -56,6 +56,10 @@ impl PartialEq for ModelSlot {
 /// `(row, col_key, message)`.
 pub type ValidationErrorCb = Rc<dyn Fn(u64, String, String)>;
 
+/// Callback type for live validation-state changes: `Some((row, col_key,
+/// message))` while the in-progress edit is invalid, `None` otherwise.
+pub type ValidationStateChangedCb = Rc<dyn Fn(Option<(u64, String, String)>)>;
+
 /// Props for the [`GridCanvas`](GridCanvas) component.
 #[derive(Properties)]
 pub struct GridCanvasProps {
@@ -84,6 +88,15 @@ pub struct GridCanvasProps {
     /// Called when a per-column validator rejects an edit.
     #[prop_or_default]
     pub on_validation_error: Option<ValidationErrorCb>,
+    /// Called after every `StartEdit`/`ValidateEdit`/`CommitEdit`/
+    /// `CancelEdit` with the fresh live validation state — `Some((row,
+    /// col_key, message))` while the in-progress edit is invalid, `None`
+    /// otherwise. Unlike `on_validation_error` (fired only when a commit
+    /// is rejected), this fires on every keystroke — use it to drive a
+    /// custom validation UI (tooltip, banner, icon) with your own
+    /// state/CSS; rs-grid does not impose one.
+    #[prop_or_default]
+    pub on_validation_state_changed: Option<ValidationStateChangedCb>,
 }
 
 impl PartialEq for GridCanvasProps {
@@ -124,6 +137,7 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
         let locale = props.locale.clone();
         let on_mount = props.on_mount.clone();
         let on_ve = props.on_validation_error.clone();
+        let on_vsc = props.on_validation_state_changed.clone();
 
         use_effect_with((), move |_| {
             let gc_cleanup = gc_handle.clone();
@@ -174,6 +188,9 @@ pub fn GridCanvas(props: &GridCanvasProps) -> Html {
                     gc.set_on_validation_error(move |row, col, msg| {
                         cb(row, col.to_string(), msg.to_string());
                     });
+                }
+                if let Some(cb) = on_vsc {
+                    gc.set_on_validation_state_changed(move |v| cb(v));
                 }
                 if let Some(cb) = on_mount {
                     cb.emit(gc);

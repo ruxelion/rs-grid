@@ -90,7 +90,9 @@ async function downloadGithubDocs() {
 
 // --- Resolve source and populate dist/doc_build/ ---
 
-const override = process.env.RS_GRID_DOCS_SOURCE;
+// Trim: when set via cmd.exe `set "VAR=github" && ...`, just's quote handling
+// can leave a trailing space, which would otherwise fail the equality checks.
+const override = process.env.RS_GRID_DOCS_SOURCE?.trim();
 const localAvailable = fs.existsSync(SIBLING_DOC_BUILD);
 
 if (override && override !== "local" && override !== "github") {

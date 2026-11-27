@@ -3,7 +3,7 @@ examples/basic-react/node_modules/
 examples/basic-react/dist/
 
 # e2e fixture (Trunk build output) + class-map codegen tool deps
-e2e/fixture-leptos/dist/
+e2e/leptos-harness/dist/
 tools/class-map/node_modules/
 
 *-original.mp4

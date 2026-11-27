@@ -28,7 +28,10 @@ rows up to very large datasets (row indices are `u64`).
 - **Clipboard** — copy, cut and paste (TSV format)
 - **Undo / Redo** — cell edits, paste, column resize, column move
 - **Sorting** — click column header to cycle None → Asc → Desc
-- **Filtering** — per-column text filter (case-insensitive contains)
+- **Filtering** — per-column condition filter (contains, equals, greater
+  than, ...) plus a value checklist, via a header filter icon that opens
+  a popup, AG-Grid style, plus an optional floating filter row under the
+  headers for a quick "contains" filter per column
 - **Search** — Ctrl+F full-grid search with match navigation
 - **Column operations** — resize (drag), auto-fit (double-click separator),
   drag & drop reorder, pinned (frozen) columns
@@ -70,7 +73,7 @@ rs-grid-leptos  →  rs-grid-web  →  rs-grid-render-canvas  →  rs-grid-scene
 ### Prerequisites
 
 - [Rust](https://rust-lang.org/) (edition 2024)
-- [Trunk](https://github.com/trunk-rs/trunk) — `cargo install trunk`
+- [Trunk](https://trunk-rs.github.io/trunk/) — `cargo install trunk`
 
 ### Run a demo
 
@@ -144,7 +147,8 @@ All mutations go through `GridState::apply(GridCommand)`. The full command list:
 | `ResizeColumn` / `AutoFitColumn`          | Column width              |
 | `MoveColumn`                              | Drag & drop reorder       |
 | `ToggleSort`                              | Cycle sort direction      |
-| `SetColumnFilter` / `ClearAllFilters`     | Text filtering            |
+| `SetColumnFilter` / `SetColumnValueFilter` / `ClearAllFilters` | Condition + checklist filtering |
+| `SetShowFilterRow` / `SetFilterRowHeight`  | Floating filter row       |
 | `StartEdit` / `CommitEdit` / `CancelEdit` | Inline editing            |
 | `Undo` / `Redo`                           | History stack (max 100)   |
 | `Search` / `SearchNext` / `SearchPrev`    | Find in grid              |
@@ -179,7 +183,7 @@ cargo nextest run --workspace \
   --exclude rs-grid-web --exclude rs-grid-leptos \
   --exclude rs-grid-dioxus --exclude rs-grid-yew \
   --exclude rs-grid-render-canvas \
-  --exclude fixture-leptos --exclude example-common
+  --exclude leptos-harness --exclude example-common
 
 # Formatting (rustfmt.toml uses nightly-only options)
 cargo +nightly fmt --all
@@ -188,14 +192,14 @@ cargo +nightly fmt --all
 cargo clippy --workspace -- -D warnings
 
 # Build the e2e fixture app (WASM)
-cd e2e/fixture-leptos && trunk build --release
+cd e2e/leptos-harness && trunk build --release
 ```
 
 ### End-to-end tests (Playwright)
 
 ```sh
 cd e2e && npm install && npx playwright install chromium
-cd e2e/fixture-leptos && trunk build
+cd e2e/leptos-harness && trunk build
 cd e2e && npm test
 ```
 
@@ -213,7 +217,7 @@ rs-grid/
 ├── examples/
 │   └── example-common/         # Shared demo data + theme CSS (used by demo repos)
 ├── e2e/
-│   ├── fixture-leptos/         # Minimal Leptos app — the e2e/CI/Pages target
+│   ├── leptos-harness/         # Minimal Leptos app — the e2e/CI/Pages target
 │   └── tests/                  # Playwright end-to-end tests
 ├── tools/class-map/            # DaisyUI → class_map_data.rs codegen
 └── docs/                       # Internal refs only — full docs at rs-grid.com

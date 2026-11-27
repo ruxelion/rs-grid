@@ -5,7 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const DIST = path.resolve(__dirname, 'fixture-leptos/dist');
+const DIST = path.resolve(__dirname, 'leptos-harness/dist');
 const PORT = 4174;
 
 // Strict CSP for a Trunk-built Leptos/WASM application.

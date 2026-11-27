@@ -1,4 +1,7 @@
-use rs_grid_core::scrollbar::{HScrollbarGeom, ScrollbarGeom};
+use rs_grid_core::{
+    commands::GridCommand,
+    scrollbar::{HScrollbarGeom, ScrollbarGeom},
+};
 use rs_grid_scene::builder::ColumnDragHint;
 use web_sys::MouseEvent;
 
@@ -12,7 +15,7 @@ impl GridCanvas {
             s.viewport.scroll_y,
             s.viewport.width,
             s.viewport.height,
-            s.model.header_height,
+            s.model.data_top(),
             s.model.total_height(),
             track_w,
         )
@@ -25,7 +28,7 @@ impl GridCanvas {
             s.viewport.scroll_y,
             s.viewport.width,
             s.viewport.height,
-            s.model.header_height,
+            s.model.data_top(),
             s.model.total_height(),
             track_h,
         )
@@ -64,21 +67,22 @@ impl GridCanvas {
         const HIT_ZONE: f64 = 4.0;
         let state = self.0.state.borrow();
         let model = &state.model;
-        if vy >= model.header_height {
+        if vy >= model.effective_header_height() {
             return None;
         }
-        if vx < model.row_number_width {
+        let rnw = model.effective_row_number_width();
+        if vx < rnw {
             return None;
         }
+        let ccw = model.effective_checkbox_column_width();
         let scroll_x = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
         let pinned = model.pinned_count;
         for (i, col) in model.columns.iter().enumerate() {
             let off = model.column_offsets.offsets[i] + col.width;
             let sep_vx = if i < pinned {
                 off + rnw
             } else {
-                off - scroll_x + rnw
+                off - scroll_x + rnw + ccw
             };
             if (vx - sep_vx).abs() <= HIT_ZONE {
                 return Some(i);
@@ -91,18 +95,64 @@ impl GridCanvas {
         let _ = self.0.canvas.style().set_property("cursor", cursor);
     }
 
+    /// Returns `true` when the data cell under viewport point `(vx, vy)`
+    /// resolves to non-editable via `ColumnDef::is_cell_editable` — the
+    /// grid-wide `GridModel.editable` toggle, the column's static
+    /// `editable=false`, or a false-resolving `editable_predicate`.
+    /// `false` (not locked) for any point outside a data cell (header,
+    /// gutter, out of bounds) — callers should treat that as "no
+    /// override", falling through to the existing cursor logic.
+    pub(super) fn hit_locked_cell(&self, vx: f64, vy: f64) -> bool {
+        let state = self.0.state.borrow();
+        let Some(coord) = state.hit_test(vx, vy) else {
+            return false;
+        };
+        state
+            .model
+            .columns
+            .get(coord.col)
+            .is_some_and(|c| !c.is_cell_editable(coord.row, &state.model))
+    }
+
+    /// Recomputes and applies the hover cursor for viewport point
+    /// `(vx, vy)` — the same precedence used by the mousemove handler
+    /// (header menu icon > resize separator > locked cell > default).
+    /// Also called after a column drag/resize ends, so the cursor
+    /// doesn't stay stale (e.g. showing `default` over a locked cell,
+    /// or over a resize separator) until the next `mousemove` fires.
+    pub(super) fn refresh_hover_cursor(&self, vx: f64, vy: f64) {
+        if self.hit_header_menu_icon(vx, vy).is_some()
+            || self.hit_filter_row_icon(vx, vy).is_some()
+            || self
+                .0
+                .state
+                .borrow()
+                .hit_test_filter_row_cell(vx, vy)
+                .is_some()
+        {
+            self.set_cursor("pointer");
+        } else if self.hit_col_resize_separator(vx, vy).is_some() {
+            self.set_cursor("w-resize");
+        } else if self.hit_locked_cell(vx, vy) {
+            self.set_cursor("not-allowed");
+        } else {
+            self.set_cursor("default");
+        }
+    }
+
     /// Returns the data row index under viewport point `(vx, vy)`, or `None`
     /// if the point is in the header, gutter, or below the last row.
     pub(super) fn row_at(&self, vx: f64, vy: f64) -> Option<u64> {
         let state = self.0.state.borrow();
         let model = &state.model;
-        if vy < model.header_height {
+        let hh = model.data_top();
+        if vy < hh {
             return None;
         }
         if vx < 0.0 || vx > state.viewport.width {
             return None;
         }
-        let abs_y = vy - model.header_height + state.viewport.scroll_y;
+        let abs_y = vy - hh + state.viewport.scroll_y;
         let row = (abs_y / model.row_height) as u64;
         if row < model.display_row_count() {
             Some(row)
@@ -117,7 +167,8 @@ impl GridCanvas {
         let state = self.0.state.borrow();
         let model = &state.model;
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let pinned = model.pinned_count;
         let len = model.columns.len();
 
@@ -127,7 +178,7 @@ impl GridCanvas {
                 if i < pinned {
                     off + rnw
                 } else {
-                    off - sx + rnw
+                    off - sx + rnw + ccw
                 }
             } else {
                 let last = len - 1;
@@ -136,7 +187,7 @@ impl GridCanvas {
                 if last < pinned {
                     off + rnw
                 } else {
-                    off - sx + rnw
+                    off - sx + rnw + ccw
                 }
             }
         };
@@ -167,9 +218,10 @@ impl GridCanvas {
     }
 
     /// Returns `(char_width, header_char_width, cell_padding,
-    /// header_right_reserve)` derived from the current theme —
-    /// same values used by double-click auto-fit.
-    pub(super) fn autofit_params(&self) -> (f64, f64, f64, f64) {
+    /// header_right_reserve, btn_char_width, btn_padding_x, btn_gap)`
+    /// derived from the current theme — same values used by
+    /// double-click auto-fit and the context-menu auto-size actions.
+    pub(super) fn autofit_params(&self) -> (f64, f64, f64, f64, f64, f64, f64) {
         let b = self.0.builder.borrow();
         let t = &b.theme;
         let char_width = t.font_size * 0.6;
@@ -179,16 +231,71 @@ impl GridCanvas {
             t.header_font_size * 0.6
         };
         // Space reserved at the right of the header for the
-        // sort arrow, menu icon button, and their margins.
+        // sort arrow, the menu icon button, and their margins.
         let sort_zone = t.sort_arrow_width * 2.0 + t.cell_padding;
         let icon_zone = t.header_menu_icon_btn_w + t.header_menu_icon_margin_r;
         let header_right_reserve = sort_zone + icon_zone;
+        // Same per-character ratio `emit_cell_buttons`
+        // (rs-grid-scene/builder/cells.rs) uses for button labels.
+        let btn_char_width = t.font_size * 0.65;
         (
             char_width,
             header_char_width,
             t.cell_padding,
             header_right_reserve,
+            btn_char_width,
+            t.cell_btn_padding_x,
+            t.cell_btn_gap,
         )
+    }
+
+    /// Auto-fit a single column's width to its content — the same
+    /// computation double-clicking its header separator or the
+    /// context-menu "auto-size column" action triggers, callable
+    /// directly. Useful to size a column (e.g. one with `cell_buttons`)
+    /// once at mount, without requiring the user to interact first.
+    pub fn auto_fit_column(&self, col_idx: usize) {
+        let (
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        ) = self.autofit_params();
+        self.dispatch(GridCommand::AutoFitColumn {
+            col_idx,
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        });
+    }
+
+    /// Auto-fit every column's width to its content.
+    pub fn auto_fit_all_columns(&self) {
+        let (
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        ) = self.autofit_params();
+        self.dispatch(GridCommand::AutoFitAllColumns {
+            char_width,
+            header_char_width,
+            cell_padding,
+            header_right_reserve,
+            btn_char_width,
+            btn_padding_x,
+            btn_gap,
+        });
     }
 
     /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the
@@ -207,23 +314,25 @@ impl GridCanvas {
         let state = self.0.state.borrow();
         let model = &state.model;
         // Compute button vertical bounds (same formula as builder.rs).
+        let header_h = model.effective_header_height();
         let btn_h = if bh_cfg > 0.0 {
             bh_cfg
         } else {
-            (model.header_height - 12.0).max(8.0)
+            (header_h - 12.0).max(8.0)
         };
-        let btn_ty = (model.header_height - btn_h) / 2.0;
+        let btn_ty = (header_h - btn_h) / 2.0;
         // Reject if the pointer is not within the button's height.
         if vy < btn_ty || vy >= btn_ty + btn_h {
             return None;
         }
         let off = model.column_offsets.offsets[col_idx];
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let col_left_vx = if col_idx < model.pinned_count {
             off + rnw
         } else {
-            off - sx + rnw
+            off - sx + rnw + ccw
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         if vx >= col_right_vx - mr - bw && vx < col_right_vx - mr {
@@ -244,23 +353,88 @@ impl GridCanvas {
         drop(theme);
         let state = self.0.state.borrow();
         let model = &state.model;
+        let header_h = model.effective_header_height();
         let btn_h = if bh_cfg > 0.0 {
             bh_cfg
         } else {
-            (model.header_height - 12.0).max(8.0)
+            (header_h - 12.0).max(8.0)
         };
-        let btn_ty = (model.header_height - btn_h) / 2.0;
+        let btn_ty = (header_h - btn_h) / 2.0;
         let off = model.column_offsets.offsets[col_idx];
         let sx = state.viewport.scroll_x;
-        let rnw = model.row_number_width;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
         let col_left_vx = if col_idx < model.pinned_count {
             off + rnw
         } else {
-            off - sx + rnw
+            off - sx + rnw + ccw
         };
         let col_right_vx = col_left_vx + model.columns[col_idx].width;
         let btn_left_vx = col_right_vx - mr - bw;
         (btn_left_vx, btn_ty + btn_h)
+    }
+
+    /// Returns `Some(col_idx)` when `(vx, vy)` falls inside the floating
+    /// filter row's mini funnel icon zone. Mirrors
+    /// `hit_header_filter_icon`'s structure but for the filter row's own
+    /// vertical band and simpler geometry — no competing "⋮" menu icon
+    /// down here, so the icon sits flush at the column's right edge
+    /// (see `builder.rs`'s filter-row rendering block).
+    pub(super) fn hit_filter_row_icon(
+        &self,
+        vx: f64,
+        vy: f64,
+    ) -> Option<usize> {
+        let col_idx = self.0.state.borrow().hit_test_filter_row_cell(vx, vy)?;
+        let theme = self.0.builder.borrow();
+        let mr = theme.theme.header_filter_icon_margin_r;
+        let bw = theme.theme.header_filter_icon_btn_w;
+        drop(theme);
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let sx = state.viewport.scroll_x;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
+        let base = model.column_screen_x(col_idx, sx)?;
+        let col_left_vx = if col_idx < model.pinned_count {
+            base + rnw
+        } else {
+            base + rnw + ccw
+        };
+        let col_right_vx = col_left_vx + model.columns[col_idx].width;
+        let btn_rx = col_right_vx - mr;
+        let btn_lx = btn_rx - bw;
+        if vx >= btn_lx && vx < btn_rx {
+            Some(col_idx)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the bottom-left corner of the filter row's mini funnel
+    /// icon button for `col_idx` in canvas-local coordinates, suitable
+    /// for anchoring the filter popup at a fixed position.
+    pub(super) fn filter_row_icon_anchor(&self, col_idx: usize) -> (f64, f64) {
+        let theme = self.0.builder.borrow();
+        let mr = theme.theme.header_filter_icon_margin_r;
+        let bw = theme.theme.header_filter_icon_btn_w;
+        drop(theme);
+        let state = self.0.state.borrow();
+        let model = &state.model;
+        let hh = model.effective_header_height();
+        let fh = model.effective_filter_row_height();
+        let sx = state.viewport.scroll_x;
+        let rnw = model.effective_row_number_width();
+        let ccw = model.effective_checkbox_column_width();
+        let base = model.column_screen_x(col_idx, sx).unwrap_or(0.0);
+        let col_left_vx = if col_idx < model.pinned_count {
+            base + rnw
+        } else {
+            base + rnw + ccw
+        };
+        let col_right_vx = col_left_vx + model.columns[col_idx].width;
+        let btn_left_vx = col_right_vx - mr - bw;
+        (btn_left_vx, hh + fh)
     }
 
     /// Build a `ColumnDragHint` from the current drag state,

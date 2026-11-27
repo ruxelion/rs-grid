@@ -1,9 +1,12 @@
 mod cells;
+mod checkbox;
 mod scrollbars;
 
 use std::{collections::HashSet, rc::Rc};
 
-use rs_grid_core::{sort::SortDir, state::GridState};
+use rs_grid_core::{
+    row_check::CheckboxTriState, sort::SortDir, state::GridState,
+};
 
 use crate::{
     class_map::ClassResolver,
@@ -14,6 +17,70 @@ use crate::{
     },
     theme::Theme,
 };
+
+// ── boundary-line rectangle border ───────────────────────────────────────────
+
+/// Push a crisp 1px-per-edge rectangle border — used by both the
+/// selection outer border and the invalid-cell border — as four
+/// independent `Line` primitives rather than a stroked `Rect`, so it
+/// draws with flush corners regardless of when/where each edge lands
+/// relative to other primitives already in the frame.
+///
+/// Every edge sits at `boundary - 0.5` (the crisp-line convention
+/// shared with grid lines/separators elsewhere in this file), which
+/// consistently biases the top/left edges *outward* and the
+/// bottom/right edges *inward* — so only the top and left edges'
+/// leading (x1/y1) end fails to reach the other edge's stroke at a
+/// corner; the trailing (x2/y2) end already overlaps it naturally.
+/// Extending only that leading end by `width` closes the gap without
+/// the trailing end overshooting past the perpendicular edge (which
+/// would produce a small protruding nub at the other three corners).
+fn push_boundary_lines(
+    frame: &mut SceneFrame,
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    color: Color,
+    width: f64,
+) {
+    // top
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - width,
+        y1: y1 - 0.5,
+        x2,
+        y2: y1 - 0.5,
+        color,
+        width,
+    }));
+    // bottom
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - width,
+        y1: y2 - 0.5,
+        x2,
+        y2: y2 - 0.5,
+        color,
+        width,
+    }));
+    // left
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x1 - 0.5,
+        y1: y1 - width,
+        x2: x1 - 0.5,
+        y2,
+        color,
+        width,
+    }));
+    // right
+    frame.push(ScenePrimitive::Line(LinePrimitive {
+        x1: x2 - 0.5,
+        y1: y1 - width,
+        x2: x2 - 0.5,
+        y2,
+        color,
+        width,
+    }));
+}
 
 // ── column drag hint ─────────────────────────────────────────────────────────
 
@@ -48,11 +115,21 @@ pub struct ColumnDragHint {
 /// This is **not** persistent state — it exists only for a
 /// single frame render cycle. Computed by the web layer
 /// from elapsed time; consumed by the scene builder to
-/// render a fading overlay on selected cells.
-#[derive(Debug, Clone, Copy)]
+/// render a fading overlay on the cells that were actually
+/// written by the paste (`cells`) — **not** the whole
+/// selection rectangle, which may extend past cells skipped
+/// for being locked or failing validation.
+#[derive(Debug, Clone)]
 pub struct FlashHint {
     /// Normalised intensity: 1.0 = full flash, 0.0 = invisible.
     pub alpha_factor: f64,
+    /// Coordinates of the cells to flash.
+    pub cells: HashSet<(u64, usize)>,
+    /// When `true`, renders with `Theme::flash_error_fill` instead of
+    /// `Theme::flash_fill` — used for cells a `CutSelection` copied but
+    /// could not clear (locked or failing validation), to distinguish
+    /// that outcome from a successful paste/clear flash.
+    pub is_error: bool,
 }
 
 // ── builder
@@ -116,6 +193,7 @@ impl SceneBuilder {
         col_drag: Option<&ColumnDragHint>,
         flash: Option<&FlashHint>,
         hovered_menu_col: Option<usize>,
+        hovered_filter_row_icon_col: Option<usize>,
     ) -> SceneFrame {
         let vp = &state.viewport;
         let model = &state.model;
@@ -141,6 +219,7 @@ impl SceneBuilder {
             model.columns.iter().map(|c| c.width).collect();
         let pinned_count = model.pinned_count;
         let pinned_width = model.pinned_width();
+        let ccw = model.effective_checkbox_column_width();
 
         // Scrollable columns — exclude pinned ones and account for
         // the narrower scrollable viewport band.
@@ -153,17 +232,25 @@ impl SceneBuilder {
                 pinned_count,
                 pinned_width,
                 model.effective_row_number_width(),
+                ccw,
             )
         };
         let (row_start, row_end) = vp.visible_rows(
             model.display_row_count(),
             model.row_height,
-            model.effective_header_height(),
+            model.data_top(),
         );
 
         let sx = vp.scroll_x;
         let sy = vp.scroll_y;
         let rnw = model.effective_row_number_width();
+        // Offset added to *unpinned* columns' screen position to make
+        // room for the checkbox column, which occupies the first slot
+        // of the scrollable region and scrolls away with scroll_x
+        // exactly like a real column. Pinned columns are unaffected —
+        // the checkbox sits strictly after the pinned band, never
+        // before it — so pinned rendering below uses `rnw` alone.
+        let lgw = rnw + ccw;
 
         // Compute viewport-y for a row without large absolute
         // values.  row_top(ri) − sy  =  header + ri*rh − sy.
@@ -177,9 +264,17 @@ impl SceneBuilder {
             return frame;
         }
         let hh = model.effective_header_height();
+        let fh = model.effective_filter_row_height();
+        // Top of the *data* band — below both the header and, when
+        // shown, the floating filter row. `hh` alone stays reserved for
+        // sizing the header's own band (label position, icons, its own
+        // bottom border) inside the `if hh > 0.0` block below; every
+        // other use in this function means "where does scrollable data
+        // start" and must use `data_top` instead.
+        let data_top = model.data_top();
         // sy_content = scroll_y that falls inside the data
-        // area (past the header).
-        let sy_content = (sy - hh).max(0.0);
+        // area (past the header + filter row).
+        let sy_content = (sy - data_top).max(0.0);
         // Use fmod to get the sub-row fractional offset
         // without subtracting two large f64 values.
         // visible_rows computes first_row = floor(sy_content / rh),
@@ -193,7 +288,7 @@ impl SceneBuilder {
         let os_rows = first_no_os.saturating_sub(row_start);
         let frac = frac_first + os_rows as f64 * rh;
         // ry of row_start in viewport coords:
-        let ry_base = (hh - sy).max(0.0) - frac;
+        let ry_base = (data_top - sy).max(0.0) - frac;
 
         let row_vy =
             |ri: u64| -> f64 { ry_base + (ri as f64 - row_start as f64) * rh };
@@ -243,9 +338,10 @@ impl SceneBuilder {
                 None => model.column_offsets.offsets[ci],
             };
             if ci < pinned_count {
+                // Checkbox sits after the pinned band — unaffected by ccw.
                 off + rnw
             } else {
-                off - sx + rnw
+                off - sx + lgw
             }
         };
 
@@ -262,13 +358,19 @@ impl SceneBuilder {
             .get(state.search.current)
             .map(|c| (c.row, c.col));
 
+        // Invalid-cell border bounds (cx, ry, width, height), collected
+        // across both the scrollable and pinned cell loops below and
+        // drawn as boundary lines once every grid line / separator has
+        // already been emitted — see the push site in `cells.rs` for why.
+        let mut invalid_borders: Vec<(f64, f64, f64, f64)> = Vec::new();
+
         // ── data rows ────────────────────────────────────────────────────────
         for ri in row_start..row_end {
             let ry = row_vy(ri);
 
             // Skip rows that are fully outside the clip zone (overscan may
             // produce rows above the header).
-            if ry + model.row_height < hh || ry > vp.height {
+            if ry + model.row_height < data_top || ry > vp.height {
                 continue;
             }
 
@@ -304,6 +406,22 @@ impl SceneBuilder {
                 }));
             }
 
+            // Checked-row highlight (above hover, below selection) — keyed
+            // by physical row id, same as the checkbox's own checked state.
+            if state.checked_rows.contains(&model.logical_to_physical(ri)) {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: 0.0,
+                    y: ry,
+                    width: vp.width,
+                    height: model.row_height,
+                    fill: t.checked_row_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                    clip: None,
+                }));
+            }
+
             // During a drag, columns may have animated into or out
             // of the viewport. Start from the first non-pinned column
             // (not just col_start) to catch those that animated
@@ -319,7 +437,7 @@ impl SceneBuilder {
                 let cx = col_vx(ci);
                 // Skip columns that are fully outside the viewport.
                 if preview_offsets.is_some()
-                    && (cx + col.width <= rnw || cx >= vp.width)
+                    && (cx + col.width <= lgw || cx >= vp.width)
                 {
                     continue;
                 }
@@ -327,6 +445,7 @@ impl SceneBuilder {
                 cells::emit_cell(
                     &mut frame,
                     col,
+                    model,
                     ri,
                     ci,
                     cx,
@@ -340,6 +459,7 @@ impl SceneBuilder {
                     t,
                     flash,
                     self.class_resolver.as_deref(),
+                    &mut invalid_borders,
                 );
             }
 
@@ -350,8 +470,70 @@ impl SceneBuilder {
                 x2: vp.width,
                 y2: ry + model.row_height - 0.5,
                 color: t.grid_line,
-                width: 1.0,
+                width: t.grid_line_width,
             }));
+        }
+
+        // Vertical column separators (data rows only), drawn once per
+        // column boundary rather than once per cell — column x-positions
+        // don't vary by row, so this is O(columns) not O(rows × columns).
+        if t.column_separator_width > 0.0 {
+            let (sep_start, sep_end) = if preview_offsets.is_some() {
+                (pinned_count, model.columns.len())
+            } else {
+                (col_start, col_end)
+            };
+            for (ci, col) in model
+                .columns
+                .iter()
+                .enumerate()
+                .take(sep_end)
+                .skip(sep_start)
+            {
+                let cx = col_vx(ci);
+                if preview_offsets.is_some()
+                    && (cx + col.width <= lgw || cx >= vp.width)
+                {
+                    continue;
+                }
+                let sep_x = cx + col.width - 0.5;
+                frame.push(ScenePrimitive::Line(LinePrimitive {
+                    x1: sep_x,
+                    y1: data_top,
+                    x2: sep_x,
+                    y2: vp.height,
+                    color: t.column_separator_color,
+                    width: t.column_separator_width,
+                }));
+            }
+        }
+
+        // ── checkbox column (scrolls with the data — it's the first slot
+        // of the scrollable/unpinned region, not a fixed gutter) ─────────
+        if ccw > 0.0 {
+            let ccx = rnw + pinned_width - sx;
+            if ccx + ccw > rnw && ccx < vp.width {
+                for ri in row_start..row_end {
+                    let ry = row_vy(ri);
+                    if ry + model.row_height < data_top || ry > vp.height {
+                        continue;
+                    }
+                    let clip_y = ry.max(data_top);
+                    let clip_h = (ry + model.row_height - clip_y).max(0.0);
+                    if clip_h == 0.0 {
+                        continue;
+                    }
+                    let physical = model.logical_to_physical(ri);
+                    let tri = if state.checked_rows.contains(&physical) {
+                        CheckboxTriState::Checked
+                    } else {
+                        CheckboxTriState::Unchecked
+                    };
+                    checkbox::emit_checkbox(
+                        &mut frame, ccx, clip_y, ccw, clip_h, rnw, t, tri,
+                    );
+                }
+            }
         }
 
         // ── pinned-column data overlay
@@ -361,9 +543,9 @@ impl SceneBuilder {
             // Solid background covering the full pinned band.
             frame.push(ScenePrimitive::Rect(RectPrimitive {
                 x: rnw,
-                y: hh,
+                y: data_top,
                 width: pinned_width,
-                height: vp.height - hh,
+                height: vp.height - data_top,
                 fill: t.pinned_bg,
                 stroke: None,
                 stroke_width: 0.0,
@@ -373,17 +555,23 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < hh || ry > vp.height {
+                if ry + model.row_height < data_top || ry > vp.height {
                     continue;
                 }
+                // Clamp alt/hover backgrounds to below the sticky
+                // header — mirrors the row-number gutter's own clamp
+                // further down ("Clamp everything to below the
+                // sticky header").
+                let clip_y = ry.max(data_top);
+                let clip_h = (ry + model.row_height - clip_y).max(0.0);
                 let mid_y = ry + model.row_height * 0.5 + t.font_size * 0.35;
 
                 if ri % 2 == 1 {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: rnw,
-                        y: ry,
+                        y: clip_y,
                         width: pinned_width,
-                        height: model.row_height,
+                        height: clip_h,
                         fill: t.row_alt_bg,
                         stroke: None,
                         stroke_width: 0.0,
@@ -394,9 +582,9 @@ impl SceneBuilder {
                 if state.hovered_row == Some(ri) {
                     frame.push(ScenePrimitive::Rect(RectPrimitive {
                         x: rnw,
-                        y: ry,
+                        y: clip_y,
                         width: pinned_width,
-                        height: model.row_height,
+                        height: clip_h,
                         fill: t.row_hover_bg,
                         stroke: None,
                         stroke_width: 0.0,
@@ -412,6 +600,7 @@ impl SceneBuilder {
                     cells::emit_cell(
                         &mut frame,
                         col,
+                        model,
                         ri,
                         ci,
                         cx,
@@ -425,14 +614,35 @@ impl SceneBuilder {
                         t,
                         flash,
                         self.class_resolver.as_deref(),
+                        &mut invalid_borders,
                     );
+                }
+            }
+
+            // Vertical separators between individual pinned columns (not
+            // including the band's own right edge — that already has a
+            // dedicated separator via pinned_separator_color/width below).
+            if t.column_separator_width > 0.0 && pinned_count > 1 {
+                for (ci, col) in
+                    model.columns.iter().enumerate().take(pinned_count - 1)
+                {
+                    let cx = col_vx(ci);
+                    let sep_x = cx + col.width - 0.5;
+                    frame.push(ScenePrimitive::Line(LinePrimitive {
+                        x1: sep_x,
+                        y1: data_top,
+                        x2: sep_x,
+                        y2: vp.height,
+                        color: t.column_separator_color,
+                        width: t.column_separator_width,
+                    }));
                 }
             }
 
             // Separator line on the right edge of the pinned band.
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: rnw + pinned_width - 0.5,
-                y1: hh,
+                y1: data_top,
                 x2: rnw + pinned_width - 0.5,
                 y2: vp.height,
                 color: t.pinned_separator_color,
@@ -440,64 +650,52 @@ impl SceneBuilder {
             }));
         }
 
+        // ── invalid-cell borders ─────────────────────────────────────────────
+        // Pushed here — after grid lines, column separators, and the
+        // pinned-column overlay, but *before* the header/gutter — so
+        // it wins the collision against this row's own trailing grid
+        // line (the original bug: the border used to be pushed inline
+        // during cell emission, ahead of that line) while still being
+        // masked by the header/gutter for a row/column that's only
+        // partially scrolled into view (the sticky overlays are relied
+        // on elsewhere to clip that overscanned content the same way).
+        for &(bx, by, bw, bh) in &invalid_borders {
+            push_boundary_lines(
+                &mut frame,
+                bx,
+                by,
+                bx + bw,
+                by + bh,
+                t.invalid_cell_border,
+                t.invalid_cell_border_width,
+            );
+        }
+
         // ── selection outer border ───────────────────────────────────────────
+        // Same placement rationale as the invalid-cell borders above.
         if let Some((tl, br)) = sel.range() {
             let x1 = col_vx(tl.col);
             let y1 = row_vy(tl.row);
             let x2 = col_vx(br.col) + model.columns[br.col].width;
             let y2 = row_vy(br.row) + model.row_height;
 
-            // During a flash the border adopts the flash colour;
-            // otherwise use the normal selection border colour.
+            // During a flash the border fades from the flash colour
+            // (alpha_factor == 1.0) back to the normal selection border
+            // colour (alpha_factor == 0.0) — interpolating toward
+            // `selection_border` rather than toward transparent means
+            // this exactly matches the `else` branch's color at the
+            // animation's end, so there's no discontinuous "pop" when
+            // the flash finishes and `flash` becomes `None` (this holds
+            // even when `flash_border` and `selection_border` share the
+            // same RGB, where only the alpha channel would otherwise
+            // visibly jump).
             let border_color = if let Some(f) = flash {
-                let a =
-                    (t.flash_border.a as f64 * f.alpha_factor).round() as u8;
-                Color::rgba(
-                    t.flash_border.r,
-                    t.flash_border.g,
-                    t.flash_border.b,
-                    a,
-                )
+                t.selection_border.lerp(t.flash_border, f.alpha_factor)
             } else {
                 t.selection_border
             };
 
-            // top
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1,
-                y1: y1 - 0.5,
-                x2,
-                y2: y1 - 0.5,
-                color: border_color,
-                width: 1.0,
-            }));
-            // bottom
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1,
-                y1: y2 - 0.5,
-                x2,
-                y2: y2 - 0.5,
-                color: border_color,
-                width: 1.0,
-            }));
-            // left
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x1 + 0.5,
-                y1,
-                x2: x1 + 0.5,
-                y2,
-                color: border_color,
-                width: 1.0,
-            }));
-            // right
-            frame.push(ScenePrimitive::Line(LinePrimitive {
-                x1: x2 - 0.5,
-                y1,
-                x2: x2 - 0.5,
-                y2,
-                color: border_color,
-                width: 1.0,
-            }));
+            push_boundary_lines(&mut frame, x1, y1, x2, y2, border_color, 1.0);
         }
 
         // ── header (sticky, drawn on top of scrolled data) ───────────────────
@@ -524,7 +722,7 @@ impl SceneBuilder {
                         let col = &model.columns[ci];
                         let cx = col_vx(ci);
                         if preview_offsets.is_some()
-                            && (cx + col.width <= rnw || cx >= vp.width)
+                            && (cx + col.width <= lgw || cx >= vp.width)
                         {
                             continue;
                         }
@@ -546,9 +744,17 @@ impl SceneBuilder {
                             }));
                         }
 
+                        // Clamp to the gutter boundary, mirroring
+                        // cells.rs's clip_x/clip_w clamp — otherwise a
+                        // column scrolled partway under the row-number
+                        // gutter bleeds its header text into the gutter
+                        // whenever gutter_bg has any transparency.
+                        let clip_x = cx.max(rnw);
+                        let clip_w = (cx + col.width - clip_x).max(0.0);
+
                         // Text must end before the left edge of the
                         // menu icon button to prevent the ellipsis
-                        // from overlapping the button.
+                        // from overlapping it.
                         let icon_btn_offset = t.header_menu_icon_margin_r
                             + t.header_menu_icon_btn_w;
                         let label_max_w =
@@ -562,7 +768,7 @@ impl SceneBuilder {
                             font_size: t.header_font_size,
                             bold: t.header_font_bold,
                             italic: t.header_font_italic,
-                            clip: Some([cx, 0.0, col.width, hh]),
+                            clip: Some([clip_x, 0.0, clip_w, hh]),
                             align: TextAlign::Left,
                             max_width: Some(label_max_w),
                         }));
@@ -629,7 +835,8 @@ impl SceneBuilder {
                         {
                             let aw = t.sort_arrow_width;
                             let ah = t.sort_arrow_height;
-                            // Shifted left to leave room for menu icon.
+                            // Shifted left to leave room for the menu
+                            // icon.
                             let ax = cx + col.width
                                 - t.header_menu_icon_margin_r
                                 - t.header_menu_icon_btn_w
@@ -679,6 +886,24 @@ impl SceneBuilder {
                 col_start..col_end
             };
             render_col_headers(&mut frame, header_range);
+            // Header checkbox (tri-state select-all) — scrolls with the
+            // data like the row checkboxes below; drawn before the pinned
+            // header band so it gets masked once scrolled underneath.
+            if ccw > 0.0 {
+                let ccx = rnw + pinned_width - sx;
+                if ccx + ccw > rnw && ccx < vp.width {
+                    checkbox::emit_checkbox(
+                        &mut frame,
+                        ccx,
+                        0.0,
+                        ccw,
+                        hh,
+                        rnw,
+                        t,
+                        state.checkbox_header_state(),
+                    );
+                }
+            }
             // Pinned column headers (on top)
             if pinned_count > 0 {
                 // Solid background masking scrollable headers underneath.
@@ -706,6 +931,246 @@ impl SceneBuilder {
             }));
         } // end if hh > 0.0
 
+        // ── floating filter row (sticky, drawn on top of scrolled data) ──────
+        // Opt-in (`GridModel.show_filter_row`) quick per-column "contains"
+        // filter, directly under the header — this crate only draws the
+        // *closed* look (a bordered "input look" box, the current filter
+        // value or a placeholder, and a mini funnel icon matching the
+        // header's own); `rs-grid-web` opens a real transient `<input>`
+        // overlay on click, the same way the inline cell editor works —
+        // see its `AGENTS.md` "Floating filter row" section.
+        if fh > 0.0 {
+            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                x: 0.0,
+                y: hh,
+                width: vp.width,
+                height: fh,
+                fill: t.header_bg,
+                stroke: None,
+                stroke_width: 0.0,
+                corner_radius: 0.0,
+                clip: None,
+            }));
+
+            let render_filter_row_cells =
+                |frame: &mut SceneFrame, range: std::ops::Range<usize>| {
+                    for ci in range {
+                        let col = &model.columns[ci];
+                        let cx = col_vx(ci);
+                        if preview_offsets.is_some()
+                            && (cx + col.width <= lgw || cx >= vp.width)
+                        {
+                            continue;
+                        }
+
+                        // Mini funnel icon — right edge of the cell, same
+                        // shape/colors as the header's own (duplicated
+                        // rather than factored out of `render_col_headers`:
+                        // it anchors to this row's own vertical center,
+                        // and that closure already carries several
+                        // header-specific captures — menu icon offset,
+                        // sort arrow — that don't apply here). Its zone is
+                        // reserved *outside* the input-look box below (not
+                        // just clipped out of the text), so the icon reads
+                        // as a separate button beside the input, not a
+                        // decoration layered inside it.
+                        let icon_mr = t.header_filter_icon_margin_r;
+                        let icon_bw = t.header_filter_icon_btn_w;
+                        let icon_zone = icon_mr + icon_bw;
+
+                        // Bordered "input look" box, inset slightly from
+                        // the column edges so adjacent cells don't
+                        // visually merge into one continuous strip, and
+                        // narrowed on the right to leave the icon zone
+                        // clear of the box entirely. Horizontal inset
+                        // reuses `cell_padding` — the same distance a
+                        // data cell's own text sits from the column
+                        // edge (see `builder/cells.rs`) — so the box's
+                        // left/right edges line up with the data cells'
+                        // content below, not an unrelated hardcoded gap.
+                        // Vertical margin is themed separately
+                        // (`filter_row_input_margin_v`). Border/radius
+                        // match the column filter popup's own value
+                        // `<input>` look (`style_daisy_control` in
+                        // rs-grid-web), not a plain grid-line border, so
+                        // the two read as the same design.
+                        let inset = t.cell_padding;
+                        let margin_v = t.filter_row_input_margin_v;
+                        let box_x = cx + inset;
+                        let box_w =
+                            (col.width - inset * 2.0 - icon_zone).max(0.0);
+                        let box_y = hh + margin_v;
+                        let box_h = (fh - margin_v * 2.0).max(0.0);
+                        let clip_x = cx.max(rnw);
+                        let clip_w = (cx + col.width - clip_x).max(0.0);
+                        frame.push(ScenePrimitive::Rect(RectPrimitive {
+                            x: box_x,
+                            y: box_y,
+                            width: box_w,
+                            height: box_h,
+                            fill: t.bg,
+                            stroke: Some(t.filter_row_input_border),
+                            stroke_width: 1.0,
+                            corner_radius: 4.0,
+                            clip: Some([clip_x, hh, clip_w, fh]),
+                        }));
+                        // Hover background — same treatment as the
+                        // header's own menu icon button
+                        // (`header_menu_icon_hover_bg`/`_radius`,
+                        // reused rather than adding new theme fields:
+                        // visually this is meant to read as "the same
+                        // kind of icon button", not a distinct style).
+                        if hovered_filter_row_icon_col == Some(ci) {
+                            let btn_h = if t.header_menu_icon_btn_h > 0.0 {
+                                t.header_menu_icon_btn_h
+                            } else {
+                                (fh - 12.0).max(8.0)
+                            };
+                            let btn_ty = hh + (fh - btn_h) / 2.0;
+                            let btn_rx = cx + col.width - icon_mr;
+                            let btn_lx = btn_rx - icon_bw;
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: btn_lx,
+                                y: btn_ty,
+                                width: icon_bw,
+                                height: btn_h,
+                                fill: t.header_menu_icon_hover_bg,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: t.header_menu_icon_radius,
+                                clip: Some([clip_x, hh, clip_w, fh]),
+                            }));
+                        }
+                        let is_active = state
+                            .model
+                            .filters
+                            .contains_key(&col.key)
+                            || state.model.value_filters.contains_key(&col.key);
+                        let glyph_color = if is_active {
+                            t.header_filter_icon_active
+                        } else {
+                            t.header_filter_icon
+                        };
+                        let gw = t.header_filter_icon_size;
+                        // Heroicons "funnel" (solid) silhouette: a wide
+                        // rounded top tapering through a shoulder bend
+                        // to a single rounded point — one continuous
+                        // polygon rather than a flat neck + separate
+                        // spout line, which used to read as a plain
+                        // triangle-with-a-stick rather than a funnel.
+                        let gh = gw * 1.05;
+                        let neck_w = gw * 0.32;
+                        let shoulder_y_frac = 0.4;
+                        let icon_cx = cx + col.width - icon_mr - icon_bw / 2.0;
+                        let top_y = hh + (fh - gh) / 2.0;
+                        frame.push(ScenePrimitive::Polygon(PolygonPrimitive {
+                            points: vec![
+                                [icon_cx - gw / 2.0, top_y],
+                                [icon_cx + gw / 2.0, top_y],
+                                [
+                                    icon_cx + neck_w / 2.0,
+                                    top_y + gh * shoulder_y_frac,
+                                ],
+                                [icon_cx, top_y + gh],
+                                [
+                                    icon_cx - neck_w / 2.0,
+                                    top_y + gh * shoulder_y_frac,
+                                ],
+                            ],
+                            fill: glyph_color,
+                            corner_radius: gw * 0.08,
+                        }));
+                        // Notification-style badge dot overlapping the
+                        // glyph's top-right corner — on top of, not
+                        // instead of, the color swap above (both signal
+                        // "active" at once).
+                        if is_active {
+                            let badge_r = t.header_filter_icon_badge_r;
+                            let badge_cx = icon_cx + gw / 2.0;
+                            let badge_cy = top_y;
+                            frame.push(ScenePrimitive::Rect(RectPrimitive {
+                                x: badge_cx - badge_r,
+                                y: badge_cy - badge_r,
+                                width: badge_r * 2.0,
+                                height: badge_r * 2.0,
+                                fill: t.header_filter_icon_active,
+                                stroke: None,
+                                stroke_width: 0.0,
+                                corner_radius: badge_r,
+                                clip: None,
+                            }));
+                        }
+
+                        // Current value (raw, regardless of stored
+                        // operator — best-effort AG-Grid-style
+                        // simplification, matching `show_quick_filter_input`
+                        // in rs-grid-web). No placeholder text when
+                        // empty — the box itself is the affordance,
+                        // same as `show_quick_filter_input`'s own
+                        // (also placeholder-less) overlay. Text ends
+                        // before the icon so long values don't overlap
+                        // it.
+                        let condition = state.model.filters.get(&col.key);
+                        if let Some(c) = condition
+                            && !c.value.is_empty()
+                        {
+                            let mid_y = hh + fh * 0.5 + t.font_size * 0.35;
+                            let text_max_w =
+                                (box_w - t.cell_padding * 0.5).max(0.0);
+                            frame.push(ScenePrimitive::Text(TextPrimitive {
+                                x: box_x + t.cell_padding * 0.5,
+                                y: mid_y,
+                                text: c.value.clone(),
+                                color: t.cell_text,
+                                font_size: t.font_size,
+                                bold: false,
+                                italic: false,
+                                clip: Some([clip_x, hh, clip_w, fh]),
+                                align: TextAlign::Left,
+                                max_width: Some(text_max_w),
+                            }));
+                        }
+                    }
+                };
+
+            let filter_row_range = if preview_offsets.is_some() {
+                pinned_count..model.columns.len()
+            } else {
+                col_start..col_end
+            };
+            render_filter_row_cells(&mut frame, filter_row_range);
+
+            // Pinned column cells (on top, masking scrollable ones
+            // underneath) — same background-then-redraw pattern as the
+            // header's own pinned band.
+            if pinned_count > 0 {
+                frame.push(ScenePrimitive::Rect(RectPrimitive {
+                    x: rnw,
+                    y: hh,
+                    width: pinned_width,
+                    height: fh,
+                    fill: t.header_bg,
+                    stroke: None,
+                    stroke_width: 0.0,
+                    corner_radius: 0.0,
+                    clip: None,
+                }));
+                render_filter_row_cells(&mut frame, 0..pinned_count);
+            }
+
+            // Bottom border of the filter row — the boundary the gutter
+            // block below re-draws on top of its own background (see
+            // "Sticky header/filter-row band's bottom border" there).
+            frame.push(ScenePrimitive::Line(LinePrimitive {
+                x1: 0.0,
+                y1: data_top - 0.5,
+                x2: vp.width,
+                y2: data_top - 0.5,
+                color: t.header_border,
+                width: 1.0,
+            }));
+        } // end if fh > 0.0
+
         // ── row-number gutter (sticky, drawn on top of scrolled data) ────────
         if rnw > 0.0 {
             // Header corner + gutter background
@@ -723,7 +1188,7 @@ impl SceneBuilder {
 
             for ri in row_start..row_end {
                 let ry = row_vy(ri);
-                if ry + model.row_height < hh || ry > vp.height {
+                if ry + model.row_height < data_top || ry > vp.height {
                     continue;
                 }
 
@@ -732,7 +1197,7 @@ impl SceneBuilder {
                     .is_some_and(|(tl, br)| ri >= tl.row && ri <= br.row);
 
                 // Clamp everything to below the sticky header.
-                let clip_y = ry.max(hh);
+                let clip_y = ry.max(data_top);
                 let clip_h = (ry + model.row_height - clip_y).max(0.0);
                 if clip_h == 0.0 {
                     continue;
@@ -767,16 +1232,17 @@ impl SceneBuilder {
                     max_width: None,
                 }));
 
-                // Horizontal grid line inside gutter — only below header.
+                // Horizontal grid line inside gutter — only below the
+                // sticky header/filter-row band.
                 let line_y = ry + model.row_height - 0.5;
-                if line_y > hh {
+                if line_y > data_top {
                     frame.push(ScenePrimitive::Line(LinePrimitive {
                         x1: 0.0,
                         y1: line_y,
                         x2: rnw,
                         y2: line_y,
                         color: t.grid_line,
-                        width: 1.0,
+                        width: t.grid_line_width,
                     }));
                 }
             }
@@ -791,18 +1257,26 @@ impl SceneBuilder {
                 width: 1.0,
             }));
 
-            // Header bottom border re-drawn on top of gutter
+            // Sticky header/filter-row band's bottom border re-drawn on
+            // top of the gutter (its full-height background would
+            // otherwise paint over it) — at `data_top`, not bare `hh`,
+            // since that's the boundary the user actually sees once the
+            // filter row is shown (there's no separate divider between
+            // the header and filter row inside the gutter itself).
             frame.push(ScenePrimitive::Line(LinePrimitive {
                 x1: 0.0,
-                y1: hh - 0.5,
+                y1: data_top - 0.5,
                 x2: rnw,
-                y2: hh - 0.5,
+                y2: data_top - 0.5,
                 color: t.gutter_border,
                 width: 1.0,
             }));
         }
 
         // ── scrollbars ───────────────────────────────────────────────────────
+        // `rnw` alone — the checkbox column's width is already folded into
+        // `model.total_width()` (it scrolls with the data), not into this
+        // fixed reserve.
         scrollbars::emit_scrollbars(&mut frame, vp, model, rnw, t);
 
         // ── column drag preview ────────────────────────────────
@@ -995,7 +1469,7 @@ mod tests {
     fn build_produces_nonempty_frame() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         assert!(frame.primitive_count() > 0);
     }
 
@@ -1003,7 +1477,7 @@ mod tests {
     fn build_frame_dimensions_match_viewport() {
         let state = make_state();
         let b = SceneBuilder::new(2.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         assert_eq!(frame.viewport_width, 800.0);
         assert_eq!(frame.viewport_height, 600.0);
         assert_eq!(frame.dpr, 2.0);
@@ -1013,7 +1487,7 @@ mod tests {
     fn build_first_primitive_is_background_rect() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         match &frame.primitives[0] {
             ScenePrimitive::Rect(r) => {
                 assert_eq!(r.x, 0.0);
@@ -1032,7 +1506,7 @@ mod tests {
     fn build_contains_header_background() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let t = Theme::light();
         let header_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
@@ -1048,7 +1522,7 @@ mod tests {
     fn build_contains_column_header_labels() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let texts = text_primitives(&frame);
         let labels: Vec<&str> = texts.iter().map(|t| t.text.as_str()).collect();
         assert!(labels.contains(&"Alpha"), "missing header Alpha");
@@ -1060,7 +1534,7 @@ mod tests {
     fn build_header_bottom_border() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let lines = line_primitives(&frame);
         let hh = 40.0;
         let header_border = lines.iter().any(|l| {
@@ -1077,7 +1551,7 @@ mod tests {
     fn build_contains_cell_text() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let texts = text_primitives(&frame);
         // Row 0 data should appear.
         assert!(
@@ -1094,7 +1568,7 @@ mod tests {
     fn build_alternating_row_backgrounds() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let t = Theme::light();
         let alt_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
@@ -1111,7 +1585,7 @@ mod tests {
     fn build_horizontal_grid_lines() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let lines = line_primitives(&frame);
         // Horizontal grid lines span full viewport width.
         let h_lines: Vec<_> = lines
@@ -1126,6 +1600,79 @@ mod tests {
         assert!(!h_lines.is_empty(), "should have horizontal grid lines");
     }
 
+    #[test]
+    fn build_horizontal_grid_lines_use_themed_width() {
+        let state = make_state();
+        let mut t = Theme::light();
+        t.grid_line_width = 3.0;
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        let lines = line_primitives(&frame);
+        let h_lines: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                l.x1 == 0.0
+                    && (l.x2 - 800.0).abs() < 0.01
+                    && (l.y1 - l.y2).abs() < 0.01
+                    && l.y1 > 40.0
+            })
+            .collect();
+        assert!(!h_lines.is_empty(), "should have horizontal grid lines");
+        assert!(
+            h_lines.iter().all(|l| l.width == 3.0),
+            "horizontal grid lines should use Theme::grid_line_width"
+        );
+    }
+
+    // ── vertical column separators (data rows) ───────────────
+
+    #[test]
+    fn build_vertical_column_separators_in_data_rows() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        let lines = line_primitives(&frame);
+        // 3 columns (Alpha 100, Beta 150, Gamma 200) → 3 boundary lines,
+        // one per column right edge, drawn once (not once per row).
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - l.x2).abs() < 0.01
+                    && l.color == t.column_separator_color
+                    && l.width == t.column_separator_width
+                    && (l.y1 - 40.0).abs() < 0.01
+                    && (l.y2 - 600.0).abs() < 0.01
+            })
+            .collect();
+        assert_eq!(
+            seps.len(),
+            3,
+            "should have exactly one column separator per column boundary, not per cell"
+        );
+    }
+
+    #[test]
+    fn build_vertical_column_separators_disabled_when_width_zero() {
+        let state = make_state();
+        let mut t = Theme::light();
+        t.column_separator_width = 0.0;
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        let lines = line_primitives(&frame);
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - l.x2).abs() < 0.01
+                    && l.color == t.column_separator_color
+            })
+            .collect();
+        assert!(
+            seps.is_empty(),
+            "column separators should be skipped when width is 0"
+        );
+    }
+
     // ── column separators ────────────────────────────────────
 
     #[test]
@@ -1133,7 +1680,7 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let lines = line_primitives(&frame);
         // Vertical separators in header (x1 == x2, within header
         // height range, with inset).
@@ -1162,7 +1709,7 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Each column header has 3 dots (small rects with
         // corner_radius == dot_r).
         let dot_rects: Vec<_> = rect_primitives(&frame)
@@ -1188,8 +1735,173 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame_no_hover = b.build(&state, None, None, None);
-        let frame_hover = b.build(&state, None, None, Some(1));
+        let frame_no_hover = b.build(&state, None, None, None, None);
+        let frame_hover = b.build(&state, None, None, Some(1), None);
+
+        let hover_rects = |f: &crate::frame::SceneFrame| {
+            rect_primitives(f)
+                .into_iter()
+                .filter(|r| r.fill == t.header_menu_icon_hover_bg)
+                .count()
+        };
+        assert_eq!(hover_rects(&frame_no_hover), 0);
+        assert_eq!(hover_rects(&frame_hover), 1);
+    }
+
+    // ── floating filter row ───────────────────────────────────
+
+    #[test]
+    fn build_filter_row_hidden_by_default() {
+        let state = make_state();
+        assert!(!state.model.show_filter_row);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+        // No filter-row "input look" box (identified by its themed
+        // border color) should appear anywhere.
+        let boxes = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.stroke == Some(b.theme.filter_row_input_border))
+            .count();
+        assert_eq!(boxes, 0);
+    }
+
+    #[test]
+    fn build_filter_row_empty_columns_show_no_text() {
+        // No placeholder text — the empty box itself is the
+        // affordance, same as `show_quick_filter_input`'s own
+        // (also placeholder-less) transient overlay. So enabling the
+        // filter row with nothing typed anywhere shouldn't add any
+        // `TextPrimitive`s beyond what's already there (column-header
+        // labels, cell values).
+        let mut state_off = make_state();
+        state_off.model.show_filter_row = false;
+        let mut state_on = make_state();
+        state_on.model.show_filter_row = true;
+        let b = SceneBuilder::new(1.0);
+        let count_off =
+            text_primitives(&b.build(&state_off, None, None, None, None)).len();
+        let count_on =
+            text_primitives(&b.build(&state_on, None, None, None, None)).len();
+        assert_eq!(count_off, count_on);
+    }
+
+    #[test]
+    fn build_filter_row_shows_current_value_for_filtered_column_only() {
+        use rs_grid_core::filter::FilterCondition;
+
+        let mut state = make_state();
+        state.model.show_filter_row = true;
+        state.apply(GridCommand::SetColumnFilter {
+            col_key: "a".to_string(),
+            condition: FilterCondition::contains("hello"),
+        });
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+        let texts = text_primitives(&frame);
+        assert!(texts.iter().any(|t| t.text == "hello"));
+        // The other two (unfiltered) columns contribute no text —
+        // no placeholder is drawn for an empty filter-row cell.
+        let placeholders =
+            texts.iter().filter(|t| t.text == "Filter...").count();
+        assert_eq!(placeholders, 0);
+    }
+
+    #[test]
+    fn build_filter_row_increases_total_height() {
+        let mut state = make_state();
+        let before = state.model.total_height();
+        state.model.show_filter_row = true;
+        state.model.filter_row_height = 36.0;
+        let after = state.model.total_height();
+        assert_eq!(after, before + 36.0);
+    }
+
+    #[test]
+    fn build_filter_row_funnel_icon_reuses_header_colors() {
+        let mut state_no_filter = make_state();
+        state_no_filter.model.show_filter_row = true;
+        let mut state_filtered = make_state();
+        state_filtered.model.show_filter_row = true;
+        state_filtered.apply(GridCommand::SetColumnFilter {
+            col_key: "a".to_string(),
+            condition: rs_grid_core::filter::FilterCondition::contains("x"),
+        });
+
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+
+        let frame_unfiltered =
+            b.build(&state_no_filter, None, None, None, None);
+        let inactive_glyphs = polygon_primitives(&frame_unfiltered)
+            .into_iter()
+            .filter(|p| p.fill == t.header_filter_icon)
+            .count();
+        // 3 filter-row icons (no header icon — removed), all inactive.
+        assert_eq!(inactive_glyphs, 3);
+
+        let frame_filtered = b.build(&state_filtered, None, None, None, None);
+        let active_glyphs = polygon_primitives(&frame_filtered)
+            .into_iter()
+            .filter(|p| p.fill == t.header_filter_icon_active)
+            .count();
+        // Column "a"'s filter-row icon is active.
+        assert_eq!(active_glyphs, 1);
+    }
+
+    #[test]
+    fn build_filter_row_active_column_shows_a_badge_dot() {
+        let mut state = make_state();
+        state.model.show_filter_row = true;
+        state.apply(GridCommand::SetColumnFilter {
+            col_key: "a".to_string(),
+            condition: rs_grid_core::filter::FilterCondition::contains("x"),
+        });
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+
+        let badges: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.header_filter_icon_active
+                    && (r.corner_radius - t.header_filter_icon_badge_r).abs()
+                        < 0.01
+            })
+            .collect();
+        // Exactly one badge — only column "a" has an active filter.
+        assert_eq!(badges.len(), 1);
+    }
+
+    #[test]
+    fn build_filter_row_inactive_column_shows_no_badge_dot() {
+        let mut state = make_state();
+        state.model.show_filter_row = true;
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+
+        let badges = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| {
+                r.fill == t.header_filter_icon_active
+                    && (r.corner_radius - t.header_filter_icon_badge_r).abs()
+                        < 0.01
+            })
+            .count();
+        assert_eq!(badges, 0);
+    }
+
+    #[test]
+    fn build_hovered_filter_row_icon_shows_hover_bg() {
+        // Mirrors `build_hovered_menu_shows_hover_bg` — same treatment,
+        // same `header_menu_icon_hover_bg` token, just the filter row's
+        // own icon (5th `build` parameter) instead of the header's.
+        let mut state = make_state();
+        state.model.show_filter_row = true;
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame_no_hover = b.build(&state, None, None, None, None);
+        let frame_hover = b.build(&state, None, None, None, Some(1));
 
         let hover_rects = |f: &crate::frame::SceneFrame| {
             rect_primitives(f)
@@ -1209,7 +1921,7 @@ mod tests {
         state.apply(GridCommand::SelectCell(CellCoord { row: 1, col: 1 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Selection fill rect.
         let sel_rects: Vec<_> = rect_primitives(&frame)
@@ -1235,7 +1947,7 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let border_lines: Vec<_> = line_primitives(&frame)
             .into_iter()
             .filter(|l| l.color == t.selection_border)
@@ -1250,7 +1962,7 @@ mod tests {
         state.apply(GridCommand::ExtendSelection(CellCoord { row: 2, col: 1 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Multiple cells selected → multiple fill rects.
         let sel_rects: Vec<_> = rect_primitives(&frame)
@@ -1275,7 +1987,7 @@ mod tests {
         state.hovered_row = Some(2);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let hover_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| r.fill == t.row_hover_bg)
@@ -1291,12 +2003,47 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let hover_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| r.fill == t.row_hover_bg)
             .collect();
         assert!(hover_rects.is_empty(), "no hover → no hover overlay");
+    }
+
+    // ── checked row ──────────────────────────────────────────
+
+    #[test]
+    fn build_checked_row_overlay() {
+        let mut state = make_state();
+        state.checked_rows.insert(2);
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        let checked_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.checked_row_bg)
+            .collect();
+        assert!(
+            !checked_rects.is_empty(),
+            "checked row should produce checked-row overlay"
+        );
+    }
+
+    #[test]
+    fn build_no_checked_rows_no_overlay() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        let checked_rects: Vec<_> = rect_primitives(&frame)
+            .into_iter()
+            .filter(|r| r.fill == t.checked_row_bg)
+            .collect();
+        assert!(
+            checked_rects.is_empty(),
+            "no checked rows → no checked-row overlay"
+        );
     }
 
     // ── sort indicator ───────────────────────────────────────
@@ -1309,7 +2056,7 @@ mod tests {
             dir: SortDir::Asc,
         });
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let polys = polygon_primitives(&frame);
         // At least one polygon for the sort arrow.
         assert!(!polys.is_empty(), "sort should produce a polygon arrow");
@@ -1319,7 +2066,7 @@ mod tests {
     fn build_no_sort_no_polygon() {
         let state = make_state();
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let polys = polygon_primitives(&frame);
         // No sort → no polygons in data area (scrollbar arrows
         // may still produce polygons).
@@ -1338,7 +2085,7 @@ mod tests {
             dir: SortDir::Desc,
         });
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let t = Theme::light();
         let polys: Vec<_> = polygon_primitives(&frame)
             .into_iter()
@@ -1359,17 +2106,17 @@ mod tests {
         state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let flash = FlashHint { alpha_factor: 0.5 };
-        let frame = b.build(&state, None, Some(&flash), None);
+        let flash = FlashHint {
+            alpha_factor: 0.5,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        let frame = b.build(&state, None, Some(&flash), None, None);
 
-        // Border lines should use flash_border color (alpha-adjusted).
-        let expected_a = (t.flash_border.a as f64 * 0.5).round() as u8;
-        let expected_color = Color::rgba(
-            t.flash_border.r,
-            t.flash_border.g,
-            t.flash_border.b,
-            expected_a,
-        );
+        // Border lines should be interpolated halfway between
+        // selection_border (at alpha_factor 0.0) and flash_border (at
+        // alpha_factor 1.0), not flash_border-with-fading-alpha.
+        let expected_color = t.selection_border.lerp(t.flash_border, 0.5);
         let flash_borders: Vec<_> = line_primitives(&frame)
             .into_iter()
             .filter(|l| l.color == expected_color)
@@ -1377,7 +2124,70 @@ mod tests {
         assert_eq!(
             flash_borders.len(),
             4,
-            "flash should produce 4 border lines with flash color"
+            "flash should produce 4 border lines with the interpolated color"
+        );
+    }
+
+    #[test]
+    fn build_flash_border_color_continuous_at_animation_boundaries() {
+        // Regression test for the "color pops back" bug: the flash
+        // border must converge exactly to `selection_border` as
+        // alpha_factor -> 0.0 (matching the color used once `flash`
+        // becomes `None`), and exactly to `flash_border` at
+        // alpha_factor == 1.0 — no discontinuity at either end, even
+        // when flash_border and selection_border share the same RGB.
+        let mut state = make_state();
+        state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
+        let mut t = Theme::light();
+        t.flash_border = Color::rgba(
+            t.selection_border.r,
+            t.selection_border.g,
+            t.selection_border.b,
+            255,
+        );
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let count_border_lines =
+            |frame: &crate::frame::SceneFrame, color: Color| {
+                line_primitives(frame)
+                    .into_iter()
+                    .filter(|l| l.color == color)
+                    .count()
+            };
+
+        // At alpha_factor 0.0, the flash border must already be exactly
+        // `selection_border` — matching what renders once `flash`
+        // becomes `None` a frame later, so there's no visible pop.
+        let flash_end = FlashHint {
+            alpha_factor: 0.0,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        let frame_end = b.build(&state, None, Some(&flash_end), None, None);
+        assert_eq!(
+            count_border_lines(&frame_end, t.selection_border),
+            4,
+            "at alpha_factor 0.0 the border should already be selection_border"
+        );
+
+        let frame_none = b.build(&state, None, None, None, None);
+        assert_eq!(
+            count_border_lines(&frame_none, t.selection_border),
+            4,
+            "with no flash, the border should be selection_border"
+        );
+
+        // At alpha_factor 1.0, the flash border must be exactly
+        // `flash_border`.
+        let flash_start = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        let frame_start = b.build(&state, None, Some(&flash_start), None, None);
+        assert_eq!(
+            count_border_lines(&frame_start, t.flash_border),
+            4,
+            "at alpha_factor 1.0 the border should be flash_border"
         );
     }
 
@@ -1387,8 +2197,12 @@ mod tests {
         state.apply(GridCommand::SelectCell(CellCoord { row: 0, col: 0 }));
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let flash = FlashHint { alpha_factor: 1.0 };
-        let frame = b.build(&state, None, Some(&flash), None);
+        let flash = FlashHint {
+            alpha_factor: 1.0,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        let frame = b.build(&state, None, Some(&flash), None, None);
 
         // Should have a flash fill rect on the selected cell.
         let flash_fill = Color::rgba(
@@ -1416,7 +2230,7 @@ mod tests {
         let model = GridModel::new(cols, rows, 0.0, 40.0);
         let state = GridState::new(model, 800.0, 600.0);
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Only the background rect should be present.
         assert_eq!(
             frame.primitive_count(),
@@ -1434,7 +2248,7 @@ mod tests {
         let model = GridModel::new(cols, rows, 30.0, 40.0);
         let state = GridState::new(model, 800.0, 600.0);
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Should still have background + header, but no cell text.
         let texts = text_primitives(&frame);
         let data_texts: Vec<_> =
@@ -1443,6 +2257,84 @@ mod tests {
             data_texts.is_empty(),
             "empty grid should have no data cell text"
         );
+    }
+
+    // ── header/gutter clip clamping ──────────────────────────
+
+    #[test]
+    fn scrolled_row_straddling_header_has_no_text_bleeding_above_header() {
+        // make_state() uses row_height=30.0, header_height=40.0.
+        // scroll_y=25.0 puts row 0's ry at 40-25=15, i.e. straddling
+        // the header boundary (15 < hh=40).
+        let mut state = make_state();
+        state.apply(GridCommand::ScrollTo { x: 0.0, y: 25.0 });
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+        let hh = state.model.effective_header_height();
+        // Column header labels ("Alpha"/"Beta"/"Gamma") legitimately
+        // have clip.y == 0 — they're the header's own content, not
+        // scrolled data. Only data-cell text (values like "a0", "b3")
+        // must stay clipped below the header boundary.
+        let data_texts = text_primitives(&frame)
+            .into_iter()
+            .filter(|t| !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma"));
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[1] >= hh,
+                    "Text primitive clip.y ({}) must not start above \
+                     the header boundary ({hh}) — cell text is \
+                     bleeding into the sticky header",
+                    clip[1]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn body_clip_tracks_header_height_after_resize() {
+        let mut state = make_state();
+        state.model.header_height = 90.0;
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+        let hh = state.model.effective_header_height();
+        let data_texts = text_primitives(&frame)
+            .into_iter()
+            .filter(|t| !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma"));
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[1] >= hh,
+                    "clip.y ({}) must track the resized header_height ({hh})",
+                    clip[1]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn body_clip_tracks_row_number_width_after_resize() {
+        let mut state = make_state();
+        state.model.row_number_width = 120.0;
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+        let rnw = state.model.effective_row_number_width();
+        // Exclude the gutter's own row-number labels ("1".."10") — like
+        // the header's column labels, they legitimately have clip.x == 0
+        // since they *are* the gutter content, not scrolled data.
+        let data_texts = text_primitives(&frame).into_iter().filter(|t| {
+            !matches!(t.text.as_str(), "Alpha" | "Beta" | "Gamma")
+                && !t.text.chars().all(|c| c.is_ascii_digit())
+        });
+        for txt in data_texts {
+            if let Some(clip) = txt.clip {
+                assert!(
+                    clip[0] >= rnw,
+                    "clip.x ({}) must track the resized row_number_width ({rnw})",
+                    clip[0]
+                );
+            }
+        }
     }
 
     // ── column drag ──────────────────────────────────────────
@@ -1459,7 +2351,7 @@ mod tests {
             cursor_vy: 20.0,
             animated_offsets: vec![],
         };
-        let frame = b.build(&state, Some(&drag), None, None);
+        let frame = b.build(&state, Some(&drag), None, None, None);
 
         // Ghost badge rect (drag_ghost_bg fill + rounded corners).
         let ghost_rects: Vec<_> = rect_primitives(&frame)
@@ -1489,7 +2381,7 @@ mod tests {
             cursor_vy: 20.0,
             animated_offsets: vec![],
         };
-        let frame = b.build(&state, Some(&drag), None, None);
+        let frame = b.build(&state, Some(&drag), None, None, None);
 
         // Dim overlay on source column.
         let overlay_rects: Vec<_> = rect_primitives(&frame)
@@ -1518,7 +2410,7 @@ mod tests {
             animated_offsets: vec![],
         };
         // Should not panic.
-        let _ = b.build(&state, Some(&drag), None, None);
+        let _ = b.build(&state, Some(&drag), None, None, None);
     }
 
     #[test]
@@ -1532,7 +2424,7 @@ mod tests {
             cursor_vy: 20.0,
             animated_offsets: vec![150.0, 0.0, 250.0],
         };
-        let frame = b.build(&state, Some(&drag), None, None);
+        let frame = b.build(&state, Some(&drag), None, None, None);
         // Should not panic and produce valid output.
         assert!(frame.primitive_count() > 0);
     }
@@ -1545,7 +2437,7 @@ mod tests {
         state.apply(GridCommand::ScrollTo { x: 0.0, y: 200.0 });
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Header is sticky — should always be present.
         let header_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
@@ -1578,7 +2470,7 @@ mod tests {
         let state = GridState::new(model, 800.0, 600.0);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Gutter background rect.
         let gutter_rects: Vec<_> = rect_primitives(&frame)
@@ -1611,7 +2503,7 @@ mod tests {
         let state = GridState::new(model, 800.0, 600.0);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Gutter border line at x ≈ rnw-0.5 should not exist.
         let lines = line_primitives(&frame);
         let gutter_border = lines.iter().any(|l| {
@@ -1620,6 +2512,150 @@ mod tests {
                 && l.y1 == 0.0
         });
         assert!(!gutter_border, "no row numbers → no gutter border");
+    }
+
+    // ── checkbox column ──────────────────────────────────────
+
+    #[test]
+    fn checkbox_column_hidden_by_default() {
+        let state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+        // No rect uses the checked-fill color when the column is off.
+        let rects = rect_primitives(&frame);
+        assert!(
+            !rects.iter().any(|r| r.fill == t.checkbox_checked_bg),
+            "checkbox column disabled by default → no checkbox rects"
+        );
+    }
+
+    #[test]
+    fn checkbox_column_enabled_renders_boxes() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+
+        let rects = rect_primitives(&frame);
+        // One box per visible row + one header box, all sized
+        // checkbox_size with the themed border.
+        let boxes: Vec<_> = rects
+            .iter()
+            .filter(|r| {
+                r.width == t.checkbox_size
+                    && r.height == t.checkbox_size
+                    && r.stroke == Some(t.checkbox_border)
+            })
+            .collect();
+        assert!(
+            boxes.len() >= 11,
+            "expected 10 row boxes + 1 header box, got {}",
+            boxes.len()
+        );
+    }
+
+    #[test]
+    fn checkbox_row_checked_fills_box() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        state.apply(GridCommand::ToggleRowChecked(0));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+
+        let rects = rect_primitives(&frame);
+        let checked_boxes = rects
+            .iter()
+            .filter(|r| {
+                r.width == t.checkbox_size && r.fill == t.checkbox_checked_bg
+            })
+            .count();
+        // Row 0's box is filled; the header (indeterminate — 1 of 10
+        // checked) is also drawn with the checked-bg fill.
+        assert_eq!(checked_boxes, 2);
+    }
+
+    #[test]
+    fn checkbox_column_adds_left_gutter_offset() {
+        use rs_grid_core::commands::GridCommand;
+
+        let mut state = make_state();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let before = b.build(&state, None, None, None, None);
+
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let after = b.build(&state, None, None, None, None);
+
+        // The vertical column-separator right after the gutter must
+        // shift right by exactly CHECKBOX_COLUMN_WIDTH. Filter to
+        // vertical lines (x1 == x2) so this doesn't accidentally match
+        // horizontal grid lines that share the same themed color.
+        let first_col_sep = |frame: &crate::frame::SceneFrame| -> f64 {
+            line_primitives(frame)
+                .iter()
+                .filter(|l| l.color == t.column_separator_color && l.x1 == l.x2)
+                .map(|l| l.x1)
+                .fold(f64::MAX, f64::min)
+        };
+        assert_eq!(
+            first_col_sep(&after) - first_col_sep(&before),
+            rs_grid_core::model::GridModel::CHECKBOX_COLUMN_WIDTH,
+        );
+    }
+
+    #[test]
+    fn checkbox_column_scrolls_away_with_data() {
+        let mut state = make_state();
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+
+        let has_checkbox_box = |frame: &crate::frame::SceneFrame| {
+            rect_primitives(frame).iter().any(|r| {
+                r.width == t.checkbox_size && r.height == t.checkbox_size
+            })
+        };
+
+        // At rest, checkbox boxes are drawn (row 0 + header).
+        assert!(has_checkbox_box(&b.build(&state, None, None, None, None)));
+
+        // Scrolled past its own width, the checkbox column (the first slot
+        // of the scrollable region) is fully off-screen to the left —
+        // unlike the row-number gutter, it does not stay fixed.
+        state.viewport.scroll_x = GridModel::CHECKBOX_COLUMN_WIDTH + 50.0;
+        assert!(!has_checkbox_box(&b.build(&state, None, None, None, None)));
+    }
+
+    #[test]
+    fn checkbox_column_does_not_shift_pinned_columns() {
+        let mut state = make_state();
+        state.model.pinned_count = 1;
+        state.model.rebuild_offsets();
+        let t = Theme::light();
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let before = b.build(&state, None, None, None, None);
+
+        state.apply(GridCommand::SetShowCheckboxColumn(true));
+        let after = b.build(&state, None, None, None, None);
+
+        // The pinned band's right-edge separator must NOT move — the
+        // checkbox column sits after the pinned band (in the scrollable
+        // region), never between the gutter and the pinned columns.
+        let pinned_sep_x = |frame: &crate::frame::SceneFrame| -> f64 {
+            line_primitives(frame)
+                .iter()
+                .find(|l| l.color == t.pinned_separator_color)
+                .map(|l| l.x1)
+                .expect("pinned separator line present")
+        };
+        assert_eq!(pinned_sep_x(&before), pinned_sep_x(&after));
     }
 
     // ── pinned columns ───────────────────────────────────────
@@ -1646,7 +2682,7 @@ mod tests {
         let state = GridState::new(model, 800.0, 600.0);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Pinned data overlay background at x=rnw,
         // y=header_height, width=100 (first col width).
@@ -1684,7 +2720,7 @@ mod tests {
         let rnw = model.row_number_width;
         let state = GridState::new(model, 800.0, 600.0);
         let b = SceneBuilder::new(1.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Separator line at x ≈ rnw + pinned_width - 0.5.
         let sep_x = rnw + 100.0 - 0.5;
@@ -1695,6 +2731,86 @@ mod tests {
                 && l.y1 >= 39.0
         });
         assert!(sep, "should have pinned column separator line");
+    }
+
+    #[test]
+    fn build_pinned_column_separators_between_pinned_columns() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+            ColumnDef::new("c", "C", 200.0),
+        ];
+        let rows: Vec<RowRecord> = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r.set("c", format!("c{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 2;
+        let rnw = model.row_number_width;
+        let t = Theme::light();
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::with_theme(1.0, t.clone());
+        let frame = b.build(&state, None, None, None, None);
+
+        // Boundary between the 2 pinned columns (a: 0..100, b: 100..250).
+        let sep_x = rnw + 100.0 - 0.5;
+        let lines = line_primitives(&frame);
+        let sep = lines.iter().any(|l| {
+            (l.x1 - sep_x).abs() < 0.01
+                && (l.x2 - sep_x).abs() < 0.01
+                && l.color == t.column_separator_color
+                && l.width == t.column_separator_width
+        });
+        assert!(sep, "should have a separator between the pinned columns");
+    }
+
+    #[test]
+    fn build_pinned_column_separator_not_duplicated_at_band_edge() {
+        let cols = vec![
+            ColumnDef::new("a", "A", 100.0),
+            ColumnDef::new("b", "B", 150.0),
+        ];
+        let rows: Vec<RowRecord> = (0..3)
+            .map(|i| {
+                let mut r = RowRecord::new(i);
+                r.set("a", format!("a{i}"));
+                r.set("b", format!("b{i}"));
+                r
+            })
+            .collect();
+        let mut model = GridModel::new(cols, rows, 30.0, 40.0);
+        model.pinned_count = 1;
+        let rnw = model.row_number_width;
+        let state = GridState::new(model, 800.0, 600.0);
+        let b = SceneBuilder::new(1.0);
+        let frame = b.build(&state, None, None, None, None);
+
+        // Only the dedicated pinned-band-boundary line should exist at
+        // this x in the data-row area (y1 >= header height) — the new
+        // inter-pinned-column loop must not also draw one here
+        // (pinned_count == 1 means no inter-pinned boundary). Restrict to
+        // the data-row y-range so the header's own column-separator line
+        // (drawn at the same x for every header column) isn't counted.
+        let sep_x = rnw + 100.0 - 0.5;
+        let lines = line_primitives(&frame);
+        let seps: Vec<_> = lines
+            .iter()
+            .filter(|l| {
+                (l.x1 - sep_x).abs() < 0.01
+                    && (l.x2 - sep_x).abs() < 0.01
+                    && l.y1 >= 39.0
+            })
+            .collect();
+        assert_eq!(
+            seps.len(),
+            1,
+            "should have exactly one line at the pinned-band boundary, not duplicated"
+        );
     }
 
     // ── scrollbars ───────────────────────────────────────────
@@ -1715,7 +2831,7 @@ mod tests {
         let state = GridState::new(model, 800.0, 600.0);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Scrollbar thumb (a rect with scrollbar_thumb fill and
         // scrollbar_radius corner_radius).
@@ -1746,7 +2862,7 @@ mod tests {
         let state = GridState::new(model, 800.0, 600.0);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Scrollbar arrows are polygons with scrollbar_thumb fill.
         let arrow_polys: Vec<_> = polygon_primitives(&frame)
@@ -1768,8 +2884,8 @@ mod tests {
         let state = make_state();
         let b_light = SceneBuilder::new(1.0);
         let b_dark = SceneBuilder::with_theme(1.0, Theme::dark());
-        let f_light = b_light.build(&state, None, None, None);
-        let f_dark = b_dark.build(&state, None, None, None);
+        let f_light = b_light.build(&state, None, None, None, None);
+        let f_dark = b_dark.build(&state, None, None, None, None);
 
         // Background rects should differ.
         let bg_light = match &f_light.primitives[0] {
@@ -1789,7 +2905,7 @@ mod tests {
     fn build_high_dpr_frame_stores_dpr() {
         let state = make_state();
         let b = SceneBuilder::new(3.0);
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         assert_eq!(frame.dpr, 3.0);
     }
 
@@ -1809,10 +2925,15 @@ mod tests {
     }
 
     #[test]
-    fn flash_hint_debug_and_copy() {
-        let f = FlashHint { alpha_factor: 0.75 };
-        let f2 = f; // Copy
+    fn flash_hint_debug_and_clone() {
+        let f = FlashHint {
+            alpha_factor: 0.75,
+            cells: [(0, 0)].into_iter().collect(),
+            is_error: false,
+        };
+        let f2 = f.clone();
         assert_eq!(f.alpha_factor, f2.alpha_factor);
+        assert_eq!(f.cells, f2.cells);
         let s = format!("{:?}", f);
         assert!(s.contains("FlashHint"));
     }
@@ -1831,7 +2952,7 @@ mod tests {
             cursor_vy: 20.0,
             animated_offsets: vec![],
         };
-        let frame = b.build(&state, Some(&drag), None, None);
+        let frame = b.build(&state, Some(&drag), None, None, None);
         // Should still render without panic.
         assert!(frame.primitive_count() > 0);
     }
@@ -1844,7 +2965,7 @@ mod tests {
         state.apply(GridCommand::Search { query: "a0".into() });
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
 
         // Should have search highlight rects.
         let highlight_rects: Vec<_> = rect_primitives(&frame)
@@ -1864,7 +2985,7 @@ mod tests {
         let state = make_state();
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         let highlight_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()
             .filter(|r| {
@@ -1896,7 +3017,7 @@ mod tests {
         state.hovered_row = Some(1);
         let t = Theme::light();
         let b = SceneBuilder::with_theme(1.0, t.clone());
-        let frame = b.build(&state, None, None, None);
+        let frame = b.build(&state, None, None, None, None);
         // Should have hover overlay in pinned zone
         let hover_rects: Vec<_> = rect_primitives(&frame)
             .into_iter()

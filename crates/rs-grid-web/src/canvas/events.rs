@@ -32,10 +32,15 @@ impl GridCanvas {
 
                 // Only reset the canvas when physical dimensions
                 // actually change.  set_width/set_height wipe all
-                // pixels to transparent, which can produce a
-                // visible flash if the browser paints between the
-                // clear and the subsequent render() call.
-                if canvas.width() != new_w || canvas.height() != new_h {
+                // pixels to transparent — draw synchronously right
+                // after (render_immediate, not the rAF-deferred
+                // render()) so the browser never gets a chance to
+                // paint the just-cleared canvas, which is especially
+                // visible during a continuous drag-resize where this
+                // fires on every intermediate size.
+                let dims_changed =
+                    canvas.width() != new_w || canvas.height() != new_h;
+                if dims_changed {
                     canvas.set_width(new_w);
                     canvas.set_height(new_h);
                 }
@@ -46,6 +51,10 @@ impl GridCanvas {
                     width: css_w,
                     height: css_h,
                 });
+
+                if dims_changed {
+                    gc.render_immediate();
+                }
             },
         );
 
@@ -78,6 +87,11 @@ impl GridCanvas {
 
             // Close any active cell editor on scroll.
             gc.cancel_and_close_edit();
+
+            // The tooltip is positioned in fixed client coordinates at
+            // hover time — a scroll without a new mousemove would leave
+            // it visually detached from the cell it targeted.
+            gc.hide_validation_tooltip();
 
             // Convert delta to logical pixels regardless of unit.
             let (dx, dy) = {
@@ -142,6 +156,10 @@ impl GridCanvas {
                 *gc.0.hovered_menu_col.borrow_mut() = None;
                 gc.render();
             }
+            if gc.0.hovered_filter_row_icon_col.borrow().is_some() {
+                *gc.0.hovered_filter_row_icon_col.borrow_mut() = None;
+                gc.render();
+            }
         });
         let f: js_sys::Function =
             cb.as_ref().unchecked_ref::<js_sys::Function>().clone();
@@ -162,13 +180,16 @@ impl GridCanvas {
             let (x, y) = gc.canvas_xy(&evt);
             // Double-click on column separator → auto-fit width
             if let Some(col_idx) = gc.hit_col_resize_separator(x, y) {
-                let (cw, hcw, cp, hrr) = gc.autofit_params();
+                let (cw, hcw, cp, hrr, bcw, bpx, bgap) = gc.autofit_params();
                 gc.dispatch(GridCommand::AutoFitColumn {
                     col_idx,
                     char_width: cw,
                     header_char_width: hcw,
                     cell_padding: cp,
                     header_right_reserve: hrr,
+                    btn_char_width: bcw,
+                    btn_padding_x: bpx,
+                    btn_gap: bgap,
                 });
                 return;
             }
@@ -368,6 +389,21 @@ impl GridCanvas {
                 }
             }
 
+            // ── checkbox column ────────────────────────────
+            if gc.0.state.borrow().hit_test_checkbox_header(x, y) {
+                gc.dispatch(GridCommand::ToggleAllFilteredChecked);
+                return;
+            }
+            let checkbox_row = gc.0.state.borrow().hit_test_checkbox_row(x, y);
+            if let Some(row) = checkbox_row {
+                if evt.shift_key() {
+                    gc.dispatch(GridCommand::ExtendRowChecked(row));
+                } else {
+                    gc.dispatch(GridCommand::ToggleRowChecked(row));
+                }
+                return; // discrete click, no drag gesture
+            }
+
             // ── row header selection ──────────────────────
             let row = gc.0.state.borrow().hit_test_row_header(x, y);
             if let Some(row) = row {
@@ -419,6 +455,38 @@ impl GridCanvas {
                     col_idx: col,
                     start_client_x: evt.client_x() as f64,
                 });
+                return;
+            }
+
+            // ── floating filter row ───────────────────────
+            // Icon-first: the mini funnel icon opens the advanced
+            // condition/checklist popup (the header itself has no
+            // funnel icon of its own — this row is the only click
+            // path to it); clicking anywhere else in the cell opens
+            // a transient quick-filter `<input>` instead.
+            if let Some(col) = gc.hit_filter_row_icon(x, y) {
+                let (ax, ay) = gc.filter_row_icon_anchor(col);
+                let rect = gc.0.canvas.get_bounding_client_rect();
+                gc.show_column_filter_popup(
+                    col,
+                    (rect.left() + ax) as i32,
+                    (rect.top() + ay) as i32,
+                );
+                return;
+            }
+            if let Some(col) =
+                gc.0.state.borrow().hit_test_filter_row_cell(x, y)
+            {
+                // The quick-filter `<input>` is focused synchronously
+                // below, positioned exactly over this click point.
+                // Without this, the browser's native mousedown default
+                // action (focus the mousedown target, i.e. the canvas)
+                // runs right after this listener returns and steals
+                // focus straight back — firing the input's own blur
+                // handler and tearing it down before the user ever
+                // sees it.
+                evt.prevent_default();
+                gc.show_quick_filter_input(col);
                 return;
             }
 
@@ -498,7 +566,7 @@ impl GridCanvas {
                             start_scroll_y,
                             s.viewport.width,
                             s.viewport.height,
-                            s.model.header_height,
+                            s.model.effective_header_height(),
                             s.model.total_height(),
                             track_w,
                         ) {
@@ -507,7 +575,7 @@ impl GridCanvas {
                                 dy,
                                 s.model.total_height(),
                                 s.viewport.height,
-                                s.model.header_height,
+                                s.model.effective_header_height(),
                             )
                         } else {
                             return;
@@ -532,7 +600,7 @@ impl GridCanvas {
                             s.viewport.scroll_y,
                             s.viewport.width,
                             s.viewport.height,
-                            s.model.header_height,
+                            s.model.effective_header_height(),
                             s.model.total_height(),
                             track_h,
                         )
@@ -671,22 +739,19 @@ impl GridCanvas {
                     // Skip hover while an edit overlay or the
                     // context menu is open.
                     if gc.0.edit_input.borrow().is_some() {
+                        gc.hide_validation_tooltip();
                         return;
                     }
                     if super::dom_helpers::document()
                         .get_element_by_id("rs-grid-ctx-menu")
                         .is_some()
                     {
+                        gc.hide_validation_tooltip();
                         return;
                     }
                     let (x, y) = gc.canvas_xy(&evt);
-                    if gc.hit_header_menu_icon(x, y).is_some() {
-                        gc.set_cursor("pointer");
-                    } else if gc.hit_col_resize_separator(x, y).is_some() {
-                        gc.set_cursor("w-resize");
-                    } else {
-                        gc.set_cursor("default");
-                    }
+                    gc.refresh_hover_cursor(x, y);
+                    gc.refresh_validation_tooltip(x, y);
                     let new_row = gc.row_at(x, y);
                     if gc.0.state.borrow().hovered_row != new_row {
                         gc.dispatch(GridCommand::SetHoveredRow(new_row));
@@ -695,6 +760,17 @@ impl GridCanvas {
                     let new_menu = gc.hit_header_menu_icon(x, y);
                     if *gc.0.hovered_menu_col.borrow() != new_menu {
                         *gc.0.hovered_menu_col.borrow_mut() = new_menu;
+                        gc.render();
+                    }
+                    // Track which column's filter row icon is hovered
+                    // — same hover-background treatment as the menu
+                    // icon above.
+                    let new_filter_icon = gc.hit_filter_row_icon(x, y);
+                    if *gc.0.hovered_filter_row_icon_col.borrow()
+                        != new_filter_icon
+                    {
+                        *gc.0.hovered_filter_row_icon_col.borrow_mut() =
+                            new_filter_icon;
                         gc.render();
                     }
                 }
@@ -745,7 +821,8 @@ impl GridCanvas {
                     ..
                 }) => {
                     gc.0.drag_col_offsets.borrow_mut().clear();
-                    gc.set_cursor("default");
+                    let (x, y) = gc.canvas_xy(&evt);
+                    gc.refresh_hover_cursor(x, y);
                     let insert = gc.insertion_index(current_vx);
                     let to = if insert > col_idx { insert - 1 } else { insert };
                     if to != col_idx {
@@ -754,8 +831,8 @@ impl GridCanvas {
                             to_idx: to,
                         });
                     } else {
-                        // No move — just redraw to clear
-                        // the drag preview.
+                        // No move — just redraw to clear the drag
+                        // preview.
                         gc.render();
                     }
                 }
@@ -770,7 +847,8 @@ impl GridCanvas {
                         old_width: start_width,
                         old_flex: start_flex,
                     });
-                    gc.set_cursor("default");
+                    let (x, y) = gc.canvas_xy(&evt);
+                    gc.refresh_hover_cursor(x, y);
                 }
                 _ => {}
             }

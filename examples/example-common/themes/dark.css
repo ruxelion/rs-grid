@@ -8,6 +8,7 @@
   --rs-grid-header-bg: #2c2c2e;
   --rs-grid-header-text: #b0b0b0;
   --rs-grid-cell-text: #d0d0d0;
+  --rs-grid-filter-row-input-border: rgba(208, 208, 208, 0.20);
   --rs-grid-grid-line: #333335;
   --rs-grid-header-border: #333335;
   --rs-grid-selection-fill: rgba(60, 130, 245, 0.30);
@@ -18,24 +19,32 @@
   --rs-grid-scrollbar-thumb: rgba(180, 180, 180, 0.35);
   --rs-grid-row-alt-bg: #212123;
   --rs-grid-row-hover-bg: rgba(255, 255, 255, 0.05);
+  --rs-grid-checked-row-bg: rgba(99, 80, 240, 0.12);
+  --rs-grid-locked-cell-bg: rgba(255, 255, 255, 0.04);
+  --rs-grid-locked-cell-text: rgba(208, 208, 208, 0.55);
+  --rs-grid-invalid-cell-bg: rgba(220, 38, 38, 0.08);
+  --rs-grid-invalid-cell-border: #dc2626;
   --rs-grid-skeleton-fg: rgba(80, 80, 82, 0.78);
   --rs-grid-progress-track: #3c3f44;
   --rs-grid-progress-fill: #6350f0;
+  --rs-grid-checkbox-border: #646a73;
+  --rs-grid-checkbox-checked-bg: #6350f0;
   --rs-grid-drag-ghost-bg: #2c2c2e;
   --rs-grid-drag-ghost-text: #b0b0b0;
   --rs-grid-header-menu-icon: rgba(176, 176, 176, 0.70);
   --rs-grid-header-menu-icon-hover-bg: rgba(255, 255, 255, 0.06);
+  --rs-grid-header-filter-icon: rgba(176, 176, 176, 0.70);
+  --rs-grid-header-filter-icon-active: rgba(60, 130, 245, 0.90);
   --rs-grid-pinned-bg: #1c1c1e;
   --rs-grid-pinned-header-bg: #2c2c2e;
   --rs-grid-pinned-separator-color: #333335;
+  --rs-grid-column-separator-color: #333335;
   --rs-grid-gutter-bg: #2c2c2e;
   --rs-grid-gutter-text: rgba(176, 176, 176, 0.70);
   --rs-grid-gutter-border: #333335;
-  --rs-grid-cell-btn-primary-bg: #3c82f5;
-  --rs-grid-cell-btn-secondary-bg: #3c3f44;
-  --rs-grid-cell-btn-secondary-text: #d0d0d0;
-  --rs-grid-cell-btn-danger-bg: #dc2626;
-  --rs-grid-cell-btn-ghost-color: rgba(60, 130, 245, 0.78);
+  --rs-grid-cell-btn-primary-bg: #605dff;
+  --rs-grid-cell-btn-primary-text: #edf1fe;
+  --rs-grid-cell-btn-ghost-color: rgba(96, 93, 255, 0.78);
 
   /* context menu */
   --rs-grid-ctx-bg: #252527;
