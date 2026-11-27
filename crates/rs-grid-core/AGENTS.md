@@ -263,10 +263,14 @@ non-numeric cell never matches, it never panics (same precedent as
 `ProgressBar`): numeric compare for numeric-like columns, case-insensitive
 string equality otherwise.
 
-On a `CellFormat::ImageText` column a condition tests the label part of
-the raw `"KEY Label"` value (`image_text_label`, resolved once per filter
-like `is_numeric_like`), not the image key — which is often a whole
-`data:` URI that would otherwise match almost any short query.
+A condition tests what the cell **shows**: numeric-like (and unformatted)
+columns test the raw value, every other formatted column tests
+`format::display_text(raw, fmt)` — an `ImageText` label (never its KEY,
+often a whole `data:` URI that would match almost any short query), a
+`Styled` badge's text, a `Boolean`'s ✓/✗ label (raw when that label is
+empty), a `Custom` formatter's text. Resolved once per filter, like
+`is_numeric_like`. `display_text` is public so UIs (the filter popup's
+value list) can show the same text.
 
 `GridCommand::SetColumnFilter { col_key, condition }` sets/clears a
 column's filter (`condition.is_empty()` — an operator that needs a value

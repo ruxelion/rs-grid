@@ -4,7 +4,7 @@ use crate::{
     column::{ColumnDef, ColumnOffsets},
     datasource::{CellStatus, DataSource, VecDataSource},
     filter::{FilterCondition, UniqueValues},
-    format::CellFormat,
+    format::{self, CellFormat},
     row::RowRecord,
     sort::SortDir,
     validation::InvalidEditMode,
@@ -249,13 +249,6 @@ pub struct GridModel {
     pub invalid_edit_mode: InvalidEditMode,
 }
 
-/// The label part of a `CellFormat::ImageText` raw value `"KEY Label"` —
-/// the text the cell shows (`rs-grid-scene`'s `emit_image_text` uses the
-/// same split; no space means key only, empty label).
-fn image_text_label(raw: &str) -> &str {
-    raw.split_once(' ').map_or("", |(_, label)| label)
-}
-
 impl GridModel {
     /// Maximum number of rows for which client-side sort is performed.
     /// `apply_sort` is a no-op above this threshold and returns `false`.
@@ -474,23 +467,26 @@ impl GridModel {
         // Resolve each active filter's column numeric-ness once,
         // not once per row — otherwise this degrades from
         // O(n_rows * n_filters) to O(n_rows * n_filters * n_columns).
-        // Same for `ImageText`: its raw value is `"KEY Label"` (KEY often
-        // a whole `data:` URI), and a condition must test the label the
-        // cell shows — not, say, match "fr" inside an encoded image.
-        let active: Vec<(&str, &FilterCondition, bool, bool)> = self
-            .filters
-            .iter()
-            .map(|(col_key, condition)| {
-                let format = self
-                    .columns
-                    .iter()
-                    .find(|c| &c.key == col_key)
-                    .and_then(|c| c.format.as_ref());
-                let numeric = format.is_some_and(CellFormat::is_numeric_like);
-                let image_text = format.is_some_and(CellFormat::is_image_text);
-                (col_key.as_str(), condition, numeric, image_text)
-            })
-            .collect();
+        // Same for the text a condition tests: numeric-like columns (and
+        // unformatted ones) test the raw value, every other formatted
+        // column tests what the cell *shows* (`format::display_text`) —
+        // e.g. an `ImageText` label rather than its `data:` URI key, a
+        // badge's label, a boolean's ✓/✗.
+        let active: Vec<(&str, &FilterCondition, bool, Option<&CellFormat>)> =
+            self.filters
+                .iter()
+                .map(|(col_key, condition)| {
+                    let format = self
+                        .columns
+                        .iter()
+                        .find(|c| &c.key == col_key)
+                        .and_then(|c| c.format.as_ref());
+                    let numeric =
+                        format.is_some_and(CellFormat::is_numeric_like);
+                    let shown = format.filter(|_| !numeric);
+                    (col_key.as_str(), condition, numeric, shown)
+                })
+                .collect();
         let value_active: Vec<(&str, &HashSet<String>)> = self
             .value_filters
             .iter()
@@ -505,14 +501,16 @@ impl GridModel {
                 self.sort_order[i]
             };
             let passes =
-                active.iter().all(|(col_key, condition, numeric, it)| {
+                active.iter().all(|(col_key, condition, numeric, shown)| {
                     let cell = self
                         .data
                         .get_cell_ref(physical, col_key)
                         .unwrap_or_default();
-                    let text =
-                        if *it { image_text_label(&cell) } else { &cell };
-                    condition.matches(text, *numeric)
+                    match shown {
+                        Some(fmt) => condition
+                            .matches(&format::display_text(&cell, fmt), false),
+                        None => condition.matches(&cell, *numeric),
+                    }
                 }) && value_active.iter().all(|(col_key, allowed)| {
                     let cell = self
                         .data

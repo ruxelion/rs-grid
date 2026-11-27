@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{borrow::Cow, rc::Rc};
 
 // ── cell alignment ──────────────────────────────────────
 
@@ -523,6 +523,44 @@ pub fn format_cell(raw: &str, fmt: &CellFormat) -> FormattedCell {
     }
 }
 
+/// The text a cell *shows* for `raw` under `fmt` — what a user reads,
+/// and therefore what text filters and value lists should work on.
+///
+/// - `ImageText` (`"KEY Label"`): the label only — the KEY (often a whole
+///   `data:` URI) is drawn as an image, never shown as text.
+/// - `Styled`: the elements' texts, space-joined (e.g. a badge's label).
+/// - `Boolean`: the true/false label, or `raw` when that label is empty (a
+///   column showing no text must still be filterable).
+/// - `Number`/`Percent`/`Currency`/`Custom`: [`format_cell`]'s text.
+/// - `Image`, `ProgressBar`: `raw` (no text of their own).
+pub fn display_text<'a>(raw: &'a str, fmt: &CellFormat) -> Cow<'a, str> {
+    match fmt {
+        CellFormat::ImageText { .. } => {
+            Cow::Borrowed(raw.split_once(' ').map_or("", |(_, label)| label))
+        }
+        CellFormat::Styled(cb) => Cow::Owned(
+            cb(raw)
+                .iter()
+                .map(|e| e.text.as_str())
+                .filter(|t| !t.is_empty())
+                .collect::<Vec<_>>()
+                .join(" "),
+        ),
+        CellFormat::Image { .. } | CellFormat::ProgressBar { .. } => {
+            Cow::Borrowed(raw)
+        }
+        CellFormat::Boolean { .. } => {
+            let text = format_cell(raw, fmt).text;
+            if text.is_empty() {
+                Cow::Borrowed(raw)
+            } else {
+                Cow::Owned(text)
+            }
+        }
+        _ => Cow::Owned(format_cell(raw, fmt).text),
+    }
+}
+
 /// Format a f64 with fixed decimal places, a configurable
 /// decimal separator, and optional thousands grouping.
 fn format_number(
@@ -572,6 +610,54 @@ fn format_number(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn display_text_is_what_the_cell_shows() {
+        let image_text = CellFormat::ImageText {
+            base_url: String::new(),
+            suffix: String::new(),
+            image_size: 20.0,
+            border_radius: 4.0,
+            gap: 6.0,
+        };
+        assert_eq!(display_text("data:xyz France", &image_text), "France");
+        assert_eq!(display_text("data:xyz", &image_text), "");
+
+        let styled = CellFormat::Styled(Rc::new(|raw| {
+            vec![CellElement {
+                text: raw.to_uppercase(),
+                class: "badge".into(),
+                align: CellAlign::Left,
+            }]
+        }));
+        assert_eq!(display_text("finance", &styled), "FINANCE");
+
+        let check = CellFormat::Boolean {
+            true_label: "\u{2713}".into(),
+            false_label: "\u{2717}".into(),
+        };
+        assert_eq!(display_text("true", &check), "\u{2713}");
+        let blank = CellFormat::Boolean {
+            true_label: String::new(),
+            false_label: String::new(),
+        };
+        // No label shown → the raw value stays filterable.
+        assert_eq!(display_text("true", &blank), "true");
+
+        let money = CellFormat::Currency {
+            symbol: "$".into(),
+            decimal_places: 0,
+            thousands_sep: Some(','),
+            symbol_after: false,
+        };
+        assert_eq!(display_text("99000", &money), "$99,000");
+        let img = CellFormat::Image {
+            base_url: None,
+            border_radius: 4.0,
+            padding: 4.0,
+        };
+        assert_eq!(display_text("a.png", &img), "a.png");
+    }
 
     #[test]
     fn format_number_basic() {
