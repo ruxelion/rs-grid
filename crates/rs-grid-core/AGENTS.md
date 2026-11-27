@@ -155,9 +155,9 @@ bespoke, since their gating logic differs (`is_cell_editable` alone has a
   result can change between `StartEdit` and `CommitEdit`),
   `PasteAt`/`CutSelection` (`state/cmd_clipboard.rs` — locked cells are
   silently skipped, `continue`, not `break`, since a locked cell says
-  nothing about its neighbours), `rs-grid-web`'s `hit_locked_cell`
-  (`not-allowed` cursor), and `rs-grid-scene`'s `emit_cell` (themed
-  locked-cell overlay — see `rs-grid-scene/AGENTS.md`).
+  nothing about its neighbours), and `rs-grid-scene`'s `emit_cell`
+  (themed locked-cell overlay — see `rs-grid-scene/AGENTS.md`). Locked
+  cells do not change the hover cursor in `rs-grid-web`.
 
 ## Per-cell decoration (`CellDecorator`)
 
@@ -184,7 +184,7 @@ bespoke, since their gating logic differs (`is_cell_editable` alone has a
 - Consumed only by `rs-grid-scene`'s `emit_cell` (themed border width,
   consumer-supplied colors — see `rs-grid-scene/AGENTS.md`). No other
   crate needs to call it — there is no hit-test/cursor semantics for
-  decoration, unlike `editable_predicate`'s `hit_locked_cell`.
+  decoration.
 
 ## Cell button visibility (`CellButtonsVisible`)
 

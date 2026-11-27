@@ -247,19 +247,15 @@ The three framework wrappers (`rs-grid-leptos`/`dioxus`/`yew`) forward
 existing `on_validation_error` plumbing exactly — no wrapper-managed
 reactive signal exists for this or any other `GridCanvas` state today.
 
-## Locked-cell cursor feedback
+## Locked-cell feedback
 
-The mousemove hover handler (`canvas/events.rs`) sets `cursor: not-allowed`
-when hovering a cell that resolves to non-editable via
-`ColumnDef::is_cell_editable` — the single source of truth combining the
-grid-wide `GridModel.editable` toggle, the column's static `editable` flag,
-and a false-resolving `editable_predicate` (all in `rs-grid-core`) — using
-the `hit_locked_cell(vx, vy)` helper in `canvas/hittest.rs` (delegates to
-`GridState::hit_test` for an O(log n) row+col lookup). Because
-`is_cell_editable` folds in `GridModel.editable`, a globally read-only grid
-shows `not-allowed` on every cell, consistent with `emit_cell`'s locked
-overlay (`rs-grid-scene`). Paired with the `locked_cell_bg`/`locked_cell_text`
-`Theme` fields (see *CSS theme* below) for the themed visual.
+Hovering a cell that resolves to non-editable via
+`ColumnDef::is_cell_editable` does **not** change the mouse cursor — locked
+cells keep the `default` cursor (a `not-allowed` cursor on every read-only
+cell was too noisy, especially for a globally read-only grid). The only
+feedback is the themed locked-cell overlay painted by `emit_cell`
+(`rs-grid-scene`), driven by the `locked_cell_bg`/`locked_cell_text`
+`Theme` fields (see *CSS theme* below).
 
 ## Row-selection checkbox column
 
