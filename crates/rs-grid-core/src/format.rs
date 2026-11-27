@@ -382,6 +382,21 @@ impl CellFormat {
         matches!(self, CellFormat::ImageText { .. })
     }
 
+    /// Text a user sees (and should filter on) for `raw`.
+    ///
+    /// For [`CellFormat::ImageText`] the raw value is `"KEY Label"`
+    /// (`KEY` being an image key or a data URI), so only the label after
+    /// the first space is returned. Every other format returns `raw`
+    /// unchanged.
+    pub fn filter_text<'a>(&self, raw: &'a str) -> &'a str {
+        match self {
+            CellFormat::ImageText { .. } => {
+                raw.split_once(' ').map_or(raw, |(_, label)| label)
+            }
+            _ => raw,
+        }
+    }
+
     /// Returns `true` if this format's raw cell value is a
     /// number — used by `FilterCondition::matches` to decide
     /// whether `FilterOp::Equals`/`NotEquals` compare
