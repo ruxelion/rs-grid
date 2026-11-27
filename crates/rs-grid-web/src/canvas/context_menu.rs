@@ -304,6 +304,45 @@ fn builtin_shortcut(action: BuiltinAction, locale: &Locale) -> &str {
 // and the menu lifetime is bounded by the user's single
 // right-click gesture.
 
+/// Moves `menu` so it stays fully inside the visible part of the canvas:
+/// the canvas rect intersected with the browser viewport. The canvas can
+/// extend past the viewport (page scrolled horizontally, grid wider than
+/// the window), so clamping to the canvas alone is not enough.
+///
+/// Reads the menu's current `offset_width/height`, so call it again once
+/// the content has been built (the shell is measured while still empty).
+pub(super) fn clamp_menu_to_bounds(
+    menu: &HtmlElement,
+    canvas: &HtmlCanvasElement,
+) {
+    let rect = canvas.get_bounding_client_rect();
+    let (mut left, mut top) = (rect.left(), rect.top());
+    let (mut right, mut bottom) = (rect.right(), rect.bottom());
+    if let Some(win) = web_sys::window() {
+        let vw = win.inner_width().ok().and_then(|v| v.as_f64());
+        let vh = win.inner_height().ok().and_then(|v| v.as_f64());
+        if let Some(vw) = vw {
+            left = left.max(0.0);
+            right = right.min(vw);
+        }
+        if let Some(vh) = vh {
+            top = top.max(0.0);
+            bottom = bottom.min(vh);
+        }
+    }
+    let (left, top) = (left as i32, top as i32);
+    let mw = menu.offset_width();
+    let mh = menu.offset_height();
+    let max_x = (right as i32 - mw).max(left);
+    let max_y = (bottom as i32 - mh).max(top);
+    let cur_x = menu.offset_left();
+    let cur_y = menu.offset_top();
+    let cx = cur_x.min(max_x).max(left);
+    let cy = cur_y.min(max_y).max(top);
+    let _ = menu.style().set_property("left", &format!("{cx}px"));
+    let _ = menu.style().set_property("top", &format!("{cy}px"));
+}
+
 pub(super) fn create_menu_shell(
     x: i32,
     y: i32,
@@ -391,16 +430,7 @@ pub(super) fn create_menu_shell(
     body.append_child(&backdrop).expect("append backdrop");
     body.append_child(&menu).expect("append menu");
 
-    // Clamp position so the menu stays within the canvas bounds.
-    let rect = canvas.get_bounding_client_rect();
-    let mw = menu.offset_width();
-    let mh = menu.offset_height();
-    let max_x = (rect.right() as i32 - mw).max(rect.left() as i32);
-    let max_y = (rect.bottom() as i32 - mh).max(rect.top() as i32);
-    let cx = x.min(max_x).max(rect.left() as i32);
-    let cy = y.min(max_y).max(rect.top() as i32);
-    let _ = menu.style().set_property("left", &format!("{}px", cx));
-    let _ = menu.style().set_property("top", &format!("{}px", cy));
+    clamp_menu_to_bounds(&menu, canvas);
 
     (backdrop, menu)
 }

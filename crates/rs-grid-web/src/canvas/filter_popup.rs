@@ -20,7 +20,8 @@ use web_sys::{
 use super::{
     GridCanvas,
     context_menu::{
-        CtxColors, create_menu_shell, read_ctx_colors, remove_ctx_menu,
+        CtxColors, clamp_menu_to_bounds, create_menu_shell, read_ctx_colors,
+        remove_ctx_menu,
     },
     dom_helpers::{document, make_el, set_styles},
     edit::{dd_idx_from_event, dd_scroll_into_view, dd_set_highlight},
@@ -1435,6 +1436,10 @@ impl GridCanvas {
             .append_child(&daisy_btn_focus_visible_style(&doc))
             .expect("append button focus-visible style");
         menu.append_child(&buttons).expect("append buttons");
+
+        // The shell was clamped while still empty; now that the form is
+        // built (min-width, padding, checklist) its real size is known.
+        clamp_menu_to_bounds(&menu, &self.0.canvas);
 
         // Apply — dispatch the current operator/value, plus the value
         // checklist if it was rendered, and close.
