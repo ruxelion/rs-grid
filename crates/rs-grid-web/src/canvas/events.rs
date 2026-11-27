@@ -465,6 +465,11 @@ impl GridCanvas {
             // path to it); clicking anywhere else in the cell opens
             // a transient quick-filter `<input>` instead.
             if let Some(col) = gc.hit_filter_row_icon(x, y) {
+                // The popup focuses its own "Search..." input on open;
+                // same focus-steal hazard as the quick-filter branch
+                // below — without this the native mousedown default
+                // action hands focus straight back to the canvas.
+                evt.prevent_default();
                 let (ax, ay) = gc.filter_row_icon_anchor(col);
                 let rect = gc.0.canvas.get_bounding_client_rect();
                 gc.show_column_filter_popup(

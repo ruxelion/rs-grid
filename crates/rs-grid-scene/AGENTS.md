@@ -261,11 +261,13 @@ than new filter-icon-specific ones, so it reads as the same kind of
 icon button, not a differently-styled one; sized like the menu icon's
 own button box (`header_menu_icon_btn_h`, or `(fh - 12.0).max(8.0)`
 when that's `0.0`) but against the filter row's own band instead of
-the header's — a mini funnel icon (a single rounded `PolygonPrimitive`
-— wide top, a shoulder bend partway down, tapering to a rounded point,
-modeled after Heroicons' solid "funnel" glyph rather than a flat
-trapezoid + separate spout `Line`, which used to read as a triangle
-with a stick — reusing the `header_filter_icon`/`header_filter_icon_active`
+the header's — a mini AG Grid-style "filter list" icon (three
+centered, fully rounded `RectPrimitive` bars of decreasing width,
+clipped to the cell; geometry from `filter_glyph_bars`, derived from
+`header_filter_icon_size` and pixel-snapped — whole-pixel height/pitch,
+even widths around an integer center — so it stays crisp at DPR 1.
+Replaced an earlier funnel `PolygonPrimitive`) — reusing the
+`header_filter_icon`/`header_filter_icon_active`
 theme colors; this is the **only** place that draws this icon: the
 column header itself has none, by design — see `rs-grid-web/AGENTS.md`'s
 "Floating filter row" section for why), a small notification-style badge
@@ -293,6 +295,36 @@ Every `hh`-based clip/background/separator site elsewhere in
 header's own band) was extended to `hh + fh` (`data_top` locally) when
 this shipped — see `rs-grid-core/AGENTS.md`'s classification list for
 which `rs-grid-core` hit-test functions extend the same way.
+
+## Footer bar (`builder/footer.rs`)
+
+`footer::emit_footer` runs right after `emit_scrollbars`, so it paints over
+any row that straddles the body's bottom edge. The frame is
+`vp.height + footer_height` tall (`vp.height` is the scrollable body). Only
+existing primitives are used. Left: total rows, selected rows (muted) and,
+with pagination, the rows-per-page label + a `select-sm`-style box. Right:
+the range label (right-aligned against the strip) and the page strip.
+
+- **daisyUI is the visual reference**: the strip is a `join` of `btn btn-sm`
+  — one rounded outline plus inner divider `Line`s, the current page a
+  square `footer_page_active_bg` fill (`btn-active`), disabled prev/next at
+  the ends in `footer_disabled_text`. Colors and sizes are all
+  `Theme::footer_*` (`--rs-grid-footer-*`, daisyUI `btn-sm`/`select-sm`
+  values as defaults); `footer_height` is pushed into the model at
+  mount/`set_theme` like `filter_row_height`.
+- **Click targets are `FooterZone`s** (`frame.rs`): `SceneFrame::footer_zones`
+  + `hit_footer`, each carrying a `FooterAction`
+  (`FirstPage`/`PrevPage`/`NextPage`/`LastPage`/`GoToPage(p)`/`PageSizeMenu`).
+  Only *enabled* controls get a zone, so `rs-grid-web` never recomputes this
+  geometry. `footer_zones` is omitted from the serde output when empty, so
+  footer-less frames (and MCP fixtures) serialize unchanged; the insta
+  snapshots (Debug) gained a `footer_zones: []` line.
+- No text measurement exists here: left-hand items are positioned with the
+  same ~0.6 em-per-char estimate used for cell content, the right-hand strip
+  needs none (it is right-anchored).
+- With pagination the visible range from `visible_rows` is *page-local*; the
+  builder shifts it by `page_start` right after deriving the sub-row offset,
+  so every `ri` below indexes global data/selection/row numbers.
 
 ## Adding a primitive
 

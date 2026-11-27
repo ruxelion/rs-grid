@@ -158,13 +158,25 @@ fn simulate_page_cache_stream(
 fn App() -> impl IntoView {
     let row_count = RwSignal::new(1_000u64);
     let col_count = RwSignal::new(20usize);
-    // e2e-only: whether the row-selection checkbox column is shown. A plain
+    // Under Playwright (`navigator.webdriver === true`) the opt-in features
+    // below start off, so every pixel-coordinate spec/snapshot keeps its
+    // baseline layout; in a manual dev session (`just dev`) they start on,
+    // so the features under active development are visible by default.
+    // (Read via `Reflect`: web-sys gates `Navigator::webdriver` behind
+    // its unstable-APIs cfg.)
+    let automated = web_sys::window()
+        .and_then(|w| {
+            js_sys::Reflect::get(&w.navigator(), &"webdriver".into()).ok()
+        })
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    // Whether the row-selection checkbox column is shown. A plain
     // `<button>` (not an `<input>`) so it doesn't trip editing.spec.ts's
     // "no <input> exists in the DOM" assertion for the editor=None case.
-    let show_checkboxes = RwSignal::new(false);
-    // e2e-only: whether the floating filter row is shown — same rationale
-    // as `show_checkboxes` (plain `<button>`, off by default).
-    let show_filter_row = RwSignal::new(false);
+    let show_checkboxes = RwSignal::new(!automated);
+    // Whether the floating filter row is shown — same rationale as
+    // `show_checkboxes` (plain `<button>`, off under Playwright).
+    let show_filter_row = RwSignal::new(!automated);
     // e2e-only, manual QA: which DataSource backs the grid — see the
     // "data-source-select" control and DataSourceKind below.
     let data_source = RwSignal::new(DataSourceKind::Fn);
@@ -436,6 +448,16 @@ fn App() -> impl IntoView {
                             gc.set_editable(true);
                             gc.set_selectable(true);
                             gc.set_column_reorderable(true);
+                            // Re-applied on every rebuild (row/column
+                            // count, data source) so the toggles' state
+                            // survives it; untracked so toggling doesn't
+                            // itself rebuild the model.
+                            gc.set_show_checkbox_column(
+                                show_checkboxes.get_untracked(),
+                            );
+                            gc.set_show_filter_row(
+                                show_filter_row.get_untracked(),
+                            );
                             // e2e-only: reproduces daisyUI's tooltip via
                             // the class hook — rs-grid renders no
                             // visual of its own, this is entirely

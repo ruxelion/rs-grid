@@ -6,6 +6,10 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bpodwinski/83f89a42144442293ea8d8111edd7c98/raw/coverage.json)](https://github.com/ruxelion/rs-grid/actions/workflows/coverage.yml)
 [![Security Audit](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml/badge.svg)](https://github.com/ruxelion/rs-grid/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/crates/v/rs-grid-core?label=release)](https://crates.io/crates/rs-grid-core)
+[![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-brightgreen)](https://rs-grid.com/index.html#demo)
+[![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
+[![WebAssembly](https://img.shields.io/badge/WebAssembly-WASM-654FF0?logo=webassembly&logoColor=white)](https://webassembly.org/)
 
 A high-performance data grid built in Rust and compiled to WebAssembly.
 Renders on Canvas2D with viewport virtualisation. Viewport work is bounded by
@@ -38,6 +42,8 @@ rows up to very large datasets (row indices are `u64`).
 - **Scrollbars** — custom-drawn vertical and horizontal scrollbars with
   drag, click-track and arrow buttons
 - **Cell formatting** — number, currency, percent, boolean, image, image+text
+- **Footer & pagination** — total / selected row counts, rows-per-page
+  selector and page navigation (client-side paging), styled after daisyUI
 - **Theming** — CSS custom properties (`--rs-grid-*`), light and dark mode
 - **HiDPI** — device-pixel-ratio aware for crisp rendering on Retina displays
 - **Context menu** — right-click with built-in and custom actions

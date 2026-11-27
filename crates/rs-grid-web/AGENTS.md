@@ -441,9 +441,12 @@ surface.
   where neither exists in the DOM's focus path yet), each calling
   `remove_ctx_menu()` on `"Escape"` — same pattern the inline edit
   `<input>` and the search bar already use for the identical reason.
-  `tf_row.focus()` runs unconditionally at the end of
-  `show_column_filter_popup` (so something always holds focus by
-  default, even before the flyout is ever opened); `value_input.focus()`
+  The checklist's "Search..." input gets its own local Escape listener
+  too: at the end of `show_column_filter_popup` it takes initial focus
+  (AG-Grid style — type to narrow the values right away), falling back
+  to `tf_row.focus()` only when no checklist is rendered
+  (`UniqueValues::TooMany`), so something always holds focus by
+  default, even before the flyout is ever opened; `value_input.focus()`
   moved from there into the flyout's own open sequence, firing only once
   it's actually visible — focusing a `display: none` element is a
   no-op, so leaving the old unconditional call in place after the
@@ -617,9 +620,11 @@ name + "⋮" menu only).
   tearing it down before the user (or a Playwright test) ever sees it.
   This only affects this overlay: the inline cell editor opens on
   `dblclick` (focus-stealing happens on a later, separate event, not
-  the same click's remaining mouseup/click), and the filter row's own
-  funnel icon opens a popup that isn't positioned under the cursor and
-  isn't auto-focused on open — it didn't need this. Caught only via an actual
+  the same click's remaining mouseup/click). The filter row's own icon
+  branch calls `prevent_default()` too, for the same reason: its popup
+  focuses the checklist's "Search..." input on open (AG Grid's Set
+  Filter does the same), and without it focus landed back on the
+  canvas. Caught only via an actual
   Playwright run (`page.locator('canvas').click({position})` on the
   filter row consistently opened, then immediately closed, the input);
   a manual chrome-devtools MCP session didn't reproduce it reliably
