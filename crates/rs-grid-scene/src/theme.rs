@@ -420,7 +420,7 @@ impl Theme {
             progress_track: Color::rgb(226, 232, 240),
             progress_fill: Color::rgb(66, 42, 213),
             progress_height: 8.0,
-            progress_radius: 8.0,
+            progress_radius: 4.0,
             // checkbox — border = mid gray, checked fill = DaisyUI primary
             checkbox_size: 18.0,
             checkbox_radius: 4.0,
@@ -432,7 +432,7 @@ impl Theme {
             cell_padding: 12.0,
             // scrollbar
             scrollbar_width: 14.0,
-            scrollbar_radius: 6.0,
+            scrollbar_radius: 4.0,
             scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
@@ -448,7 +448,7 @@ impl Theme {
             // column header menu icon
             header_menu_icon: Color::rgba(24, 29, 31, 180),
             header_menu_icon_hover_bg: Color::rgba(0, 0, 0, 15),
-            header_menu_icon_radius: 3.0,
+            header_menu_icon_radius: 4.0,
             header_menu_icon_margin_r: 10.0,
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
@@ -568,7 +568,7 @@ impl Theme {
             progress_track: Color::rgb(60, 63, 68),
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
-            progress_radius: 8.0,
+            progress_radius: 4.0,
             // checkbox — border = muted gray, checked fill = brighter primary
             checkbox_size: 18.0,
             checkbox_radius: 4.0,
@@ -580,7 +580,7 @@ impl Theme {
             cell_padding: 12.0,
             // scrollbar
             scrollbar_width: 14.0,
-            scrollbar_radius: 6.0,
+            scrollbar_radius: 4.0,
             scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
@@ -597,7 +597,7 @@ impl Theme {
             header_menu_icon: Color::rgba(176, 176, 176, 178),
             // rgba(255, 255, 255, 0.06) → a = 15
             header_menu_icon_hover_bg: Color::rgba(255, 255, 255, 15),
-            header_menu_icon_radius: 3.0,
+            header_menu_icon_radius: 4.0,
             header_menu_icon_margin_r: 10.0,
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,
@@ -716,7 +716,7 @@ impl Theme {
             progress_track: Color::rgb(55, 62, 71),
             progress_fill: Color::rgb(99, 80, 240),
             progress_height: 8.0,
-            progress_radius: 8.0,
+            progress_radius: 4.0,
             // checkbox — border = muted slate, checked fill = brighter primary
             checkbox_size: 18.0,
             checkbox_radius: 4.0,
@@ -728,7 +728,7 @@ impl Theme {
             cell_padding: 12.0,
             // scrollbar
             scrollbar_width: 14.0,
-            scrollbar_radius: 6.0,
+            scrollbar_radius: 4.0,
             scrollbar_inset: 3.0,
             // column drag
             drag_overlay: Color::rgba(0, 0, 0, 8),
@@ -746,7 +746,7 @@ impl Theme {
             header_menu_icon: Color::rgba(173, 186, 199, 178),
             // rgba(255, 255, 255, 0.06) → a = 15
             header_menu_icon_hover_bg: Color::rgba(255, 255, 255, 15),
-            header_menu_icon_radius: 3.0,
+            header_menu_icon_radius: 4.0,
             header_menu_icon_margin_r: 10.0,
             header_menu_icon_btn_w: 22.0,
             header_menu_icon_btn_h: 22.0,

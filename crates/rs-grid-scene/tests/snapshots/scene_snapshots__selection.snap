@@ -1,6 +1,5 @@
 ---
 source: crates/rs-grid-scene/tests/scene_snapshots.rs
-assertion_line: 22
 expression: frame
 ---
 SceneFrame {
@@ -3552,7 +3551,7 @@ SceneFrame {
                 },
                 stroke: None,
                 stroke_width: 0.0,
-                corner_radius: 6.0,
+                corner_radius: 4.0,
                 clip: None,
             },
         ),
