@@ -505,13 +505,25 @@ surface.
     the filter row's own icon active/inactive color (and badge, below)
     meaningful after a user
     round-trips through "uncheck some → recheck all" via Select All.
-  - `CellFormat::ImageText` columns (raw value `"KEY Label"`, KEY often a
-    whole `data:` URI — e.g. the demo's Country flags) list each value as
-    the cell shows it: an `<img>` built like the cell's own
-    (`base_url + KEY + suffix`, `image_size`, `border_radius`) plus the
-    label, sorted by label. Search matches each row's shown text
-    (`text_content()`), never the raw value. The checkbox still carries
-    the raw value, so `SetColumnValueFilter` is unchanged.
+  - Every value is listed **as its cell shows it** (`value_look`), never
+    as the raw string: `ImageText` → the image (`base_url + KEY +
+    suffix`, `image_size`, `border_radius`) + label (the KEY is often a
+    whole `data:` URI, e.g. the demo's Country flags); `Image` → the
+    image; `Number`/`Percent`/`Currency` → `format_cell`'s text;
+    `ProgressBar` → the bar's `NN%`; `Styled`/`Boolean`/`Custom` →
+    `rs_grid_core::format::display_text`; an empty shown value →
+    `(Blanks)`. Numeric columns sort by value, the rest by shown label.
+    Search matches each row's shown text (`text_content()`). The
+    checkbox still carries the raw value, so `SetColumnValueFilter` is
+    unchanged.
+  - **Performance**: the rows `Vec` (each entry holds the raw value,
+    possibly a long `data:` URI) is shared through one `Rc`, and a single
+    delegated `change` listener on the list recomputes "(Select All)" —
+    an earlier per-checkbox listener cloned the whole `Vec` once per row
+    (O(n²)), freezing the popup ~10 s on the ~250-value Country column.
+  - Rows are roomy (`min-height: 32px`, `4px 8px` padding, 10px gap,
+    4px radius, hover background from `--rs-grid-ctx-hover-bg`), like
+    AG Grid's set-filter list; the list itself scrolls past 260px.
   - Every checkbox (`select_all` and each value row) reuses the
     canvas-drawn row-selection checkbox column's own theme tokens
     (`Theme::checkbox_size`/`_border`/`_border_width`/`_radius`/
