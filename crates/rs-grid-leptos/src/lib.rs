@@ -40,6 +40,9 @@ pub type CellButtonClickCb = Box<dyn Fn(u64, String, String)>;
 /// handle from `on_mount` to get the current state.
 pub type CheckedRowsChangedCb = Box<dyn Fn()>;
 
+/// Callback type for page changes: `(zero_based_page, rows_per_page)`.
+pub type PageChangeCb = Box<dyn Fn(u64, u64)>;
+
 /// A Leptos component that renders an rs-grid onto a `<canvas>` element.
 ///
 /// # Props
@@ -84,6 +87,13 @@ pub fn GridCanvas(
     /// on the `on_mount` handle to get the current state.
     #[prop(optional)]
     on_checked_rows_changed: Option<CheckedRowsChangedCb>,
+    /// Called when the current page or the rows-per-page size changes
+    /// (footer click, keyboard navigation past a page edge, a filter that
+    /// shrank the row set). Arguments: `(zero_based_page, rows_per_page)`.
+    /// Enable the footer and pagination on the `model` with
+    /// `GridModelBuilder::show_footer(true).pagination(true)`.
+    #[prop(optional)]
+    on_page_change: Option<PageChangeCb>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
 
@@ -97,6 +107,7 @@ pub fn GridCanvas(
         RefCell::new(on_validation_state_changed);
     let on_cell_button_click_slot = RefCell::new(on_cell_button_click);
     let on_checked_rows_changed_slot = RefCell::new(on_checked_rows_changed);
+    let on_page_change_slot = RefCell::new(on_page_change);
 
     // Holder for the mounted GridCanvas handle, shared across effects and
     // cleanup. SendWrapper allows Rc<RefCell<...>> to satisfy Send+Sync for
@@ -183,6 +194,11 @@ pub fn GridCanvas(
         if let Some(cb) = on_checked_rows_changed_slot.borrow_mut().take() {
             gc.set_on_checked_rows_changed(move || {
                 cb();
+            });
+        }
+        if let Some(cb) = on_page_change_slot.borrow_mut().take() {
+            gc.set_on_page_change(move |page, size| {
+                cb(page, size);
             });
         }
         let on_mount_cb = on_mount_slot.borrow_mut().take();

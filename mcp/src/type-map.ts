@@ -9,6 +9,7 @@ export const TYPE_TO_DOC_PATH: Record<string, string> = {
   gridmodel: "api/grid-model",
   gridmodelbuilder: "api/grid-model",
   invalideditmode: "api/grid-model",
+  footerlabels: "api/grid-model",
   columndef: "api/column-def",
   cellformat: "api/column-def",
   celleditor: "api/column-def",
@@ -34,6 +35,8 @@ export const TYPE_TO_DOC_PATH: Record<string, string> = {
   lineprimitive: "api/scene-primitive",
   polygonprimitive: "api/scene-primitive",
   imageprimitive: "api/scene-primitive",
+  footeraction: "api/scene-primitive",
+  footerzone: "api/scene-primitive",
 
   // Data sources
   datasource: "data/overview",

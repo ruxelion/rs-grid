@@ -121,7 +121,15 @@ impl GridCanvas {
     /// doesn't stay stale (e.g. showing `default` over a locked cell,
     /// or over a resize separator) until the next `mousemove` fires.
     pub(super) fn refresh_hover_cursor(&self, vx: f64, vy: f64) {
-        if self.hit_header_menu_icon(vx, vy).is_some()
+        if self.in_footer_band(vy) {
+            // The footer is not part of the data area: pointer over an
+            // enabled control, plain cursor elsewhere.
+            if self.hit_footer(vx, vy).is_some() {
+                self.set_cursor("pointer");
+            } else {
+                self.set_cursor("default");
+            }
+        } else if self.hit_header_menu_icon(vx, vy).is_some()
             || self.hit_filter_row_icon(vx, vy).is_some()
             || self
                 .0
@@ -149,13 +157,19 @@ impl GridCanvas {
         if vy < hh {
             return None;
         }
+        // Below the scrollable body sits the footer, not data rows.
+        if model.effective_footer_height() > 0.0 && vy >= state.viewport.height
+        {
+            return None;
+        }
         if vx < 0.0 || vx > state.viewport.width {
             return None;
         }
         let abs_y = vy - hh + state.viewport.scroll_y;
-        let row = (abs_y / model.row_height) as u64;
-        if row < model.display_row_count() {
-            Some(row)
+        // Relative to the current page's first row (0 without pagination).
+        let local = (abs_y / model.row_height) as u64;
+        if local < model.page_row_count() {
+            Some(model.page_start() + local)
         } else {
             None
         }

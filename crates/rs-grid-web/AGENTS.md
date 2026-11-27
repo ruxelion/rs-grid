@@ -590,7 +590,9 @@ name + "⋮" menu only).
   `filter_row_icon_anchor(col_idx)` (`canvas/hittest.rs`) mirror the
   header's own menu-icon hit-test structure (`hit_header_menu_icon`/
   `menu_icon_anchor`) — narrow a whole-cell hit-test result to a small
-  button rect — but checked against the filter row's own vertical band
+  button rect, and the popup hangs from the *button's* bottom-left
+  corner, not the row's, AG-Grid style — but checked against the filter
+  row's own vertical band
   (`[effective_header_height(), effective_header_height() +
   effective_filter_row_height())`) instead of the header's, via
   `GridState::hit_test_filter_row_cell` (rs-grid-core) for column-cell
@@ -651,6 +653,48 @@ name + "⋮" menu only).
   Canvas-side `Theme` fields back that closed look — see
   `rs-grid-scene/AGENTS.md`.
 
+## Footer bar & pagination (`canvas/footer.rs`)
+
+The footer is drawn on the canvas by `rs-grid-scene` (see its
+`AGENTS.md`); this crate only routes clicks and owns the one DOM piece, the
+rows-per-page menu.
+
+- `attach_mousedown` checks the footer **first** (right after
+  `remove_ctx_menu()`): `in_footer_band(y)` (`y >= viewport.height` with the
+  footer shown) swallows the click so it never reaches the scrollbars or cell
+  selection, and `hit_footer` resolves the enabled `FooterZone` from the last
+  frame. `refresh_hover_cursor` shows `pointer` over zones, `default`
+  elsewhere in the band; `row_at` returns `None` below the body.
+- Every other pointer route is covered too: `GridState::hit_test*` return
+  `None` over the footer (dblclick-to-edit, validation tooltip, locked
+  cursor), `attach_contextmenu` returns early there, and the selection-drag
+  paths hit-test through `clamp_to_body` so dragging down over the footer
+  keeps extending the selection and auto-scrolling.
+- Page buttons dispatch `GridCommand::SetPage`; the selector opens
+  `show_page_size_menu`, which reuses the context menu's DOM shell
+  (`create_menu_shell`/`make_menu_item`, so same ids, theme tokens and
+  outside-click/`Escape` closing) and is placed **above** the selector. The
+  current size is checked; a size missing from `page_size_options` is added.
+- Localized text: `Locale::footer_labels()` → `GridCommand::SetFooterLabels`
+  at `mount()` and in `set_locale()` (keys `footer_rows`, `footer_selected`,
+  `footer_rows_per_page`, `footer_range` in every `locale/*.toml`).
+- `fetcher.rs` and `row_at` are page-aware (`page_start()`/`page_row_count()`).
+- Public API: `set_show_footer`, `set_pagination_enabled`, `set_page`,
+  `set_page_size`, `set_page_size_options`, `current_page`, `page_size`,
+  `page_count`, `set_on_page_change`.
+- `footer::text_measurer()` builds the scene's `TextMeasurer` at `mount()`:
+  an offscreen Canvas2D `measureText` with the same font string as
+  `rs-grid-render-canvas`'s `draw_text`, memoized (the footer measures the
+  same few strings every frame). Keep the font string in sync with the
+  renderer.
+- Hover: `set_hovered_footer` (mousemove hover branch + `mouseleave`) writes
+  `SceneBuilder::hovered_footer` and re-renders only when it changes.
+- New theme vars: `--rs-grid-footer-{height,bg,text,text-muted,border,
+  border-width,button-border,button-bg,button-hover-bg,badge-bg,badge-text,
+  page-active-bg,page-active-text,disabled-text,button-radius,button-height,
+  font-size,font-bold}`. The bar defaults to the header's background/border; controls
+  follow daisyUI `btn-sm`/`select-sm`/`badge-soft`.
+
 ## Server-side page fetcher (`FetchConfig`)
 
 `canvas/fetcher.rs` implements the automatic fetch coordinator behind
@@ -708,6 +752,7 @@ Callbacks fired during `dispatch()` after `GridState::apply()` returns:
 | `set_on_cell_button_click` | User clicked a `ColumnDef.cell_buttons[i]` |
 | `set_on_checked_rows_changed` | `ToggleRowChecked`, `ExtendRowChecked`, `ToggleAllFilteredChecked` (row-selection checkbox column) |
 | `set_on_sort_changed` | `ToggleSort` (header click), `SetSort`, `ClearSort` — read `sort_state()`. With `DataSourceMode::ServerSide` the indicator follows the click but rows are not reordered: the host re-queries its backend |
+| `set_on_page_change` | The current page or the page size changed — `(zero_based_page, rows_per_page)`. Compares a before/after snapshot, so it covers footer clicks, `SetPage`/`SetPageSize`, arrow-key navigation past a page edge and a filter shrinking the row set |
 
 **Re-entrancy**: callbacks fire *after* the dispatch path has released its
 borrow on `state` — `apply()` returns its output by value, and each callback

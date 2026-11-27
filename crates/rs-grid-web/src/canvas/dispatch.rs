@@ -171,7 +171,13 @@ impl GridCanvas {
         {
             cache.clear();
         }
+        // Snapshot the page before the command: it can change through
+        // several routes (footer click, `SetPage`/`SetPageSize`, a filter
+        // shrinking the row set, arrow-key navigation past a page edge),
+        // so compare before/after instead of classifying commands.
+        let page_before = self.page_snapshot();
         let out = self.0.state.borrow_mut().apply(cmd);
+        let page_after = self.page_snapshot();
         if let CommandOutput::SortWarning { row_count, limit } = &out {
             web_sys::console::warn_1(&JsValue::from_str(&format!(
                 "rs-grid: sort skipped — {row_count} rows exceeds \
@@ -237,10 +243,23 @@ impl GridCanvas {
                 cb();
             }
         }
+        if page_before != page_after {
+            let cb = self.0.on_page_change.borrow().clone();
+            if let Some(cb) = cb {
+                cb(page_after.0, page_after.1);
+            }
+        }
         if triggers_fetch {
             self.maybe_fetch_pages();
         }
         out
+    }
+
+    /// `(current page, page size)` — what `on_page_change` compares
+    /// across a command. The page is always `0` while pagination is off.
+    fn page_snapshot(&self) -> (u64, u64) {
+        let s = self.0.state.borrow();
+        (s.model.current_page(), s.model.page_size)
     }
 
     /// Apply a command then redraw.
@@ -327,6 +346,21 @@ impl GridCanvas {
     /// [`DataSourceMode::ServerSide`]: rs_grid_core::model::DataSourceMode::ServerSide
     pub fn set_on_sort_changed(&self, cb: impl Fn() + 'static) {
         *self.0.on_sort_changed.borrow_mut() = Some(Rc::new(cb));
+    }
+
+    /// Register a callback fired when the current page or the page size
+    /// changes. Arguments: `(zero_based_page, rows_per_page)`.
+    ///
+    /// Fires for every route that moves the page — a footer click,
+    /// `SetPage`/`SetPageSize`, arrow-key navigation past a page edge, or
+    /// a filter that shrank the row set below the current page.
+    ///
+    /// # Re-entrancy
+    ///
+    /// Dispatching another `GridCommand` from inside this callback is
+    /// safe (see [`GridCanvas::set_on_change`] for the mechanism).
+    pub fn set_on_page_change(&self, cb: impl Fn(u64, u64) + 'static) {
+        *self.0.on_page_change.borrow_mut() = Some(Rc::new(cb));
     }
 
     /// Register a callback fired when a per-column validator rejects an

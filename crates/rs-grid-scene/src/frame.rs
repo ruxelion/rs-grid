@@ -37,6 +37,60 @@ impl ButtonZone {
     }
 }
 
+/// What a footer control does when clicked.
+///
+/// Page numbers are zero-based, like
+/// [`GridCommand::SetPage`](rs_grid_core::commands::GridCommand::SetPage).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub enum FooterAction {
+    /// Jump to the first page.
+    FirstPage,
+    /// Go to the previous page.
+    PrevPage,
+    /// Go to the next page.
+    NextPage,
+    /// Jump to the last page.
+    LastPage,
+    /// Jump to a specific zero-based page.
+    GoToPage(u64),
+    /// Open the rows-per-page menu.
+    PageSizeMenu,
+}
+
+/// A hit-testable zone for a footer control (page button, page-size
+/// selector).
+///
+/// Populated by `SceneBuilder::build()` next to the drawing primitives, so
+/// the web layer routes footer clicks without recomputing the layout.
+/// Only *enabled* controls get a zone: a disabled "previous" button at the
+/// first page is not clickable.
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct FooterZone {
+    /// What the control does.
+    pub action: FooterAction,
+    /// Left edge in viewport-relative logical pixels.
+    pub x: f64,
+    /// Top edge in viewport-relative logical pixels.
+    pub y: f64,
+    /// Width in logical pixels.
+    pub width: f64,
+    /// Height in logical pixels.
+    pub height: f64,
+}
+
+impl FooterZone {
+    /// Returns `true` when `(vx, vy)` falls inside this zone.
+    #[inline]
+    pub fn contains(&self, vx: f64, vy: f64) -> bool {
+        vx >= self.x
+            && vx < self.x + self.width
+            && vy >= self.y
+            && vy < self.y + self.height
+    }
+}
+
 /// A complete, immutable snapshot of what should be drawn for one frame.
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
@@ -48,6 +102,14 @@ pub struct SceneFrame {
     /// Populated by `SceneBuilder`; consumed by the web event
     /// layer for mousedown routing.
     pub button_zones: Vec<ButtonZone>,
+    /// Footer control hit-zones for the current frame (empty when the
+    /// footer is hidden). Omitted from the serialized form when empty,
+    /// so frames built without a footer serialize exactly as before.
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Vec::is_empty")
+    )]
+    pub footer_zones: Vec<FooterZone>,
     /// Viewport width in logical pixels.
     pub viewport_width: f64,
     /// Viewport height in logical pixels.
@@ -62,6 +124,7 @@ impl SceneFrame {
         Self {
             primitives: Vec::new(),
             button_zones: Vec::new(),
+            footer_zones: Vec::new(),
             viewport_width,
             viewport_height,
             dpr,
@@ -83,6 +146,17 @@ impl SceneFrame {
     /// Return the first [`ButtonZone`] that contains `(vx, vy)`.
     pub fn hit_button(&self, vx: f64, vy: f64) -> Option<&ButtonZone> {
         self.button_zones.iter().find(|z| z.contains(vx, vy))
+    }
+
+    /// Append a footer control zone to the frame.
+    #[inline]
+    pub fn push_footer_zone(&mut self, z: FooterZone) {
+        self.footer_zones.push(z);
+    }
+
+    /// Return the first [`FooterZone`] that contains `(vx, vy)`.
+    pub fn hit_footer(&self, vx: f64, vy: f64) -> Option<&FooterZone> {
+        self.footer_zones.iter().find(|z| z.contains(vx, vy))
     }
 
     /// Return the number of primitives in this frame.

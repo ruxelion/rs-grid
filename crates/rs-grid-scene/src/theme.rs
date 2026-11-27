@@ -119,6 +119,61 @@ pub struct Theme {
     /// pixels. The horizontal inset is a fixed `4.0` (not themed —
     /// only the vertical margin was asked to be configurable).
     pub filter_row_input_margin_v: f64,
+    // ── footer bar (row counts, rows-per-page selector, pagination)
+    // ──────────
+    // Defaults mirror daisyUI: the pagination is a `join` of `btn btn-sm`
+    // (32px tall, softly filled, `--radius-field` corners, current page
+    // in the primary color), the rows-per-page box a `select-sm`, the
+    // selected-rows count a soft primary `badge`. The bar mirrors the
+    // header band (same background and border), and its controls use the
+    // grid background, like the floating filter row's input boxes.
+    /// Height of the footer bar in logical pixels, when shown
+    /// (`GridModel::show_footer`). Pushed into the model at
+    /// mount/`set_theme` the same way `filter_row_height` is.
+    pub footer_height: f64,
+    /// Footer background. Defaults to the header's background.
+    pub footer_bg: Color,
+    /// Footer text color (counts, labels, page numbers). Defaults to
+    /// the header's text color.
+    pub footer_text: Color,
+    /// Secondary footer text (the "selected" count, the range label).
+    pub footer_text_muted: Color,
+    /// Divider line between the grid body and the footer.
+    pub footer_border: Color,
+    /// Width of the footer divider and of the control borders.
+    pub footer_border_width: f64,
+    /// Border of the page strip and of the rows-per-page box.
+    pub footer_button_border: Color,
+    /// Fill of the page strip's buttons and of the rows-per-page box.
+    /// Defaults to the grid background, so the controls stand out on
+    /// the header-colored bar.
+    pub footer_button_bg: Color,
+    /// Fill of the page button or rows-per-page box under the pointer.
+    pub footer_button_hover_bg: Color,
+    /// Background of the selected-rows badge while rows are selected
+    /// (daisyUI `badge-soft badge-primary`).
+    pub footer_badge_bg: Color,
+    /// Text color of the selected-rows badge while rows are selected.
+    pub footer_badge_text: Color,
+    /// Background of the current page button (daisyUI `btn-active` in
+    /// the primary color).
+    pub footer_page_active_bg: Color,
+    /// Text color of the current page button (`primary-content`).
+    pub footer_page_active_text: Color,
+    /// Text color of disabled controls (prev/next at the ends, the page
+    /// ellipsis) — daisyUI `btn-disabled`.
+    pub footer_disabled_text: Color,
+    /// Corner radius of the page buttons and the rows-per-page box
+    /// (daisyUI `--radius-field`).
+    pub footer_button_radius: f64,
+    /// Height of the footer's controls (daisyUI `btn-sm`: 32px).
+    pub footer_button_height: f64,
+    /// Footer font size. Defaults to the header's font size.
+    pub footer_font_size: f64,
+    /// Draw every footer text in the bold weight, like the header's
+    /// labels (`header_font_bold`). When `false` only the current page
+    /// and the selected-rows badge are bold.
+    pub footer_font_bold: bool,
     /// Height of each data row in logical pixels.
     pub row_height: f64,
 
@@ -401,6 +456,24 @@ impl Theme {
             header_height: 48.0,
             filter_row_height: 52.0,
             filter_row_input_margin_v: 10.0,
+            footer_height: 48.0,
+            footer_bg: Color::rgb(248, 249, 251),
+            footer_text: Color::rgb(24, 29, 31),
+            footer_text_muted: Color::rgba(24, 29, 31, 153),
+            footer_border: Color::rgb(186, 191, 199),
+            footer_border_width: 1.0,
+            footer_button_border: Color::rgba(24, 29, 31, 31),
+            footer_button_bg: Color::rgb(255, 255, 255),
+            footer_button_hover_bg: Color::rgba(24, 29, 31, 26),
+            footer_badge_bg: Color::rgba(66, 42, 213, 26),
+            footer_badge_text: Color::rgb(66, 42, 213),
+            footer_page_active_bg: Color::rgb(66, 42, 213),
+            footer_page_active_text: Color::rgb(255, 255, 255),
+            footer_disabled_text: Color::rgba(24, 29, 31, 77),
+            footer_button_radius: 6.0,
+            footer_button_height: 32.0,
+            footer_font_size: 14.0,
+            footer_font_bold: true,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -549,6 +622,24 @@ impl Theme {
             header_height: 48.0,
             filter_row_height: 52.0,
             filter_row_input_margin_v: 10.0,
+            footer_height: 48.0,
+            footer_bg: Color::rgb(44, 44, 46),
+            footer_text: Color::rgb(176, 176, 176),
+            footer_text_muted: Color::rgba(176, 176, 176, 153),
+            footer_border: Color::rgb(51, 51, 53),
+            footer_border_width: 1.0,
+            footer_button_border: Color::rgba(208, 208, 208, 46),
+            footer_button_bg: Color::rgb(28, 28, 30),
+            footer_button_hover_bg: Color::rgba(208, 208, 208, 38),
+            footer_badge_bg: Color::rgba(99, 80, 240, 61),
+            footer_badge_text: Color::rgb(176, 166, 255),
+            footer_page_active_bg: Color::rgb(99, 80, 240),
+            footer_page_active_text: Color::rgb(255, 255, 255),
+            footer_disabled_text: Color::rgba(176, 176, 176, 77),
+            footer_button_radius: 6.0,
+            footer_button_height: 32.0,
+            footer_font_size: 14.0,
+            footer_font_bold: true,
             row_height: 42.0,
             // typography
             font_size: 14.0,
@@ -697,6 +788,24 @@ impl Theme {
             header_height: 48.0,
             filter_row_height: 52.0,
             filter_row_input_margin_v: 10.0,
+            footer_height: 48.0,
+            footer_bg: Color::rgb(45, 51, 59),
+            footer_text: Color::rgb(173, 186, 199),
+            footer_text_muted: Color::rgba(173, 186, 199, 153),
+            footer_border: Color::rgb(68, 76, 86),
+            footer_border_width: 1.0,
+            footer_button_border: Color::rgba(173, 186, 199, 46),
+            footer_button_bg: Color::rgb(34, 39, 46),
+            footer_button_hover_bg: Color::rgba(173, 186, 199, 38),
+            footer_badge_bg: Color::rgba(99, 80, 240, 61),
+            footer_badge_text: Color::rgb(176, 166, 255),
+            footer_page_active_bg: Color::rgb(99, 80, 240),
+            footer_page_active_text: Color::rgb(255, 255, 255),
+            footer_disabled_text: Color::rgba(173, 186, 199, 77),
+            footer_button_radius: 6.0,
+            footer_button_height: 32.0,
+            footer_font_size: 14.0,
+            footer_font_bold: true,
             row_height: 42.0,
             // typography
             font_size: 14.0,

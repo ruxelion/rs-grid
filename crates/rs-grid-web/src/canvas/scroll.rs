@@ -421,7 +421,8 @@ impl GridCanvas {
         // Re-hit-test after the scroll so the selection extends to the newly
         // visible row/column.  Extract the result before the `if let` so the
         // immutable borrow is released before dispatch tries a mutable one.
-        let maybe_coord = self.0.state.borrow().hit_test(vx, vy);
+        let hit_y = self.clamp_to_body(vy);
+        let maybe_coord = self.0.state.borrow().hit_test(vx, hit_y);
         if let Some(coord) = maybe_coord {
             self.dispatch(GridCommand::ExtendSelection(coord));
         }

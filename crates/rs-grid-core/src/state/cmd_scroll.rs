@@ -23,7 +23,10 @@ impl GridState {
             }
             GridCommand::Resize { width, height } => {
                 self.viewport.width = width;
-                self.viewport.height = height;
+                self.viewport.canvas_height = height;
+                // `height` is the scrollable body: the canvas minus the
+                // footer, when shown.
+                self.sync_viewport_height();
                 self.model.recalculate_flex_widths(width);
                 self.model.rebuild_offsets();
                 CommandOutput::None
@@ -36,6 +39,15 @@ impl GridState {
     /// is fully visible. Pinned columns are never scrolled horizontally
     /// since they are always on screen. The selection is not modified.
     pub(super) fn reveal_cell(&mut self, row: u64, col: usize) {
+        // With pagination, a row outside the current page can only be
+        // revealed by switching to the page that holds it.
+        if self.model.pagination_enabled {
+            let (start, end) = self.model.page_window();
+            if row < start || row >= end {
+                self.model.page = row / self.model.page_size.max(1);
+                self.viewport.scroll_y = 0.0;
+            }
+        }
         // Vertical: keep the row between the data band and the bottom edge.
         let ry = self.model.row_top(row);
         let cy = ry - self.viewport.scroll_y;

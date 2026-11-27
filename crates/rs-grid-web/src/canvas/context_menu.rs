@@ -137,7 +137,7 @@ fn make_menu_separator(
     sep
 }
 
-fn make_menu_item(
+pub(super) fn make_menu_item(
     doc: &web_sys::Document,
     icon: &str,
     label: &str,
@@ -417,6 +417,12 @@ impl GridCanvas {
             gc.dispatch(GridCommand::SetHoveredRow(None));
 
             let (cx, cy) = gc.canvas_xy(&evt);
+
+            // The footer bar has no context menu of its own, and must not
+            // open the cell menu for the row hidden beneath it.
+            if gc.in_footer_band(cy) {
+                return;
+            }
 
             // Right-click on column header → column menu.
             let col = gc.0.state.borrow().hit_test_col_header(cx, cy);

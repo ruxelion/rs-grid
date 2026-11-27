@@ -82,11 +82,16 @@ impl GridCanvas {
         };
 
         let state = self.0.state.borrow();
-        let (row_start, row_end) = state.viewport.visible_rows(
-            state.model.display_row_count(),
+        // Page-local visible range, shifted to global row indices when
+        // pagination is on (`page_start()` is 0 otherwise).
+        let page_start = state.model.page_start();
+        let (local_start, local_end) = state.viewport.visible_rows(
+            state.model.page_row_count(),
             state.model.row_height,
-            state.model.effective_header_height(),
+            state.model.data_top(),
         );
+        let (row_start, row_end) =
+            (local_start + page_start, local_end + page_start);
         let sort = state.sort.clone();
         let filters = state.model.filters.clone();
         drop(state);

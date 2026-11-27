@@ -8,6 +8,7 @@ mod edit;
 mod events;
 pub mod fetcher;
 mod filter_popup;
+mod footer;
 mod hittest;
 mod keyboard;
 mod quick_filter;
@@ -132,6 +133,12 @@ struct Inner {
     /// Optional callback fired after every command that changes the
     /// active sort (header click, context-menu sort actions).
     on_sort_changed: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Optional callback fired when the current page or the page size
+    /// changes (footer click, `SetPage`/`SetPageSize`, arrow-key
+    /// navigation past a page edge, or a filter that shrank the row set).
+    /// Arguments: (zero-based page, rows per page).
+    #[allow(clippy::type_complexity)]
+    on_page_change: RefCell<Option<Rc<dyn Fn(u64, u64)>>>,
     /// Optional callback fired when a validator rejects a cell edit.
     /// Arguments: (row, col_key, error_message).
     #[allow(clippy::type_complexity)]
@@ -338,6 +345,8 @@ impl GridCanvas {
         state.apply(GridCommand::SetHeaderHeight(theme.header_height));
         state.apply(GridCommand::SetFilterRowHeight(theme.filter_row_height));
         state.apply(GridCommand::SetRowHeight(theme.row_height));
+        state.apply(GridCommand::SetFooterHeight(theme.footer_height));
+        state.apply(GridCommand::SetFooterLabels(locale.footer_labels()));
 
         // Opaque canvas (alpha: false) enables sub-pixel text
         // rendering (ClearType on Windows, LCD on macOS).
@@ -351,9 +360,15 @@ impl GridCanvas {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .expect("cast");
 
+        let mut builder = SceneBuilder::with_theme(dpr, theme);
+        // Real text widths, so the footer bar is laid out exactly.
+        if let Some(measurer) = footer::text_measurer() {
+            builder.set_text_measurer(measurer);
+        }
+
         let inner = Rc::new(Inner {
             state: RefCell::new(state),
-            builder: RefCell::new(SceneBuilder::with_theme(dpr, theme)),
+            builder: RefCell::new(builder),
             renderer: CanvasRenderer::new(ctx),
             canvas,
             drag: RefCell::new(None),
@@ -383,6 +398,7 @@ impl GridCanvas {
             on_selection_changed: RefCell::new(None),
             on_checked_rows_changed: RefCell::new(None),
             on_sort_changed: RefCell::new(None),
+            on_page_change: RefCell::new(None),
             on_validation_error: RefCell::new(None),
             on_validation_state_changed: RefCell::new(None),
             native_validation_tooltip: Cell::new(true),
@@ -560,6 +576,7 @@ impl GridCanvas {
                 theme.filter_row_height,
             ));
             state.apply(GridCommand::SetRowHeight(theme.row_height));
+            state.apply(GridCommand::SetFooterHeight(theme.footer_height));
         }
         self.0.builder.borrow_mut().theme = theme;
         self.render();
@@ -570,7 +587,14 @@ impl GridCanvas {
     /// The new strings take effect the next time the context
     /// menu or search bar is opened.
     pub fn set_locale(&self, locale: Locale) {
+        // The footer is drawn on the canvas by the scene crate, which has
+        // no locale access — hand it the localized templates.
+        self.0
+            .state
+            .borrow_mut()
+            .apply(GridCommand::SetFooterLabels(locale.footer_labels()));
         *self.0.locale.borrow_mut() = locale;
+        self.render();
     }
 
     /// Set the CSS class resolver used for `CellFormat::Styled`.
@@ -716,6 +740,57 @@ impl GridCanvas {
     /// `GridModel.filters` map via `SetColumnFilter`.
     pub fn set_show_filter_row(&self, show: bool) {
         self.dispatch(GridCommand::SetShowFilterRow(show));
+    }
+
+    /// Show or hide the footer bar: total / selected row counts and, with
+    /// [`GridCanvas::set_pagination_enabled`], the rows-per-page selector
+    /// and page navigation. Opt-in, `false` by default. The bar takes its
+    /// height out of the canvas, so the scrollable body shrinks by that
+    /// much.
+    pub fn set_show_footer(&self, show: bool) {
+        self.dispatch(GridCommand::SetShowFooter(show));
+    }
+
+    /// Enable or disable pagination. When enabled, the grid shows only
+    /// the rows of the current page (see [`GridCanvas::set_page_size`])
+    /// and the footer offers page navigation; row indices — selection,
+    /// sort, edits — stay global. Opt-in, `false` by default. Pagination
+    /// controls live in the footer, so also call
+    /// [`GridCanvas::set_show_footer`].
+    pub fn set_pagination_enabled(&self, enabled: bool) {
+        self.dispatch(GridCommand::SetPaginationEnabled(enabled));
+    }
+
+    /// Go to a zero-based page (clamped to the last page). No-op while
+    /// pagination is disabled.
+    pub fn set_page(&self, page: u64) {
+        self.dispatch(GridCommand::SetPage(page));
+    }
+
+    /// Set the number of rows per page (at least 1).
+    pub fn set_page_size(&self, size: u64) {
+        self.dispatch(GridCommand::SetPageSize(size));
+    }
+
+    /// Replace the choices offered by the footer's rows-per-page
+    /// selector (default `[10, 25, 50, 100]`).
+    pub fn set_page_size_options(&self, options: Vec<u64>) {
+        self.dispatch(GridCommand::SetPageSizeOptions(options));
+    }
+
+    /// Current zero-based page (always `0` while pagination is disabled).
+    pub fn current_page(&self) -> u64 {
+        self.0.state.borrow().model.current_page()
+    }
+
+    /// Current number of rows per page.
+    pub fn page_size(&self) -> u64 {
+        self.0.state.borrow().model.page_size
+    }
+
+    /// Number of pages (always `1` while pagination is disabled).
+    pub fn page_count(&self) -> u64 {
+        self.0.state.borrow().model.page_count()
     }
 
     /// Set the row-selection checkbox column's width in logical pixels.

@@ -115,6 +115,58 @@ pub fn theme_to_css_vars(t: &Theme) -> Vec<(&'static str, String)> {
             fmt_px(t.filter_row_input_margin_v),
         ),
         ("--rs-grid-row-height", fmt_px(t.row_height)),
+        // footer
+        ("--rs-grid-footer-height", fmt_px(t.footer_height)),
+        ("--rs-grid-footer-bg", fmt_color(t.footer_bg)),
+        ("--rs-grid-footer-text", fmt_color(t.footer_text)),
+        (
+            "--rs-grid-footer-text-muted",
+            fmt_color(t.footer_text_muted),
+        ),
+        ("--rs-grid-footer-border", fmt_color(t.footer_border)),
+        (
+            "--rs-grid-footer-border-width",
+            fmt_px(t.footer_border_width),
+        ),
+        (
+            "--rs-grid-footer-button-border",
+            fmt_color(t.footer_button_border),
+        ),
+        ("--rs-grid-footer-button-bg", fmt_color(t.footer_button_bg)),
+        (
+            "--rs-grid-footer-button-hover-bg",
+            fmt_color(t.footer_button_hover_bg),
+        ),
+        ("--rs-grid-footer-badge-bg", fmt_color(t.footer_badge_bg)),
+        (
+            "--rs-grid-footer-badge-text",
+            fmt_color(t.footer_badge_text),
+        ),
+        (
+            "--rs-grid-footer-page-active-bg",
+            fmt_color(t.footer_page_active_bg),
+        ),
+        (
+            "--rs-grid-footer-page-active-text",
+            fmt_color(t.footer_page_active_text),
+        ),
+        (
+            "--rs-grid-footer-disabled-text",
+            fmt_color(t.footer_disabled_text),
+        ),
+        (
+            "--rs-grid-footer-button-radius",
+            fmt_px(t.footer_button_radius),
+        ),
+        (
+            "--rs-grid-footer-button-height",
+            fmt_px(t.footer_button_height),
+        ),
+        ("--rs-grid-footer-font-size", fmt_px(t.footer_font_size)),
+        (
+            "--rs-grid-footer-font-bold",
+            fmt_bool(t.footer_font_bold).to_string(),
+        ),
         // typography
         ("--rs-grid-font-size", fmt_px(t.font_size)),
         ("--rs-grid-header-font-size", fmt_px(t.header_font_size)),
@@ -404,6 +456,38 @@ pub fn theme_from_css_vars_with(get: impl Fn(&str) -> Option<String>) -> Theme {
         t.filter_row_input_margin_v,
     );
     t.row_height = px("--rs-grid-row-height", t.row_height);
+    t.footer_height = px("--rs-grid-footer-height", t.footer_height);
+    t.footer_bg = color("--rs-grid-footer-bg", t.footer_bg);
+    t.footer_text = color("--rs-grid-footer-text", t.footer_text);
+    t.footer_text_muted =
+        color("--rs-grid-footer-text-muted", t.footer_text_muted);
+    t.footer_border = color("--rs-grid-footer-border", t.footer_border);
+    t.footer_border_width =
+        px("--rs-grid-footer-border-width", t.footer_border_width);
+    t.footer_button_border =
+        color("--rs-grid-footer-button-border", t.footer_button_border);
+    t.footer_button_bg =
+        color("--rs-grid-footer-button-bg", t.footer_button_bg);
+    t.footer_button_hover_bg =
+        color("--rs-grid-footer-button-hover-bg", t.footer_button_hover_bg);
+    t.footer_badge_bg = color("--rs-grid-footer-badge-bg", t.footer_badge_bg);
+    t.footer_badge_text =
+        color("--rs-grid-footer-badge-text", t.footer_badge_text);
+    t.footer_page_active_bg =
+        color("--rs-grid-footer-page-active-bg", t.footer_page_active_bg);
+    t.footer_page_active_text = color(
+        "--rs-grid-footer-page-active-text",
+        t.footer_page_active_text,
+    );
+    t.footer_disabled_text =
+        color("--rs-grid-footer-disabled-text", t.footer_disabled_text);
+    t.footer_button_radius =
+        px("--rs-grid-footer-button-radius", t.footer_button_radius);
+    t.footer_button_height =
+        px("--rs-grid-footer-button-height", t.footer_button_height);
+    t.footer_font_size = px("--rs-grid-footer-font-size", t.footer_font_size);
+    t.footer_font_bold =
+        boolean("--rs-grid-footer-font-bold", t.footer_font_bold);
     t.font_size = px("--rs-grid-font-size", t.font_size);
     t.header_font_size = px("--rs-grid-header-font-size", t.header_font_size);
     t.header_font_bold =
@@ -692,6 +776,24 @@ mod tests {
             header_height: 17.0,
             filter_row_height: 305.0,
             filter_row_input_margin_v: 306.0,
+            footer_height: 401.0,
+            footer_bg: c(230),
+            footer_text: c(231),
+            footer_text_muted: c(232),
+            footer_border: c(233),
+            footer_border_width: 402.0,
+            footer_button_border: c(234),
+            footer_button_bg: c(239),
+            footer_button_hover_bg: c(240),
+            footer_badge_bg: c(241),
+            footer_badge_text: c(242),
+            footer_page_active_bg: c(236),
+            footer_page_active_text: c(237),
+            footer_disabled_text: c(238),
+            footer_button_radius: 403.0,
+            footer_button_height: 404.0,
+            footer_font_size: 405.0,
+            footer_font_bold: false,
             row_height: 18.0,
             font_size: 19.0,
             header_font_size: 20.0,

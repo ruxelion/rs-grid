@@ -49,6 +49,16 @@ pub struct Locale {
 
     // ── Column filter popup ─────────────────────────────
     pub filter_apply: String,
+
+    // ── Footer bar ──────────────────────────────────────
+    /// Total row count; `{n}` is replaced by the count.
+    pub footer_rows: String,
+    /// Selected row count; `{n}` is replaced by the count.
+    pub footer_selected: String,
+    /// Label in front of the rows-per-page selector.
+    pub footer_rows_per_page: String,
+    /// Visible range; `{from}`, `{to}` and `{total}` are replaced.
+    pub footer_range: String,
 }
 
 impl Default for Locale {
@@ -58,6 +68,22 @@ impl Default for Locale {
 }
 
 impl Locale {
+    /// The footer text templates for the scene layer. Any string left
+    /// empty (e.g. a hand-built `Locale`) falls back to the English
+    /// default instead of rendering a blank label.
+    pub fn footer_labels(&self) -> rs_grid_core::pagination::FooterLabels {
+        let d = rs_grid_core::pagination::FooterLabels::default();
+        let pick = |v: &str, fallback: String| {
+            if v.is_empty() { fallback } else { v.to_owned() }
+        };
+        rs_grid_core::pagination::FooterLabels {
+            rows: pick(&self.footer_rows, d.rows),
+            selected: pick(&self.footer_selected, d.selected),
+            rows_per_page: pick(&self.footer_rows_per_page, d.rows_per_page),
+            range: pick(&self.footer_range, d.range),
+        }
+    }
+
     /// English (default).
     pub fn en() -> Self {
         parse_toml(include_str!("en.toml"))
@@ -198,6 +224,10 @@ fn parse_toml(src: &str) -> Locale {
         shortcut_paste: String::new(),
         search_placeholder: String::new(),
         filter_apply: String::new(),
+        footer_rows: String::new(),
+        footer_selected: String::new(),
+        footer_rows_per_page: String::new(),
+        footer_range: String::new(),
     };
     let mut loc = en;
 
@@ -240,6 +270,10 @@ fn parse_toml(src: &str) -> Locale {
                 loc.search_placeholder = val;
             }
             "filter_apply" => loc.filter_apply = val,
+            "footer_rows" => loc.footer_rows = val,
+            "footer_selected" => loc.footer_selected = val,
+            "footer_rows_per_page" => loc.footer_rows_per_page = val,
+            "footer_range" => loc.footer_range = val,
             _ => {} // unknown keys silently ignored
         }
     }

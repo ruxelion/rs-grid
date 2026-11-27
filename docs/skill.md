@@ -169,6 +169,29 @@ SetShowFilterRow(bool)      // show/hide the floating filter row (AG-Grid-style 
 SetFilterRowHeight(f64)     // height in logical px, ignored if <= 0.0
 ```
 
+#### Footer & pagination
+
+A footer bar at the bottom of the canvas (total / selected row counts, a
+rows-per-page selector and — with pagination — page navigation). Opt-in; the
+footer's height is taken out of the scrollable viewport. Pagination is
+client-side: only the rows of the current page are laid out and hit-tested,
+while row indices (selection, sort, edits) stay global.
+
+```rust
+SetShowFooter(bool)             // show/hide the footer bar
+SetFooterHeight(f64)            // height in logical px, ignored if <= 0.0
+SetFooterLabels(FooterLabels)   // localized text templates ({n}, {from}, {to}, {total})
+SetPaginationEnabled(bool)      // split rows into pages of `page_size`
+SetPage(u64)                    // zero-based page, clamped to the last page; no-op if pagination is off
+SetPageSize(u64)                // rows per page (>= 1); keeps the first visible row on screen
+SetPageSizeOptions(Vec<u64>)    // choices in the rows-per-page selector; zeros dropped, empty ignored
+```
+
+Build-time equivalents: `GridModelBuilder::show_footer(bool)`,
+`.pagination(bool)`, `.page_size(u64)`, `.page_size_options(Vec<u64>)`.
+Page changes reset the vertical scroll offset (like sort/filter) and are not
+undoable. A filter that shrinks the row set clamps the page.
+
 `FilterCondition { op: FilterOp, value: String }`. `FilterOp` variants:
 `Contains`, `NotContains`, `StartsWith`, `EndsWith`, `Equals`, `NotEquals`,
 `Blank`, `NotBlank`, `GreaterThan`, `GreaterThanOrEqual`, `LessThan`,
