@@ -1144,6 +1144,12 @@ impl GridCanvas {
         // too many distinct values to list, in which case Apply leaves
         // `value_filters` for this column untouched (Clear still always
         // clears it — see the Clear closure).
+        //
+        // `checklist_search` is the checklist's own "Search..." input,
+        // kept so it can take focus when the popup opens (AG Grid's Set
+        // Filter focuses its mini-filter on open). Stays `None` in the
+        // too-many-values case, where no checklist is rendered.
+        let mut checklist_search: Option<HtmlInputElement> = None;
         let checklist: Checklist = match unique {
             UniqueValues::TooMany { cap } => {
                 let msg = make_el(&doc, "div");
@@ -1219,6 +1225,28 @@ impl GridCanvas {
                     .append_child(&search)
                     .expect("append search input");
                 menu.append_child(&search_wrap).expect("append search wrap");
+                // Local Escape handler — this input takes focus on open
+                // (see the end of this fn), which moves focus off the
+                // canvas, so the document-level Escape handler's
+                // `has_focus()` gate no-ops. Same pattern as
+                // `value_input`/`tf_row`.
+                {
+                    let cb = Closure::<dyn FnMut(_)>::new(
+                        move |evt: KeyboardEvent| {
+                            if evt.key() == "Escape" {
+                                remove_ctx_menu();
+                            }
+                        },
+                    );
+                    search
+                        .add_event_listener_with_callback(
+                            "keydown",
+                            cb.as_ref().unchecked_ref(),
+                        )
+                        .expect("add search keydown listener");
+                    cb.forget();
+                }
+                checklist_search = Some(search.clone());
 
                 let list = make_el(&doc, "div");
                 set_styles(
@@ -1519,14 +1547,23 @@ impl GridCanvas {
             cb.forget();
         }
 
-        // `value_input` only gets focus once the flyout is actually
-        // opened (see the "Text Filter" row's click handler above) —
-        // it starts hidden inside the collapsed flyout, so focusing it
-        // here would be a no-op. `tf_row` holds focus by default
-        // instead, so something inside the popup always does (its own
-        // local Escape handler above closes the popup, same as
-        // `value_input`'s — see the comment there for why this can't
-        // just rely on the document-level handler).
-        let _ = tf_row.focus();
+        // Initial focus, AG-Grid style: the checklist's "Search..."
+        // input when it exists, so the user can type to narrow the
+        // values right away. Otherwise (too many values, no checklist)
+        // `tf_row` holds focus, so something inside the popup always
+        // does — both carry a local Escape handler (see the comment on
+        // `value_input`'s for why the document-level one can't be
+        // relied on). `value_input` itself only gets focus once the
+        // flyout is actually opened (see the "Text Filter" row's click
+        // handler above) — it starts hidden inside the collapsed
+        // flyout, so focusing it here would be a no-op.
+        match &checklist_search {
+            Some(search) => {
+                let _ = search.focus();
+            }
+            None => {
+                let _ = tf_row.focus();
+            }
+        }
     }
 }
